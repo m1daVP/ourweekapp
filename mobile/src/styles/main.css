@@ -550,3 +550,255 @@ h2 {
 .meeting-actions button:nth-child(2):last-child {
   grid-column: span 2;
 }
+
+.tasks-page h1 {
+  max-width: 11ch;
+}
+
+.task-section,
+.agreement-history {
+  display: grid;
+  gap: 14px;
+}
+
+.task-section__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.task-section__header p,
+.agreement-history p {
+  margin-bottom: 0;
+  color: #687064;
+  font-size: 0.9rem;
+}
+
+.task-list,
+.agreement-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.task-item {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #ebe4d8;
+  padding-top: 14px;
+}
+
+.task-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.task-item__fields {
+  display: grid;
+  gap: 10px;
+}
+
+.task-item__fields label {
+  display: grid;
+  gap: 6px;
+  color: #3e463f;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.task-item__fields input,
+.task-item__fields select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #fffdf9;
+  padding: 10px 12px;
+  color: #221f1b;
+}
+
+.task-item__description,
+.task-item__source {
+  margin-bottom: 0;
+  color: #5b5f58;
+  font-size: 0.9rem;
+}
+
+.task-item__source {
+  color: #687064;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.task-item__actions,
+.meeting-review__actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.task-item__actions button,
+.task-item--compact button,
+.meeting-review__actions button {
+  min-height: 42px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 10px;
+  color: #2c2924;
+  font-weight: 800;
+}
+
+.task-item__actions .task-item__done {
+  border-color: #22312b;
+  background: #22312b;
+  color: #ffffff;
+}
+
+.task-item__actions .task-item__danger {
+  color: #7b2e21;
+}
+
+.task-archive {
+  padding: 0;
+}
+
+.task-archive summary {
+  cursor: pointer;
+  padding: 16px 18px;
+  color: #2c2924;
+  font-weight: 800;
+}
+
+.task-archive .task-list,
+.task-archive .meeting-empty {
+  padding: 0 18px 18px;
+}
+
+.task-list--compact {
+  gap: 10px;
+}
+
+.task-item--compact {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.task-item--compact strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.task-item--compact p {
+  margin-bottom: 0;
+  color: #687064;
+  font-size: 0.86rem;
+}
+
+.agreement-list button {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  border: 0;
+  border-top: 1px solid #ebe4d8;
+  background: transparent;
+  padding: 12px 0 0;
+  color: #2c2924;
+  text-align: left;
+}
+
+.agreement-list li:first-child button {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.agreement-list span {
+  font-weight: 800;
+}
+
+.agreement-list small,
+.meeting-review__eyebrow {
+  color: #687064;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.agreement-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: end center;
+  background: rgba(21, 24, 29, 0.42);
+  padding: 20px;
+}
+
+.agreement-modal__panel {
+  display: grid;
+  width: min(100%, 440px);
+  max-height: calc(100dvh - 40px);
+  gap: 16px;
+  overflow-y: auto;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.agreement-modal__panel h2 {
+  margin-bottom: 0;
+  font-size: 1.25rem;
+}
+
+.agreement-detail-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.agreement-detail-list div {
+  display: grid;
+  gap: 2px;
+}
+
+.agreement-detail-list dt,
+.agreement-related h3 {
+  color: #687064;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.agreement-detail-list dd {
+  margin: 0;
+}
+
+.agreement-related {
+  display: grid;
+  gap: 8px;
+}
+
+.agreement-related ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+  margin: 0;
+}
+
+.meeting-review__eyebrow {
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.meeting-review__list li {
+  grid-template-columns: 1fr;
+}
+
+.meeting-review__actions .meeting-primary {
+  grid-column: span 2;
+  border-color: #22312b;
+  background: #22312b;
+  color: #ffffff;
+}
