@@ -1,0 +1,137 @@
+:root {
+  color: #221f1b;
+  background: #f8f5ee;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-width: 320px;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: #15181d;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  width: min(100vw, 480px);
+  height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #f8f5ee;
+  padding-top: env(safe-area-inset-top);
+}
+
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 28px 20px 24px;
+}
+
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page-kicker {
+  margin: 0 0 10px;
+  color: #687064;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  max-width: 12ch;
+  margin-bottom: 14px;
+  font-size: 2rem;
+  line-height: 1.08;
+}
+
+h2 {
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.page-copy,
+.content-panel p {
+  margin-bottom: 0;
+  color: #5b5f58;
+}
+
+.content-panel {
+  border: 1px solid #dfd8ca;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.app-navigation {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  border-top: 1px solid #ded7ca;
+  background: rgba(255, 252, 246, 0.96);
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+}
+
+.app-navigation__item {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #6a6258;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.app-navigation__item.router-link-active {
+  background: #22312b;
+  color: #ffffff;
+}

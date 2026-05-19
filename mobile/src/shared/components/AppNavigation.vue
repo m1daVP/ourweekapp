@@ -1,0 +1,21 @@
+<script setup lang="ts">
+const navigationItems = [
+  { to: '/', label: 'Home' },
+  { to: '/meeting', label: 'Meeting' },
+  { to: '/tasks', label: 'Tasks' },
+  { to: '/settings', label: 'Settings' },
+]
+</script>
+
+<template>
+  <nav class="app-navigation" aria-label="Primary navigation">
+    <RouterLink
+      v-for="item in navigationItems"
+      :key="item.to"
+      :to="item.to"
+      class="app-navigation__item"
+    >
+      {{ item.label }}
+    </RouterLink>
+  </nav>
+</template>
