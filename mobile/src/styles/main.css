@@ -135,3 +135,141 @@ h2 {
   background: #22312b;
   color: #ffffff;
 }
+
+.feature-summary h2 {
+  margin-bottom: 6px;
+}
+
+.premium-lock {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d7d0c4;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.premium-lock__preview {
+  pointer-events: none;
+  opacity: 0.4;
+  filter: grayscale(0.2);
+}
+
+.premium-lock__preview .content-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.premium-lock__prompt {
+  border-top: 1px solid #e2dbcf;
+}
+
+.upgrade-prompt {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d7d0c4;
+  border-radius: 8px;
+  background: #fffaf1;
+  padding: 16px;
+}
+
+.upgrade-prompt h2,
+.upgrade-prompt p {
+  margin-bottom: 0;
+}
+
+.upgrade-prompt__eyebrow {
+  margin-bottom: 6px;
+  color: #7b5f1f;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.secondary-button,
+.segmented-control__button,
+.role-option {
+  min-height: 42px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #2c2924;
+  font-weight: 800;
+}
+
+.secondary-button {
+  width: 100%;
+  background: #22312b;
+  color: #ffffff;
+}
+
+.settings-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.segmented-control__button,
+.role-option {
+  text-transform: capitalize;
+}
+
+.segmented-control__button.is-active,
+.role-option.is-active {
+  border-color: #22312b;
+  background: #22312b;
+  color: #ffffff;
+}
+
+.role-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.feature-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.feature-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  border-top: 1px solid #ebe4d8;
+  padding-top: 12px;
+}
+
+.feature-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.feature-list p {
+  margin: 4px 0 0;
+  color: #5b5f58;
+  font-size: 0.9rem;
+}
+
+.feature-status {
+  border-radius: 999px;
+  background: #ece5d8;
+  padding: 4px 8px;
+  color: #6a6258;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.feature-status.is-available {
+  background: #dfeadf;
+  color: #23522e;
+}
