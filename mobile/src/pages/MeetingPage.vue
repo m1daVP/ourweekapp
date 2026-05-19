@@ -1,9 +1,11 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useMeetingsStore } from '@/app/stores/meetings'
+import { useTasksStore } from '@/app/stores/tasks'
 import type { MeetingSectionId } from '@/features/meeting/types'
 
 const meetingsStore = useMeetingsStore()
+const tasksStore = useTasksStore()
 
 const noteText = ref('')
 const agreementText = ref('')
@@ -24,20 +26,68 @@ const currentSection = computed(() => {
   const meeting = activeMeeting.value
   return meeting?.sections[meeting.currentSectionIndex] ?? null
 })
-const currentStepNumber = computed(() => (activeMeeting.value?.currentSectionIndex ?? 0) + 1)
+const currentStepNumber = computed(
+  () => (activeMeeting.value?.currentSectionIndex ?? 0) + 1,
+)
 const totalSteps = computed(() => activeMeeting.value?.sections.length ?? 0)
 const progressPercent = computed(() =>
-  totalSteps.value > 0 ? `${(currentStepNumber.value / totalSteps.value) * 100}%` : '0%',
+  totalSteps.value > 0
+    ? `${(currentStepNumber.value / totalSteps.value) * 100}%`
+    : '0%',
 )
-const isFinalSection = computed(() => currentSection.value?.id === 'finalAgreements')
+const isFinalSection = computed(
+  () => currentSection.value?.id === 'finalAgreements',
+)
 const canAddTasks = computed(() =>
-  currentSection.value ? ['tasks', 'familyCare'].includes(currentSection.value.id) : false,
+  currentSection.value
+    ? ['tasks', 'familyCare'].includes(currentSection.value.id)
+    : false,
 )
 const canAddAgreements = computed(() =>
-  currentSection.value ? ['money', 'finalAgreements'].includes(currentSection.value.id) : false,
+  currentSection.value
+    ? ['money', 'finalAgreements'].includes(currentSection.value.id)
+    : false,
 )
 const showNotes = computed(() => currentSection.value?.id !== 'finalAgreements')
 const isCompleted = computed(() => activeMeeting.value?.status === 'completed')
+const previousCompletedMeeting = computed(() => {
+  const currentMeetingId = activeMeeting.value?.id
+
+  return (
+    [...meetingsStore.completedMeetings]
+      .filter((meeting) => meeting.id !== currentMeetingId)
+      .sort(
+        (first, second) =>
+          new Date(second.completedAt ?? second.updatedAt).getTime() -
+          new Date(first.completedAt ?? first.updatedAt).getTime(),
+      )[0] ?? null
+  )
+})
+const previousUnfinishedTasks = computed(() => {
+  const previousMeeting = previousCompletedMeeting.value
+
+  if (!previousMeeting) {
+    return []
+  }
+
+  return tasksStore.tasks.filter(
+    (task) =>
+      task.status === 'open' && task.sourceMeetingId === previousMeeting.id,
+  )
+})
+const showTaskReview = computed(() => {
+  const meeting = activeMeeting.value
+  const previousMeeting = previousCompletedMeeting.value
+
+  return Boolean(
+    meeting &&
+    previousMeeting &&
+    !isCompleted.value &&
+    meeting.currentSectionIndex === 0 &&
+    previousUnfinishedTasks.value.length > 0 &&
+    !tasksStore.wasReviewHandled(meeting.id, previousMeeting.id),
+  )
+})
 
 const allNotes = computed(() =>
   activeMeeting.value
@@ -72,7 +122,10 @@ const allAgreements = computed(() =>
     : [],
 )
 const hasMeetingContent = computed(
-  () => allNotes.value.length > 0 || allTasks.value.length > 0 || allAgreements.value.length > 0,
+  () =>
+    allNotes.value.length > 0 ||
+    allTasks.value.length > 0 ||
+    allAgreements.value.length > 0,
 )
 
 const neutralHint = computed(() => {
@@ -90,6 +143,7 @@ const neutralHint = computed(() => {
 
 onMounted(() => {
   const meeting = meetingsStore.ensureActiveMeeting()
+  tasksStore.syncFromMeetings(meetingsStore.meetings)
   selectedParticipantId.value = meeting.participants[0]?.id ?? ''
   taskDraft.responsiblePersonId = selectedParticipantId.value
 })
@@ -122,7 +176,36 @@ watch(
 )
 
 function getParticipantName(participantId: string) {
-  return activeMeeting.value?.participants.find((participant) => participant.id === participantId)?.name ?? 'Someone'
+  return (
+    activeMeeting.value?.participants.find(
+      (participant) => participant.id === participantId,
+    )?.name ?? 'Someone'
+  )
+}
+
+function getPersonName(participantId: string) {
+  for (const meeting of meetingsStore.meetings) {
+    const participant = meeting.participants.find(
+      (item) => item.id === participantId,
+    )
+
+    if (participant) {
+      return participant.name
+    }
+  }
+
+  return 'Someone'
+}
+
+function formatMeetingDate(value?: string) {
+  if (!value) {
+    return 'Recent meeting'
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value))
 }
 
 function notePlaceholder(sectionId: MeetingSectionId) {
@@ -148,7 +231,10 @@ function resetTaskForm() {
   taskDraft.title = ''
   taskDraft.description = ''
   taskDraft.dueDate = ''
-  taskDraft.responsiblePersonId = selectedParticipantId.value || activeMeeting.value?.participants[0]?.id || ''
+  taskDraft.responsiblePersonId =
+    selectedParticipantId.value ||
+    activeMeeting.value?.participants[0]?.id ||
+    ''
 }
 
 function addParticipant() {
@@ -174,7 +260,11 @@ function addNote() {
   }
 
   clearMessages()
-  const error = meetingsStore.addNote(section.id, selectedParticipantId.value, noteText.value)
+  const error = meetingsStore.addNote(
+    section.id,
+    selectedParticipantId.value,
+    noteText.value,
+  )
 
   if (error) {
     formError.value = error
@@ -223,8 +313,45 @@ function addAgreement() {
   statusMessage.value = 'Agreement added.'
 }
 
-function toggleTask(taskId: string, status: 'open' | 'done') {
+function toggleTask(taskId: string, status: 'open' | 'done' | 'skipped') {
   meetingsStore.updateTaskStatus(taskId, status === 'open' ? 'done' : 'open')
+}
+
+function handleUnfinishedTasks(action: 'keep' | 'done' | 'skipped' | 'move') {
+  const meeting = activeMeeting.value
+  const previousMeeting = previousCompletedMeeting.value
+
+  if (!meeting || !previousMeeting) {
+    return
+  }
+
+  clearMessages()
+
+  if (action === 'keep') {
+    statusMessage.value = 'Kept for now.'
+  }
+
+  if (action === 'done' || action === 'skipped') {
+    tasksStore.updateTasksFromMeeting(previousMeeting.id, action)
+    meetingsStore.updateTasksFromMeeting(previousMeeting.id, action)
+    statusMessage.value =
+      action === 'done' ? 'Marked as done.' : 'Skipped for now.'
+  }
+
+  if (action === 'move') {
+    const movedTasks = tasksStore.moveOpenTasksToMeeting(
+      previousMeeting.id,
+      meeting.id,
+    )
+    meetingsStore.addMovedTasksToMeeting(
+      previousMeeting.id,
+      meeting.id,
+      movedTasks,
+    )
+    statusMessage.value = 'Moved to this week.'
+  }
+
+  tasksStore.markReviewHandled(meeting.id, previousMeeting.id)
 }
 
 function goBack() {
@@ -267,6 +394,7 @@ function finishMeeting() {
 
 function startNewMeeting() {
   const meeting = meetingsStore.startNewMeeting()
+  tasksStore.syncFromMeetings(meetingsStore.meetings)
   selectedParticipantId.value = meeting.participants[0]?.id ?? ''
   resetTaskForm()
   clearMessages()
@@ -282,7 +410,12 @@ function startNewMeeting() {
           <h1>{{ currentSection.title }}</h1>
           <p class="meeting-prompt">{{ currentSection.prompt }}</p>
         </div>
-        <button v-if="!isCompleted" class="meeting-save" type="button" @click="saveDraft">
+        <button
+          v-if="!isCompleted"
+          class="meeting-save"
+          type="button"
+          @click="saveDraft"
+        >
           Save draft
         </button>
       </div>
@@ -293,12 +426,68 @@ function startNewMeeting() {
           <span>{{ Math.round((currentStepNumber / totalSteps) * 100) }}%</span>
         </div>
         <div class="meeting-progress__track">
-          <div class="meeting-progress__bar" :style="{ width: progressPercent }" />
+          <div
+            class="meeting-progress__bar"
+            :style="{ width: progressPercent }"
+          />
         </div>
       </div>
     </header>
 
-    <section class="meeting-panel meeting-people" aria-labelledby="meeting-people-title">
+    <section
+      v-if="showTaskReview"
+      class="meeting-panel meeting-review"
+      aria-labelledby="task-review-title"
+    >
+      <div>
+        <p class="meeting-review__eyebrow">
+          From {{ previousCompletedMeeting?.title }} -
+          {{
+            formatMeetingDate(
+              previousCompletedMeeting?.completedAt ??
+                previousCompletedMeeting?.updatedAt,
+            )
+          }}
+        </p>
+        <h2 id="task-review-title">What should we do with unfinished tasks?</h2>
+      </div>
+
+      <ul class="meeting-list meeting-review__list">
+        <li v-for="task in previousUnfinishedTasks" :key="task.id">
+          <div>
+            <span>{{ getPersonName(task.responsiblePersonId) }}</span>
+            <p>{{ task.title }}</p>
+            <small v-if="task.dueDate"
+              >Still relevant? {{ task.dueDate }}</small
+            >
+          </div>
+        </li>
+      </ul>
+
+      <div class="meeting-review__actions" aria-label="Unfinished task choices">
+        <button type="button" @click="handleUnfinishedTasks('keep')">
+          Keep
+        </button>
+        <button type="button" @click="handleUnfinishedTasks('done')">
+          Mark done
+        </button>
+        <button type="button" @click="handleUnfinishedTasks('skipped')">
+          Skip
+        </button>
+        <button
+          type="button"
+          class="meeting-primary"
+          @click="handleUnfinishedTasks('move')"
+        >
+          Move to this week
+        </button>
+      </div>
+    </section>
+
+    <section
+      class="meeting-panel meeting-people"
+      aria-labelledby="meeting-people-title"
+    >
       <h2 id="meeting-people-title">People here</h2>
       <div class="meeting-chip-row">
         <span
@@ -311,12 +500,21 @@ function startNewMeeting() {
       </div>
       <form class="meeting-inline-form" @submit.prevent="addParticipant">
         <label class="sr-only" for="participant-name">Add person</label>
-        <input id="participant-name" v-model="participantName" type="text" placeholder="Add person" />
+        <input
+          id="participant-name"
+          v-model="participantName"
+          type="text"
+          placeholder="Add person"
+        />
         <button type="submit">Add</button>
       </form>
     </section>
 
-    <section v-if="showNotes" class="meeting-panel" aria-labelledby="meeting-notes-title">
+    <section
+      v-if="showNotes"
+      class="meeting-panel"
+      aria-labelledby="meeting-notes-title"
+    >
       <h2 id="meeting-notes-title">Notes</h2>
       <label class="meeting-label" for="note-person">Who is adding this?</label>
       <select id="note-person" v-model="selectedParticipantId">
@@ -337,7 +535,9 @@ function startNewMeeting() {
         :placeholder="notePlaceholder(currentSection.id)"
       />
       <p v-if="neutralHint" class="meeting-help">{{ neutralHint }}</p>
-      <button class="meeting-primary" type="button" @click="addNote">Add note</button>
+      <button class="meeting-primary" type="button" @click="addNote">
+        Add note
+      </button>
 
       <ul v-if="currentSection.notes.length" class="meeting-list">
         <li v-for="note in currentSection.notes" :key="note.id">
@@ -348,12 +548,23 @@ function startNewMeeting() {
       <p v-else class="meeting-empty">No notes yet.</p>
     </section>
 
-    <section v-if="canAddTasks" class="meeting-panel" aria-labelledby="meeting-tasks-title">
+    <section
+      v-if="canAddTasks"
+      class="meeting-panel"
+      aria-labelledby="meeting-tasks-title"
+    >
       <h2 id="meeting-tasks-title">Tasks</h2>
       <label class="meeting-label" for="task-title">Task title</label>
-      <input id="task-title" v-model="taskDraft.title" type="text" placeholder="What needs care?" />
+      <input
+        id="task-title"
+        v-model="taskDraft.title"
+        type="text"
+        placeholder="What needs care?"
+      />
 
-      <label class="meeting-label" for="task-description">Optional detail</label>
+      <label class="meeting-label" for="task-description"
+        >Optional detail</label
+      >
       <textarea
         id="task-description"
         v-model="taskDraft.description"
@@ -361,7 +572,9 @@ function startNewMeeting() {
         placeholder="Anything that would make this easier?"
       />
 
-      <label class="meeting-label" for="task-person">Who will take care of it?</label>
+      <label class="meeting-label" for="task-person"
+        >Who will take care of it?</label
+      >
       <select id="task-person" v-model="taskDraft.responsiblePersonId">
         <option value="">Choose a person</option>
         <option
@@ -375,9 +588,14 @@ function startNewMeeting() {
 
       <label class="meeting-label" for="task-due-date">Due date</label>
       <input id="task-due-date" v-model="taskDraft.dueDate" type="date" />
-      <button class="meeting-primary" type="button" @click="addTask">Add task</button>
+      <button class="meeting-primary" type="button" @click="addTask">
+        Add task
+      </button>
 
-      <ul v-if="currentSection.tasks.length" class="meeting-list meeting-task-list">
+      <ul
+        v-if="currentSection.tasks.length"
+        class="meeting-list meeting-task-list"
+      >
         <li v-for="task in currentSection.tasks" :key="task.id">
           <div>
             <span>{{ getParticipantName(task.responsiblePersonId) }}</span>
@@ -393,16 +611,24 @@ function startNewMeeting() {
       <p v-else class="meeting-empty">No tasks yet.</p>
     </section>
 
-    <section v-if="canAddAgreements" class="meeting-panel" aria-labelledby="meeting-agreements-title">
+    <section
+      v-if="canAddAgreements"
+      class="meeting-panel"
+      aria-labelledby="meeting-agreements-title"
+    >
       <h2 id="meeting-agreements-title">Agreements</h2>
-      <label class="meeting-label" for="agreement-text">Decision or agreement</label>
+      <label class="meeting-label" for="agreement-text"
+        >Decision or agreement</label
+      >
       <textarea
         id="agreement-text"
         v-model="agreementText"
         rows="3"
         placeholder="What did we agree to?"
       />
-      <button class="meeting-primary" type="button" @click="addAgreement">Add agreement</button>
+      <button class="meeting-primary" type="button" @click="addAgreement">
+        Add agreement
+      </button>
 
       <ul v-if="currentSection.agreements.length" class="meeting-list">
         <li v-for="agreement in currentSection.agreements" :key="agreement.id">
@@ -413,7 +639,11 @@ function startNewMeeting() {
       <p v-else class="meeting-empty">No agreements yet.</p>
     </section>
 
-    <section v-if="isFinalSection" class="meeting-panel meeting-summary" aria-labelledby="meeting-summary-title">
+    <section
+      v-if="isFinalSection"
+      class="meeting-panel meeting-summary"
+      aria-labelledby="meeting-summary-title"
+    >
       <h2 id="meeting-summary-title">Review together</h2>
       <p class="meeting-summary__intro">
         Look over the notes, tasks, and agreements before finishing.
@@ -462,22 +692,45 @@ function startNewMeeting() {
       <p v-if="!hasMeetingContent" class="meeting-help">
         Add at least one note, task, or agreement before finishing.
       </p>
-      <p v-if="isCompleted" class="meeting-complete">This meeting is finished.</p>
+      <p v-if="isCompleted" class="meeting-complete">
+        This meeting is finished.
+      </p>
     </section>
 
     <p v-if="formError" class="meeting-error" role="alert">{{ formError }}</p>
-    <p v-if="statusMessage" class="meeting-status" role="status">{{ statusMessage }}</p>
+    <p v-if="statusMessage" class="meeting-status" role="status">
+      {{ statusMessage }}
+    </p>
 
     <footer class="meeting-actions">
-      <button type="button" :disabled="currentStepNumber === 1" @click="goBack">Back</button>
-      <button v-if="!isCompleted" type="button" @click="saveDraft">Save draft</button>
-      <button v-if="!isFinalSection && !isCompleted" class="meeting-primary" type="button" @click="goNext">
+      <button type="button" :disabled="currentStepNumber === 1" @click="goBack">
+        Back
+      </button>
+      <button v-if="!isCompleted" type="button" @click="saveDraft">
+        Save draft
+      </button>
+      <button
+        v-if="!isFinalSection && !isCompleted"
+        class="meeting-primary"
+        type="button"
+        @click="goNext"
+      >
         Next
       </button>
-      <button v-else-if="!isCompleted" class="meeting-primary" type="button" @click="finishMeeting">
+      <button
+        v-else-if="!isCompleted"
+        class="meeting-primary"
+        type="button"
+        @click="finishMeeting"
+      >
         Finish
       </button>
-      <button v-else class="meeting-primary" type="button" @click="startNewMeeting">
+      <button
+        v-else
+        class="meeting-primary"
+        type="button"
+        @click="startNewMeeting"
+      >
         New meeting
       </button>
     </footer>

@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia'
+import { useTasksStore } from '@/app/stores/tasks'
+import type { Task } from '@/features/tasks/types'
 import type {
   Agreement,
   Meeting,
@@ -25,43 +27,52 @@ interface AddTaskPayload {
   dueDate?: string
 }
 
-const sectionTemplates: Array<Pick<MeetingSection, 'id' | 'title' | 'prompt'>> = [
-  {
-    id: 'goodThings',
-    title: 'Good things this week',
-    prompt: 'What went well this week?',
-  },
-  {
-    id: 'tensions',
-    title: 'Tensions / problems',
-    prompt: 'What felt stressful, unfair, or chaotic?',
-  },
-  {
-    id: 'tasks',
-    title: 'Tasks and responsibilities',
-    prompt: 'What needs to be done this week?',
-  },
-  {
-    id: 'money',
-    title: 'Purchases / money',
-    prompt: 'What do we need to buy or discuss financially?',
-  },
-  {
-    id: 'familyCare',
-    title: 'Kids / family care',
-    prompt: 'Anything important about kids, school, health, routines, or family care?',
-  },
-  {
-    id: 'plans',
-    title: 'Plans',
-    prompt: 'What is coming next week?',
-  },
-  {
-    id: 'finalAgreements',
-    title: 'Final agreements',
-    prompt: 'Review what was decided and finish when it feels complete.',
-  },
-]
+interface UpdateTaskPayload {
+  title?: string
+  description?: string
+  responsiblePersonId?: string
+  dueDate?: string
+}
+
+const sectionTemplates: Array<Pick<MeetingSection, 'id' | 'title' | 'prompt'>> =
+  [
+    {
+      id: 'goodThings',
+      title: 'Good things this week',
+      prompt: 'What went well this week?',
+    },
+    {
+      id: 'tensions',
+      title: 'Tensions / problems',
+      prompt: 'What felt stressful, unfair, or chaotic?',
+    },
+    {
+      id: 'tasks',
+      title: 'Tasks and responsibilities',
+      prompt: 'What needs to be done this week?',
+    },
+    {
+      id: 'money',
+      title: 'Purchases / money',
+      prompt: 'What do we need to buy or discuss financially?',
+    },
+    {
+      id: 'familyCare',
+      title: 'Kids / family care',
+      prompt:
+        'Anything important about kids, school, health, routines, or family care?',
+    },
+    {
+      id: 'plans',
+      title: 'Plans',
+      prompt: 'What is coming next week?',
+    },
+    {
+      id: 'finalAgreements',
+      title: 'Final agreements',
+      prompt: 'Review what was decided and finish when it feels complete.',
+    },
+  ]
 
 function createId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -84,17 +95,23 @@ function createSections(): MeetingSection[] {
   }))
 }
 
-function createDefaultMeeting(): Meeting {
+function createDefaultParticipants(): Participant[] {
+  return [
+    { id: createId('person'), name: 'You' },
+    { id: createId('person'), name: 'Partner' },
+  ]
+}
+
+function createDefaultMeeting(participants?: Participant[]): Meeting {
   const createdAt = nowIso()
 
   return {
     id: createId('meeting'),
     title: 'Weekly meeting',
     status: 'in_progress',
-    participants: [
-      { id: createId('person'), name: 'You' },
-      { id: createId('person'), name: 'Partner' },
-    ],
+    participants: participants?.length
+      ? participants.map((participant) => ({ ...participant }))
+      : createDefaultParticipants(),
     sections: createSections(),
     currentSectionIndex: 0,
     createdAt,
@@ -130,10 +147,26 @@ function findSection(meeting: Meeting, sectionId: MeetingSectionId) {
   return meeting.sections.find((section) => section.id === sectionId)
 }
 
+function findTask(meetings: Meeting[], taskId: string) {
+  for (const meeting of meetings) {
+    for (const section of meeting.sections) {
+      const task = section.tasks.find((item) => item.id === taskId)
+
+      if (task) {
+        return { meeting, task }
+      }
+    }
+  }
+
+  return null
+}
+
 function meetingHasContent(meeting: Meeting) {
   return meeting.sections.some(
     (section) =>
-      section.notes.length > 0 || section.tasks.length > 0 || section.agreements.length > 0,
+      section.notes.length > 0 ||
+      section.tasks.length > 0 ||
+      section.agreements.length > 0,
   )
 }
 
@@ -141,7 +174,8 @@ export const useMeetingsStore = defineStore('meetings', {
   state: (): MeetingsState => getStoredState(),
   getters: {
     activeMeeting: (state) =>
-      state.meetings.find((meeting) => meeting.id === state.activeMeetingId) ?? null,
+      state.meetings.find((meeting) => meeting.id === state.activeMeetingId) ??
+      null,
     completedMeetings: (state) =>
       state.meetings.filter((meeting) => meeting.status === 'completed'),
   },
@@ -167,7 +201,9 @@ export const useMeetingsStore = defineStore('meetings', {
         return activeMeeting
       }
 
-      const existingDraft = this.meetings.find((meeting) => meeting.status !== 'completed')
+      const existingDraft = this.meetings.find(
+        (meeting) => meeting.status !== 'completed',
+      )
 
       if (existingDraft) {
         this.activeMeetingId = existingDraft.id
@@ -175,14 +211,14 @@ export const useMeetingsStore = defineStore('meetings', {
         return existingDraft
       }
 
-      const meeting = createDefaultMeeting()
+      const meeting = createDefaultMeeting(this.meetings[0]?.participants)
       this.meetings.unshift(meeting)
       this.activeMeetingId = meeting.id
       this.persist()
       return meeting
     },
     startNewMeeting() {
-      const meeting = createDefaultMeeting()
+      const meeting = createDefaultMeeting(this.meetings[0]?.participants)
       this.meetings.unshift(meeting)
       this.activeMeetingId = meeting.id
       this.draftSavedAt = null
@@ -196,7 +232,10 @@ export const useMeetingsStore = defineStore('meetings', {
         return
       }
 
-      meeting.currentSectionIndex = Math.min(Math.max(index, 0), meeting.sections.length - 1)
+      meeting.currentSectionIndex = Math.min(
+        Math.max(index, 0),
+        meeting.sections.length - 1,
+      )
       meeting.status = 'in_progress'
       meeting.updatedAt = nowIso()
       this.persist()
@@ -219,7 +258,11 @@ export const useMeetingsStore = defineStore('meetings', {
       this.persist()
       return participant
     },
-    addNote(sectionId: MeetingSectionId, participantId: string, text: string): string | null {
+    addNote(
+      sectionId: MeetingSectionId,
+      participantId: string,
+      text: string,
+    ): string | null {
       const meeting = this.activeMeeting
       const section = meeting ? findSection(meeting, sectionId) : undefined
       const trimmedText = text.trim()
@@ -232,7 +275,11 @@ export const useMeetingsStore = defineStore('meetings', {
         return 'Add a short note first.'
       }
 
-      if (!meeting.participants.some((participant) => participant.id === participantId)) {
+      if (
+        !meeting.participants.some(
+          (participant) => participant.id === participantId,
+        )
+      ) {
         return 'Choose who is adding this note.'
       }
 
@@ -249,7 +296,10 @@ export const useMeetingsStore = defineStore('meetings', {
       this.persist()
       return null
     },
-    addTask(sectionId: MeetingSectionId, payload: AddTaskPayload): string | null {
+    addTask(
+      sectionId: MeetingSectionId,
+      payload: AddTaskPayload,
+    ): string | null {
       const meeting = this.activeMeeting
       const section = meeting ? findSection(meeting, sectionId) : undefined
       const title = payload.title.trim()
@@ -276,6 +326,7 @@ export const useMeetingsStore = defineStore('meetings', {
         return 'Choose someone from this meeting.'
       }
 
+      const createdAt = nowIso()
       const task: MeetingTask = {
         id: createId('task'),
         sectionId,
@@ -284,33 +335,170 @@ export const useMeetingsStore = defineStore('meetings', {
         responsiblePersonId: payload.responsiblePersonId,
         dueDate: dueDate || undefined,
         status: 'open',
-        createdAt: nowIso(),
+        createdAt,
+        updatedAt: createdAt,
       }
 
       section.tasks.push(task)
-      meeting.updatedAt = nowIso()
+      meeting.updatedAt = createdAt
+      useTasksStore().addTask({ ...task, sourceMeetingId: meeting.id })
       this.persist()
       return null
     },
     updateTaskStatus(taskId: string, status: MeetingTaskStatus) {
-      const meeting = this.activeMeeting
+      const found = findTask(this.meetings, taskId)
+
+      if (!found) {
+        return
+      }
+
+      const updatedAt = nowIso()
+      found.task.status = status
+      found.task.updatedAt = updatedAt
+      found.task.completedAt = status === 'done' ? updatedAt : undefined
+      found.meeting.updatedAt = updatedAt
+      useTasksStore().updateTaskStatus(taskId, status)
+      this.persist()
+    },
+    updateTaskDetails(taskId: string, payload: UpdateTaskPayload) {
+      const found = findTask(this.meetings, taskId)
+
+      if (!found) {
+        return
+      }
+
+      const title = payload.title?.trim()
+      const description = payload.description?.trim()
+      const dueDate = payload.dueDate?.trim()
+
+      if (title !== undefined) {
+        if (!title) {
+          return
+        }
+
+        found.task.title = title
+      }
+
+      if (payload.description !== undefined) {
+        found.task.description = description || undefined
+      }
+
+      if (payload.responsiblePersonId !== undefined) {
+        found.task.responsiblePersonId = payload.responsiblePersonId
+      }
+
+      if (payload.dueDate !== undefined) {
+        found.task.dueDate = dueDate || undefined
+      }
+
+      const updatedAt = nowIso()
+      found.task.updatedAt = updatedAt
+      found.meeting.updatedAt = updatedAt
+      this.persist()
+    },
+    updateTasksFromMeeting(sourceMeetingId: string, status: MeetingTaskStatus) {
+      const meeting = this.meetings.find((item) => item.id === sourceMeetingId)
 
       if (!meeting) {
         return
       }
 
-      const task = meeting.sections
-        .flatMap((section) => section.tasks)
-        .find((item) => item.id === taskId)
+      const updatedAt = nowIso()
+      let changed = false
 
-      if (!task) {
+      for (const task of meeting.sections.flatMap((section) => section.tasks)) {
+        if (task.status !== 'open') {
+          continue
+        }
+
+        task.status = status
+        task.updatedAt = updatedAt
+        task.completedAt = status === 'done' ? updatedAt : undefined
+        changed = true
+      }
+
+      if (changed) {
+        meeting.updatedAt = updatedAt
+        this.persist()
+      }
+    },
+    addMovedTasksToMeeting(
+      sourceMeetingId: string,
+      targetMeetingId: string,
+      movedTasks: Task[],
+    ) {
+      const sourceMeeting = this.meetings.find(
+        (meeting) => meeting.id === sourceMeetingId,
+      )
+      const targetMeeting = this.meetings.find(
+        (meeting) => meeting.id === targetMeetingId,
+      )
+      const targetSection = targetMeeting
+        ? findSection(targetMeeting, 'tasks')
+        : undefined
+
+      if (
+        !sourceMeeting ||
+        !targetMeeting ||
+        !targetSection ||
+        !movedTasks.length
+      ) {
         return
       }
 
-      task.status = status
-      task.completedAt = status === 'done' ? nowIso() : undefined
-      meeting.updatedAt = nowIso()
+      const updatedAt = nowIso()
+      const movedTaskIds = new Set(movedTasks.map((task) => task.id))
+
+      for (const task of sourceMeeting.sections.flatMap(
+        (section) => section.tasks,
+      )) {
+        if (task.status === 'open') {
+          task.status = 'skipped'
+          task.updatedAt = updatedAt
+        }
+      }
+
+      for (const task of movedTasks) {
+        if (
+          movedTaskIds.has(task.id) &&
+          !targetSection.tasks.some((item) => item.id === task.id)
+        ) {
+          targetSection.tasks.push({
+            id: task.id,
+            sectionId: 'tasks',
+            title: task.title,
+            description: task.description,
+            responsiblePersonId: task.responsiblePersonId,
+            dueDate: task.dueDate,
+            status: task.status,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+          })
+        }
+      }
+
+      sourceMeeting.updatedAt = updatedAt
+      targetMeeting.updatedAt = updatedAt
       this.persist()
+    },
+    deleteTask(taskId: string) {
+      let changed = false
+
+      for (const meeting of this.meetings) {
+        for (const section of meeting.sections) {
+          const nextTasks = section.tasks.filter((task) => task.id !== taskId)
+
+          if (nextTasks.length !== section.tasks.length) {
+            section.tasks = nextTasks
+            meeting.updatedAt = nowIso()
+            changed = true
+          }
+        }
+      }
+
+      if (changed) {
+        this.persist()
+      }
     },
     addAgreement(sectionId: MeetingSectionId, text: string): string | null {
       const meeting = this.activeMeeting
@@ -325,15 +513,27 @@ export const useMeetingsStore = defineStore('meetings', {
         return 'Add the agreement first.'
       }
 
+      const createdAt = nowIso()
       const agreement: Agreement = {
         id: createId('agreement'),
         sectionId,
         text: trimmedText,
-        createdAt: nowIso(),
+        createdAt,
       }
 
       section.agreements.push(agreement)
-      meeting.updatedAt = nowIso()
+      meeting.updatedAt = createdAt
+      useTasksStore().addAgreement({
+        id: agreement.id,
+        title: trimmedText,
+        participants: meeting.participants.map((participant) => participant.id),
+        relatedTaskIds: meeting.sections.flatMap((item) =>
+          item.tasks.map((task) => task.id),
+        ),
+        sourceMeetingId: meeting.id,
+        createdAt,
+        updatedAt: createdAt,
+      })
       this.persist()
       return null
     },
