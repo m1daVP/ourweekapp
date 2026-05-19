@@ -1,6 +1,6 @@
 export type MeetingStatus = 'draft' | 'in_progress' | 'completed'
 
-export type MeetingTaskStatus = 'open' | 'done'
+export type MeetingTaskStatus = 'open' | 'done' | 'skipped'
 
 export type MeetingSectionId =
   | 'goodThings'
@@ -33,6 +33,7 @@ export interface MeetingTask {
   dueDate?: string
   status: MeetingTaskStatus
   createdAt: string
+  updatedAt: string
   completedAt?: string
 }
 
