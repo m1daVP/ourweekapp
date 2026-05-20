@@ -2,6 +2,7 @@
 const navigationItems = [
   { to: '/', label: 'Home' },
   { to: '/meeting', label: 'Meeting' },
+  { to: '/history', label: 'History' },
   { to: '/tasks', label: 'Tasks' },
   { to: '/settings', label: 'Settings' },
 ]

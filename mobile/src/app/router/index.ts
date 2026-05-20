@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { featureAccessConfig } from '@/features/access/featureAccess.config'
 import { useUserAccessStore } from '@/app/stores/userAccess'
 import HomePage from '@/pages/HomePage.vue'
+import HistoryPage from '@/pages/HistoryPage.vue'
+import MeetingDetailsPage from '@/pages/MeetingDetailsPage.vue'
 import MeetingPage from '@/pages/MeetingPage.vue'
 import SettingsPage from '@/pages/SettingsPage.vue'
 import TasksPage from '@/pages/TasksPage.vue'
@@ -18,6 +20,18 @@ export const router = createRouter({
       path: '/meeting',
       name: 'meeting',
       component: MeetingPage,
+    },
+    {
+      path: '/history',
+      name: 'history',
+      component: HistoryPage,
+      meta: { requiresFeature: 'limitedHistory' },
+    },
+    {
+      path: '/history/:meetingId',
+      name: 'meeting-details',
+      component: MeetingDetailsPage,
+      meta: { requiresFeature: 'limitedHistory' },
     },
     {
       path: '/tasks',
