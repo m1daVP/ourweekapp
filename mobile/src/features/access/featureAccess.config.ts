@@ -36,7 +36,8 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     key: 'localReminders',
     label: 'Local reminders',
     description: 'Use simple device reminders when supported locally.',
-    plans: ['free', 'premium'],
+    plans: ['premium'],
+    lockedReason: 'Upgrade to schedule local reminders on this device.',
   },
   unlimitedHistory: {
     key: 'unlimitedHistory',
@@ -100,3 +101,4 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
 export const premiumFeatureKeys = Object.values(featureAccessConfig)
   .filter((feature) => feature.plans.length === 1 && feature.plans.includes('premium'))
   .map((feature) => feature.key)
+
