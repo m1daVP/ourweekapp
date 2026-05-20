@@ -6,22 +6,38 @@ import {
   participantColors,
   useParticipantsStore,
 } from '@/app/stores/participants'
+import { reminderDayOptions, useRemindersStore } from '@/app/stores/reminders'
 import { useTasksStore } from '@/app/stores/tasks'
 import {
   featureAccessConfig,
   premiumFeatureKeys,
 } from '@/features/access/featureAccess.config'
 import type { FeatureKey, PlanType, UserRole } from '@/features/access/types'
+import type { ReminderDay } from '@/features/reminders/types'
 import type { ParticipantType } from '@/features/participants/types'
+import PremiumLock from '@/shared/components/PremiumLock.vue'
 import UpgradePrompt from '@/shared/components/UpgradePrompt.vue'
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess'
+import { useNotifications } from '@/shared/composables/useNotifications'
 
 const route = useRoute()
 const { planType, userRole, canUseFeature, setMockPlan, setMockRole } =
   useFeatureAccess()
 const participantsStore = useParticipantsStore()
+const remindersStore = useRemindersStore()
 const tasksStore = useTasksStore()
 const meetingsStore = useMeetingsStore()
+const {
+  disableReminders,
+  enableReminders,
+  isAvailable: notificationsAvailable,
+  lastError: notificationError,
+  lastReminderResult,
+  permissionStatus,
+  syncPermissionStatus,
+} = useNotifications()
+
+void syncPermissionStatus()
 
 participantsStore.ensureDefaultParticipants()
 
@@ -32,6 +48,7 @@ const roleOptions: Array<{ label: string; value: UserRole }> = [
   { label: 'Viewer', value: 'viewer' },
   { label: 'Child profile', value: 'childProfile' },
 ]
+const timeInputStep = 300
 const typeOptions: Array<{ label: string; value: ParticipantType }> = [
   { label: 'Adult', value: 'adult' },
   { label: 'Child', value: 'child' },
@@ -58,6 +75,31 @@ const editDrafts = reactive<
 const participantMessage = reactive({
   text: '',
   tone: 'status' as 'status' | 'error',
+})
+
+const canUseReminders = computed(() => canUseFeature('agreementReminders'))
+const reminderStatusText = computed(() => {
+  if (!canUseReminders.value) {
+    return 'Reminder settings are available with Premium.'
+  }
+
+  if (!remindersStore.settings.enabled) {
+    return 'Reminders are off.'
+  }
+
+  if (!notificationsAvailable.value) {
+    return 'Local notifications are available in the Android app. Web dev mode keeps these settings without scheduling notifications.'
+  }
+
+  if (permissionStatus.value === 'denied') {
+    return 'Notifications are blocked in system settings.'
+  }
+
+  if (lastReminderResult.value?.scheduled) {
+    return 'Reminders are scheduled on this device.'
+  }
+
+  return 'Reminders are saved and will be scheduled when notifications are available.'
 })
 
 const lockedFeature = computed(() => {
@@ -104,6 +146,47 @@ function syncEditDrafts() {
       delete editDrafts[participantId]
     }
   }
+}
+
+function toReminderDay(value: string) {
+  return reminderDayOptions.some((option) => option.value === value)
+    ? (value as ReminderDay)
+    : 'sunday'
+}
+
+async function handleReminderEnabledChange(event: Event) {
+  const enabled = (event.target as HTMLInputElement).checked
+
+  if (enabled) {
+    await enableReminders()
+    return
+  }
+
+  await disableReminders()
+}
+
+function updateWeeklyMeetingReminderDay(event: Event) {
+  remindersStore.updateWeeklyMeetingReminder({
+    day: toReminderDay((event.target as HTMLSelectElement).value),
+  })
+}
+
+function updateWeeklyMeetingReminderTime(event: Event) {
+  remindersStore.updateWeeklyMeetingReminder({
+    time: (event.target as HTMLInputElement).value,
+  })
+}
+
+function updateUnfinishedTaskReminderDay(event: Event) {
+  remindersStore.updateUnfinishedTaskReminder({
+    day: toReminderDay((event.target as HTMLSelectElement).value),
+  })
+}
+
+function updateUnfinishedTaskReminderTime(event: Event) {
+  remindersStore.updateUnfinishedTaskReminder({
+    time: (event.target as HTMLInputElement).value,
+  })
 }
 
 function setParticipantMessage(
@@ -213,6 +296,98 @@ function enableParticipant(participantId: string) {
         Manage the local people list used for notes, tasks, and agreements.
       </p>
     </div>
+
+    <PremiumLock
+      feature="agreementReminders"
+      title="Reminder settings are premium"
+      message="Upgrade to schedule gentle local reminders for weekly meetings and unfinished household follow-ups."
+    >
+      <section class="content-panel settings-panel reminder-panel">
+        <div>
+          <h2>Reminders</h2>
+          <p>
+            Weekly Us can use local device notifications for your meeting and
+            unfinished follow-ups. No push notifications or account setup are
+            used.
+          </p>
+        </div>
+
+        <label class="reminder-toggle">
+          <input
+            type="checkbox"
+            :checked="remindersStore.settings.enabled"
+            @change="handleReminderEnabledChange"
+          />
+          <span>Enable reminders</span>
+        </label>
+
+        <div class="reminder-grid">
+          <fieldset class="reminder-fieldset">
+            <legend>Weekly meeting reminder</legend>
+            <label>
+              <span>Day</span>
+              <select
+                :value="remindersStore.settings.weeklyMeetingReminder.day"
+                @change="updateWeeklyMeetingReminderDay"
+              >
+                <option
+                  v-for="day in reminderDayOptions"
+                  :key="day.value"
+                  :value="day.value"
+                >
+                  {{ day.label }}
+                </option>
+              </select>
+            </label>
+            <label>
+              <span>Time</span>
+              <input
+                type="time"
+                :step="timeInputStep"
+                :value="remindersStore.settings.weeklyMeetingReminder.time"
+                @change="updateWeeklyMeetingReminderTime"
+              />
+            </label>
+          </fieldset>
+
+          <fieldset class="reminder-fieldset">
+            <legend>Unfinished task reminder</legend>
+            <label>
+              <span>Day</span>
+              <select
+                :value="remindersStore.settings.unfinishedTaskReminder.day"
+                @change="updateUnfinishedTaskReminderDay"
+              >
+                <option
+                  v-for="day in reminderDayOptions"
+                  :key="day.value"
+                  :value="day.value"
+                >
+                  {{ day.label }}
+                </option>
+              </select>
+            </label>
+            <label>
+              <span>Time</span>
+              <input
+                type="time"
+                :step="timeInputStep"
+                :value="remindersStore.settings.unfinishedTaskReminder.time"
+                @change="updateUnfinishedTaskReminderTime"
+              />
+            </label>
+          </fieldset>
+        </div>
+
+        <p class="meeting-help">
+          Example: A gentle reminder to review unfinished agreements.
+        </p>
+        <p class="meeting-status" role="status">{{ reminderStatusText }}</p>
+        <p v-if="notificationError" class="meeting-error" role="status">
+          {{ notificationError }}
+        </p>
+      </section>
+    </PremiumLock>
 
     <section class="content-panel settings-panel participant-panel">
       <div>
@@ -406,3 +581,6 @@ function enableParticipant(participantId: string) {
     </div>
   </section>
 </template>
+
+
+

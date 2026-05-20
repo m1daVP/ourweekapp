@@ -1207,3 +1207,62 @@ h2 {
   color: #7b2e21;
 }
 
+
+.reminder-panel {
+  gap: 16px;
+}
+
+.reminder-toggle {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  color: #2c2924;
+  font-weight: 800;
+}
+
+.reminder-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: #22312b;
+}
+
+.reminder-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.reminder-fieldset {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #ebe4d8;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 0;
+}
+
+.reminder-fieldset legend {
+  padding: 0 4px;
+  color: #3e463f;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.reminder-fieldset label {
+  display: grid;
+  gap: 6px;
+  color: #3e463f;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.reminder-fieldset input,
+.reminder-fieldset select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #fffdf9;
+  padding: 10px 12px;
+  color: #221f1b;
+}
