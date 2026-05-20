@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useMeetingsStore } from '@/app/stores/meetings'
+import { useParticipantsStore } from '@/app/stores/participants'
 import { useTasksStore } from '@/app/stores/tasks'
-import type { Agreement, Task, TaskStatus } from '@/features/tasks/types'
+import type { Participant } from '@/features/participants/types'
+import type {
+  Agreement,
+  Task,
+  TaskResponsibilityType,
+  TaskStatus,
+} from '@/features/tasks/types'
 
 const meetingsStore = useMeetingsStore()
+const participantsStore = useParticipantsStore()
 const tasksStore = useTasksStore()
 
 const editDrafts = reactive<
   Record<
     string,
-    { title: string; dueDate: string; responsiblePersonId: string }
+    { title: string; dueDate: string; responsibilityChoice: string }
   >
 >({})
 const selectedAgreement = ref<Agreement | null>(null)
@@ -20,20 +28,10 @@ const openTasks = computed(() => tasksStore.openTasks)
 const doneTasks = computed(() => tasksStore.doneTasks)
 const skippedTasks = computed(() => tasksStore.skippedTasks)
 const recentAgreements = computed(() => tasksStore.recentAgreements)
-
-const participantOptions = computed(() => {
-  const participants = new Map<string, string>()
-
-  for (const meeting of meetingsStore.meetings) {
-    for (const participant of meeting.participants) {
-      participants.set(participant.id, participant.name)
-    }
-  }
-
-  return [...participants.entries()].map(([id, name]) => ({ id, name }))
-})
+const activeParticipants = computed(() => participantsStore.activeParticipants)
 
 onMounted(() => {
+  participantsStore.ensureDefaultParticipants()
   tasksStore.syncFromMeetings(meetingsStore.meetings)
 })
 
@@ -52,7 +50,7 @@ function syncDrafts() {
       editDrafts[task.id] = {
         title: task.title,
         dueDate: task.dueDate ?? '',
-        responsiblePersonId: task.responsiblePersonId,
+        responsibilityChoice: getResponsibilityChoice(task),
       }
     }
   }
@@ -64,12 +62,81 @@ function syncDrafts() {
   }
 }
 
-function getPersonName(participantId: string) {
+function getParticipantName(participantId: string) {
   return (
-    participantOptions.value.find(
-      (participant) => participant.id === participantId,
-    )?.name ?? 'Someone'
+    participantsStore.getParticipantById(participantId)?.name ??
+    'Former participant'
   )
+}
+
+function getResponsibilityLabel(
+  responsibilityType: TaskResponsibilityType,
+  participantIds: string[],
+) {
+  if (responsibilityType === 'shared') {
+    return 'Shared'
+  }
+
+  if (responsibilityType === 'needsDiscussion') {
+    return 'Needs discussion'
+  }
+
+  return (
+    participantIds.map(getParticipantName).join(', ') || 'Former participant'
+  )
+}
+
+function getResponsibilityChoice(task: Task) {
+  if (task.responsibilityType === 'shared') {
+    return 'shared'
+  }
+
+  if (task.responsibilityType === 'needsDiscussion') {
+    return 'needsDiscussion'
+  }
+
+  return task.responsibleParticipantIds[0] ?? 'needsDiscussion'
+}
+
+function getTaskParticipants(task: Task) {
+  const participantsById = new Map<string, Participant>()
+
+  for (const participant of activeParticipants.value) {
+    participantsById.set(participant.id, participant)
+  }
+
+  for (const participantId of task.responsibleParticipantIds) {
+    const participant = participantsStore.getParticipantById(participantId)
+
+    if (participant) {
+      participantsById.set(participant.id, participant)
+    }
+  }
+
+  return [...participantsById.values()]
+}
+
+function resolveDraftResponsibility(choice: string) {
+  if (choice === 'shared') {
+    return {
+      responsibilityType: 'shared' as const,
+      responsibleParticipantIds: activeParticipants.value.map(
+        (participant) => participant.id,
+      ),
+    }
+  }
+
+  if (choice === 'needsDiscussion') {
+    return {
+      responsibilityType: 'needsDiscussion' as const,
+      responsibleParticipantIds: [],
+    }
+  }
+
+  return {
+    responsibilityType: 'participant' as const,
+    responsibleParticipantIds: [choice],
+  }
 }
 
 function getMeeting(meetingId?: string) {
@@ -104,15 +171,17 @@ function saveTask(task: Task) {
     return
   }
 
+  const responsibility = resolveDraftResponsibility(draft.responsibilityChoice)
+
   tasksStore.updateTask(task.id, {
     title: draft.title,
     dueDate: draft.dueDate,
-    responsiblePersonId: draft.responsiblePersonId,
+    ...responsibility,
   })
   meetingsStore.updateTaskDetails(task.id, {
     title: draft.title,
     dueDate: draft.dueDate,
-    responsiblePersonId: draft.responsiblePersonId,
+    ...responsibility,
   })
   statusMessage.value = 'Task updated.'
 }
@@ -184,14 +253,17 @@ function relatedTaskTitles(agreement: Agreement) {
             </label>
 
             <label>
-              <span>Who</span>
-              <select v-model="editDrafts[task.id].responsiblePersonId">
+              <span>Responsible</span>
+              <select v-model="editDrafts[task.id].responsibilityChoice">
+                <option value="needsDiscussion">Needs discussion</option>
+                <option value="shared">Shared</option>
                 <option
-                  v-for="participant in participantOptions"
+                  v-for="participant in getTaskParticipants(task)"
                   :key="participant.id"
                   :value="participant.id"
                 >
-                  {{ participant.name }}
+                  {{ participant.name
+                  }}{{ participant.isActive ? '' : ' (disabled)' }}
                 </option>
               </select>
             </label>
@@ -244,7 +316,14 @@ function relatedTaskTitles(agreement: Agreement) {
         >
           <div>
             <strong>{{ task.title }}</strong>
-            <p>{{ getPersonName(task.responsiblePersonId) }}</p>
+            <p>
+              {{
+                getResponsibilityLabel(
+                  task.responsibilityType,
+                  task.responsibleParticipantIds,
+                )
+              }}
+            </p>
           </div>
           <button type="button" @click="setTaskStatus(task, 'open')">
             Reopen
@@ -264,7 +343,14 @@ function relatedTaskTitles(agreement: Agreement) {
         >
           <div>
             <strong>{{ task.title }}</strong>
-            <p>{{ getPersonName(task.responsiblePersonId) }}</p>
+            <p>
+              {{
+                getResponsibilityLabel(
+                  task.responsibilityType,
+                  task.responsibleParticipantIds,
+                )
+              }}
+            </p>
           </div>
           <button type="button" @click="setTaskStatus(task, 'open')">
             Bring back
@@ -335,7 +421,11 @@ function relatedTaskTitles(agreement: Agreement) {
           <div>
             <dt>People</dt>
             <dd>
-              {{ selectedAgreement.participants.map(getPersonName).join(', ') }}
+              {{
+                selectedAgreement.participantIds
+                  .map(getParticipantName)
+                  .join(', ')
+              }}
             </dd>
           </div>
         </dl>

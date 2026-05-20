@@ -1,27 +1,46 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useMeetingsStore } from '@/app/stores/meetings'
+import { useParticipantsStore } from '@/app/stores/participants'
 import { useTasksStore } from '@/app/stores/tasks'
 import type { MeetingSectionId } from '@/features/meeting/types'
+import type { Participant } from '@/features/participants/types'
+import type { TaskResponsibilityType } from '@/features/tasks/types'
 
 const meetingsStore = useMeetingsStore()
+const participantsStore = useParticipantsStore()
 const tasksStore = useTasksStore()
 
 const noteText = ref('')
 const agreementText = ref('')
 const participantName = ref('')
 const selectedParticipantId = ref('')
+const agreementParticipantIds = ref<string[]>([])
 const formError = ref('')
 const statusMessage = ref('')
 
 const taskDraft = reactive({
   title: '',
   description: '',
-  responsiblePersonId: '',
+  responsibilityChoice: 'needsDiscussion',
   dueDate: '',
 })
 
 const activeMeeting = computed(() => meetingsStore.activeMeeting)
+const meetingParticipants = computed(() => {
+  const meeting = activeMeeting.value
+
+  if (!meeting) {
+    return participantsStore.activeParticipants
+  }
+
+  return meeting.participantIds
+    .map((participantId) => participantsStore.getParticipantById(participantId))
+    .filter((participant): participant is Participant => Boolean(participant))
+})
+const activeMeetingParticipants = computed(() =>
+  meetingParticipants.value.filter((participant) => participant.isActive),
+)
 const currentSection = computed(() => {
   const meeting = activeMeeting.value
   return meeting?.sections[meeting.currentSectionIndex] ?? null
@@ -106,7 +125,10 @@ const allTasks = computed(() =>
         section.tasks.map((task) => ({
           ...task,
           sectionTitle: section.title,
-          responsibleName: getParticipantName(task.responsiblePersonId),
+          responsibilityLabel: getResponsibilityLabel(
+            task.responsibilityType,
+            task.responsibleParticipantIds,
+          ),
         })),
       )
     : [],
@@ -117,6 +139,9 @@ const allAgreements = computed(() =>
         section.agreements.map((agreement) => ({
           ...agreement,
           sectionTitle: section.title,
+          participantLabel: agreement.participantIds
+            .map(getParticipantName)
+            .join(', '),
         })),
       )
     : [],
@@ -142,24 +167,20 @@ const neutralHint = computed(() => {
 })
 
 onMounted(() => {
+  participantsStore.ensureDefaultParticipants()
   const meeting = meetingsStore.ensureActiveMeeting()
   tasksStore.syncFromMeetings(meetingsStore.meetings)
-  selectedParticipantId.value = meeting.participants[0]?.id ?? ''
-  taskDraft.responsiblePersonId = selectedParticipantId.value
+  selectedParticipantId.value = firstActiveParticipantId()
+  taskDraft.responsibilityChoice = 'needsDiscussion'
+  agreementParticipantIds.value = [...meeting.participantIds]
 })
 
 watch(
-  () => activeMeeting.value?.participants,
-  (participants) => {
-    const firstParticipantId = participants?.[0]?.id ?? ''
-
-    if (!selectedParticipantId.value) {
-      selectedParticipantId.value = firstParticipantId
-    }
-
-    if (!taskDraft.responsiblePersonId) {
-      taskDraft.responsiblePersonId = firstParticipantId
-    }
+  () =>
+    participantsStore.activeParticipants.map((participant) => participant.id),
+  () => {
+    meetingsStore.syncActiveMeetingParticipants()
+    ensureSelectedParticipants()
   },
   { immediate: true },
 )
@@ -171,30 +192,53 @@ watch(
     agreementText.value = ''
     formError.value = ''
     statusMessage.value = ''
+    agreementParticipantIds.value = activeMeetingParticipants.value.map(
+      (participant) => participant.id,
+    )
     resetTaskForm()
   },
 )
 
+function firstActiveParticipantId() {
+  return activeMeetingParticipants.value[0]?.id ?? ''
+}
+
+function ensureSelectedParticipants() {
+  const activeIds = activeMeetingParticipants.value.map(
+    (participant) => participant.id,
+  )
+
+  if (!activeIds.includes(selectedParticipantId.value)) {
+    selectedParticipantId.value = activeIds[0] ?? ''
+  }
+
+  if (!agreementParticipantIds.value.length) {
+    agreementParticipantIds.value = [...activeIds]
+  }
+}
+
 function getParticipantName(participantId: string) {
   return (
-    activeMeeting.value?.participants.find(
-      (participant) => participant.id === participantId,
-    )?.name ?? 'Someone'
+    participantsStore.getParticipantById(participantId)?.name ??
+    'Former participant'
   )
 }
 
-function getPersonName(participantId: string) {
-  for (const meeting of meetingsStore.meetings) {
-    const participant = meeting.participants.find(
-      (item) => item.id === participantId,
-    )
-
-    if (participant) {
-      return participant.name
-    }
+function getResponsibilityLabel(
+  responsibilityType: TaskResponsibilityType,
+  participantIds: string[],
+) {
+  if (responsibilityType === 'shared') {
+    return 'Shared'
   }
 
-  return 'Someone'
+  if (responsibilityType === 'needsDiscussion') {
+    return 'Needs discussion'
+  }
+
+  return (
+    participantIds.map(getParticipantName).join(', ') || 'Former participant'
+  )
 }
 
 function formatMeetingDate(value?: string) {
@@ -231,23 +275,46 @@ function resetTaskForm() {
   taskDraft.title = ''
   taskDraft.description = ''
   taskDraft.dueDate = ''
-  taskDraft.responsiblePersonId =
-    selectedParticipantId.value ||
-    activeMeeting.value?.participants[0]?.id ||
-    ''
+  taskDraft.responsibilityChoice = 'needsDiscussion'
+}
+
+function resolveTaskResponsibility() {
+  if (taskDraft.responsibilityChoice === 'shared') {
+    return {
+      responsibilityType: 'shared' as const,
+      responsibleParticipantIds: activeMeetingParticipants.value.map(
+        (participant) => participant.id,
+      ),
+    }
+  }
+
+  if (taskDraft.responsibilityChoice === 'needsDiscussion') {
+    return {
+      responsibilityType: 'needsDiscussion' as const,
+      responsibleParticipantIds: [],
+    }
+  }
+
+  return {
+    responsibilityType: 'participant' as const,
+    responsibleParticipantIds: [taskDraft.responsibilityChoice],
+  }
 }
 
 function addParticipant() {
   clearMessages()
-  const participant = meetingsStore.addParticipant(participantName.value)
+  const participant = participantsStore.createParticipant({
+    name: participantName.value,
+    type: 'adult',
+  })
 
   if (!participant) {
     formError.value = 'Add a name first.'
     return
   }
 
+  meetingsStore.syncActiveMeetingParticipants()
   selectedParticipantId.value = participant.id
-  taskDraft.responsiblePersonId = participant.id
   participantName.value = ''
   statusMessage.value = 'Person added.'
 }
@@ -283,7 +350,12 @@ function addTask() {
   }
 
   clearMessages()
-  const error = meetingsStore.addTask(section.id, taskDraft)
+  const error = meetingsStore.addTask(section.id, {
+    title: taskDraft.title,
+    description: taskDraft.description,
+    dueDate: taskDraft.dueDate,
+    ...resolveTaskResponsibility(),
+  })
 
   if (error) {
     formError.value = error
@@ -302,7 +374,11 @@ function addAgreement() {
   }
 
   clearMessages()
-  const error = meetingsStore.addAgreement(section.id, agreementText.value)
+  const error = meetingsStore.addAgreement(
+    section.id,
+    agreementText.value,
+    agreementParticipantIds.value,
+  )
 
   if (error) {
     formError.value = error
@@ -310,6 +386,9 @@ function addAgreement() {
   }
 
   agreementText.value = ''
+  agreementParticipantIds.value = activeMeetingParticipants.value.map(
+    (participant) => participant.id,
+  )
   statusMessage.value = 'Agreement added.'
 }
 
@@ -395,7 +474,8 @@ function finishMeeting() {
 function startNewMeeting() {
   const meeting = meetingsStore.startNewMeeting()
   tasksStore.syncFromMeetings(meetingsStore.meetings)
-  selectedParticipantId.value = meeting.participants[0]?.id ?? ''
+  selectedParticipantId.value = firstActiveParticipantId()
+  agreementParticipantIds.value = [...meeting.participantIds]
   resetTaskForm()
   clearMessages()
 }
@@ -455,7 +535,14 @@ function startNewMeeting() {
       <ul class="meeting-list meeting-review__list">
         <li v-for="task in previousUnfinishedTasks" :key="task.id">
           <div>
-            <span>{{ getPersonName(task.responsiblePersonId) }}</span>
+            <span>
+              {{
+                getResponsibilityLabel(
+                  task.responsibilityType,
+                  task.responsibleParticipantIds,
+                )
+              }}
+            </span>
             <p>{{ task.title }}</p>
             <small v-if="task.dueDate"
               >Still relevant? {{ task.dueDate }}</small
@@ -491,10 +578,16 @@ function startNewMeeting() {
       <h2 id="meeting-people-title">People here</h2>
       <div class="meeting-chip-row">
         <span
-          v-for="participant in activeMeeting.participants"
+          v-for="participant in meetingParticipants"
           :key="participant.id"
-          class="meeting-chip"
+          :class="['meeting-chip', { 'is-disabled': !participant.isActive }]"
         >
+          <span
+            class="participant-avatar"
+            :style="{ backgroundColor: participant.avatarColor }"
+          >
+            {{ participant.initials }}
+          </span>
           {{ participant.name }}
         </span>
       </div>
@@ -516,10 +609,10 @@ function startNewMeeting() {
       aria-labelledby="meeting-notes-title"
     >
       <h2 id="meeting-notes-title">Notes</h2>
-      <label class="meeting-label" for="note-person">Who is adding this?</label>
+      <label class="meeting-label" for="note-person">Author</label>
       <select id="note-person" v-model="selectedParticipantId">
         <option
-          v-for="participant in activeMeeting.participants"
+          v-for="participant in activeMeetingParticipants"
           :key="participant.id"
           :value="participant.id"
         >
@@ -572,13 +665,12 @@ function startNewMeeting() {
         placeholder="Anything that would make this easier?"
       />
 
-      <label class="meeting-label" for="task-person"
-        >Who will take care of it?</label
-      >
-      <select id="task-person" v-model="taskDraft.responsiblePersonId">
-        <option value="">Choose a person</option>
+      <label class="meeting-label" for="task-person">Responsible</label>
+      <select id="task-person" v-model="taskDraft.responsibilityChoice">
+        <option value="needsDiscussion">Needs discussion</option>
+        <option value="shared">Shared</option>
         <option
-          v-for="participant in activeMeeting.participants"
+          v-for="participant in activeMeetingParticipants"
           :key="participant.id"
           :value="participant.id"
         >
@@ -598,7 +690,14 @@ function startNewMeeting() {
       >
         <li v-for="task in currentSection.tasks" :key="task.id">
           <div>
-            <span>{{ getParticipantName(task.responsiblePersonId) }}</span>
+            <span>
+              {{
+                getResponsibilityLabel(
+                  task.responsibilityType,
+                  task.responsibleParticipantIds,
+                )
+              }}
+            </span>
             <p>{{ task.title }}</p>
             <small v-if="task.description">{{ task.description }}</small>
             <small v-if="task.dueDate">Due {{ task.dueDate }}</small>
@@ -626,13 +725,29 @@ function startNewMeeting() {
         rows="3"
         placeholder="What did we agree to?"
       />
+      <fieldset class="participant-selector">
+        <legend>Participants</legend>
+        <label
+          v-for="participant in activeMeetingParticipants"
+          :key="participant.id"
+        >
+          <input
+            v-model="agreementParticipantIds"
+            type="checkbox"
+            :value="participant.id"
+          />
+          <span>{{ participant.name }}</span>
+        </label>
+      </fieldset>
       <button class="meeting-primary" type="button" @click="addAgreement">
         Add agreement
       </button>
 
       <ul v-if="currentSection.agreements.length" class="meeting-list">
         <li v-for="agreement in currentSection.agreements" :key="agreement.id">
-          <span>{{ currentSection.title }}</span>
+          <span>{{
+            agreement.participantIds.map(getParticipantName).join(', ')
+          }}</span>
           <p>{{ agreement.text }}</p>
         </li>
       </ul>
@@ -653,7 +768,10 @@ function startNewMeeting() {
         <h3>Agreements</h3>
         <ul v-if="allAgreements.length" class="meeting-list">
           <li v-for="agreement in allAgreements" :key="agreement.id">
-            <span>{{ agreement.sectionTitle }}</span>
+            <span
+              >{{ agreement.sectionTitle }} -
+              {{ agreement.participantLabel }}</span
+            >
             <p>{{ agreement.text }}</p>
           </li>
         </ul>
@@ -665,7 +783,7 @@ function startNewMeeting() {
         <ul v-if="allTasks.length" class="meeting-list meeting-task-list">
           <li v-for="task in allTasks" :key="task.id">
             <div>
-              <span>{{ task.responsibleName }}</span>
+              <span>{{ task.responsibilityLabel }}</span>
               <p>{{ task.title }}</p>
               <small>{{ task.sectionTitle }}</small>
               <small v-if="task.dueDate">Due {{ task.dueDate }}</small>

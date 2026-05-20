@@ -1,3 +1,6 @@
+import type { Participant } from '@/features/participants/types'
+import type { TaskResponsibilityType } from '@/features/tasks/types'
+
 export type MeetingStatus = 'draft' | 'in_progress' | 'completed'
 
 export type MeetingTaskStatus = 'open' | 'done' | 'skipped'
@@ -11,10 +14,7 @@ export type MeetingSectionId =
   | 'plans'
   | 'finalAgreements'
 
-export interface Participant {
-  id: string
-  name: string
-}
+export type { Participant }
 
 export interface MeetingNote {
   id: string
@@ -29,7 +29,8 @@ export interface MeetingTask {
   sectionId: MeetingSectionId
   title: string
   description?: string
-  responsiblePersonId: string
+  responsibilityType: TaskResponsibilityType
+  responsibleParticipantIds: string[]
   dueDate?: string
   status: MeetingTaskStatus
   createdAt: string
@@ -41,6 +42,7 @@ export interface Agreement {
   id: string
   sectionId: MeetingSectionId
   text: string
+  participantIds: string[]
   createdAt: string
 }
 
@@ -57,7 +59,7 @@ export interface Meeting {
   id: string
   title: string
   status: MeetingStatus
-  participants: Participant[]
+  participantIds: string[]
   sections: MeetingSection[]
   currentSectionIndex: number
   createdAt: string

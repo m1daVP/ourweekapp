@@ -1,10 +1,16 @@
 export type TaskStatus = 'open' | 'done' | 'skipped'
 
+export type TaskResponsibilityType =
+  | 'participant'
+  | 'shared'
+  | 'needsDiscussion'
+
 export interface Task {
   id: string
   title: string
   description?: string
-  responsiblePersonId: string
+  responsibilityType: TaskResponsibilityType
+  responsibleParticipantIds: string[]
   dueDate?: string
   status: TaskStatus
   sourceMeetingId?: string
@@ -16,7 +22,7 @@ export interface Agreement {
   id: string
   title: string
   description?: string
-  participants: string[]
+  participantIds: string[]
   relatedTaskIds?: string[]
   sourceMeetingId: string
   createdAt: string
