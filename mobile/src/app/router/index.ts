@@ -5,6 +5,7 @@ import HomePage from '@/pages/HomePage.vue'
 import HistoryPage from '@/pages/HistoryPage.vue'
 import MeetingDetailsPage from '@/pages/MeetingDetailsPage.vue'
 import MeetingPage from '@/pages/MeetingPage.vue'
+import PrivateNotesPage from '@/pages/PrivateNotesPage.vue'
 import SettingsPage from '@/pages/SettingsPage.vue'
 import TasksPage from '@/pages/TasksPage.vue'
 
@@ -37,6 +38,11 @@ export const router = createRouter({
       path: '/tasks',
       name: 'tasks',
       component: TasksPage,
+    },
+    {
+      path: '/private-notes',
+      name: 'private-notes',
+      component: PrivateNotesPage,
     },
     {
       path: '/settings',

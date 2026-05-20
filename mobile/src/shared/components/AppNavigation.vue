@@ -4,6 +4,7 @@ const navigationItems = [
   { to: '/meeting', label: 'Meeting' },
   { to: '/history', label: 'History' },
   { to: '/tasks', label: 'Tasks' },
+  { to: '/private-notes', label: 'Notes' },
   { to: '/settings', label: 'Settings' },
 ]
 </script>

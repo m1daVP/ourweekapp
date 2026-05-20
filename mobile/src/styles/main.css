@@ -112,10 +112,11 @@ h2 {
 
 .app-navigation {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, minmax(52px, 1fr));
   gap: 4px;
   border-top: 1px solid #ded7ca;
   background: rgba(255, 252, 246, 0.96);
+  overflow-x: auto;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
 }
 
@@ -1068,3 +1069,141 @@ h2 {
   justify-content: center;
   text-decoration: none;
 }
+
+
+.private-notes-page h1 {
+  max-width: 10ch;
+}
+
+.private-notes-page .premium-lock {
+  display: grid;
+  gap: 0;
+}
+
+.private-notes-page .premium-lock__preview {
+  display: grid;
+  gap: 16px;
+}
+
+.private-note-disclaimer,
+.private-note-editor,
+.private-note-list-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.private-note-disclaimer {
+  border-color: #cbd9d2;
+  background: #f3f8f4;
+}
+
+.private-note-disclaimer strong {
+  color: #22312b;
+}
+
+.private-note-disclaimer p,
+.private-note-editor p,
+.private-note-list-panel p {
+  margin-bottom: 0;
+  color: #5b5f58;
+}
+
+.private-note-form {
+  display: grid;
+  gap: 12px;
+}
+
+.private-note-form label {
+  display: grid;
+  gap: 6px;
+  color: #3e463f;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.private-note-form input,
+.private-note-form textarea,
+.private-note-form select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #fffdf9;
+  padding: 10px 12px;
+  color: #221f1b;
+}
+
+.private-note-form textarea {
+  resize: vertical;
+}
+
+.private-note-form__actions,
+.private-note-item__actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.private-note-form__actions button,
+.private-note-item__actions button {
+  min-height: 42px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 10px;
+  color: #2c2924;
+  font-weight: 800;
+}
+
+.private-note-form__actions .meeting-primary {
+  border-color: #22312b;
+  background: #22312b;
+  color: #ffffff;
+}
+
+.private-note-list {
+  display: grid;
+  gap: 14px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.private-note-item {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #ebe4d8;
+  padding-top: 14px;
+}
+
+.private-note-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.private-note-item__body {
+  display: grid;
+  gap: 5px;
+}
+
+.private-note-item__body span,
+.private-note-item__body small {
+  color: #687064;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.private-note-item__body h3 {
+  margin: 0;
+  color: #2c2924;
+  font-size: 1rem;
+}
+
+.private-note-item__body p {
+  white-space: pre-wrap;
+}
+
+.private-note-item__actions .private-note-item__danger {
+  color: #7b2e21;
+}
+

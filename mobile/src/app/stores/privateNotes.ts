@@ -1,0 +1,156 @@
+import { defineStore } from 'pinia'
+import type { PrivateNote } from '@/features/private-notes/types'
+
+const STORAGE_KEY = 'weekly-us:private-notes'
+
+interface PrivateNotesState {
+  notes: PrivateNote[]
+}
+
+interface NotePayload {
+  title: string
+  content: string
+  relatedMeetingId?: string
+}
+
+interface LegacyPrivateNote {
+  id?: string
+  title?: string
+  content?: string
+  relatedMeetingId?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+function createId(prefix: string) {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function nowIso() {
+  return new Date().toISOString()
+}
+
+function normalizeNote(note: LegacyPrivateNote): PrivateNote | null {
+  const title = note.title?.trim()
+  const content = note.content?.trim()
+
+  if (!title || !content) {
+    return null
+  }
+
+  const createdAt = note.createdAt ?? nowIso()
+
+  return {
+    id: note.id ?? createId('private-note'),
+    title,
+    content,
+    relatedMeetingId: note.relatedMeetingId?.trim() || undefined,
+    createdAt,
+    updatedAt: note.updatedAt ?? createdAt,
+  }
+}
+
+function getStoredState(): PrivateNotesState {
+  if (typeof window === 'undefined') {
+    return { notes: [] }
+  }
+
+  const rawValue = window.localStorage.getItem(STORAGE_KEY)
+
+  if (!rawValue) {
+    return { notes: [] }
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue) as Partial<{
+      notes: LegacyPrivateNote[]
+    }>
+
+    return {
+      notes: Array.isArray(parsedValue.notes)
+        ? parsedValue.notes
+            .map(normalizeNote)
+            .filter((note): note is PrivateNote => Boolean(note))
+        : [],
+    }
+  } catch {
+    return { notes: [] }
+  }
+}
+
+function sortByUpdatedDesc(notes: PrivateNote[]) {
+  return [...notes].sort(
+    (first, second) =>
+      new Date(second.updatedAt).getTime() -
+      new Date(first.updatedAt).getTime(),
+  )
+}
+
+export const usePrivateNotesStore = defineStore('privateNotes', {
+  state: (): PrivateNotesState => getStoredState(),
+  getters: {
+    sortedNotes: (state) => sortByUpdatedDesc(state.notes),
+  },
+  actions: {
+    persist() {
+      if (typeof window === 'undefined') {
+        return
+      }
+
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ notes: this.notes }),
+      )
+    },
+    createNote(payload: NotePayload) {
+      const title = payload.title.trim()
+      const content = payload.content.trim()
+
+      if (!title || !content) {
+        return null
+      }
+
+      const createdAt = nowIso()
+      const note: PrivateNote = {
+        id: createId('private-note'),
+        title,
+        content,
+        relatedMeetingId: payload.relatedMeetingId?.trim() || undefined,
+        createdAt,
+        updatedAt: createdAt,
+      }
+
+      this.notes.unshift(note)
+      this.persist()
+      return note
+    },
+    updateNote(noteId: string, payload: NotePayload) {
+      const note = this.notes.find((item) => item.id === noteId)
+      const title = payload.title.trim()
+      const content = payload.content.trim()
+
+      if (!note || !title || !content) {
+        return null
+      }
+
+      note.title = title
+      note.content = content
+      note.relatedMeetingId = payload.relatedMeetingId?.trim() || undefined
+      note.updatedAt = nowIso()
+      this.persist()
+      return note
+    },
+    deleteNote(noteId: string) {
+      const originalLength = this.notes.length
+      this.notes = this.notes.filter((note) => note.id !== noteId)
+
+      if (this.notes.length !== originalLength) {
+        this.persist()
+      }
+    },
+  },
+})
