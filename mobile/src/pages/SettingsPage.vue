@@ -339,6 +339,26 @@ function enableParticipant(participantId: string) {
         Calendar sync
       </RouterLink>
     </section>
+
+    <section class="content-panel settings-panel">
+      <div>
+        <h2>Legal</h2>
+        <p>
+          Placeholder documents for internal testing. Review before public
+          release.
+        </p>
+      </div>
+      <RouterLink
+        class="secondary-button link-button"
+        :to="{ name: 'privacy' }"
+      >
+        Privacy Policy
+      </RouterLink>
+      <RouterLink class="secondary-button link-button" :to="{ name: 'terms' }">
+        Terms
+      </RouterLink>
+    </section>
+
     <PremiumLock
       feature="agreementReminders"
       title="Reminder settings are premium"
