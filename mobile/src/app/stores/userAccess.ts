@@ -18,6 +18,9 @@ export const useUserAccessStore = defineStore('userAccess', {
     setMockPlan(planType: PlanType) {
       this.planType = planType
     },
+    setAccountPlan(planType: PlanType) {
+      this.planType = planType
+    },
     setMockRole(userRole: UserRole) {
       this.userRole = userRole
     },

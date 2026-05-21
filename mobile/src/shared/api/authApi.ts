@@ -35,14 +35,17 @@ export interface RefreshSessionRequestDto {
 
 export type CurrentUserResponseDto = AuthUserDto | null
 
-function createMockSession(email: string): AuthSessionDto {
+function createMockSession(
+  email: string,
+  displayName?: string,
+): AuthSessionDto {
   const now = new Date().toISOString()
 
   return {
     user: {
       id: 'mock-user-local',
       email,
-      displayName: email.split('@')[0] || 'Local user',
+      displayName: displayName?.trim() || email.split('@')[0] || 'Local user',
       role: 'owner',
       planType: 'free',
       createdAt: now,
@@ -77,7 +80,7 @@ export async function register(
   payload: RegisterRequestDto,
 ): Promise<AuthSessionDto> {
   if (!isBackendApiConfigured()) {
-    return createMockSession(payload.email)
+    return createMockSession(payload.email, payload.displayName)
   }
 
   return apiRequest<AuthSessionDto>('/auth/register', {
