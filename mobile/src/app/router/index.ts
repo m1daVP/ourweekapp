@@ -10,6 +10,7 @@ import HistoryPage from '@/pages/HistoryPage.vue';
 import LogoutConfirmationPage from '@/pages/LogoutConfirmationPage.vue';
 import MeetingDetailsPage from '@/pages/MeetingDetailsPage.vue';
 import MeetingPage from '@/pages/MeetingPage.vue';
+import MeetingTemplatesPage from '@/pages/MeetingTemplatesPage.vue';
 import PrivateNotesPage from '@/pages/PrivateNotesPage.vue';
 import SettingsPage from '@/pages/SettingsPage.vue';
 import SignInPage from '@/pages/SignInPage.vue';
@@ -50,6 +51,11 @@ export const router = createRouter({
       path: '/',
       name: 'home',
       component: HomePage,
+    },
+    {
+      path: '/meeting/templates',
+      name: 'meeting-templates',
+      component: MeetingTemplatesPage,
     },
     {
       path: '/meeting',

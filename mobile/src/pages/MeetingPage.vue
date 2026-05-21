@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
+import {
+  agreementSectionIds,
+  taskSectionIds,
+} from '@/features/meeting/meetingTemplates';
 import type { MeetingSectionId } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
 import type { TaskResponsibilityType } from '@/features/tasks/types';
@@ -11,6 +16,7 @@ import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermis
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
+const router = useRouter();
 const { can } = useWorkspacePermissions();
 
 const noteText = ref('');
@@ -60,22 +66,25 @@ const progressPercent = computed(() =>
     ? `${(currentStepNumber.value / totalSteps.value) * 100}%`
     : '0%'
 );
-const isFinalSection = computed(
-  () => currentSection.value?.id === 'finalAgreements'
+const isFinalSection = computed(() =>
+  Boolean(
+    activeMeeting.value &&
+    activeMeeting.value.currentSectionIndex ===
+      activeMeeting.value.sections.length - 1
+  )
 );
 const canAddTasks = computed(() =>
   currentSection.value
-    ? ['tasks', 'familyCare'].includes(currentSection.value.id)
+    ? taskSectionIds.includes(currentSection.value.id)
     : false
 );
 const canAddAgreements = computed(() =>
   currentSection.value
-    ? ['money', 'finalAgreements'].includes(currentSection.value.id)
+    ? agreementSectionIds.includes(currentSection.value.id) ||
+      isFinalSection.value
     : false
 );
-const showNotes = computed(
-  () => currentSection.value?.id !== 'finalAgreements'
-);
+const showNotes = computed(() => !isFinalSection.value);
 const isCompleted = computed(() => activeMeeting.value?.status === 'completed');
 const previousCompletedMeeting = computed(() => {
   const currentMeetingId = activeMeeting.value?.id;
@@ -182,7 +191,25 @@ onMounted(() => {
     return;
   }
 
-  const meeting = meetingsStore.ensureActiveMeeting();
+  const existingMeeting =
+    activeMeeting.value && activeMeeting.value.status !== 'completed'
+      ? activeMeeting.value
+      : meetingsStore.meetings.find(
+          (meeting) => meeting.status !== 'completed'
+        );
+
+  if (!existingMeeting) {
+    router.replace({ name: 'meeting-templates' });
+    return;
+  }
+
+  const meeting = meetingsStore.resumeMeeting(existingMeeting.id);
+
+  if (!meeting) {
+    router.replace({ name: 'meeting-templates' });
+    return;
+  }
+
   selectedParticipantId.value = firstActiveParticipantId();
   taskDraft.responsibilityChoice = 'needsDiscussion';
   agreementParticipantIds.value = [...meeting.participantIds];
@@ -266,7 +293,7 @@ function formatMeetingDate(value?: string) {
 }
 
 function notePlaceholder(sectionId: MeetingSectionId) {
-  const placeholders: Record<MeetingSectionId, string> = {
+  const placeholders: Partial<Record<MeetingSectionId, string>> = {
     goodThings: 'One thing I appreciated was...',
     tensions: 'I noticed this felt hard because...',
     tasks: 'A useful detail for this week is...',
@@ -276,7 +303,7 @@ function notePlaceholder(sectionId: MeetingSectionId) {
     finalAgreements: 'A decision we want to keep is...',
   };
 
-  return placeholders[sectionId];
+  return placeholders[sectionId] ?? 'Add a short practical note...';
 }
 
 function clearMessages() {
@@ -537,12 +564,7 @@ function startNewMeeting() {
     return;
   }
 
-  const meeting = meetingsStore.startNewMeeting();
-  tasksStore.syncFromMeetings(meetingsStore.meetings);
-  selectedParticipantId.value = firstActiveParticipantId();
-  agreementParticipantIds.value = [...meeting.participantIds];
-  resetTaskForm();
-  clearMessages();
+  router.push({ name: 'meeting-templates' });
 }
 </script>
 

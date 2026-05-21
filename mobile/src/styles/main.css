@@ -545,6 +545,90 @@ h2 {
   gap: 10px;
 }
 
+.templates-page h1 {
+  max-width: 10ch;
+}
+
+.template-draft-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.template-draft-panel h2 {
+  margin-bottom: 6px;
+}
+
+.template-draft-panel .meeting-primary {
+  min-height: 46px;
+  border: 1px solid #22312b;
+  border-radius: 8px;
+  background: #22312b;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.template-list {
+  display: grid;
+  gap: 12px;
+}
+
+.template-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #dfd8ca;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.template-card.is-locked {
+  background: #fffdf9;
+}
+
+.template-card__header {
+  display: grid;
+  gap: 10px;
+}
+
+.template-card__header h2,
+.template-card__header p {
+  margin-bottom: 0;
+}
+
+.template-card__header p {
+  color: #5b5f58;
+  font-size: 0.92rem;
+}
+
+.template-card__sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.template-card__sections li {
+  border: 1px solid #e0d8cc;
+  border-radius: 999px;
+  background: #f8f5ee;
+  padding: 5px 8px;
+  color: #4f554f;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.template-card__button {
+  min-height: 48px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 14px;
+  color: #2c2924;
+  font-weight: 800;
+}
+
 .meeting-actions {
   position: sticky;
   bottom: 0;

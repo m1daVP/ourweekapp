@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
+import {
+  DEFAULT_MEETING_TEMPLATE_ID,
+  getMeetingTemplate,
+  taskSectionIds,
+} from '@/features/meeting/meetingTemplates';
 import type { Task, TaskResponsibilityType } from '@/features/tasks/types';
 import type {
   Agreement,
@@ -12,6 +17,8 @@ import type {
   MeetingSummaryTask,
   MeetingTask,
   MeetingTaskStatus,
+  MeetingTemplate,
+  MeetingTemplateId,
 } from '@/features/meeting/types';
 
 const STORAGE_KEY = 'weekly-us:meetings';
@@ -98,6 +105,7 @@ interface LegacyMeetingSection {
 
 interface LegacyMeeting {
   id?: string;
+  templateId?: MeetingTemplateId;
   title?: string;
   status?: Meeting['status'];
   participants?: LegacyParticipant[];
@@ -109,46 +117,6 @@ interface LegacyMeeting {
   completedAt?: string;
   aiSummary?: LegacyMeetingSummary;
 }
-
-const sectionTemplates: Array<Pick<MeetingSection, 'id' | 'title' | 'prompt'>> =
-  [
-    {
-      id: 'goodThings',
-      title: 'Good things this week',
-      prompt: 'What went well this week?',
-    },
-    {
-      id: 'tensions',
-      title: 'Tensions / problems',
-      prompt: 'What felt stressful, unfair, or chaotic?',
-    },
-    {
-      id: 'tasks',
-      title: 'Tasks and responsibilities',
-      prompt: 'What needs to be done this week?',
-    },
-    {
-      id: 'money',
-      title: 'Purchases / money',
-      prompt: 'What do we need to buy or discuss financially?',
-    },
-    {
-      id: 'familyCare',
-      title: 'Kids / family care',
-      prompt:
-        'Anything important about kids, school, health, routines, or family care?',
-    },
-    {
-      id: 'plans',
-      title: 'Plans',
-      prompt: 'What is coming next week?',
-    },
-    {
-      id: 'finalAgreements',
-      title: 'Final agreements',
-      prompt: 'Review what was decided and finish when it feels complete.',
-    },
-  ];
 
 function createId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -174,8 +142,8 @@ function getActiveParticipantIds() {
   );
 }
 
-function createSections(): MeetingSection[] {
-  return sectionTemplates.map((section) => ({
+function createSections(template: MeetingTemplate): MeetingSection[] {
+  return template.sections.map((section) => ({
     ...section,
     notes: [],
     tasks: [],
@@ -183,15 +151,20 @@ function createSections(): MeetingSection[] {
   }));
 }
 
-function createDefaultMeeting(participantIds: string[]): Meeting {
+function createDefaultMeeting(
+  participantIds: string[],
+  templateId: MeetingTemplateId = DEFAULT_MEETING_TEMPLATE_ID
+): Meeting {
+  const template = getMeetingTemplate(templateId);
   const createdAt = nowIso();
 
   return {
     id: createId('meeting'),
-    title: 'Weekly meeting',
+    templateId: template.id,
+    title: template.name,
     status: 'in_progress',
     participantIds,
-    sections: createSections(),
+    sections: createSections(template),
     currentSectionIndex: 0,
     createdAt,
     updatedAt: createdAt,
@@ -318,24 +291,27 @@ function normalizeAgreement(
 function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
   const createdAt = meeting.createdAt ?? nowIso();
   const id = meeting.id ?? createId('meeting');
+  const template = getMeetingTemplate(meeting.templateId);
   const participantIds = uniqueIds([
     ...(meeting.participantIds ?? []),
     ...(meeting.participants ?? []).map((participant) => participant.id),
   ]);
-  const sections = sectionTemplates.map((template) => {
-    const section = meeting.sections?.find((item) => item.id === template.id);
+  const sections = template.sections.map((sectionTemplate) => {
+    const section = meeting.sections?.find(
+      (item) => item.id === sectionTemplate.id
+    );
 
     return {
-      ...template,
+      ...sectionTemplate,
       notes: section?.notes ?? [],
       tasks:
         section?.tasks
-          ?.map((task) => normalizeMeetingTask(task, template.id))
+          ?.map((task) => normalizeMeetingTask(task, sectionTemplate.id))
           .filter((task): task is MeetingTask => Boolean(task)) ?? [],
       agreements:
         section?.agreements
           ?.map((agreement) =>
-            normalizeAgreement(agreement, template.id, participantIds)
+            normalizeAgreement(agreement, sectionTemplate.id, participantIds)
           )
           .filter((agreement): agreement is Agreement => Boolean(agreement)) ??
         [],
@@ -344,7 +320,8 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
 
   return {
     id,
-    title: meeting.title?.trim() || 'Weekly meeting',
+    templateId: template.id,
+    title: meeting.title?.trim() || template.name,
     status: meeting.status ?? 'in_progress',
     participantIds,
     sections,
@@ -393,6 +370,13 @@ function getStoredState(): MeetingsState {
 
 function findSection(meeting: Meeting, sectionId: MeetingSectionId) {
   return meeting.sections.find((section) => section.id === sectionId);
+}
+
+function findTaskTargetSection(meeting: Meeting) {
+  return (
+    findSection(meeting, 'tasks') ??
+    meeting.sections.find((section) => taskSectionIds.includes(section.id))
+  );
 }
 
 function findTask(meetings: Meeting[], taskId: string) {
@@ -486,13 +470,21 @@ export const useMeetingsStore = defineStore('meetings', {
       this.persist();
       return meeting;
     },
-    startNewMeeting() {
-      const meeting = createDefaultMeeting(getActiveParticipantIds());
+    startNewMeeting(
+      templateId: MeetingTemplateId = DEFAULT_MEETING_TEMPLATE_ID
+    ) {
+      const meeting = createDefaultMeeting(
+        getActiveParticipantIds(),
+        templateId
+      );
       this.meetings.unshift(meeting);
       this.activeMeetingId = meeting.id;
       this.draftSavedAt = null;
       this.persist();
       return meeting;
+    },
+    startNewMeetingFromTemplate(templateId: MeetingTemplateId) {
+      return this.startNewMeeting(templateId);
     },
     resumeMeeting(meetingId: string) {
       const meeting = this.meetings.find((item) => item.id === meetingId);
@@ -731,7 +723,7 @@ export const useMeetingsStore = defineStore('meetings', {
         (meeting) => meeting.id === targetMeetingId
       );
       const targetSection = targetMeeting
-        ? findSection(targetMeeting, 'tasks')
+        ? findTaskTargetSection(targetMeeting)
         : undefined;
 
       if (
@@ -762,7 +754,7 @@ export const useMeetingsStore = defineStore('meetings', {
         ) {
           targetSection.tasks.push({
             id: task.id,
-            sectionId: 'tasks',
+            sectionId: targetSection.id,
             title: task.title,
             description: task.description,
             responsibilityType: task.responsibilityType,

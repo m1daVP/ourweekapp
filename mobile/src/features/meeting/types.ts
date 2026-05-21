@@ -12,7 +12,44 @@ export type MeetingSectionId =
   | 'money'
   | 'familyCare'
   | 'plans'
-  | 'finalAgreements';
+  | 'finalAgreements'
+  | 'appreciation'
+  | 'frustrations'
+  | 'emotionalLoad'
+  | 'timeTogether'
+  | 'practicalAgreements'
+  | 'childRoutines'
+  | 'school'
+  | 'health'
+  | 'activities'
+  | 'parentResponsibilities'
+  | 'purchases'
+  | 'upcomingExpenses'
+  | 'subscriptionsBills'
+  | 'savingGoals'
+  | 'financialConcerns'
+  | 'decisions'
+  | 'whatHappened'
+  | 'personNeeds'
+  | 'whatShouldChange'
+  | 'concreteNextStep'
+  | 'followUpDate'
+  | 'scheduleOverview'
+  | 'meals'
+  | 'childcare'
+  | 'shopping'
+  | 'adminTasks'
+  | 'backupPlans';
+
+export type MeetingTemplateId =
+  | 'weekly-family-check-in'
+  | 'couple-reset'
+  | 'family-with-kids'
+  | 'money-check-in'
+  | 'conflict-cleanup'
+  | 'busy-week-planning';
+
+export type MeetingTemplateAccess = 'free' | 'premium';
 
 export type { Participant };
 
@@ -76,8 +113,23 @@ export interface MeetingSection {
   agreements: Agreement[];
 }
 
+export interface MeetingTemplateSection {
+  id: MeetingSectionId;
+  title: string;
+  prompt: string;
+}
+
+export interface MeetingTemplate {
+  id: MeetingTemplateId;
+  name: string;
+  description: string;
+  access: MeetingTemplateAccess;
+  sections: MeetingTemplateSection[];
+}
+
 export interface Meeting {
   id: string;
+  templateId: MeetingTemplateId;
   title: string;
   status: MeetingStatus;
   participantIds: string[];
