@@ -977,6 +977,112 @@ h2 {
   color: #ffffff;
 }
 
+.workspace-page h1 {
+  max-width: 10ch;
+}
+
+.workspace-field,
+.workspace-invite-form label {
+  display: grid;
+  gap: 6px;
+  color: #3e463f;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.workspace-field input,
+.workspace-field select,
+.workspace-invite-form input,
+.workspace-invite-form select,
+.workspace-member-list select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #fffdf9;
+  padding: 10px 12px;
+  color: #221f1b;
+}
+
+.workspace-invite-form,
+.workspace-member-list,
+.workspace-permission-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.workspace-member-list li {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #ebe4d8;
+  padding-top: 12px;
+}
+
+.workspace-member-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.workspace-member-list__body {
+  display: grid;
+  gap: 3px;
+}
+
+.workspace-member-list__body span,
+.workspace-member-list__body small {
+  color: #687064;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.workspace-member-list__actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.workspace-member-list button,
+.workspace-invite-form button,
+.settings-panel > .meeting-primary {
+  min-height: 42px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 10px;
+  color: #2c2924;
+  font-weight: 800;
+}
+
+.workspace-member-list button:disabled,
+.workspace-invite-form button:disabled,
+.settings-panel > .meeting-primary:disabled,
+.workspace-field input:disabled,
+.workspace-field select:disabled,
+.workspace-invite-form input:disabled,
+.workspace-invite-form select:disabled,
+.workspace-member-list select:disabled {
+  opacity: 0.58;
+}
+
+.workspace-invite-form .meeting-primary,
+.settings-panel > .meeting-primary {
+  border-color: #22312b;
+  background: #22312b;
+  color: #ffffff;
+}
+
+.workspace-permission-list li {
+  border-radius: 8px;
+  background: #f3f8f4;
+  padding: 9px 10px;
+  color: #22312b;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
 .history-page h1,
 .meeting-details-page h1 {
   max-width: none;

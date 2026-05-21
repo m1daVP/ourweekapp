@@ -80,7 +80,7 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     label: 'Google Calendar sync',
     description: 'Sync meetings and follow-ups with Google Calendar.',
     plans: ['premium'],
-    roles: ['owner', 'partner'],
+    roles: ['owner', 'adult_member'],
     lockedReason: 'Upgrade to connect Weekly Us with Google Calendar.',
   },
   export: {

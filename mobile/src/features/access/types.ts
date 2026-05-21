@@ -16,7 +16,7 @@ export type FeatureKey =
   | 'export'
   | 'advancedStatistics';
 
-export type UserRole = 'owner' | 'partner' | 'viewer' | 'childProfile';
+export type UserRole = 'owner' | 'adult_member' | 'viewer';
 
 export interface FeatureAccess {
   key: FeatureKey;

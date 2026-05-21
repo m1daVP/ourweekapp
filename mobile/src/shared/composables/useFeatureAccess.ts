@@ -1,4 +1,5 @@
 import { computed } from 'vue';
+import { useWorkspaceStore } from '@/app/stores/workspace';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import type { FeatureKey, PlanType, UserRole } from '@/features/access/types';
 import type { Meeting } from '@/features/meeting/types';
@@ -6,9 +7,10 @@ import { useUserAccessStore } from '@/app/stores/userAccess';
 
 export function useFeatureAccess() {
   const accessStore = useUserAccessStore();
+  const workspaceStore = useWorkspaceStore();
 
   const planType = computed(() => accessStore.planType);
-  const userRole = computed(() => accessStore.userRole);
+  const userRole = computed(() => workspaceStore.currentUserRole);
   const isPremium = computed(() => accessStore.isPremium);
 
   function canUseFeature(featureKey: FeatureKey) {
@@ -18,7 +20,10 @@ export function useFeatureAccess() {
       return false;
     }
 
-    if (access.roles && !access.roles.includes(accessStore.userRole)) {
+    if (
+      access.roles &&
+      !access.roles.includes(workspaceStore.currentUserRole)
+    ) {
       return false;
     }
 
@@ -54,6 +59,7 @@ export function useFeatureAccess() {
   }
 
   function setMockRole(nextRole: UserRole) {
+    workspaceStore.setCurrentMemberRole(nextRole);
     accessStore.setMockRole(nextRole);
   }
 

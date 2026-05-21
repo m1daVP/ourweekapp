@@ -6,10 +6,12 @@ import { useTasksStore } from '@/app/stores/tasks';
 import type { MeetingSectionId } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
 import type { TaskResponsibilityType } from '@/features/tasks/types';
+import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
+const { can } = useWorkspacePermissions();
 
 const noteText = ref('');
 const agreementText = ref('');
@@ -27,6 +29,10 @@ const taskDraft = reactive({
 });
 
 const activeMeeting = computed(() => meetingsStore.activeMeeting);
+const canEditMeeting = computed(() => can('editMeetings'));
+const canCreateMeeting = computed(() => can('createMeetings'));
+const canEditTasks = computed(() => can('editTasks'));
+const canCreateTasks = computed(() => can('createTasks'));
 const meetingParticipants = computed(() => {
   const meeting = activeMeeting.value;
 
@@ -170,8 +176,13 @@ const neutralHint = computed(() => {
 
 onMounted(() => {
   participantsStore.ensureDefaultParticipants();
-  const meeting = meetingsStore.ensureActiveMeeting();
   tasksStore.syncFromMeetings(meetingsStore.meetings);
+
+  if (!canCreateMeeting.value && !meetingsStore.activeMeeting) {
+    return;
+  }
+
+  const meeting = meetingsStore.ensureActiveMeeting();
   selectedParticipantId.value = firstActiveParticipantId();
   taskDraft.responsibilityChoice = 'needsDiscussion';
   agreementParticipantIds.value = [...meeting.participantIds];
@@ -305,6 +316,12 @@ function resolveTaskResponsibility() {
 
 function addParticipant() {
   clearMessages();
+
+  if (!canEditMeeting.value) {
+    formError.value = 'This workspace role can view meetings but cannot edit.';
+    return;
+  }
+
   const participant = participantsStore.createParticipant({
     name: participantName.value,
     type: 'adult',
@@ -329,6 +346,12 @@ function addNote() {
   }
 
   clearMessages();
+
+  if (!canEditMeeting.value) {
+    formError.value = 'This workspace role can view meetings but cannot edit.';
+    return;
+  }
+
   const error = meetingsStore.addNote(
     section.id,
     selectedParticipantId.value,
@@ -352,6 +375,12 @@ function addTask() {
   }
 
   clearMessages();
+
+  if (!canCreateTasks.value) {
+    formError.value = 'This workspace role can view tasks but cannot edit.';
+    return;
+  }
+
   const error = meetingsStore.addTask(section.id, {
     title: taskDraft.title,
     description: taskDraft.description,
@@ -376,6 +405,13 @@ function addAgreement() {
   }
 
   clearMessages();
+
+  if (!canEditMeeting.value) {
+    formError.value =
+      'This workspace role can view agreements but cannot edit.';
+    return;
+  }
+
   const error = meetingsStore.addAgreement(
     section.id,
     agreementText.value,
@@ -395,6 +431,11 @@ function addAgreement() {
 }
 
 function toggleTask(taskId: string, status: 'open' | 'done' | 'skipped') {
+  if (!canEditTasks.value) {
+    formError.value = 'This workspace role can view tasks but cannot edit.';
+    return;
+  }
+
   meetingsStore.updateTaskStatus(taskId, status === 'open' ? 'done' : 'open');
 }
 
@@ -407,6 +448,11 @@ function handleUnfinishedTasks(action: 'keep' | 'done' | 'skipped' | 'move') {
   }
 
   clearMessages();
+
+  if (!canEditTasks.value) {
+    formError.value = 'This workspace role can view tasks but cannot edit.';
+    return;
+  }
 
   if (action === 'keep') {
     statusMessage.value = 'Kept for now.';
@@ -438,7 +484,7 @@ function handleUnfinishedTasks(action: 'keep' | 'done' | 'skipped' | 'move') {
 function goBack() {
   const meeting = activeMeeting.value;
 
-  if (!meeting) {
+  if (!meeting || !canEditMeeting.value) {
     return;
   }
 
@@ -448,7 +494,7 @@ function goBack() {
 function goNext() {
   const meeting = activeMeeting.value;
 
-  if (!meeting) {
+  if (!meeting || !canEditMeeting.value) {
     return;
   }
 
@@ -457,12 +503,24 @@ function goNext() {
 
 function saveDraft() {
   clearMessages();
+
+  if (!canEditMeeting.value) {
+    formError.value = 'This workspace role can view meetings but cannot edit.';
+    return;
+  }
+
   meetingsStore.saveDraft();
   statusMessage.value = 'Draft saved on this phone.';
 }
 
 function finishMeeting() {
   clearMessages();
+
+  if (!canEditMeeting.value) {
+    formError.value = 'This workspace role can view meetings but cannot edit.';
+    return;
+  }
+
   const error = meetingsStore.finishMeeting();
 
   if (error) {
@@ -474,6 +532,11 @@ function finishMeeting() {
 }
 
 function startNewMeeting() {
+  if (!canCreateMeeting.value) {
+    formError.value = 'This workspace role can view meetings but cannot edit.';
+    return;
+  }
+
   const meeting = meetingsStore.startNewMeeting();
   tasksStore.syncFromMeetings(meetingsStore.meetings);
   selectedParticipantId.value = firstActiveParticipantId();
@@ -493,7 +556,7 @@ function startNewMeeting() {
           <p class="meeting-prompt">{{ currentSection.prompt }}</p>
         </div>
         <button
-          v-if="!isCompleted"
+          v-if="!isCompleted && canEditMeeting"
           class="meeting-save"
           type="button"
           @click="saveDraft"
@@ -553,7 +616,11 @@ function startNewMeeting() {
         </li>
       </ul>
 
-      <div class="meeting-review__actions" aria-label="Unfinished task choices">
+      <div
+        v-if="canEditTasks"
+        class="meeting-review__actions"
+        aria-label="Unfinished task choices"
+      >
         <button type="button" @click="handleUnfinishedTasks('keep')">
           Keep
         </button>
@@ -593,7 +660,11 @@ function startNewMeeting() {
           {{ participant.name }}
         </span>
       </div>
-      <form class="meeting-inline-form" @submit.prevent="addParticipant">
+      <form
+        v-if="canEditMeeting"
+        class="meeting-inline-form"
+        @submit.prevent="addParticipant"
+      >
         <label class="sr-only" for="participant-name">Add person</label>
         <input
           id="participant-name"
@@ -612,7 +683,11 @@ function startNewMeeting() {
     >
       <h2 id="meeting-notes-title">Notes</h2>
       <label class="meeting-label" for="note-person">Author</label>
-      <select id="note-person" v-model="selectedParticipantId">
+      <select
+        id="note-person"
+        v-model="selectedParticipantId"
+        :disabled="!canEditMeeting"
+      >
         <option
           v-for="participant in activeMeetingParticipants"
           :key="participant.id"
@@ -628,9 +703,15 @@ function startNewMeeting() {
         v-model="noteText"
         rows="4"
         :placeholder="notePlaceholder(currentSection.id)"
+        :disabled="!canEditMeeting"
       />
       <p v-if="neutralHint" class="meeting-help">{{ neutralHint }}</p>
-      <button class="meeting-primary" type="button" @click="addNote">
+      <button
+        v-if="canEditMeeting"
+        class="meeting-primary"
+        type="button"
+        @click="addNote"
+      >
         Add note
       </button>
 
@@ -649,42 +730,44 @@ function startNewMeeting() {
       aria-labelledby="meeting-tasks-title"
     >
       <h2 id="meeting-tasks-title">Tasks</h2>
-      <label class="meeting-label" for="task-title">Task title</label>
-      <input
-        id="task-title"
-        v-model="taskDraft.title"
-        type="text"
-        placeholder="What needs care?"
-      />
+      <template v-if="canCreateTasks">
+        <label class="meeting-label" for="task-title">Task title</label>
+        <input
+          id="task-title"
+          v-model="taskDraft.title"
+          type="text"
+          placeholder="What needs care?"
+        />
 
-      <label class="meeting-label" for="task-description"
-        >Optional detail</label
-      >
-      <textarea
-        id="task-description"
-        v-model="taskDraft.description"
-        rows="3"
-        placeholder="Anything that would make this easier?"
-      />
-
-      <label class="meeting-label" for="task-person">Responsible</label>
-      <select id="task-person" v-model="taskDraft.responsibilityChoice">
-        <option value="needsDiscussion">Needs discussion</option>
-        <option value="shared">Shared</option>
-        <option
-          v-for="participant in activeMeetingParticipants"
-          :key="participant.id"
-          :value="participant.id"
+        <label class="meeting-label" for="task-description"
+          >Optional detail</label
         >
-          {{ participant.name }}
-        </option>
-      </select>
+        <textarea
+          id="task-description"
+          v-model="taskDraft.description"
+          rows="3"
+          placeholder="Anything that would make this easier?"
+        />
 
-      <label class="meeting-label" for="task-due-date">Due date</label>
-      <input id="task-due-date" v-model="taskDraft.dueDate" type="date" />
-      <button class="meeting-primary" type="button" @click="addTask">
-        Add task
-      </button>
+        <label class="meeting-label" for="task-person">Responsible</label>
+        <select id="task-person" v-model="taskDraft.responsibilityChoice">
+          <option value="needsDiscussion">Needs discussion</option>
+          <option value="shared">Shared</option>
+          <option
+            v-for="participant in activeMeetingParticipants"
+            :key="participant.id"
+            :value="participant.id"
+          >
+            {{ participant.name }}
+          </option>
+        </select>
+
+        <label class="meeting-label" for="task-due-date">Due date</label>
+        <input id="task-due-date" v-model="taskDraft.dueDate" type="date" />
+        <button class="meeting-primary" type="button" @click="addTask">
+          Add task
+        </button>
+      </template>
 
       <ul
         v-if="currentSection.tasks.length"
@@ -704,7 +787,11 @@ function startNewMeeting() {
             <small v-if="task.description">{{ task.description }}</small>
             <small v-if="task.dueDate">Due {{ task.dueDate }}</small>
           </div>
-          <button type="button" @click="toggleTask(task.id, task.status)">
+          <button
+            v-if="canEditTasks"
+            type="button"
+            @click="toggleTask(task.id, task.status)"
+          >
             {{ task.status === 'done' ? 'Done' : 'Open' }}
           </button>
         </li>
@@ -726,6 +813,7 @@ function startNewMeeting() {
         v-model="agreementText"
         rows="3"
         placeholder="What did we agree to?"
+        :disabled="!canEditMeeting"
       />
       <fieldset class="participant-selector">
         <legend>Participants</legend>
@@ -737,11 +825,17 @@ function startNewMeeting() {
             v-model="agreementParticipantIds"
             type="checkbox"
             :value="participant.id"
+            :disabled="!canEditMeeting"
           />
           <span>{{ participant.name }}</span>
         </label>
       </fieldset>
-      <button class="meeting-primary" type="button" @click="addAgreement">
+      <button
+        v-if="canEditMeeting"
+        class="meeting-primary"
+        type="button"
+        @click="addAgreement"
+      >
         Add agreement
       </button>
 
@@ -790,7 +884,11 @@ function startNewMeeting() {
               <small>{{ task.sectionTitle }}</small>
               <small v-if="task.dueDate">Due {{ task.dueDate }}</small>
             </div>
-            <button type="button" @click="toggleTask(task.id, task.status)">
+            <button
+              v-if="canEditTasks"
+              type="button"
+              @click="toggleTask(task.id, task.status)"
+            >
               {{ task.status === 'done' ? 'Done' : 'Open' }}
             </button>
           </li>
@@ -823,14 +921,22 @@ function startNewMeeting() {
     </p>
 
     <footer class="meeting-actions">
-      <button type="button" :disabled="currentStepNumber === 1" @click="goBack">
+      <button
+        type="button"
+        :disabled="currentStepNumber === 1 || !canEditMeeting"
+        @click="goBack"
+      >
         Back
       </button>
-      <button v-if="!isCompleted" type="button" @click="saveDraft">
+      <button
+        v-if="!isCompleted && canEditMeeting"
+        type="button"
+        @click="saveDraft"
+      >
         Save draft
       </button>
       <button
-        v-if="!isFinalSection && !isCompleted"
+        v-if="!isFinalSection && !isCompleted && canEditMeeting"
         class="meeting-primary"
         type="button"
         @click="goNext"
@@ -838,7 +944,7 @@ function startNewMeeting() {
         Next
       </button>
       <button
-        v-else-if="!isCompleted"
+        v-else-if="!isCompleted && canEditMeeting"
         class="meeting-primary"
         type="button"
         @click="finishMeeting"
@@ -846,7 +952,7 @@ function startNewMeeting() {
         Finish
       </button>
       <button
-        v-else
+        v-else-if="canCreateMeeting"
         class="meeting-primary"
         type="button"
         @click="startNewMeeting"
@@ -854,5 +960,18 @@ function startNewMeeting() {
         New meeting
       </button>
     </footer>
+  </section>
+  <section v-else class="page-stack">
+    <div>
+      <p class="page-kicker">Weekly Meeting</p>
+      <h1>Read-only access</h1>
+      <p class="page-copy">
+        Viewers can see shared summaries and tasks, but cannot start or edit a
+        weekly meeting.
+      </p>
+    </div>
+    <RouterLink class="secondary-button link-button" :to="{ name: 'history' }">
+      View history
+    </RouterLink>
   </section>
 </template>

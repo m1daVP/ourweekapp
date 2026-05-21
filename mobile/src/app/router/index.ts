@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import { useAuthStore } from '@/app/stores/auth';
 import { useUserAccessStore } from '@/app/stores/userAccess';
+import { useWorkspaceStore } from '@/app/stores/workspace';
 import AccountPage from '@/pages/AccountPage.vue';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
 import HomePage from '@/pages/HomePage.vue';
@@ -15,6 +16,7 @@ import SignInPage from '@/pages/SignInPage.vue';
 import SignUpPage from '@/pages/SignUpPage.vue';
 import TasksPage from '@/pages/TasksPage.vue';
 import WelcomePage from '@/pages/WelcomePage.vue';
+import WorkspaceSettingsPage from '@/pages/WorkspaceSettingsPage.vue';
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -81,6 +83,11 @@ export const router = createRouter({
       component: SettingsPage,
     },
     {
+      path: '/workspace-settings',
+      name: 'workspace-settings',
+      component: WorkspaceSettingsPage,
+    },
+    {
       path: '/account',
       name: 'account',
       component: AccountPage,
@@ -98,6 +105,7 @@ export const router = createRouter({
 router.beforeEach((to) => {
   const authStore = useAuthStore();
   const accessStore = useUserAccessStore();
+  const workspaceStore = useWorkspaceStore();
 
   authStore.syncAccessState();
 
@@ -129,7 +137,7 @@ router.beforeEach((to) => {
   const hasRequiredFeature = featureAccess
     ? featureAccess.plans.includes(accessStore.planType) &&
       (!featureAccess.roles ||
-        featureAccess.roles.includes(accessStore.userRole))
+        featureAccess.roles.includes(workspaceStore.currentUserRole))
     : true;
   const hasPremiumPlan = requiresPremium
     ? accessStore.planType === 'premium'

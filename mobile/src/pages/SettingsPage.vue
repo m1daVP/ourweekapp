@@ -46,9 +46,8 @@ participantsStore.ensureDefaultParticipants();
 const planOptions: PlanType[] = ['free', 'premium'];
 const roleOptions: Array<{ label: string; value: UserRole }> = [
   { label: 'Owner', value: 'owner' },
-  { label: 'Partner / Adult', value: 'partner' },
+  { label: 'Adult member', value: 'adult_member' },
   { label: 'Viewer', value: 'viewer' },
-  { label: 'Child profile', value: 'childProfile' },
 ];
 const timeInputStep = 300;
 const typeOptions: Array<{ label: string; value: ParticipantType }> = [
@@ -329,6 +328,12 @@ function enableParticipant(participantId: string) {
       >
         Account options
       </RouterLink>
+      <RouterLink
+        class="secondary-button link-button"
+        :to="{ name: 'workspace-settings' }"
+      >
+        Workspace settings
+      </RouterLink>
     </section>
     <PremiumLock
       feature="agreementReminders"
@@ -579,7 +584,7 @@ function enableParticipant(participantId: string) {
     </div>
 
     <div class="content-panel settings-panel">
-      <h2>Workspace role</h2>
+      <h2>Mock workspace role</h2>
       <div class="role-grid">
         <button
           v-for="role in roleOptions"

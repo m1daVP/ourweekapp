@@ -10,10 +10,12 @@ import type {
   TaskResponsibilityType,
   TaskStatus,
 } from '@/features/tasks/types';
+import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
+const { can } = useWorkspacePermissions();
 
 const editDrafts = reactive<
   Record<
@@ -29,6 +31,8 @@ const doneTasks = computed(() => tasksStore.doneTasks);
 const skippedTasks = computed(() => tasksStore.skippedTasks);
 const recentAgreements = computed(() => tasksStore.recentAgreements);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
+const canEditTasks = computed(() => can('editTasks'));
+const canDeleteTasks = computed(() => can('deleteTasks'));
 
 onMounted(() => {
   participantsStore.ensureDefaultParticipants();
@@ -164,6 +168,11 @@ function formatDate(value: string) {
 }
 
 function saveTask(task: Task) {
+  if (!canEditTasks.value) {
+    statusMessage.value = 'This workspace role can view tasks but cannot edit.';
+    return;
+  }
+
   const draft = editDrafts[task.id];
 
   if (!draft?.title.trim()) {
@@ -187,12 +196,22 @@ function saveTask(task: Task) {
 }
 
 function setTaskStatus(task: Task, status: TaskStatus) {
+  if (!canEditTasks.value) {
+    statusMessage.value = 'This workspace role can view tasks but cannot edit.';
+    return;
+  }
+
   tasksStore.updateTaskStatus(task.id, status);
   meetingsStore.updateTaskStatus(task.id, status);
   statusMessage.value = status === 'done' ? 'Marked done.' : 'Updated.';
 }
 
 function deleteTask(task: Task) {
+  if (!canDeleteTasks.value) {
+    statusMessage.value = 'Only the owner can delete tasks.';
+    return;
+  }
+
   const confirmed = window.confirm('Delete this task?');
 
   if (!confirmed) {
@@ -243,18 +262,28 @@ function relatedTaskTitles(agreement: Agreement) {
           <p>{{ openTasks.length }} still relevant</p>
         </div>
       </div>
+      <p v-if="!canEditTasks" class="meeting-help">
+        This workspace role can view tasks but cannot edit them.
+      </p>
 
       <ul v-if="openTasks.length" class="task-list">
         <li v-for="task in openTasks" :key="task.id" class="task-item">
           <div class="task-item__fields">
             <label>
               <span>Task</span>
-              <input v-model="editDrafts[task.id].title" type="text" />
+              <input
+                v-model="editDrafts[task.id].title"
+                type="text"
+                :disabled="!canEditTasks"
+              />
             </label>
 
             <label>
               <span>Responsible</span>
-              <select v-model="editDrafts[task.id].responsibilityChoice">
+              <select
+                v-model="editDrafts[task.id].responsibilityChoice"
+                :disabled="!canEditTasks"
+              >
                 <option value="needsDiscussion">Needs discussion</option>
                 <option value="shared">Shared</option>
                 <option
@@ -270,7 +299,11 @@ function relatedTaskTitles(agreement: Agreement) {
 
             <label>
               <span>Still relevant?</span>
-              <input v-model="editDrafts[task.id].dueDate" type="date" />
+              <input
+                v-model="editDrafts[task.id].dueDate"
+                type="date"
+                :disabled="!canEditTasks"
+              />
             </label>
           </div>
 
@@ -281,19 +314,27 @@ function relatedTaskTitles(agreement: Agreement) {
             From {{ getMeetingLabel(task.sourceMeetingId) }}
           </p>
 
-          <div class="task-item__actions">
-            <button type="button" @click="saveTask(task)">Save</button>
+          <div v-if="canEditTasks || canDeleteTasks" class="task-item__actions">
+            <button v-if="canEditTasks" type="button" @click="saveTask(task)">
+              Save
+            </button>
             <button
+              v-if="canEditTasks"
               type="button"
               class="task-item__done"
               @click="setTaskStatus(task, 'done')"
             >
               Done
             </button>
-            <button type="button" @click="setTaskStatus(task, 'skipped')">
+            <button
+              v-if="canEditTasks"
+              type="button"
+              @click="setTaskStatus(task, 'skipped')"
+            >
               Skip
             </button>
             <button
+              v-if="canDeleteTasks"
               type="button"
               class="task-item__danger"
               @click="deleteTask(task)"
@@ -325,7 +366,11 @@ function relatedTaskTitles(agreement: Agreement) {
               }}
             </p>
           </div>
-          <button type="button" @click="setTaskStatus(task, 'open')">
+          <button
+            v-if="canEditTasks"
+            type="button"
+            @click="setTaskStatus(task, 'open')"
+          >
             Reopen
           </button>
         </li>
@@ -352,7 +397,11 @@ function relatedTaskTitles(agreement: Agreement) {
               }}
             </p>
           </div>
-          <button type="button" @click="setTaskStatus(task, 'open')">
+          <button
+            v-if="canEditTasks"
+            type="button"
+            @click="setTaskStatus(task, 'open')"
+          >
             Bring back
           </button>
         </li>
