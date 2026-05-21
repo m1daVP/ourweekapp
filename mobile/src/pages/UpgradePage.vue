@@ -2,47 +2,34 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
-import { useUserAccessStore } from '@/app/stores/userAccess';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import FeatureList from '@/features/subscription/components/FeatureList.vue';
 import PlanCard from '@/features/subscription/components/PlanCard.vue';
-import {
-  planComparisonItems,
-  premiumPlanOptions,
-} from '@/features/subscription/subscriptionPlans';
-import type { BillingCadence } from '@/features/subscription/types';
+import { planComparisonItems } from '@/features/subscription/subscriptionPlans';
+import type { SubscriptionPlanId } from '@/features/subscription/types';
 import PremiumBadge from '@/shared/components/PremiumBadge.vue';
-import { appConfig } from '@/shared/config/env';
 
 const router = useRouter();
 const authStore = useAuthStore();
-const accessStore = useUserAccessStore();
-const selectedPlanId = ref<BillingCadence>('monthly');
-const mockStatusMessage = ref('');
+const subscriptionStore = useSubscriptionStore();
+const selectedPlanId = ref<SubscriptionPlanId>('premium_monthly');
 
 const currentPlanLabel = computed(() =>
-  accessStore.planType === 'premium' ? 'Premium' : 'Free'
+  subscriptionStore.currentPlan === 'premium' ? 'Premium' : 'Free'
 );
-const canUseMockSwitch = computed(
-  () => appConfig.appEnvironment !== 'production'
+const selectedPlan = computed(() =>
+  subscriptionStore.availablePlans.find(
+    (plan) => plan.id === selectedPlanId.value
+  )
 );
+const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
 
-function selectPlan(planId: BillingCadence) {
+function selectPlan(planId: SubscriptionPlanId) {
   selectedPlanId.value = planId;
 }
 
-function setMockPlan() {
-  if (!canUseMockSwitch.value) {
-    return;
-  }
-
-  if (authStore.isAuthenticated) {
-    authStore.setMockSubscriptionPlan('premium');
-  } else {
-    accessStore.setMockPlan('premium');
-  }
-
-  mockStatusMessage.value =
-    'Premium is enabled in mock mode on this device only.';
+function purchaseSelectedPlan() {
+  subscriptionStore.purchasePlan(selectedPlanId.value);
 }
 </script>
 
@@ -80,31 +67,51 @@ function setMockPlan() {
 
       <div class="plan-card-grid" aria-label="Premium plan options">
         <PlanCard
-          v-for="plan in premiumPlanOptions"
+          v-for="plan in subscriptionStore.availablePlans"
           :key="plan.id"
           :plan="plan"
           :selected="selectedPlanId === plan.id"
+          :disabled="subscriptionStore.isPurchasing"
           @select="selectPlan"
         />
       </div>
 
-      <button class="meeting-primary" type="button" disabled>
-        Start Premium
+      <button
+        class="meeting-primary"
+        type="button"
+        :disabled="
+          subscriptionStore.isPurchasing || !selectedPlan || hasPremium
+        "
+        @click="purchaseSelectedPlan"
+      >
+        {{ hasPremium ? 'Premium active' : 'Start mock Premium' }}
       </button>
       <p class="subscription-note">
-        Payments are not connected yet. Weekly Us does not collect payment
-        details in this MVP.
+        This paywall uses a mock billing provider only. Real mobile billing must
+        validate entitlements through a trusted provider or backend before
+        unlocking Premium in production.
       </p>
       <button
-        v-if="canUseMockSwitch"
-        class="secondary-button subscription-mock-button"
+        class="secondary-button"
         type="button"
-        @click="setMockPlan"
+        :disabled="subscriptionStore.isRestoring"
+        @click="subscriptionStore.restorePurchases()"
       >
-        Enable mock Premium
+        Restore purchases
       </button>
-      <p v-if="mockStatusMessage" class="meeting-status" role="status">
-        {{ mockStatusMessage }}
+      <p
+        v-if="subscriptionStore.statusMessage"
+        class="meeting-status"
+        role="status"
+      >
+        {{ subscriptionStore.statusMessage }}
+      </p>
+      <p
+        v-if="subscriptionStore.errorMessage"
+        class="meeting-error"
+        role="alert"
+      >
+        {{ subscriptionStore.errorMessage }}
       </p>
     </section>
 
@@ -135,11 +142,22 @@ function setMockPlan() {
       <dl class="subscription-status-list">
         <div>
           <dt>Renewal</dt>
-          <dd>Not available until payments are connected.</dd>
+          <dd>
+            {{
+              subscriptionStore.premiumEntitlement?.expiresAt ??
+              'Not available until real billing is connected.'
+            }}
+          </dd>
         </div>
         <div>
           <dt>Manage subscription</dt>
-          <dd>Mobile billing management will be added later.</dd>
+          <dd>
+            {{
+              subscriptionStore.canManageSubscription
+                ? 'Available through the store.'
+                : 'Mobile billing management will be added later.'
+            }}
+          </dd>
         </div>
         <div>
           <dt>Account</dt>
@@ -152,6 +170,14 @@ function setMockPlan() {
           </dd>
         </div>
       </dl>
+      <button
+        class="secondary-button"
+        type="button"
+        :disabled="subscriptionStore.isManaging"
+        @click="subscriptionStore.manageSubscription()"
+      >
+        Manage subscription
+      </button>
       <button class="secondary-button" type="button" @click="router.back()">
         Go back
       </button>

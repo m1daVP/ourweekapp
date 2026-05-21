@@ -1,8 +1,8 @@
 import { computed, ref, watch } from 'vue';
 import type { PermissionState } from '@capacitor/core';
 import { useRemindersStore } from '@/app/stores/reminders';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useTasksStore } from '@/app/stores/tasks';
-import { useUserAccessStore } from '@/app/stores/userAccess';
 import {
   cancelReminderNotifications,
   checkNotificationPermission,
@@ -21,12 +21,13 @@ let initialized = false;
 
 export function useNotifications() {
   const remindersStore = useRemindersStore();
+  const subscriptionStore = useSubscriptionStore();
   const tasksStore = useTasksStore();
-  const accessStore = useUserAccessStore();
 
   const isAvailable = computed(() => localNotificationsAvailable());
   const canScheduleReminders = computed(
-    () => accessStore.isPremium && remindersStore.settings.enabled
+    () =>
+      subscriptionStore.hasPremiumEntitlement && remindersStore.settings.enabled
   );
 
   async function syncPermissionStatus() {
@@ -44,7 +45,7 @@ export function useNotifications() {
   async function enableReminders() {
     lastError.value = null;
 
-    if (!accessStore.isPremium) {
+    if (!subscriptionStore.hasPremiumEntitlement) {
       lastError.value = 'Reminder scheduling is a premium feature.';
       remindersStore.setEnabled(false);
       await cancelReminderNotifications();
@@ -83,7 +84,10 @@ export function useNotifications() {
     lastError.value = null;
 
     try {
-      if (!accessStore.isPremium || !remindersStore.settings.enabled) {
+      if (
+        !subscriptionStore.hasPremiumEntitlement ||
+        !remindersStore.settings.enabled
+      ) {
         await cancelReminderNotifications();
         lastReminderResult.value = { scheduled: false, reason: 'disabled' };
         return lastReminderResult.value;
@@ -115,7 +119,8 @@ export function useNotifications() {
 
     watch(
       () => [
-        accessStore.planType,
+        subscriptionStore.currentPlan,
+        subscriptionStore.hasPremiumEntitlement,
         remindersStore.settings.enabled,
         remindersStore.settings.weeklyMeetingReminder.day,
         remindersStore.settings.weeklyMeetingReminder.time,

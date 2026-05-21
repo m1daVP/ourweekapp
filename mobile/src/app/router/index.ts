@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import { useAuthStore } from '@/app/stores/auth';
-import { useUserAccessStore } from '@/app/stores/userAccess';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import AccountPage from '@/pages/AccountPage.vue';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
@@ -110,7 +110,7 @@ export const router = createRouter({
 
 router.beforeEach((to) => {
   const authStore = useAuthStore();
-  const accessStore = useUserAccessStore();
+  const subscriptionStore = useSubscriptionStore();
   const workspaceStore = useWorkspaceStore();
 
   authStore.syncAccessState();
@@ -140,13 +140,16 @@ router.beforeEach((to) => {
   const featureAccess = requiredFeature
     ? featureAccessConfig[requiredFeature]
     : undefined;
+  const effectivePlan = subscriptionStore.currentPlan;
   const hasRequiredFeature = featureAccess
-    ? featureAccess.plans.includes(accessStore.planType) &&
+    ? featureAccess.plans.includes(effectivePlan) &&
+      (effectivePlan !== 'premium' ||
+        subscriptionStore.hasPremiumEntitlement) &&
       (!featureAccess.roles ||
         featureAccess.roles.includes(workspaceStore.currentUserRole))
     : true;
   const hasPremiumPlan = requiresPremium
-    ? accessStore.planType === 'premium'
+    ? effectivePlan === 'premium' && subscriptionStore.hasPremiumEntitlement
     : true;
 
   if (hasRequiredFeature && hasPremiumPlan) {

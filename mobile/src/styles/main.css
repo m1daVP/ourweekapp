@@ -1622,6 +1622,10 @@ h2 {
   box-shadow: inset 0 0 0 1px #496a8f;
 }
 
+.plan-card:disabled {
+  opacity: 0.62;
+}
+
 .plan-card__header {
   display: flex;
   align-items: center;

@@ -1,25 +1,20 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useAuthStore } from '@/app/stores/auth';
-import { useUserAccessStore } from '@/app/stores/userAccess';
-import type { PlanType } from '@/features/access/types';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 import { appConfig } from '@/shared/config/env';
 
 const authStore = useAuthStore();
-const accessStore = useUserAccessStore();
+const subscriptionStore = useSubscriptionStore();
 const displayName = ref(authStore.user?.displayName ?? '');
 const statusMessage = ref('');
 const formError = ref('');
-const subscriptionMessage = ref('');
 
 const user = computed(() => authStore.user);
 const isMockAuth = computed(() => appConfig.apiMode === 'mock');
-const canUseMockPlanSwitch = computed(
-  () => appConfig.appEnvironment !== 'production'
-);
 const currentPlanLabel = computed(() =>
-  accessStore.planType === 'premium' ? 'Premium' : 'Free'
+  subscriptionStore.currentPlan === 'premium' ? 'Premium' : 'Free'
 );
 
 function formatDate(value?: string) {
@@ -49,15 +44,6 @@ function saveProfile() {
   }
 
   statusMessage.value = 'Account updated on this device.';
-}
-
-function setMockPlan(plan: PlanType) {
-  if (!canUseMockPlanSwitch.value) {
-    return;
-  }
-
-  authStore.setMockSubscriptionPlan(plan);
-  subscriptionMessage.value = `${plan === 'premium' ? 'Premium' : 'Free'} is active in mock mode on this device.`;
 }
 </script>
 
@@ -89,22 +75,34 @@ function setMockPlan(plan: PlanType) {
 
     <section class="content-panel settings-panel subscription-status-panel">
       <div>
-        <PremiumBadge v-if="accessStore.isPremium" />
+        <PremiumBadge v-if="subscriptionStore.hasPremiumEntitlement" />
         <h2>Subscription</h2>
         <p>
-          Current plan: {{ currentPlanLabel }}. Payments and subscription
-          renewal are not connected yet.
+          Current plan: {{ currentPlanLabel }}. Premium access is based on the
+          subscription entitlement, not account state alone.
         </p>
       </div>
 
       <dl class="subscription-status-list">
         <div>
           <dt>Renewal</dt>
-          <dd>Not available until real mobile billing is added.</dd>
+          <dd>
+            {{
+              subscriptionStore.premiumEntitlement?.expiresAt
+                ? formatDate(subscriptionStore.premiumEntitlement.expiresAt)
+                : 'Not available until real mobile billing is added.'
+            }}
+          </dd>
         </div>
         <div>
           <dt>Manage subscription</dt>
-          <dd>Placeholder only. No payment provider is connected.</dd>
+          <dd>
+            {{
+              subscriptionStore.canManageSubscription
+                ? 'Available through the store.'
+                : 'Placeholder only. No payment provider is connected.'
+            }}
+          </dd>
         </div>
       </dl>
 
@@ -114,32 +112,20 @@ function setMockPlan(plan: PlanType) {
       >
         View Premium
       </RouterLink>
-
-      <div v-if="canUseMockPlanSwitch" class="segmented-control">
-        <button
-          type="button"
-          :class="[
-            'segmented-control__button',
-            { 'is-active': accessStore.planType === 'free' },
-          ]"
-          @click="setMockPlan('free')"
-        >
-          Free
-        </button>
-        <button
-          type="button"
-          :class="[
-            'segmented-control__button',
-            { 'is-active': accessStore.planType === 'premium' },
-          ]"
-          @click="setMockPlan('premium')"
-        >
-          Premium
-        </button>
-      </div>
-
-      <p v-if="subscriptionMessage" class="meeting-status" role="status">
-        {{ subscriptionMessage }}
+      <button
+        class="secondary-button"
+        type="button"
+        :disabled="subscriptionStore.isRestoring"
+        @click="subscriptionStore.restorePurchases()"
+      >
+        Restore purchases
+      </button>
+      <p
+        v-if="subscriptionStore.statusMessage"
+        class="meeting-status"
+        role="status"
+      >
+        {{ subscriptionStore.statusMessage }}
       </p>
     </section>
 

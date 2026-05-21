@@ -13,7 +13,7 @@ import {
   featureAccessConfig,
   premiumFeatureKeys,
 } from '@/features/access/featureAccess.config';
-import type { FeatureKey, PlanType, UserRole } from '@/features/access/types';
+import type { FeatureKey, UserRole } from '@/features/access/types';
 import type { ReminderDay } from '@/features/reminders/types';
 import type { ParticipantType } from '@/features/participants/types';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
@@ -23,8 +23,7 @@ import { useNotifications } from '@/shared/composables/useNotifications';
 
 const route = useRoute();
 const authStore = useAuthStore();
-const { planType, userRole, canUseFeature, setMockPlan, setMockRole } =
-  useFeatureAccess();
+const { userRole, canUseFeature, setMockRole } = useFeatureAccess();
 const participantsStore = useParticipantsStore();
 const remindersStore = useRemindersStore();
 const tasksStore = useTasksStore();
@@ -43,7 +42,6 @@ void syncPermissionStatus();
 
 participantsStore.ensureDefaultParticipants();
 
-const planOptions: PlanType[] = ['free', 'premium'];
 const roleOptions: Array<{ label: string; value: UserRole }> = [
   { label: 'Owner', value: 'owner' },
   { label: 'Adult member', value: 'adult_member' },
@@ -564,24 +562,6 @@ function enableParticipant(participantId: string) {
     </section>
 
     <UpgradePrompt v-if="lockedFeature" :feature="lockedFeature" />
-
-    <div class="content-panel settings-panel">
-      <h2>Mock plan</h2>
-      <div class="segmented-control" aria-label="Mock plan">
-        <button
-          v-for="plan in planOptions"
-          :key="plan"
-          type="button"
-          :class="[
-            'segmented-control__button',
-            { 'is-active': planType === plan },
-          ]"
-          @click="setMockPlan(plan)"
-        >
-          {{ plan }}
-        </button>
-      </div>
-    </div>
 
     <div class="content-panel settings-panel">
       <h2>Mock workspace role</h2>

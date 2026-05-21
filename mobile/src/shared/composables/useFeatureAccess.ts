@@ -1,22 +1,33 @@
 import { computed } from 'vue';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
-import type { FeatureKey, PlanType, UserRole } from '@/features/access/types';
+import type { FeatureKey, UserRole } from '@/features/access/types';
 import type { Meeting } from '@/features/meeting/types';
 import { useUserAccessStore } from '@/app/stores/userAccess';
 
 export function useFeatureAccess() {
   const accessStore = useUserAccessStore();
+  const subscriptionStore = useSubscriptionStore();
   const workspaceStore = useWorkspaceStore();
 
-  const planType = computed(() => accessStore.planType);
+  const planType = computed(() => subscriptionStore.currentPlan);
   const userRole = computed(() => workspaceStore.currentUserRole);
-  const isPremium = computed(() => accessStore.isPremium);
+  const isPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
 
   function canUseFeature(featureKey: FeatureKey) {
     const access = featureAccessConfig[featureKey];
+    const effectivePlan = subscriptionStore.currentPlan;
 
-    if (!access.plans.includes(accessStore.planType)) {
+    if (!access.plans.includes(effectivePlan)) {
+      return false;
+    }
+
+    if (
+      effectivePlan === 'premium' &&
+      access.plans.length === 1 &&
+      !subscriptionStore.hasPremiumEntitlement
+    ) {
       return false;
     }
 
@@ -54,10 +65,6 @@ export function useFeatureAccess() {
     return featureAccessConfig[featureKey].freeLimit;
   }
 
-  function setMockPlan(nextPlan: PlanType) {
-    accessStore.setMockPlan(nextPlan);
-  }
-
   function setMockRole(nextRole: UserRole) {
     workspaceStore.setCurrentMemberRole(nextRole);
     accessStore.setMockRole(nextRole);
@@ -71,7 +78,6 @@ export function useFeatureAccess() {
     canAccessMeetingHistoryItem,
     getFeatureAccess,
     getFreeLimit,
-    setMockPlan,
     setMockRole,
   };
 }

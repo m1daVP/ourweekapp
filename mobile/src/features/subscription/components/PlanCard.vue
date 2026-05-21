@@ -4,6 +4,7 @@ import type { SubscriptionPlanOption } from '@/features/subscription/types';
 defineProps<{
   plan: SubscriptionPlanOption;
   selected?: boolean;
+  disabled?: boolean;
 }>();
 
 defineEmits<{
@@ -16,6 +17,7 @@ defineEmits<{
     type="button"
     :class="['plan-card', { 'is-selected': selected }]"
     :aria-pressed="selected"
+    :disabled="disabled"
     @click="$emit('select', plan.id)"
   >
     <span class="plan-card__header">

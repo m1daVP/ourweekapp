@@ -2,16 +2,30 @@ import type { PlanComparisonItem, SubscriptionPlanOption } from './types';
 
 export const premiumPlanOptions: SubscriptionPlanOption[] = [
   {
-    id: 'monthly',
+    id: 'premium_monthly',
     name: 'Monthly',
     priceLabel: 'Price pending',
-    description: 'A flexible Premium placeholder for future billing.',
+    description: 'A flexible Premium option for the mock paywall.',
+    cadence: 'monthly',
+    planType: 'premium',
+    entitlementKey: 'premium',
+    productIds: {
+      android: 'weekly_us_premium_monthly',
+      ios: 'weekly_us_premium_monthly',
+    },
   },
   {
-    id: 'yearly',
+    id: 'premium_yearly',
     name: 'Yearly',
     priceLabel: 'Price pending',
-    description: 'A yearly Premium placeholder. Payments are not connected.',
+    description: 'A yearly Premium option for the mock paywall.',
+    cadence: 'yearly',
+    planType: 'premium',
+    entitlementKey: 'premium',
+    productIds: {
+      android: 'weekly_us_premium_yearly',
+      ios: 'weekly_us_premium_yearly',
+    },
   },
 ];
 
