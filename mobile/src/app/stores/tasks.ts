@@ -1,4 +1,8 @@
 import { defineStore } from 'pinia';
+import {
+  readStorageSlice,
+  writeStorageSlice,
+} from '@/shared/services/storageService';
 import type { Meeting } from '@/features/meeting/types';
 import type {
   Agreement,
@@ -7,8 +11,6 @@ import type {
   TaskReviewDecision,
   TaskStatus,
 } from '@/features/tasks/types';
-
-const STORAGE_KEY = 'weekly-us:tasks-agreements';
 
 interface TasksState {
   tasks: Task[];
@@ -169,37 +171,30 @@ function resolveTaskResponsibility(
 }
 
 function getStoredState(): TasksState {
-  if (typeof window === 'undefined') {
+  const storedState = readStorageSlice<Partial<TasksState> | null>(
+    'tasks',
+    null
+  );
+
+  if (!storedState) {
     return { tasks: [], agreements: [], reviewDecisions: [] };
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!rawValue) {
-    return { tasks: [], agreements: [], reviewDecisions: [] };
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as Partial<TasksState>;
-
-    return {
-      tasks: Array.isArray(parsedValue.tasks)
-        ? parsedValue.tasks
-            .map(normalizeTask)
-            .filter((task): task is Task => Boolean(task))
-        : [],
-      agreements: Array.isArray(parsedValue.agreements)
-        ? parsedValue.agreements
-            .map(normalizeAgreement)
-            .filter((agreement): agreement is Agreement => Boolean(agreement))
-        : [],
-      reviewDecisions: Array.isArray(parsedValue.reviewDecisions)
-        ? parsedValue.reviewDecisions
-        : [],
-    };
-  } catch {
-    return { tasks: [], agreements: [], reviewDecisions: [] };
-  }
+  return {
+    tasks: Array.isArray(storedState.tasks)
+      ? storedState.tasks
+          .map(normalizeTask)
+          .filter((task): task is Task => Boolean(task))
+      : [],
+    agreements: Array.isArray(storedState.agreements)
+      ? storedState.agreements
+          .map(normalizeAgreement)
+          .filter((agreement): agreement is Agreement => Boolean(agreement))
+      : [],
+    reviewDecisions: Array.isArray(storedState.reviewDecisions)
+      ? storedState.reviewDecisions
+      : [],
+  };
 }
 
 function sortByUpdatedDesc<T extends { updatedAt: string }>(items: T[]) {
@@ -244,18 +239,11 @@ export const useTasksStore = defineStore('tasks', {
   },
   actions: {
     persist() {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          tasks: this.tasks,
-          agreements: this.agreements,
-          reviewDecisions: this.reviewDecisions,
-        })
-      );
+      writeStorageSlice('tasks', {
+        tasks: this.tasks,
+        agreements: this.agreements,
+        reviewDecisions: this.reviewDecisions,
+      });
     },
     syncFromMeetings(meetings: Meeting[]) {
       let changed = false;

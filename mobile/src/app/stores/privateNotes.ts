@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia';
+import {
+  readStorageSlice,
+  writeStorageSlice,
+} from '@/shared/services/storageService';
 import type { PrivateNote } from '@/features/private-notes/types';
-
-const STORAGE_KEY = 'weekly-us:private-notes';
 
 interface PrivateNotesState {
   notes: PrivateNote[];
@@ -55,31 +57,21 @@ function normalizeNote(note: LegacyPrivateNote): PrivateNote | null {
 }
 
 function getStoredState(): PrivateNotesState {
-  if (typeof window === 'undefined') {
+  const storedState = readStorageSlice<Partial<{
+    notes: LegacyPrivateNote[];
+  }> | null>('privateNotes', null);
+
+  if (!storedState) {
     return { notes: [] };
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!rawValue) {
-    return { notes: [] };
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as Partial<{
-      notes: LegacyPrivateNote[];
-    }>;
-
-    return {
-      notes: Array.isArray(parsedValue.notes)
-        ? parsedValue.notes
-            .map(normalizeNote)
-            .filter((note): note is PrivateNote => Boolean(note))
-        : [],
-    };
-  } catch {
-    return { notes: [] };
-  }
+  return {
+    notes: Array.isArray(storedState.notes)
+      ? storedState.notes
+          .map(normalizeNote)
+          .filter((note): note is PrivateNote => Boolean(note))
+      : [],
+  };
 }
 
 function sortByUpdatedDesc(notes: PrivateNote[]) {
@@ -96,14 +88,7 @@ export const usePrivateNotesStore = defineStore('privateNotes', {
   },
   actions: {
     persist() {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ notes: this.notes })
-      );
+      writeStorageSlice('privateNotes', { notes: this.notes });
     },
     createNote(payload: NotePayload) {
       const title = payload.title.trim();

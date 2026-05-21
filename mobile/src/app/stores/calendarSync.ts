@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia';
 import { calendarService } from '@/features/calendar/services/calendarService';
+import {
+  readSettingsStorage,
+  writeSettingsStorage,
+} from '@/shared/services/storageService';
 import type {
   CalendarConnectionStatus,
   CalendarSyncSettings,
 } from '@/features/calendar/types';
-
-const STORAGE_KEY = 'weekly-us:calendar-sync-settings';
 
 type CalendarSyncSettingKey =
   | 'addWeeklyMeetingReminder'
@@ -37,32 +39,25 @@ function defaultSettings(): CalendarSyncSettings {
 
 function getStoredSettings(): CalendarSyncSettings {
   const fallback = defaultSettings();
+  const storedSettings =
+    readSettingsStorage<Partial<CalendarSyncSettings> | null>(
+      'calendarSync',
+      null
+    );
 
-  if (typeof window === 'undefined') {
+  if (!storedSettings) {
     return fallback;
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!rawValue) {
-    return fallback;
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as Partial<CalendarSyncSettings>;
-
-    return {
-      addWeeklyMeetingReminder:
-        parsedValue.addWeeklyMeetingReminder ??
-        fallback.addWeeklyMeetingReminder,
-      addTaskDueDates: parsedValue.addTaskDueDates ?? fallback.addTaskDueDates,
-      addFollowUpDates:
-        parsedValue.addFollowUpDates ?? fallback.addFollowUpDates,
-      updatedAt: parsedValue.updatedAt ?? fallback.updatedAt,
-    };
-  } catch {
-    return fallback;
-  }
+  return {
+    addWeeklyMeetingReminder:
+      storedSettings.addWeeklyMeetingReminder ??
+      fallback.addWeeklyMeetingReminder,
+    addTaskDueDates: storedSettings.addTaskDueDates ?? fallback.addTaskDueDates,
+    addFollowUpDates:
+      storedSettings.addFollowUpDates ?? fallback.addFollowUpDates,
+    updatedAt: storedSettings.updatedAt ?? fallback.updatedAt,
+  };
 }
 
 export const useCalendarSyncStore = defineStore('calendarSync', {
@@ -80,11 +75,7 @@ export const useCalendarSyncStore = defineStore('calendarSync', {
   },
   actions: {
     persist() {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
+      writeSettingsStorage('calendarSync', this.settings);
     },
     updateSetting(key: CalendarSyncSettingKey, enabled: boolean) {
       this.settings[key] = enabled;

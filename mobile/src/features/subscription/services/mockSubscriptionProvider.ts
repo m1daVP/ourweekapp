@@ -1,5 +1,9 @@
 import { premiumFeatureKeys } from '@/features/access/featureAccess.config';
 import { appConfig } from '@/shared/config/env';
+import {
+  readStorageSlice,
+  writeStorageSlice,
+} from '@/shared/services/storageService';
 import { premiumPlanOptions } from '../subscriptionPlans';
 import type {
   SubscriptionActionResult,
@@ -9,7 +13,6 @@ import type {
   SubscriptionSnapshot,
 } from '../types';
 
-const STORAGE_KEY = 'weekly-us:subscription:mock';
 const STORAGE_VERSION = 1;
 
 interface StoredMockSubscriptionState {
@@ -86,30 +89,23 @@ function isStoredMockSubscriptionState(
 }
 
 function readStoredMockState() {
-  if (typeof window === 'undefined' || !canUseMockBilling()) {
+  if (!canUseMockBilling()) {
     return null;
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as unknown;
-    return isStoredMockSubscriptionState(parsedValue) ? parsedValue : null;
-  } catch {
-    return null;
-  }
+  const storedState = readStorageSlice<unknown | null>(
+    'subscriptionMockState',
+    null
+  );
+  return isStoredMockSubscriptionState(storedState) ? storedState : null;
 }
 
 function writeStoredMockState(state: StoredMockSubscriptionState) {
-  if (typeof window === 'undefined' || !canUseMockBilling()) {
+  if (!canUseMockBilling()) {
     return;
   }
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  writeStorageSlice('subscriptionMockState', state);
 }
 
 function snapshotFromStoredState() {

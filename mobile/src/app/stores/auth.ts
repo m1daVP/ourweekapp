@@ -6,6 +6,10 @@ import {
   type AuthSessionDto,
 } from '@/shared/api/authApi';
 import { useUserAccessStore } from '@/app/stores/userAccess';
+import {
+  readOnboardingStorage,
+  writeOnboardingStorage,
+} from '@/shared/services/storageService';
 import type { PlanType } from '@/features/access/types';
 import type {
   AuthStatus,
@@ -14,7 +18,6 @@ import type {
   SignUpPayload,
 } from '@/features/auth/types';
 
-const STORAGE_KEY = 'weekly-us:auth';
 const STORAGE_VERSION = 1;
 
 interface StoredAuthState {
@@ -63,35 +66,21 @@ function getStoredState(): Pick<
   AuthState,
   'user' | 'accessToken' | 'authStatus'
 > {
-  if (typeof window === 'undefined') {
+  const storedState = readOnboardingStorage<unknown | null>('auth', null);
+
+  if (!isStoredAuthState(storedState)) {
     return { user: null, accessToken: null, authStatus: 'idle' };
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!rawValue) {
+  if (storedState.authStatus === 'authenticated' && !storedState.user) {
     return { user: null, accessToken: null, authStatus: 'idle' };
   }
 
-  try {
-    const parsedValue = JSON.parse(rawValue) as unknown;
-
-    if (!isStoredAuthState(parsedValue)) {
-      return { user: null, accessToken: null, authStatus: 'idle' };
-    }
-
-    if (parsedValue.authStatus === 'authenticated' && !parsedValue.user) {
-      return { user: null, accessToken: null, authStatus: 'idle' };
-    }
-
-    return {
-      user: parsedValue.user,
-      accessToken: parsedValue.accessToken,
-      authStatus: parsedValue.authStatus,
-    };
-  } catch {
-    return { user: null, accessToken: null, authStatus: 'idle' };
-  }
+  return {
+    user: storedState.user,
+    accessToken: storedState.accessToken,
+    authStatus: storedState.authStatus,
+  };
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -116,7 +105,7 @@ export const useAuthStore = defineStore('auth', {
         authStatus: this.authStatus,
       };
 
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(storedState));
+      writeOnboardingStorage('auth', storedState);
     },
     syncAccessState() {
       const accessStore = useUserAccessStore();

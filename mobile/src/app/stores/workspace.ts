@@ -1,4 +1,8 @@
 import { defineStore } from 'pinia';
+import {
+  readSettingsStorage,
+  writeSettingsStorage,
+} from '@/shared/services/storageService';
 import type { UserRole } from '@/features/access/types';
 import type {
   Workspace,
@@ -6,7 +10,6 @@ import type {
   WorkspaceMemberStatus,
 } from '@/features/workspace/types';
 
-const STORAGE_KEY = 'weekly-us:workspace';
 const STORAGE_VERSION = 1;
 const LOCAL_OWNER_ID = 'local-owner';
 
@@ -143,8 +146,12 @@ function normalizeWorkspace(
 
 function getStoredState(): WorkspaceState {
   const fallbackWorkspace = createDefaultWorkspace();
+  const storedState = readSettingsStorage<StoredWorkspaceState | null>(
+    'workspace',
+    null
+  );
 
-  if (typeof window === 'undefined') {
+  if (!storedState) {
     return {
       version: STORAGE_VERSION,
       currentUserId: LOCAL_OWNER_ID,
@@ -152,39 +159,20 @@ function getStoredState(): WorkspaceState {
     };
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
+  const workspace = normalizeWorkspace(storedState.workspace);
+  const currentUserId =
+    storedState.currentUserId &&
+    workspace.members.some(
+      (member) => member.userId === storedState.currentUserId
+    )
+      ? storedState.currentUserId
+      : workspace.ownerId;
 
-  if (!rawValue) {
-    return {
-      version: STORAGE_VERSION,
-      currentUserId: LOCAL_OWNER_ID,
-      workspace: fallbackWorkspace,
-    };
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as StoredWorkspaceState;
-    const workspace = normalizeWorkspace(parsedValue.workspace);
-    const currentUserId =
-      parsedValue.currentUserId &&
-      workspace.members.some(
-        (member) => member.userId === parsedValue.currentUserId
-      )
-        ? parsedValue.currentUserId
-        : workspace.ownerId;
-
-    return {
-      version: STORAGE_VERSION,
-      currentUserId,
-      workspace,
-    };
-  } catch {
-    return {
-      version: STORAGE_VERSION,
-      currentUserId: LOCAL_OWNER_ID,
-      workspace: fallbackWorkspace,
-    };
-  }
+  return {
+    version: STORAGE_VERSION,
+    currentUserId,
+    workspace,
+  };
 }
 
 export const useWorkspaceStore = defineStore('workspace', {
@@ -204,18 +192,11 @@ export const useWorkspaceStore = defineStore('workspace', {
   },
   actions: {
     persist() {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          version: STORAGE_VERSION,
-          currentUserId: this.currentUserId,
-          workspace: this.workspace,
-        })
-      );
+      writeSettingsStorage('workspace', {
+        version: STORAGE_VERSION,
+        currentUserId: this.currentUserId,
+        workspace: this.workspace,
+      });
     },
     updateWorkspaceName(name: string) {
       const nextName = name.trim();

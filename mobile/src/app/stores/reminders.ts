@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia';
+import {
+  readSettingsStorage,
+  writeSettingsStorage,
+} from '@/shared/services/storageService';
 import type {
   ReminderDay,
   ReminderSettings,
   ReminderTimeSlot,
 } from '@/features/reminders/types';
-
-const STORAGE_KEY = 'weekly-us:reminder-settings';
 
 export const reminderDayOptions: Array<{ label: string; value: ReminderDay }> =
   [
@@ -55,35 +57,27 @@ function normalizeTimeSlot(
 
 function getStoredSettings(): ReminderSettings {
   const fallback = defaultSettings();
+  const storedSettings = readSettingsStorage<Partial<ReminderSettings> | null>(
+    'reminders',
+    null
+  );
 
-  if (typeof window === 'undefined') {
+  if (!storedSettings) {
     return fallback;
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!rawValue) {
-    return fallback;
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as Partial<ReminderSettings>;
-
-    return {
-      enabled: Boolean(parsedValue.enabled),
-      weeklyMeetingReminder: normalizeTimeSlot(
-        parsedValue.weeklyMeetingReminder,
-        fallback.weeklyMeetingReminder
-      ),
-      unfinishedTaskReminder: normalizeTimeSlot(
-        parsedValue.unfinishedTaskReminder,
-        fallback.unfinishedTaskReminder
-      ),
-      updatedAt: parsedValue.updatedAt ?? fallback.updatedAt,
-    };
-  } catch {
-    return fallback;
-  }
+  return {
+    enabled: Boolean(storedSettings.enabled),
+    weeklyMeetingReminder: normalizeTimeSlot(
+      storedSettings.weeklyMeetingReminder,
+      fallback.weeklyMeetingReminder
+    ),
+    unfinishedTaskReminder: normalizeTimeSlot(
+      storedSettings.unfinishedTaskReminder,
+      fallback.unfinishedTaskReminder
+    ),
+    updatedAt: storedSettings.updatedAt ?? fallback.updatedAt,
+  };
 }
 
 export const useRemindersStore = defineStore('reminders', {
@@ -92,11 +86,7 @@ export const useRemindersStore = defineStore('reminders', {
   }),
   actions: {
     persist() {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
+      writeSettingsStorage('reminders', this.settings);
     },
     setEnabled(enabled: boolean) {
       this.settings.enabled = enabled;

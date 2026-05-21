@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
+import {
+  readStorageSlice,
+  writeStorageSlice,
+} from '@/shared/services/storageService';
 import type {
   Participant,
   ParticipantType,
 } from '@/features/participants/types';
-
-const STORAGE_KEY = 'weekly-us:participants';
-const MEETINGS_STORAGE_KEY = 'weekly-us:meetings';
 
 export const participantColors = [
   '#496a8f',
@@ -126,44 +127,29 @@ function normalizeParticipant(
 }
 
 function getLegacyMeetingParticipants() {
-  if (typeof window === 'undefined') {
-    return [];
-  }
+  const meetingsState = readStorageSlice<{
+    meetings?: Array<{ participants?: LegacyParticipant[] }>;
+  }>('meetings', {});
+  const participantsById = new Map<string, LegacyParticipant>();
 
-  const rawValue = window.localStorage.getItem(MEETINGS_STORAGE_KEY);
-
-  if (!rawValue) {
-    return [];
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as {
-      meetings?: Array<{ participants?: LegacyParticipant[] }>;
-    };
-    const participantsById = new Map<string, LegacyParticipant>();
-
-    for (const meeting of parsedValue.meetings ?? []) {
-      for (const participant of meeting.participants ?? []) {
-        if (participant.id && participant.name) {
-          participantsById.set(participant.id, participant);
-        }
+  for (const meeting of meetingsState.meetings ?? []) {
+    for (const participant of meeting.participants ?? []) {
+      if (participant.id && participant.name) {
+        participantsById.set(participant.id, participant);
       }
     }
-
-    return [...participantsById.values()];
-  } catch {
-    return [];
   }
+
+  return [...participantsById.values()];
 }
 
 function getStoredState(): ParticipantsState {
-  if (typeof window === 'undefined') {
-    return { participants: createDefaultParticipants() };
-  }
+  const storedState = readStorageSlice<Partial<ParticipantsState> | null>(
+    'participants',
+    null
+  );
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!rawValue) {
+  if (!storedState) {
     const legacyParticipants = getLegacyMeetingParticipants()
       .map(normalizeParticipant)
       .filter((participant): participant is Participant =>
@@ -177,24 +163,19 @@ function getStoredState(): ParticipantsState {
     };
   }
 
-  try {
-    const parsedValue = JSON.parse(rawValue) as Partial<ParticipantsState>;
-    const participants = Array.isArray(parsedValue.participants)
-      ? parsedValue.participants
-          .map(normalizeParticipant)
-          .filter((participant): participant is Participant =>
-            Boolean(participant)
-          )
-      : [];
+  const participants = Array.isArray(storedState.participants)
+    ? storedState.participants
+        .map(normalizeParticipant)
+        .filter((participant): participant is Participant =>
+          Boolean(participant)
+        )
+    : [];
 
-    return {
-      participants: participants.length
-        ? participants
-        : createDefaultParticipants(),
-    };
-  } catch {
-    return { participants: createDefaultParticipants() };
-  }
+  return {
+    participants: participants.length
+      ? participants
+      : createDefaultParticipants(),
+  };
 }
 
 export const useParticipantsStore = defineStore('participants', {
@@ -209,14 +190,7 @@ export const useParticipantsStore = defineStore('participants', {
   },
   actions: {
     persist() {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ participants: this.participants })
-      );
+      writeStorageSlice('participants', { participants: this.participants });
     },
     ensureDefaultParticipants() {
       if (this.participants.length) {

@@ -2,6 +2,10 @@ import { defineStore } from 'pinia';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
 import {
+  readStorageSlice,
+  writeStorageSlice,
+} from '@/shared/services/storageService';
+import {
   DEFAULT_MEETING_TEMPLATE_ID,
   getMeetingTemplate,
   taskSectionIds,
@@ -20,8 +24,6 @@ import type {
   MeetingTemplate,
   MeetingTemplateId,
 } from '@/features/meeting/types';
-
-const STORAGE_KEY = 'weekly-us:meetings';
 
 interface MeetingsState {
   meetings: Meeting[];
@@ -337,35 +339,25 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
 }
 
 function getStoredState(): MeetingsState {
-  if (typeof window === 'undefined') {
+  const storedState = readStorageSlice<Partial<{
+    meetings: LegacyMeeting[];
+    activeMeetingId: string | null;
+    draftSavedAt: string | null;
+  }> | null>('meetings', null);
+
+  if (!storedState) {
     return { meetings: [], activeMeetingId: null, draftSavedAt: null };
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!rawValue) {
-    return { meetings: [], activeMeetingId: null, draftSavedAt: null };
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as Partial<{
-      meetings: LegacyMeeting[];
-      activeMeetingId: string | null;
-      draftSavedAt: string | null;
-    }>;
-
-    return {
-      meetings: Array.isArray(parsedValue.meetings)
-        ? parsedValue.meetings
-            .map(normalizeMeeting)
-            .filter((meeting): meeting is Meeting => Boolean(meeting))
-        : [],
-      activeMeetingId: parsedValue.activeMeetingId ?? null,
-      draftSavedAt: parsedValue.draftSavedAt ?? null,
-    };
-  } catch {
-    return { meetings: [], activeMeetingId: null, draftSavedAt: null };
-  }
+  return {
+    meetings: Array.isArray(storedState.meetings)
+      ? storedState.meetings
+          .map(normalizeMeeting)
+          .filter((meeting): meeting is Meeting => Boolean(meeting))
+      : [],
+    activeMeetingId: storedState.activeMeetingId ?? null,
+    draftSavedAt: storedState.draftSavedAt ?? null,
+  };
 }
 
 function findSection(meeting: Meeting, sectionId: MeetingSectionId) {
@@ -429,18 +421,11 @@ export const useMeetingsStore = defineStore('meetings', {
   },
   actions: {
     persist() {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          meetings: this.meetings,
-          activeMeetingId: this.activeMeetingId,
-          draftSavedAt: this.draftSavedAt,
-        })
-      );
+      writeStorageSlice('meetings', {
+        meetings: this.meetings,
+        activeMeetingId: this.activeMeetingId,
+        draftSavedAt: this.draftSavedAt,
+      });
     },
     ensureActiveMeeting() {
       const activeMeeting = this.activeMeeting;
