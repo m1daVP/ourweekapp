@@ -6,6 +6,7 @@ import {
   type AuthSessionDto,
 } from '@/shared/api/authApi';
 import { useUserAccessStore } from '@/app/stores/userAccess';
+import type { PlanType } from '@/features/access/types';
 import type {
   AuthStatus,
   AuthUser,
@@ -200,6 +201,19 @@ export const useAuthStore = defineStore('auth', {
         displayName: nextDisplayName,
       };
       this.persist();
+      return true;
+    },
+    setMockSubscriptionPlan(plan: PlanType) {
+      if (!this.user) {
+        return false;
+      }
+
+      this.user = {
+        ...this.user,
+        plan,
+      };
+      this.persist();
+      this.syncAccessState();
       return true;
     },
     async logout() {

@@ -15,6 +15,7 @@ import SettingsPage from '@/pages/SettingsPage.vue';
 import SignInPage from '@/pages/SignInPage.vue';
 import SignUpPage from '@/pages/SignUpPage.vue';
 import TasksPage from '@/pages/TasksPage.vue';
+import UpgradePage from '@/pages/UpgradePage.vue';
 import WelcomePage from '@/pages/WelcomePage.vue';
 import WorkspaceSettingsPage from '@/pages/WorkspaceSettingsPage.vue';
 
@@ -81,6 +82,11 @@ export const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: SettingsPage,
+    },
+    {
+      path: '/upgrade',
+      name: 'upgrade',
+      component: UpgradePage,
     },
     {
       path: '/workspace-settings',

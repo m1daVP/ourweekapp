@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import type { FeatureKey } from '@/features/access/types';
+import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 
 const props = defineProps<{
@@ -9,10 +11,11 @@ const props = defineProps<{
   message?: string;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   upgrade: [];
 }>();
 
+const router = useRouter();
 const { getFeatureAccess } = useFeatureAccess();
 
 const featureAccess = computed(() =>
@@ -29,17 +32,22 @@ const promptMessage = computed(
     featureAccess.value?.lockedReason ??
     'Upgrade to use this feature.'
 );
+
+function openUpgrade() {
+  emit('upgrade');
+  router.push({ name: 'upgrade' });
+}
 </script>
 
 <template>
   <div class="upgrade-prompt">
     <div>
-      <p class="upgrade-prompt__eyebrow">Premium</p>
+      <PremiumBadge />
       <h2>{{ promptTitle }}</h2>
       <p>{{ promptMessage }}</p>
     </div>
-    <button class="secondary-button" type="button" @click="$emit('upgrade')">
-      Upgrade
+    <button class="secondary-button" type="button" @click="openUpgrade">
+      View Premium
     </button>
   </div>
 </template>
