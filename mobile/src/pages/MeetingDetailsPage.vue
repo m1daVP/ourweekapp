@@ -3,6 +3,14 @@ import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
+import {
+  copyExportToClipboard,
+  createMeetingExportFile,
+  downloadExportFile,
+  exportMeetingAsPdf,
+  shareExportFile,
+  type MeetingExportFormat,
+} from '@/features/export/services/exportService';
 import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
 import type {
   Meeting,
@@ -23,6 +31,11 @@ const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
 const meetingId = computed(() => String(route.params.meetingId ?? ''));
 const isGeneratingSummary = ref(false);
 const aiSummaryError = ref('');
+const isExportModalOpen = ref(false);
+const isExporting = ref(false);
+const exportFormat = ref<MeetingExportFormat>('text');
+const exportStatus = ref('');
+const exportError = ref('');
 
 const meeting = computed(
   () =>
@@ -157,6 +170,111 @@ function resumeDraft() {
   router.push({ name: 'meeting' });
 }
 
+function getExportContext() {
+  return {
+    getParticipantName,
+    formatDate,
+    formatDateTime,
+  };
+}
+
+function openExportModal() {
+  if (!meeting.value || !canUseFeature('export')) {
+    return;
+  }
+
+  exportStatus.value = '';
+  exportError.value = '';
+  isExportModalOpen.value = true;
+}
+
+function closeExportModal() {
+  if (isExporting.value) {
+    return;
+  }
+
+  isExportModalOpen.value = false;
+}
+
+function getSelectedExportFile() {
+  if (!meeting.value) {
+    return null;
+  }
+
+  return createMeetingExportFile(
+    meeting.value,
+    getExportContext(),
+    exportFormat.value
+  );
+}
+
+async function copySelectedExport() {
+  const file = getSelectedExportFile();
+
+  if (!file) {
+    return;
+  }
+
+  exportStatus.value = '';
+  exportError.value = '';
+  isExporting.value = true;
+
+  try {
+    await copyExportToClipboard(file.content);
+    exportStatus.value = 'Export copied to clipboard.';
+  } catch {
+    exportError.value = 'Could not copy this export. Try sharing or saving it.';
+  } finally {
+    isExporting.value = false;
+  }
+}
+
+async function shareOrSaveSelectedExport() {
+  const file = getSelectedExportFile();
+
+  if (!file) {
+    return;
+  }
+
+  exportStatus.value = '';
+  exportError.value = '';
+  isExporting.value = true;
+
+  try {
+    const didShare = await shareExportFile(file);
+
+    if (didShare) {
+      exportStatus.value = 'Export shared.';
+      return;
+    }
+
+    downloadExportFile(file);
+    exportStatus.value = 'Export saved as a file.';
+  } catch {
+    exportError.value = 'Could not share or save this export right now.';
+  } finally {
+    isExporting.value = false;
+  }
+}
+
+function printPdfExport() {
+  if (!meeting.value) {
+    return;
+  }
+
+  exportStatus.value = '';
+  exportError.value = '';
+
+  const didOpen = exportMeetingAsPdf(meeting.value, getExportContext());
+
+  if (didOpen) {
+    exportStatus.value = 'Print view opened. Choose Save as PDF if available.';
+    return;
+  }
+
+  exportError.value = 'Could not open the PDF print view on this device.';
+}
+
 async function generateSummary() {
   if (
     !meeting.value ||
@@ -228,6 +346,29 @@ async function generateSummary() {
           Resume
         </button>
       </header>
+
+      <PremiumLock
+        feature="export"
+        title="Export is premium"
+        message="Upgrade to export meeting summaries, agreements, and tasks."
+      >
+        <section class="meeting-panel export-panel">
+          <div>
+            <h2>Export meeting</h2>
+            <p class="meeting-help">
+              Save a clean copy of the summary, notes, tasks, and agreements.
+              Private notes are not included.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="meeting-primary"
+            @click="openExportModal"
+          >
+            Export
+          </button>
+        </section>
+      </PremiumLock>
 
       <PremiumLock
         feature="aiSummary"
@@ -390,6 +531,93 @@ async function generateSummary() {
           <p v-else class="meeting-empty">No agreements in this section.</p>
         </div>
       </section>
+
+      <div
+        v-if="isExportModalOpen"
+        class="agreement-modal export-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="export-modal-title"
+      >
+        <div class="agreement-modal__panel export-modal__panel">
+          <div>
+            <p class="page-kicker">Export</p>
+            <h2 id="export-modal-title">{{ meeting.title }}</h2>
+            <p class="meeting-help">
+              Choose a simple format. Private notes are not included.
+            </p>
+          </div>
+
+          <fieldset class="export-format-options">
+            <legend>Format</legend>
+            <label
+              :class="{ 'is-selected': exportFormat === 'text' }"
+              for="export-format-text"
+            >
+              <input
+                id="export-format-text"
+                v-model="exportFormat"
+                type="radio"
+                value="text"
+              />
+              <span>
+                <strong>Plain text</strong>
+                <small>Best for copying into messages or notes.</small>
+              </span>
+            </label>
+            <label
+              :class="{ 'is-selected': exportFormat === 'markdown' }"
+              for="export-format-markdown"
+            >
+              <input
+                id="export-format-markdown"
+                v-model="exportFormat"
+                type="radio"
+                value="markdown"
+              />
+              <span>
+                <strong>Markdown</strong>
+                <small>Clean headings and lists for documents.</small>
+              </span>
+            </label>
+          </fieldset>
+
+          <div class="export-modal__actions">
+            <button
+              type="button"
+              class="meeting-primary"
+              :disabled="isExporting"
+              @click="copySelectedExport"
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              :disabled="isExporting"
+              @click="shareOrSaveSelectedExport"
+            >
+              Share or save
+            </button>
+            <button
+              type="button"
+              :disabled="isExporting"
+              @click="printPdfExport"
+            >
+              PDF
+            </button>
+            <button
+              type="button"
+              :disabled="isExporting"
+              @click="closeExportModal"
+            >
+              Close
+            </button>
+          </div>
+
+          <p v-if="exportStatus" class="meeting-status">{{ exportStatus }}</p>
+          <p v-if="exportError" class="meeting-error">{{ exportError }}</p>
+        </div>
+      </div>
     </template>
   </section>
 </template>
