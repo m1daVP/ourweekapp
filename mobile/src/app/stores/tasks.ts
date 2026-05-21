@@ -1,113 +1,113 @@
-import { defineStore } from 'pinia'
-import type { Meeting } from '@/features/meeting/types'
+import { defineStore } from 'pinia';
+import type { Meeting } from '@/features/meeting/types';
 import type {
   Agreement,
   Task,
   TaskResponsibilityType,
   TaskReviewDecision,
   TaskStatus,
-} from '@/features/tasks/types'
+} from '@/features/tasks/types';
 
-const STORAGE_KEY = 'weekly-us:tasks-agreements'
+const STORAGE_KEY = 'weekly-us:tasks-agreements';
 
 interface TasksState {
-  tasks: Task[]
-  agreements: Agreement[]
-  reviewDecisions: TaskReviewDecision[]
+  tasks: Task[];
+  agreements: Agreement[];
+  reviewDecisions: TaskReviewDecision[];
 }
 
 interface AddTaskPayload {
-  id?: string
-  title: string
-  description?: string
-  responsibilityType?: TaskResponsibilityType
-  responsibleParticipantIds?: string[]
-  responsiblePersonId?: string
-  dueDate?: string
-  status?: TaskStatus
-  sourceMeetingId?: string
-  createdAt?: string
-  updatedAt?: string
+  id?: string;
+  title: string;
+  description?: string;
+  responsibilityType?: TaskResponsibilityType;
+  responsibleParticipantIds?: string[];
+  responsiblePersonId?: string;
+  dueDate?: string;
+  status?: TaskStatus;
+  sourceMeetingId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface UpdateTaskPayload {
-  title?: string
-  description?: string
-  responsibilityType?: TaskResponsibilityType
-  responsibleParticipantIds?: string[]
-  responsiblePersonId?: string
-  dueDate?: string
-  sourceMeetingId?: string
+  title?: string;
+  description?: string;
+  responsibilityType?: TaskResponsibilityType;
+  responsibleParticipantIds?: string[];
+  responsiblePersonId?: string;
+  dueDate?: string;
+  sourceMeetingId?: string;
 }
 
 interface AddAgreementPayload {
-  id?: string
-  title: string
-  description?: string
-  participantIds: string[]
-  relatedTaskIds?: string[]
-  sourceMeetingId: string
-  createdAt?: string
-  updatedAt?: string
+  id?: string;
+  title: string;
+  description?: string;
+  participantIds: string[];
+  relatedTaskIds?: string[];
+  sourceMeetingId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface LegacyTask {
-  id?: string
-  title?: string
-  description?: string
-  responsibilityType?: TaskResponsibilityType
-  responsibleParticipantIds?: string[]
-  responsiblePersonId?: string
-  dueDate?: string
-  status?: TaskStatus
-  sourceMeetingId?: string
-  createdAt?: string
-  updatedAt?: string
+  id?: string;
+  title?: string;
+  description?: string;
+  responsibilityType?: TaskResponsibilityType;
+  responsibleParticipantIds?: string[];
+  responsiblePersonId?: string;
+  dueDate?: string;
+  status?: TaskStatus;
+  sourceMeetingId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface LegacyAgreement {
-  id?: string
-  title?: string
-  description?: string
-  participantIds?: string[]
-  participants?: string[]
-  relatedTaskIds?: string[]
-  sourceMeetingId?: string
-  createdAt?: string
-  updatedAt?: string
+  id?: string;
+  title?: string;
+  description?: string;
+  participantIds?: string[];
+  participants?: string[];
+  relatedTaskIds?: string[];
+  sourceMeetingId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 function createId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`
+    return `${prefix}-${crypto.randomUUID()}`;
   }
 
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function nowIso() {
-  return new Date().toISOString()
+  return new Date().toISOString();
 }
 
 function uniqueIds(ids: Array<string | undefined>) {
-  return [...new Set(ids.filter((id): id is string => Boolean(id?.trim())))]
+  return [...new Set(ids.filter((id): id is string => Boolean(id?.trim())))];
 }
 
 function normalizeTask(task: LegacyTask): Task | null {
-  const title = task.title?.trim()
+  const title = task.title?.trim();
 
   if (!title) {
-    return null
+    return null;
   }
 
   const responsibleParticipantIds = uniqueIds([
     ...(task.responsibleParticipantIds ?? []),
     task.responsiblePersonId,
-  ])
+  ]);
   const responsibilityType =
     task.responsibilityType ??
-    (responsibleParticipantIds.length ? 'participant' : 'needsDiscussion')
-  const createdAt = task.createdAt ?? nowIso()
+    (responsibleParticipantIds.length ? 'participant' : 'needsDiscussion');
+  const createdAt = task.createdAt ?? nowIso();
 
   return {
     id: task.id ?? createId('task'),
@@ -121,17 +121,17 @@ function normalizeTask(task: LegacyTask): Task | null {
     sourceMeetingId: task.sourceMeetingId,
     createdAt,
     updatedAt: task.updatedAt ?? createdAt,
-  }
+  };
 }
 
 function normalizeAgreement(agreement: LegacyAgreement): Agreement | null {
-  const title = agreement.title?.trim()
+  const title = agreement.title?.trim();
 
   if (!title || !agreement.sourceMeetingId) {
-    return null
+    return null;
   }
 
-  const createdAt = agreement.createdAt ?? nowIso()
+  const createdAt = agreement.createdAt ?? nowIso();
 
   return {
     id: agreement.id ?? createId('agreement'),
@@ -147,40 +147,40 @@ function normalizeAgreement(agreement: LegacyAgreement): Agreement | null {
     sourceMeetingId: agreement.sourceMeetingId,
     createdAt,
     updatedAt: agreement.updatedAt ?? createdAt,
-  }
+  };
 }
 
 function resolveTaskResponsibility(
-  payload: AddTaskPayload | UpdateTaskPayload,
+  payload: AddTaskPayload | UpdateTaskPayload
 ) {
   const responsibleParticipantIds = uniqueIds([
     ...(payload.responsibleParticipantIds ?? []),
     payload.responsiblePersonId,
-  ])
+  ]);
   const responsibilityType =
     payload.responsibilityType ??
-    (responsibleParticipantIds.length ? 'participant' : 'needsDiscussion')
+    (responsibleParticipantIds.length ? 'participant' : 'needsDiscussion');
 
   return {
     responsibilityType,
     responsibleParticipantIds:
       responsibilityType === 'needsDiscussion' ? [] : responsibleParticipantIds,
-  }
+  };
 }
 
 function getStoredState(): TasksState {
   if (typeof window === 'undefined') {
-    return { tasks: [], agreements: [], reviewDecisions: [] }
+    return { tasks: [], agreements: [], reviewDecisions: [] };
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY)
+  const rawValue = window.localStorage.getItem(STORAGE_KEY);
 
   if (!rawValue) {
-    return { tasks: [], agreements: [], reviewDecisions: [] }
+    return { tasks: [], agreements: [], reviewDecisions: [] };
   }
 
   try {
-    const parsedValue = JSON.parse(rawValue) as Partial<TasksState>
+    const parsedValue = JSON.parse(rawValue) as Partial<TasksState>;
 
     return {
       tasks: Array.isArray(parsedValue.tasks)
@@ -196,18 +196,17 @@ function getStoredState(): TasksState {
       reviewDecisions: Array.isArray(parsedValue.reviewDecisions)
         ? parsedValue.reviewDecisions
         : [],
-    }
+    };
   } catch {
-    return { tasks: [], agreements: [], reviewDecisions: [] }
+    return { tasks: [], agreements: [], reviewDecisions: [] };
   }
 }
 
 function sortByUpdatedDesc<T extends { updatedAt: string }>(items: T[]) {
   return [...items].sort(
     (first, second) =>
-      new Date(second.updatedAt).getTime() -
-      new Date(first.updatedAt).getTime(),
-  )
+      new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime()
+  );
 }
 
 export const useTasksStore = defineStore('tasks', {
@@ -218,27 +217,27 @@ export const useTasksStore = defineStore('tasks', {
         .filter((task) => task.status === 'open')
         .sort((first, second) => {
           if (first.dueDate && second.dueDate) {
-            return first.dueDate.localeCompare(second.dueDate)
+            return first.dueDate.localeCompare(second.dueDate);
           }
 
           if (first.dueDate) {
-            return -1
+            return -1;
           }
 
           if (second.dueDate) {
-            return 1
+            return 1;
           }
 
           return (
             new Date(second.updatedAt).getTime() -
             new Date(first.updatedAt).getTime()
-          )
+          );
         }),
     doneTasks: (state) =>
       sortByUpdatedDesc(state.tasks.filter((task) => task.status === 'done')),
     skippedTasks: (state) =>
       sortByUpdatedDesc(
-        state.tasks.filter((task) => task.status === 'skipped'),
+        state.tasks.filter((task) => task.status === 'skipped')
       ),
     recentAgreements: (state) =>
       sortByUpdatedDesc(state.agreements).slice(0, 8),
@@ -246,7 +245,7 @@ export const useTasksStore = defineStore('tasks', {
   actions: {
     persist() {
       if (typeof window === 'undefined') {
-        return
+        return;
       }
 
       window.localStorage.setItem(
@@ -255,17 +254,17 @@ export const useTasksStore = defineStore('tasks', {
           tasks: this.tasks,
           agreements: this.agreements,
           reviewDecisions: this.reviewDecisions,
-        }),
-      )
+        })
+      );
     },
     syncFromMeetings(meetings: Meeting[]) {
-      let changed = false
+      let changed = false;
 
       for (const meeting of meetings) {
         for (const section of meeting.sections) {
           for (const meetingTask of section.tasks) {
             if (this.tasks.some((task) => task.id === meetingTask.id)) {
-              continue
+              continue;
             }
 
             this.tasks.push({
@@ -282,17 +281,17 @@ export const useTasksStore = defineStore('tasks', {
                 meetingTask.completedAt ??
                 meeting.updatedAt ??
                 meetingTask.createdAt,
-            })
-            changed = true
+            });
+            changed = true;
           }
 
           for (const meetingAgreement of section.agreements) {
             if (
               this.agreements.some(
-                (agreement) => agreement.id === meetingAgreement.id,
+                (agreement) => agreement.id === meetingAgreement.id
               )
             ) {
-              continue
+              continue;
             }
 
             this.agreements.push({
@@ -302,30 +301,30 @@ export const useTasksStore = defineStore('tasks', {
               sourceMeetingId: meeting.id,
               createdAt: meetingAgreement.createdAt,
               updatedAt: meetingAgreement.createdAt,
-            })
-            changed = true
+            });
+            changed = true;
           }
         }
       }
 
       if (changed) {
-        this.persist()
+        this.persist();
       }
     },
     addTask(payload: AddTaskPayload) {
-      const title = payload.title.trim()
+      const title = payload.title.trim();
       const { responsibilityType, responsibleParticipantIds } =
-        resolveTaskResponsibility(payload)
+        resolveTaskResponsibility(payload);
 
       if (
         !title ||
         (responsibilityType === 'participant' &&
           !responsibleParticipantIds.length)
       ) {
-        return null
+        return null;
       }
 
-      const createdAt = payload.createdAt ?? nowIso()
+      const createdAt = payload.createdAt ?? nowIso();
       const task: Task = {
         id: payload.id ?? createId('task'),
         title,
@@ -337,39 +336,39 @@ export const useTasksStore = defineStore('tasks', {
         sourceMeetingId: payload.sourceMeetingId,
         createdAt,
         updatedAt: payload.updatedAt ?? createdAt,
-      }
-      const existingIndex = this.tasks.findIndex((item) => item.id === task.id)
+      };
+      const existingIndex = this.tasks.findIndex((item) => item.id === task.id);
 
       if (existingIndex >= 0) {
-        this.tasks.splice(existingIndex, 1, task)
+        this.tasks.splice(existingIndex, 1, task);
       } else {
-        this.tasks.unshift(task)
+        this.tasks.unshift(task);
       }
 
-      this.persist()
-      return task
+      this.persist();
+      return task;
     },
     updateTask(taskId: string, payload: UpdateTaskPayload) {
-      const task = this.tasks.find((item) => item.id === taskId)
+      const task = this.tasks.find((item) => item.id === taskId);
 
       if (!task) {
-        return null
+        return null;
       }
 
-      const title = payload.title?.trim()
-      const description = payload.description?.trim()
-      const dueDate = payload.dueDate?.trim()
+      const title = payload.title?.trim();
+      const description = payload.description?.trim();
+      const dueDate = payload.dueDate?.trim();
 
       if (title !== undefined) {
         if (!title) {
-          return null
+          return null;
         }
 
-        task.title = title
+        task.title = title;
       }
 
       if (payload.description !== undefined) {
-        task.description = description || undefined
+        task.description = description || undefined;
       }
 
       if (
@@ -378,77 +377,77 @@ export const useTasksStore = defineStore('tasks', {
         payload.responsiblePersonId !== undefined
       ) {
         const { responsibilityType, responsibleParticipantIds } =
-          resolveTaskResponsibility(payload)
+          resolveTaskResponsibility(payload);
 
         if (
           responsibilityType === 'participant' &&
           !responsibleParticipantIds.length
         ) {
-          return null
+          return null;
         }
 
-        task.responsibilityType = responsibilityType
-        task.responsibleParticipantIds = responsibleParticipantIds
+        task.responsibilityType = responsibilityType;
+        task.responsibleParticipantIds = responsibleParticipantIds;
       }
 
       if (payload.dueDate !== undefined) {
-        task.dueDate = dueDate || undefined
+        task.dueDate = dueDate || undefined;
       }
 
       if (payload.sourceMeetingId !== undefined) {
-        task.sourceMeetingId = payload.sourceMeetingId
+        task.sourceMeetingId = payload.sourceMeetingId;
       }
 
-      task.updatedAt = nowIso()
-      this.persist()
-      return task
+      task.updatedAt = nowIso();
+      this.persist();
+      return task;
     },
     updateTaskStatus(taskId: string, status: TaskStatus) {
-      const task = this.tasks.find((item) => item.id === taskId)
+      const task = this.tasks.find((item) => item.id === taskId);
 
       if (!task) {
-        return
+        return;
       }
 
-      task.status = status
-      task.updatedAt = nowIso()
-      this.persist()
+      task.status = status;
+      task.updatedAt = nowIso();
+      this.persist();
     },
     updateTasksFromMeeting(sourceMeetingId: string, status: TaskStatus) {
-      const changedAt = nowIso()
-      let changed = false
+      const changedAt = nowIso();
+      let changed = false;
 
       for (const task of this.tasks) {
         if (
           task.sourceMeetingId === sourceMeetingId &&
           task.status === 'open'
         ) {
-          task.status = status
-          task.updatedAt = changedAt
-          changed = true
+          task.status = status;
+          task.updatedAt = changedAt;
+          changed = true;
         }
       }
 
       if (changed) {
-        this.persist()
+        this.persist();
       }
     },
     deleteTask(taskId: string) {
-      const originalLength = this.tasks.length
-      this.tasks = this.tasks.filter((task) => task.id !== taskId)
+      const originalLength = this.tasks.length;
+      this.tasks = this.tasks.filter((task) => task.id !== taskId);
 
       if (this.tasks.length !== originalLength) {
-        this.persist()
+        this.persist();
       }
     },
     addAgreement(payload: AddAgreementPayload) {
-      const title = payload.title.trim()
+      const title = payload.title.trim();
 
       if (!title || !payload.sourceMeetingId) {
-        return null
+        return null;
       }
 
-      const createdAt = payload.createdAt ?? nowIso()
+      const createdAt = payload.createdAt ?? nowIso();
       const agreement: Agreement = {
         id: payload.id ?? createId('agreement'),
         title,
@@ -460,34 +459,34 @@ export const useTasksStore = defineStore('tasks', {
         sourceMeetingId: payload.sourceMeetingId,
         createdAt,
         updatedAt: payload.updatedAt ?? createdAt,
-      }
+      };
       const existingIndex = this.agreements.findIndex(
-        (item) => item.id === agreement.id,
-      )
+        (item) => item.id === agreement.id
+      );
 
       if (existingIndex >= 0) {
-        this.agreements.splice(existingIndex, 1, agreement)
+        this.agreements.splice(existingIndex, 1, agreement);
       } else {
-        this.agreements.unshift(agreement)
+        this.agreements.unshift(agreement);
       }
 
-      this.persist()
-      return agreement
+      this.persist();
+      return agreement;
     },
     moveOpenTasksToMeeting(sourceMeetingId: string, targetMeetingId: string) {
-      const changedAt = nowIso()
-      const movedTasks: Task[] = []
+      const changedAt = nowIso();
+      const movedTasks: Task[] = [];
 
       for (const task of this.tasks) {
         if (
           task.sourceMeetingId !== sourceMeetingId ||
           task.status !== 'open'
         ) {
-          continue
+          continue;
         }
 
-        task.status = 'skipped'
-        task.updatedAt = changedAt
+        task.status = 'skipped';
+        task.updatedAt = changedAt;
 
         const movedTask: Task = {
           ...task,
@@ -496,42 +495,42 @@ export const useTasksStore = defineStore('tasks', {
           sourceMeetingId: targetMeetingId,
           createdAt: changedAt,
           updatedAt: changedAt,
-        }
-        movedTasks.push(movedTask)
+        };
+        movedTasks.push(movedTask);
       }
 
       if (movedTasks.length) {
-        this.tasks.unshift(...movedTasks)
-        this.persist()
+        this.tasks.unshift(...movedTasks);
+        this.persist();
       }
 
-      return movedTasks
+      return movedTasks;
     },
     markReviewHandled(meetingId: string, sourceMeetingId: string) {
       const existingDecision = this.reviewDecisions.find(
         (decision) =>
           decision.meetingId === meetingId &&
-          decision.sourceMeetingId === sourceMeetingId,
-      )
+          decision.sourceMeetingId === sourceMeetingId
+      );
 
       if (existingDecision) {
-        existingDecision.decidedAt = nowIso()
+        existingDecision.decidedAt = nowIso();
       } else {
         this.reviewDecisions.push({
           meetingId,
           sourceMeetingId,
           decidedAt: nowIso(),
-        })
+        });
       }
 
-      this.persist()
+      this.persist();
     },
     wasReviewHandled(meetingId: string, sourceMeetingId: string) {
       return this.reviewDecisions.some(
         (decision) =>
           decision.meetingId === meetingId &&
-          decision.sourceMeetingId === sourceMeetingId,
-      )
+          decision.sourceMeetingId === sourceMeetingId
+      );
     },
   },
-})
+});

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import PremiumLock from '@/shared/components/PremiumLock.vue'
-import { useFeatureAccess } from '@/shared/composables/useFeatureAccess'
+import PremiumLock from '@/shared/components/PremiumLock.vue';
+import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 
-const { canUseFeature, getFreeLimit } = useFeatureAccess()
-const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3
+const { canUseFeature, getFreeLimit } = useFeatureAccess();
+const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
 </script>
 
 <template>

@@ -1,47 +1,51 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useMeetingsStore } from '@/app/stores/meetings'
-import type { Meeting } from '@/features/meeting/types'
-import PremiumLock from '@/shared/components/PremiumLock.vue'
-import { useFeatureAccess } from '@/shared/composables/useFeatureAccess'
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useMeetingsStore } from '@/app/stores/meetings';
+import type { Meeting } from '@/features/meeting/types';
+import PremiumLock from '@/shared/components/PremiumLock.vue';
+import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 
-const meetingsStore = useMeetingsStore()
-const router = useRouter()
-const { canAccessMeetingHistoryItem, getFreeLimit } = useFeatureAccess()
+const meetingsStore = useMeetingsStore();
+const router = useRouter();
+const { canAccessMeetingHistoryItem, getFreeLimit } = useFeatureAccess();
 
-const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3
+const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
 
 const sortedCompletedMeetings = computed(() =>
-  [...meetingsStore.completedMeetings].sort(compareMeetingsByDate),
-)
+  [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
+);
 
 const historyItems = computed(() => {
   const completedIndexes = new Map(
-    sortedCompletedMeetings.value.map((meeting, index) => [meeting.id, index]),
-  )
+    sortedCompletedMeetings.value.map((meeting, index) => [meeting.id, index])
+  );
 
-  return [...meetingsStore.meetings].sort(compareMeetingsByDate).map((meeting) => {
-    const completedIndex = completedIndexes.get(meeting.id) ?? -1
+  return [...meetingsStore.meetings]
+    .sort(compareMeetingsByDate)
+    .map((meeting) => {
+      const completedIndex = completedIndexes.get(meeting.id) ?? -1;
 
-    return {
-      meeting,
-      completedIndex,
-      isLocked: !canAccessMeetingHistoryItem(meeting, completedIndex),
-      preview: getMeetingPreview(meeting),
-      counts: getMeetingCounts(meeting),
-      dateLabel: formatDate(getMeetingDate(meeting)),
-      statusLabel: getMeetingStatusLabel(meeting),
-    }
-  })
-})
+      return {
+        meeting,
+        completedIndex,
+        isLocked: !canAccessMeetingHistoryItem(meeting, completedIndex),
+        preview: getMeetingPreview(meeting),
+        counts: getMeetingCounts(meeting),
+        dateLabel: formatDate(getMeetingDate(meeting)),
+        statusLabel: getMeetingStatusLabel(meeting),
+      };
+    });
+});
 
 function compareMeetingsByDate(first: Meeting, second: Meeting) {
-  return getMeetingDate(second).getTime() - getMeetingDate(first).getTime()
+  return getMeetingDate(second).getTime() - getMeetingDate(first).getTime();
 }
 
 function getMeetingDate(meeting: Meeting) {
-  return new Date(meeting.completedAt ?? meeting.updatedAt ?? meeting.createdAt)
+  return new Date(
+    meeting.completedAt ?? meeting.updatedAt ?? meeting.createdAt
+  );
 }
 
 function formatDate(date: Date) {
@@ -49,70 +53,73 @@ function formatDate(date: Date) {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(date)
+  }).format(date);
 }
 
 function truncateText(text: string, maxLength = 92) {
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
 }
 
 function getMeetingPreview(meeting: Meeting) {
   for (const section of meeting.sections) {
-    const note = section.notes[0]
+    const note = section.notes[0];
 
     if (note) {
-      return truncateText(note.text)
+      return truncateText(note.text);
     }
 
-    const task = section.tasks[0]
+    const task = section.tasks[0];
 
     if (task) {
-      return truncateText(task.title)
+      return truncateText(task.title);
     }
 
-    const agreement = section.agreements[0]
+    const agreement = section.agreements[0];
 
     if (agreement) {
-      return truncateText(agreement.text)
+      return truncateText(agreement.text);
     }
   }
 
-  return 'No notes, tasks, or agreements yet.'
+  return 'No notes, tasks, or agreements yet.';
 }
 
 function getMeetingCounts(meeting: Meeting) {
   const notes = meeting.sections.reduce(
     (total, section) => total + section.notes.length,
-    0,
-  )
+    0
+  );
   const tasks = meeting.sections.reduce(
     (total, section) => total + section.tasks.length,
-    0,
-  )
+    0
+  );
   const agreements = meeting.sections.reduce(
     (total, section) => total + section.agreements.length,
-    0,
-  )
+    0
+  );
 
-  return `${notes} notes - ${tasks} tasks - ${agreements} agreements`
+  return `${notes} notes - ${tasks} tasks - ${agreements} agreements`;
 }
 
 function getMeetingStatusLabel(meeting: Meeting) {
-  return meeting.status === 'completed' ? 'finished' : 'draft'
+  return meeting.status === 'completed' ? 'finished' : 'draft';
 }
 
 function openHistoryItem(item: (typeof historyItems.value)[number]) {
   if (item.isLocked) {
-    return
+    return;
   }
 
   if (item.meeting.status === 'completed') {
-    router.push({ name: 'meeting-details', params: { meetingId: item.meeting.id } })
-    return
+    router.push({
+      name: 'meeting-details',
+      params: { meetingId: item.meeting.id },
+    });
+    return;
   }
 
-  meetingsStore.resumeMeeting(item.meeting.id)
-  router.push({ name: 'meeting' })
+  meetingsStore.resumeMeeting(item.meeting.id);
+  router.push({ name: 'meeting' });
 }
 </script>
 

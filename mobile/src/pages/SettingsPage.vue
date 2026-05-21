@@ -1,34 +1,34 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/app/stores/auth'
-import { useMeetingsStore } from '@/app/stores/meetings'
+import { computed, reactive, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { useAuthStore } from '@/app/stores/auth';
+import { useMeetingsStore } from '@/app/stores/meetings';
 import {
   participantColors,
   useParticipantsStore,
-} from '@/app/stores/participants'
-import { reminderDayOptions, useRemindersStore } from '@/app/stores/reminders'
-import { useTasksStore } from '@/app/stores/tasks'
+} from '@/app/stores/participants';
+import { reminderDayOptions, useRemindersStore } from '@/app/stores/reminders';
+import { useTasksStore } from '@/app/stores/tasks';
 import {
   featureAccessConfig,
   premiumFeatureKeys,
-} from '@/features/access/featureAccess.config'
-import type { FeatureKey, PlanType, UserRole } from '@/features/access/types'
-import type { ReminderDay } from '@/features/reminders/types'
-import type { ParticipantType } from '@/features/participants/types'
-import PremiumLock from '@/shared/components/PremiumLock.vue'
-import UpgradePrompt from '@/shared/components/UpgradePrompt.vue'
-import { useFeatureAccess } from '@/shared/composables/useFeatureAccess'
-import { useNotifications } from '@/shared/composables/useNotifications'
+} from '@/features/access/featureAccess.config';
+import type { FeatureKey, PlanType, UserRole } from '@/features/access/types';
+import type { ReminderDay } from '@/features/reminders/types';
+import type { ParticipantType } from '@/features/participants/types';
+import PremiumLock from '@/shared/components/PremiumLock.vue';
+import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
+import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
+import { useNotifications } from '@/shared/composables/useNotifications';
 
-const route = useRoute()
-const authStore = useAuthStore()
+const route = useRoute();
+const authStore = useAuthStore();
 const { planType, userRole, canUseFeature, setMockPlan, setMockRole } =
-  useFeatureAccess()
-const participantsStore = useParticipantsStore()
-const remindersStore = useRemindersStore()
-const tasksStore = useTasksStore()
-const meetingsStore = useMeetingsStore()
+  useFeatureAccess();
+const participantsStore = useParticipantsStore();
+const remindersStore = useRemindersStore();
+const tasksStore = useTasksStore();
+const meetingsStore = useMeetingsStore();
 const {
   disableReminders,
   enableReminders,
@@ -37,97 +37,97 @@ const {
   lastReminderResult,
   permissionStatus,
   syncPermissionStatus,
-} = useNotifications()
+} = useNotifications();
 
-void syncPermissionStatus()
+void syncPermissionStatus();
 
-participantsStore.ensureDefaultParticipants()
+participantsStore.ensureDefaultParticipants();
 
-const planOptions: PlanType[] = ['free', 'premium']
+const planOptions: PlanType[] = ['free', 'premium'];
 const roleOptions: Array<{ label: string; value: UserRole }> = [
   { label: 'Owner', value: 'owner' },
   { label: 'Partner / Adult', value: 'partner' },
   { label: 'Viewer', value: 'viewer' },
   { label: 'Child profile', value: 'childProfile' },
-]
-const timeInputStep = 300
+];
+const timeInputStep = 300;
 const typeOptions: Array<{ label: string; value: ParticipantType }> = [
   { label: 'Adult', value: 'adult' },
   { label: 'Child', value: 'child' },
   { label: 'Other', value: 'other' },
-]
+];
 
 const participantDraft = reactive({
   name: '',
   initials: '',
   avatarColor: participantColors[0],
   type: 'adult' as ParticipantType,
-})
+});
 const editDrafts = reactive<
   Record<
     string,
     {
-      name: string
-      initials: string
-      avatarColor: string
-      type: ParticipantType
+      name: string;
+      initials: string;
+      avatarColor: string;
+      type: ParticipantType;
     }
   >
->({})
+>({});
 const participantMessage = reactive({
   text: '',
   tone: 'status' as 'status' | 'error',
-})
+});
 
-const canUseReminders = computed(() => canUseFeature('agreementReminders'))
+const canUseReminders = computed(() => canUseFeature('agreementReminders'));
 const accountStatusText = computed(() => {
   if (authStore.isAuthenticated) {
-    return `Signed in as ${authStore.user?.email ?? 'your account'}.`
+    return `Signed in as ${authStore.user?.email ?? 'your account'}.`;
   }
 
   if (authStore.isLocalOnly) {
-    return 'Using Weekly Us on this device only.'
+    return 'Using Weekly Us on this device only.';
   }
 
-  return 'No account connected yet.'
-})
+  return 'No account connected yet.';
+});
 const reminderStatusText = computed(() => {
   if (!canUseReminders.value) {
-    return 'Reminder settings are available with Premium.'
+    return 'Reminder settings are available with Premium.';
   }
 
   if (!remindersStore.settings.enabled) {
-    return 'Reminders are off.'
+    return 'Reminders are off.';
   }
 
   if (!notificationsAvailable.value) {
-    return 'Local notifications are available in the Android app. Web dev mode keeps these settings without scheduling notifications.'
+    return 'Local notifications are available in the Android app. Web dev mode keeps these settings without scheduling notifications.';
   }
 
   if (permissionStatus.value === 'denied') {
-    return 'Notifications are blocked in system settings.'
+    return 'Notifications are blocked in system settings.';
   }
 
   if (lastReminderResult.value?.scheduled) {
-    return 'Reminders are scheduled on this device.'
+    return 'Reminders are scheduled on this device.';
   }
 
-  return 'Reminders are saved and will be scheduled when notifications are available.'
-})
+  return 'Reminders are saved and will be scheduled when notifications are available.';
+});
 
 const lockedFeature = computed(() => {
-  const value = route.query.lockedFeature
+  const value = route.query.lockedFeature;
 
   if (typeof value !== 'string') {
-    return undefined
+    return undefined;
   }
 
   if (!Object.prototype.hasOwnProperty.call(featureAccessConfig, value)) {
-    return undefined
+    return undefined;
   }
 
-  return value as FeatureKey
-})
+  return value as FeatureKey;
+});
 
 watch(
   () =>
@@ -135,13 +135,13 @@ watch(
       .map((participant) => participant.updatedAt)
       .join('|'),
   () => syncEditDrafts(),
-  { immediate: true },
-)
+  { immediate: true }
+);
 
 function syncEditDrafts() {
   const participantIds = new Set(
-    participantsStore.participants.map((participant) => participant.id),
-  )
+    participantsStore.participants.map((participant) => participant.id)
+  );
 
   for (const participant of participantsStore.participants) {
     if (!editDrafts[participant.id]) {
@@ -150,13 +150,13 @@ function syncEditDrafts() {
         initials: participant.initials,
         avatarColor: participant.avatarColor,
         type: participant.type,
-      }
+      };
     }
   }
 
   for (const participantId of Object.keys(editDrafts)) {
     if (!participantIds.has(participantId)) {
-      delete editDrafts[participantId]
+      delete editDrafts[participantId];
     }
   }
 }
@@ -164,50 +164,50 @@ function syncEditDrafts() {
 function toReminderDay(value: string) {
   return reminderDayOptions.some((option) => option.value === value)
     ? (value as ReminderDay)
-    : 'sunday'
+    : 'sunday';
 }
 
 async function handleReminderEnabledChange(event: Event) {
-  const enabled = (event.target as HTMLInputElement).checked
+  const enabled = (event.target as HTMLInputElement).checked;
 
   if (enabled) {
-    await enableReminders()
-    return
+    await enableReminders();
+    return;
   }
 
-  await disableReminders()
+  await disableReminders();
 }
 
 function updateWeeklyMeetingReminderDay(event: Event) {
   remindersStore.updateWeeklyMeetingReminder({
     day: toReminderDay((event.target as HTMLSelectElement).value),
-  })
+  });
 }
 
 function updateWeeklyMeetingReminderTime(event: Event) {
   remindersStore.updateWeeklyMeetingReminder({
     time: (event.target as HTMLInputElement).value,
-  })
+  });
 }
 
 function updateUnfinishedTaskReminderDay(event: Event) {
   remindersStore.updateUnfinishedTaskReminder({
     day: toReminderDay((event.target as HTMLSelectElement).value),
-  })
+  });
 }
 
 function updateUnfinishedTaskReminderTime(event: Event) {
   remindersStore.updateUnfinishedTaskReminder({
     time: (event.target as HTMLInputElement).value,
-  })
+  });
 }
 
 function setParticipantMessage(
   text: string,
-  tone: 'status' | 'error' = 'status',
+  tone: 'status' | 'error' = 'status'
 ) {
-  participantMessage.text = text
-  participantMessage.tone = tone
+  participantMessage.text = text;
+  participantMessage.tone = tone;
 }
 
 function createParticipant() {
@@ -216,87 +216,87 @@ function createParticipant() {
     initials: participantDraft.initials,
     avatarColor: participantDraft.avatarColor,
     type: participantDraft.type,
-  })
+  });
 
   if (!participant) {
-    setParticipantMessage('Add a name first.', 'error')
-    return
+    setParticipantMessage('Add a name first.', 'error');
+    return;
   }
 
-  meetingsStore.syncActiveMeetingParticipants()
-  participantDraft.name = ''
-  participantDraft.initials = ''
+  meetingsStore.syncActiveMeetingParticipants();
+  participantDraft.name = '';
+  participantDraft.initials = '';
   participantDraft.avatarColor =
     participantColors[
       participantsStore.participants.length % participantColors.length
-    ]
-  participantDraft.type = 'adult'
-  setParticipantMessage('Participant added.')
+    ];
+  participantDraft.type = 'adult';
+  setParticipantMessage('Participant added.');
 }
 
 function saveParticipant(participantId: string) {
-  const draft = editDrafts[participantId]
+  const draft = editDrafts[participantId];
 
   if (!draft) {
-    return
+    return;
   }
 
-  const participant = participantsStore.updateParticipant(participantId, draft)
+  const participant = participantsStore.updateParticipant(participantId, draft);
 
   if (!participant) {
-    setParticipantMessage('Add a name first.', 'error')
-    return
+    setParticipantMessage('Add a name first.', 'error');
+    return;
   }
 
-  setParticipantMessage('Participant updated.')
+  setParticipantMessage('Participant updated.');
 }
 
 function participantIsUsed(participantId: string) {
   return (
     tasksStore.tasks.some((task) =>
-      task.responsibleParticipantIds.includes(participantId),
+      task.responsibleParticipantIds.includes(participantId)
     ) ||
     tasksStore.agreements.some((agreement) =>
-      agreement.participantIds.includes(participantId),
+      agreement.participantIds.includes(participantId)
     ) ||
     meetingsStore.meetings.some((meeting) =>
       meeting.sections.some(
         (section) =>
           section.notes.some((note) => note.participantId === participantId) ||
           section.tasks.some((task) =>
-            task.responsibleParticipantIds.includes(participantId),
+            task.responsibleParticipantIds.includes(participantId)
           ) ||
           section.agreements.some((agreement) =>
-            agreement.participantIds.includes(participantId),
-          ),
-      ),
+            agreement.participantIds.includes(participantId)
+          )
+      )
     )
-  )
+  );
 }
 
 function disableOrRemoveParticipant(participantId: string) {
-  const participant = participantsStore.getParticipantById(participantId)
+  const participant = participantsStore.getParticipantById(participantId);
 
   if (!participant) {
-    return
+    return;
   }
 
   if (participantIsUsed(participantId)) {
-    participantsStore.disableParticipant(participantId)
+    participantsStore.disableParticipant(participantId);
     setParticipantMessage(
-      'Participant disabled. Existing records still keep their name.',
-    )
-    return
+      'Participant disabled. Existing records still keep their name.'
+    );
+    return;
   }
 
-  participantsStore.removeParticipant(participantId)
-  setParticipantMessage('Unused participant removed.')
+  participantsStore.removeParticipant(participantId);
+  setParticipantMessage('Unused participant removed.');
 }
 
 function enableParticipant(participantId: string) {
-  participantsStore.enableParticipant(participantId)
-  meetingsStore.syncActiveMeetingParticipants()
-  setParticipantMessage('Participant enabled.')
+  participantsStore.enableParticipant(participantId);
+  meetingsStore.syncActiveMeetingParticipants();
+  setParticipantMessage('Participant enabled.');
 }
 </script>
 

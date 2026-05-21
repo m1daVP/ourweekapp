@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/app/stores/auth'
-import { appConfig } from '@/shared/config/env'
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/app/stores/auth';
+import { appConfig } from '@/shared/config/env';
 
-const router = useRouter()
-const authStore = useAuthStore()
+const router = useRouter();
+const authStore = useAuthStore();
 
-const isMockAuth = computed(() => appConfig.apiMode === 'mock')
+const isMockAuth = computed(() => appConfig.apiMode === 'mock');
 
 function continueLocalOnly() {
-  authStore.continueLocalOnly()
-  void router.push({ name: 'home' })
+  authStore.continueLocalOnly();
+  void router.push({ name: 'home' });
 }
 </script>
 

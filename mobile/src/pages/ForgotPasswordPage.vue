@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from 'vue';
 
-const email = ref('')
-const statusMessage = ref('')
-const formError = ref('')
+const email = ref('');
+const statusMessage = ref('');
+const formError = ref('');
 
 function handleSubmit() {
-  statusMessage.value = ''
-  formError.value = ''
+  statusMessage.value = '';
+  formError.value = '';
 
   if (!email.value.trim()) {
-    formError.value = 'Add the email for your account.'
-    return
+    formError.value = 'Add the email for your account.';
+    return;
   }
 
   statusMessage.value =
-    'Password reset is a placeholder until backend email is connected.'
+    'Password reset is a placeholder until backend email is connected.';
 }
 </script>
 

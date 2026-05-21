@@ -1,80 +1,81 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useMeetingsStore } from '@/app/stores/meetings'
-import { useParticipantsStore } from '@/app/stores/participants'
-import { generateMeetingSummary } from '@/features/meeting/aiSummaryService'
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useMeetingsStore } from '@/app/stores/meetings';
+import { useParticipantsStore } from '@/app/stores/participants';
+import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
 import type {
   Meeting,
   MeetingSummaryTask,
   MeetingTask,
-} from '@/features/meeting/types'
-import PremiumLock from '@/shared/components/PremiumLock.vue'
-import { useFeatureAccess } from '@/shared/composables/useFeatureAccess'
+} from '@/features/meeting/types';
+import PremiumLock from '@/shared/components/PremiumLock.vue';
+import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 
-const meetingsStore = useMeetingsStore()
-const participantsStore = useParticipantsStore()
-const route = useRoute()
-const router = useRouter()
+const meetingsStore = useMeetingsStore();
+const participantsStore = useParticipantsStore();
+const route = useRoute();
+const router = useRouter();
 const { canAccessMeetingHistoryItem, canUseFeature, getFreeLimit } =
-  useFeatureAccess()
+  useFeatureAccess();
 
-const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3
-const meetingId = computed(() => String(route.params.meetingId ?? ''))
-const isGeneratingSummary = ref(false)
-const aiSummaryError = ref('')
+const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
+const meetingId = computed(() => String(route.params.meetingId ?? ''));
+const isGeneratingSummary = ref(false);
+const aiSummaryError = ref('');
 
 const meeting = computed(
   () =>
-    meetingsStore.meetings.find((item) => item.id === meetingId.value) ?? null,
-)
+    meetingsStore.meetings.find((item) => item.id === meetingId.value) ?? null
+);
 
-const aiSummary = computed(() => meeting.value?.aiSummary ?? null)
+const aiSummary = computed(() => meeting.value?.aiSummary ?? null);
 
 const sortedCompletedMeetings = computed(() =>
-  [...meetingsStore.completedMeetings].sort(compareMeetingsByDate),
-)
+  [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
+);
 
 const completedMeetingIndex = computed(() =>
-  sortedCompletedMeetings.value.findIndex(
-    (item) => item.id === meetingId.value,
-  ),
-)
+  sortedCompletedMeetings.value.findIndex((item) => item.id === meetingId.value)
+);
 
 const canAccessMeeting = computed(() => {
   if (!meeting.value) {
-    return false
+    return false;
   }
 
-  return canAccessMeetingHistoryItem(meeting.value, completedMeetingIndex.value)
-})
+  return canAccessMeetingHistoryItem(
+    meeting.value,
+    completedMeetingIndex.value
+  );
+});
 
 const isLocked = computed(() =>
-  Boolean(meeting.value && !canAccessMeeting.value),
-)
+  Boolean(meeting.value && !canAccessMeeting.value)
+);
 
 const meetingDateLabel = computed(() =>
-  meeting.value ? formatDate(getMeetingDate(meeting.value)) : '',
-)
+  meeting.value ? formatDate(getMeetingDate(meeting.value)) : ''
+);
 
 const meetingPreview = computed(() =>
-  meeting.value ? getMeetingPreview(meeting.value) : '',
-)
+  meeting.value ? getMeetingPreview(meeting.value) : ''
+);
 
 const allTasks = computed(
-  () => meeting.value?.sections.flatMap((section) => section.tasks) ?? [],
-)
+  () => meeting.value?.sections.flatMap((section) => section.tasks) ?? []
+);
 
 const allAgreements = computed(
-  () => meeting.value?.sections.flatMap((section) => section.agreements) ?? [],
-)
+  () => meeting.value?.sections.flatMap((section) => section.agreements) ?? []
+);
 
 function compareMeetingsByDate(first: Meeting, second: Meeting) {
-  return getMeetingDate(second).getTime() - getMeetingDate(first).getTime()
+  return getMeetingDate(second).getTime() - getMeetingDate(first).getTime();
 }
 
 function getMeetingDate(item: Meeting) {
-  return new Date(item.completedAt ?? item.updatedAt ?? item.createdAt)
+  return new Date(item.completedAt ?? item.updatedAt ?? item.createdAt);
 }
 
 function formatDate(date: Date) {
@@ -82,7 +83,7 @@ function formatDate(date: Date) {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(date)
+  }).format(date);
 }
 
 function formatDateTime(value: string) {
@@ -91,69 +92,69 @@ function formatDateTime(value: string) {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-  }).format(new Date(value))
+  }).format(new Date(value));
 }
 
 function truncateText(text: string, maxLength = 120) {
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
 }
 
 function getMeetingPreview(item: Meeting) {
   for (const section of item.sections) {
-    const note = section.notes[0]
+    const note = section.notes[0];
 
     if (note) {
-      return truncateText(note.text)
+      return truncateText(note.text);
     }
 
-    const task = section.tasks[0]
+    const task = section.tasks[0];
 
     if (task) {
-      return truncateText(task.title)
+      return truncateText(task.title);
     }
 
-    const agreement = section.agreements[0]
+    const agreement = section.agreements[0];
 
     if (agreement) {
-      return truncateText(agreement.text)
+      return truncateText(agreement.text);
     }
   }
 
-  return 'No notes, tasks, or agreements yet.'
+  return 'No notes, tasks, or agreements yet.';
 }
 
 function getMeetingStatusLabel(item: Meeting) {
-  return item.status === 'completed' ? 'finished' : 'draft'
+  return item.status === 'completed' ? 'finished' : 'draft';
 }
 
 function getParticipantName(participantId: string) {
-  return participantsStore.getParticipantById(participantId)?.name ?? 'Someone'
+  return participantsStore.getParticipantById(participantId)?.name ?? 'Someone';
 }
 
 function getTaskResponsibleLabel(
   task: Pick<
     MeetingTask | MeetingSummaryTask,
     'responsibilityType' | 'responsibleParticipantIds'
-  >,
+  >
 ) {
   if (task.responsibilityType === 'needsDiscussion') {
-    return 'Needs discussion'
+    return 'Needs discussion';
   }
 
   if (!task.responsibleParticipantIds.length) {
-    return 'Unassigned'
+    return 'Unassigned';
   }
 
-  return task.responsibleParticipantIds.map(getParticipantName).join(', ')
+  return task.responsibleParticipantIds.map(getParticipantName).join(', ');
 }
 
 function resumeDraft() {
   if (!meeting.value || meeting.value.status === 'completed') {
-    return
+    return;
   }
 
-  meetingsStore.resumeMeeting(meeting.value.id)
-  router.push({ name: 'meeting' })
+  meetingsStore.resumeMeeting(meeting.value.id);
+  router.push({ name: 'meeting' });
 }
 
 async function generateSummary() {
@@ -162,19 +163,19 @@ async function generateSummary() {
     isGeneratingSummary.value ||
     !canUseFeature('aiSummary')
   ) {
-    return
+    return;
   }
 
-  aiSummaryError.value = ''
-  isGeneratingSummary.value = true
+  aiSummaryError.value = '';
+  isGeneratingSummary.value = true;
 
   try {
-    const summary = await generateMeetingSummary(meeting.value)
-    meetingsStore.saveAiSummary(meeting.value.id, summary)
+    const summary = await generateMeetingSummary(meeting.value);
+    meetingsStore.saveAiSummary(meeting.value.id, summary);
   } catch {
-    aiSummaryError.value = 'Could not generate a summary right now.'
+    aiSummaryError.value = 'Could not generate a summary right now.';
   } finally {
-    isGeneratingSummary.value = false
+    isGeneratingSummary.value = false;
   }
 }
 </script>

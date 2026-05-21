@@ -1,4 +1,4 @@
-export type PlanType = 'free' | 'premium'
+export type PlanType = 'free' | 'premium';
 
 export type FeatureKey =
   | 'basicMeetings'
@@ -14,16 +14,16 @@ export type FeatureKey =
   | 'privateNotes'
   | 'googleCalendarSync'
   | 'export'
-  | 'advancedStatistics'
+  | 'advancedStatistics';
 
-export type UserRole = 'owner' | 'partner' | 'viewer' | 'childProfile'
+export type UserRole = 'owner' | 'partner' | 'viewer' | 'childProfile';
 
 export interface FeatureAccess {
-  key: FeatureKey
-  label: string
-  description: string
-  plans: PlanType[]
-  roles?: UserRole[]
-  freeLimit?: number
-  lockedReason?: string
+  key: FeatureKey;
+  label: string;
+  description: string;
+  plans: PlanType[];
+  roles?: UserRole[];
+  freeLimit?: number;
+  lockedReason?: string;
 }

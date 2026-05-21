@@ -5,16 +5,16 @@ export type ReminderDay =
   | 'wednesday'
   | 'thursday'
   | 'friday'
-  | 'saturday'
+  | 'saturday';
 
 export interface ReminderTimeSlot {
-  day: ReminderDay
-  time: string
+  day: ReminderDay;
+  time: string;
 }
 
 export interface ReminderSettings {
-  enabled: boolean
-  weeklyMeetingReminder: ReminderTimeSlot
-  unfinishedTaskReminder: ReminderTimeSlot
-  updatedAt: string
+  enabled: boolean;
+  weeklyMeetingReminder: ReminderTimeSlot;
+  unfinishedTaskReminder: ReminderTimeSlot;
+  updatedAt: string;
 }

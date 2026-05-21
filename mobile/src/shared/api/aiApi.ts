@@ -1,23 +1,23 @@
-import type { Meeting, MeetingSummary } from '@/features/meeting/types'
-import { apiRequest, isBackendApiConfigured } from './httpClient'
+import type { Meeting, MeetingSummary } from '@/features/meeting/types';
+import { apiRequest, isBackendApiConfigured } from './httpClient';
 
 export interface GenerateMeetingSummaryRequestDto {
-  meeting: Meeting
-  promptContract: readonly string[]
+  meeting: Meeting;
+  promptContract: readonly string[];
 }
 
 export interface GenerateMeetingSummaryResponseDto {
-  summary: MeetingSummary
-  disclaimer: string
-  generatedAt: string
+  summary: MeetingSummary;
+  disclaimer: string;
+  generatedAt: string;
 }
 
 function createId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`
+    return `${prefix}-${crypto.randomUUID()}`;
   }
 
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function createMockSummary(meeting: Meeting): MeetingSummary {
@@ -29,11 +29,11 @@ function createMockSummary(meeting: Meeting): MeetingSummary {
       responsibleParticipantIds: task.responsibleParticipantIds,
       dueDate: task.dueDate,
       status: task.status,
-    })),
-  )
+    }))
+  );
   const agreements = meeting.sections
     .flatMap((section) => section.agreements)
-    .map((agreement) => agreement.text)
+    .map((agreement) => agreement.text);
 
   return {
     id: createId('meeting-summary'),
@@ -45,7 +45,7 @@ function createMockSummary(meeting: Meeting): MeetingSummary {
         (section) =>
           section.notes.length ||
           section.tasks.length ||
-          section.agreements.length,
+          section.agreements.length
       )
       .map((section) => section.title),
     keyTensions: [],
@@ -55,11 +55,11 @@ function createMockSummary(meeting: Meeting): MeetingSummary {
       .filter((task) => task.status === 'open')
       .map((task) => `Check progress on "${task.title}".`),
     createdAt: new Date().toISOString(),
-  }
+  };
 }
 
 export async function generateAiMeetingSummary(
-  payload: GenerateMeetingSummaryRequestDto,
+  payload: GenerateMeetingSummaryRequestDto
 ): Promise<GenerateMeetingSummaryResponseDto> {
   if (!isBackendApiConfigured()) {
     return {
@@ -67,11 +67,11 @@ export async function generateAiMeetingSummary(
       disclaimer:
         'AI summaries may be inaccurate. Review before relying on them.',
       generatedAt: new Date().toISOString(),
-    }
+    };
   }
 
   return apiRequest<GenerateMeetingSummaryResponseDto>('/ai/meeting-summary', {
     method: 'POST',
     body: payload,
-  })
+  });
 }

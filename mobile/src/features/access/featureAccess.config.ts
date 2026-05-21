@@ -1,4 +1,4 @@
-import type { FeatureAccess, FeatureKey } from './types'
+import type { FeatureAccess, FeatureKey } from './types';
 
 export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
   basicMeetings: {
@@ -58,7 +58,8 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     label: 'Unfinished agreement reminders',
     description: 'Get reminders for agreements that still need follow-up.',
     plans: ['premium'],
-    lockedReason: 'Upgrade to keep unfinished agreements visible between meetings.',
+    lockedReason:
+      'Upgrade to keep unfinished agreements visible between meetings.',
   },
   additionalTemplates: {
     key: 'additionalTemplates',
@@ -94,11 +95,13 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     label: 'Advanced statistics',
     description: 'See deeper household patterns over time.',
     plans: ['premium'],
-    lockedReason: 'Upgrade to unlock advanced household insights when available.',
+    lockedReason:
+      'Upgrade to unlock advanced household insights when available.',
   },
-}
+};
 
 export const premiumFeatureKeys = Object.values(featureAccessConfig)
-  .filter((feature) => feature.plans.length === 1 && feature.plans.includes('premium'))
-  .map((feature) => feature.key)
-
+  .filter(
+    (feature) => feature.plans.length === 1 && feature.plans.includes('premium')
+  )
+  .map((feature) => feature.key);

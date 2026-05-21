@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/app/stores/auth'
+import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/app/stores/auth';
 
-const router = useRouter()
-const authStore = useAuthStore()
-const isLoggingOut = ref(false)
-const userEmail = computed(() => authStore.user?.email ?? 'this account')
+const router = useRouter();
+const authStore = useAuthStore();
+const isLoggingOut = ref(false);
+const userEmail = computed(() => authStore.user?.email ?? 'this account');
 
 async function confirmLogout() {
-  isLoggingOut.value = true
-  await authStore.logout()
-  void router.replace({ name: 'welcome' })
+  isLoggingOut.value = true;
+  await authStore.logout();
+  void router.replace({ name: 'welcome' });
 }
 </script>
 

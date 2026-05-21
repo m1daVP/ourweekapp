@@ -1,35 +1,37 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-import { useMeetingsStore } from '@/app/stores/meetings'
-import { usePrivateNotesStore } from '@/app/stores/privateNotes'
-import type { Meeting } from '@/features/meeting/types'
-import type { PrivateNote } from '@/features/private-notes/types'
-import PremiumLock from '@/shared/components/PremiumLock.vue'
+import { computed, reactive, ref } from 'vue';
+import { useMeetingsStore } from '@/app/stores/meetings';
+import { usePrivateNotesStore } from '@/app/stores/privateNotes';
+import type { Meeting } from '@/features/meeting/types';
+import type { PrivateNote } from '@/features/private-notes/types';
+import PremiumLock from '@/shared/components/PremiumLock.vue';
 
-const meetingsStore = useMeetingsStore()
-const privateNotesStore = usePrivateNotesStore()
+const meetingsStore = useMeetingsStore();
+const privateNotesStore = usePrivateNotesStore();
 
-const editingNoteId = ref<string | null>(null)
-const statusMessage = ref('')
-const formError = ref('')
+const editingNoteId = ref<string | null>(null);
+const statusMessage = ref('');
+const formError = ref('');
 const noteDraft = reactive({
   title: '',
   content: '',
   relatedMeetingId: '',
-})
+});
 
-const notes = computed(() => privateNotesStore.sortedNotes)
+const notes = computed(() => privateNotesStore.sortedNotes);
 const linkedMeetingOptions = computed(() =>
-  [...meetingsStore.meetings].sort(compareMeetingsByDate),
-)
-const isEditing = computed(() => Boolean(editingNoteId.value))
+  [...meetingsStore.meetings].sort(compareMeetingsByDate)
+);
+const isEditing = computed(() => Boolean(editingNoteId.value));
 
 function compareMeetingsByDate(first: Meeting, second: Meeting) {
-  return getMeetingDate(second).getTime() - getMeetingDate(first).getTime()
+  return getMeetingDate(second).getTime() - getMeetingDate(first).getTime();
 }
 
 function getMeetingDate(meeting: Meeting) {
-  return new Date(meeting.completedAt ?? meeting.updatedAt ?? meeting.createdAt)
+  return new Date(
+    meeting.completedAt ?? meeting.updatedAt ?? meeting.createdAt
+  );
 }
 
 function formatDate(value: string) {
@@ -37,84 +39,84 @@ function formatDate(value: string) {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(value))
+  }).format(new Date(value));
 }
 
 function getMeetingLabel(meetingId?: string) {
-  const meeting = meetingsStore.meetings.find((item) => item.id === meetingId)
+  const meeting = meetingsStore.meetings.find((item) => item.id === meetingId);
 
   if (!meeting) {
-    return ''
+    return '';
   }
 
   return `${meeting.title} - ${formatDate(
-    meeting.completedAt ?? meeting.updatedAt ?? meeting.createdAt,
-  )}`
+    meeting.completedAt ?? meeting.updatedAt ?? meeting.createdAt
+  )}`;
 }
 
 function clearMessages() {
-  formError.value = ''
-  statusMessage.value = ''
+  formError.value = '';
+  statusMessage.value = '';
 }
 
 function resetDraft() {
-  editingNoteId.value = null
-  noteDraft.title = ''
-  noteDraft.content = ''
-  noteDraft.relatedMeetingId = ''
+  editingNoteId.value = null;
+  noteDraft.title = '';
+  noteDraft.content = '';
+  noteDraft.relatedMeetingId = '';
 }
 
 function saveNote() {
-  clearMessages()
+  clearMessages();
 
   if (!noteDraft.title.trim() || !noteDraft.content.trim()) {
-    formError.value = 'Add a title and note before saving.'
-    return
+    formError.value = 'Add a title and note before saving.';
+    return;
   }
 
   const payload = {
     title: noteDraft.title,
     content: noteDraft.content,
     relatedMeetingId: noteDraft.relatedMeetingId || undefined,
-  }
+  };
   const note = editingNoteId.value
     ? privateNotesStore.updateNote(editingNoteId.value, payload)
-    : privateNotesStore.createNote(payload)
+    : privateNotesStore.createNote(payload);
 
   if (!note) {
-    formError.value = 'Add a title and note before saving.'
-    return
+    formError.value = 'Add a title and note before saving.';
+    return;
   }
 
   statusMessage.value = editingNoteId.value
     ? 'Private note updated.'
-    : 'Private note saved.'
-  resetDraft()
+    : 'Private note saved.';
+  resetDraft();
 }
 
 function editNote(note: PrivateNote) {
-  clearMessages()
-  editingNoteId.value = note.id
-  noteDraft.title = note.title
-  noteDraft.content = note.content
-  noteDraft.relatedMeetingId = note.relatedMeetingId ?? ''
+  clearMessages();
+  editingNoteId.value = note.id;
+  noteDraft.title = note.title;
+  noteDraft.content = note.content;
+  noteDraft.relatedMeetingId = note.relatedMeetingId ?? '';
 }
 
 function deleteNote(note: PrivateNote) {
-  const confirmed = window.confirm('Delete this private note?')
+  const confirmed = window.confirm('Delete this private note?');
 
   if (!confirmed) {
-    return
+    return;
   }
 
-  clearMessages()
-  privateNotesStore.deleteNote(note.id)
+  clearMessages();
+  privateNotesStore.deleteNote(note.id);
 
   if (editingNoteId.value === note.id) {
-    resetDraft()
+    resetDraft();
   }
 
-  statusMessage.value = 'Private note deleted.'
+  statusMessage.value = 'Private note deleted.';
 }
 </script>
 
@@ -143,7 +145,6 @@ function deleteNote(note: PrivateNote) {
       message="Upgrade to keep personal meeting prep and reflections separate from shared household records."
       :show-preview="false"
     >
-
       <section
         class="content-panel private-note-editor"
         aria-labelledby="private-note-editor-title"
@@ -247,4 +248,3 @@ function deleteNote(note: PrivateNote) {
     </PremiumLock>
   </section>
 </template>
-

@@ -1,43 +1,43 @@
-import { useMeetingsStore } from '@/app/stores/meetings'
-import { useParticipantsStore } from '@/app/stores/participants'
-import { useTasksStore } from '@/app/stores/tasks'
-import type { Participant } from '@/features/participants/types'
-import { apiRequest } from '@/shared/api/httpClient'
-import { syncMeetingsApi } from '@/shared/api/meetingsApi'
-import { syncTasksApi } from '@/shared/api/tasksApi'
-import { appConfig } from '@/shared/config/env'
+import { useMeetingsStore } from '@/app/stores/meetings';
+import { useParticipantsStore } from '@/app/stores/participants';
+import { useTasksStore } from '@/app/stores/tasks';
+import type { Participant } from '@/features/participants/types';
+import { apiRequest } from '@/shared/api/httpClient';
+import { syncMeetingsApi } from '@/shared/api/meetingsApi';
+import { syncTasksApi } from '@/shared/api/tasksApi';
+import { appConfig } from '@/shared/config/env';
 
-export type SyncResource = 'meetings' | 'tasks' | 'participants'
+export type SyncResource = 'meetings' | 'tasks' | 'participants';
 
 export interface SyncResult {
-  resource: SyncResource
-  mode: 'mock' | 'backend'
-  pushedCount: number
-  pulledCount: number
-  conflictCount: number
-  syncedAt: string
-  skippedReason?: string
+  resource: SyncResource;
+  mode: 'mock' | 'backend';
+  pushedCount: number;
+  pulledCount: number;
+  conflictCount: number;
+  syncedAt: string;
+  skippedReason?: string;
 }
 
 interface SyncParticipantsRequestDto {
-  participants: Participant[]
-  clientUpdatedAt: string
-  lastSyncedAt?: string
+  participants: Participant[];
+  clientUpdatedAt: string;
+  lastSyncedAt?: string;
 }
 
 interface SyncParticipantsResponseDto {
-  participants: Participant[]
-  conflicts: Participant[]
-  syncedAt: string
+  participants: Participant[];
+  conflicts: Participant[];
+  syncedAt: string;
 }
 
 function nowIso() {
-  return new Date().toISOString()
+  return new Date().toISOString();
 }
 
 function createMockResult(
   resource: SyncResource,
-  pushedCount: number,
+  pushedCount: number
 ): SyncResult {
   return {
     resource,
@@ -48,14 +48,14 @@ function createMockResult(
     syncedAt: nowIso(),
     skippedReason:
       'Backend API is not configured. Local data remains stored on this device.',
-  }
+  };
 }
 
 export async function syncMeetings(): Promise<SyncResult> {
-  const meetingsStore = useMeetingsStore()
+  const meetingsStore = useMeetingsStore();
 
   if (!appConfig.isBackendApiEnabled) {
-    return createMockResult('meetings', meetingsStore.meetings.length)
+    return createMockResult('meetings', meetingsStore.meetings.length);
   }
 
   const response = await syncMeetingsApi({
@@ -63,13 +63,13 @@ export async function syncMeetings(): Promise<SyncResult> {
     activeMeetingId: meetingsStore.activeMeetingId,
     draftSavedAt: meetingsStore.draftSavedAt,
     clientUpdatedAt: nowIso(),
-  })
+  });
 
   if (response.meetings.length) {
-    meetingsStore.meetings = response.meetings
-    meetingsStore.activeMeetingId = response.activeMeetingId
-    meetingsStore.draftSavedAt = response.draftSavedAt
-    meetingsStore.persist()
+    meetingsStore.meetings = response.meetings;
+    meetingsStore.activeMeetingId = response.activeMeetingId;
+    meetingsStore.draftSavedAt = response.draftSavedAt;
+    meetingsStore.persist();
   }
 
   return {
@@ -79,17 +79,17 @@ export async function syncMeetings(): Promise<SyncResult> {
     pulledCount: response.meetings.length,
     conflictCount: response.conflicts.length,
     syncedAt: response.syncedAt,
-  }
+  };
 }
 
 export async function syncTasks(): Promise<SyncResult> {
-  const tasksStore = useTasksStore()
+  const tasksStore = useTasksStore();
 
   if (!appConfig.isBackendApiEnabled) {
     return createMockResult(
       'tasks',
-      tasksStore.tasks.length + tasksStore.agreements.length,
-    )
+      tasksStore.tasks.length + tasksStore.agreements.length
+    );
   }
 
   const response = await syncTasksApi({
@@ -97,13 +97,13 @@ export async function syncTasks(): Promise<SyncResult> {
     agreements: tasksStore.agreements,
     reviewDecisions: tasksStore.reviewDecisions,
     clientUpdatedAt: nowIso(),
-  })
+  });
 
   if (response.tasks.length || response.agreements.length) {
-    tasksStore.tasks = response.tasks
-    tasksStore.agreements = response.agreements
-    tasksStore.reviewDecisions = response.reviewDecisions
-    tasksStore.persist()
+    tasksStore.tasks = response.tasks;
+    tasksStore.agreements = response.agreements;
+    tasksStore.reviewDecisions = response.reviewDecisions;
+    tasksStore.persist();
   }
 
   return {
@@ -113,17 +113,17 @@ export async function syncTasks(): Promise<SyncResult> {
     pulledCount: response.tasks.length + response.agreements.length,
     conflictCount: response.conflicts.length,
     syncedAt: response.syncedAt,
-  }
+  };
 }
 
 export async function syncParticipants(): Promise<SyncResult> {
-  const participantsStore = useParticipantsStore()
+  const participantsStore = useParticipantsStore();
 
   if (!appConfig.isBackendApiEnabled) {
     return createMockResult(
       'participants',
-      participantsStore.participants.length,
-    )
+      participantsStore.participants.length
+    );
   }
 
   const response = await apiRequest<SyncParticipantsResponseDto>(
@@ -134,12 +134,12 @@ export async function syncParticipants(): Promise<SyncResult> {
         participants: participantsStore.participants,
         clientUpdatedAt: nowIso(),
       } satisfies SyncParticipantsRequestDto,
-    },
-  )
+    }
+  );
 
   if (response.participants.length) {
-    participantsStore.participants = response.participants
-    participantsStore.persist()
+    participantsStore.participants = response.participants;
+    participantsStore.persist();
   }
 
   return {
@@ -149,5 +149,5 @@ export async function syncParticipants(): Promise<SyncResult> {
     pulledCount: response.participants.length,
     conflictCount: response.conflicts.length,
     syncedAt: response.syncedAt,
-  }
+  };
 }

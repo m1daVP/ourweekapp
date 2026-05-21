@@ -1,29 +1,29 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor } from '@capacitor/core';
 import {
   LocalNotifications,
   Weekday,
   type LocalNotificationSchema,
   type PermissionStatus,
-} from '@capacitor/local-notifications'
-import type { ReminderDay, ReminderSettings } from './types'
+} from '@capacitor/local-notifications';
+import type { ReminderDay, ReminderSettings } from './types';
 
 export interface UnfinishedReminderCounts {
-  agreements: number
-  tasks: number
+  agreements: number;
+  tasks: number;
 }
 
 export interface ReminderScheduleResult {
-  scheduled: boolean
-  reason?: 'disabled' | 'unavailable' | 'permission-denied'
+  scheduled: boolean;
+  reason?: 'disabled' | 'unavailable' | 'permission-denied';
 }
 
-const ANDROID_CHANNEL_ID = 'weekly-us-reminders'
-const WEEKLY_MEETING_NOTIFICATION_ID = 840_100
-const UNFINISHED_TASKS_NOTIFICATION_ID = 840_101
+const ANDROID_CHANNEL_ID = 'weekly-us-reminders';
+const WEEKLY_MEETING_NOTIFICATION_ID = 840_100;
+const UNFINISHED_TASKS_NOTIFICATION_ID = 840_101;
 const REMINDER_NOTIFICATION_IDS = [
   WEEKLY_MEETING_NOTIFICATION_ID,
   UNFINISHED_TASKS_NOTIFICATION_ID,
-]
+];
 
 const weekdayByDay: Record<ReminderDay, Weekday> = {
   sunday: Weekday.Sunday,
@@ -33,66 +33,62 @@ const weekdayByDay: Record<ReminderDay, Weekday> = {
   thursday: Weekday.Thursday,
   friday: Weekday.Friday,
   saturday: Weekday.Saturday,
-}
+};
 
 export function localNotificationsAvailable() {
   return (
     Capacitor.isNativePlatform() &&
     Capacitor.isPluginAvailable('LocalNotifications')
-  )
+  );
 }
 
-export async function checkNotificationPermission(): Promise<
-  PermissionStatus | null
-> {
+export async function checkNotificationPermission(): Promise<PermissionStatus | null> {
   if (!localNotificationsAvailable()) {
-    return null
+    return null;
   }
 
-  return LocalNotifications.checkPermissions()
+  return LocalNotifications.checkPermissions();
 }
 
-export async function requestNotificationPermission(): Promise<
-  PermissionStatus | null
-> {
+export async function requestNotificationPermission(): Promise<PermissionStatus | null> {
   if (!localNotificationsAvailable()) {
-    return null
+    return null;
   }
 
-  return LocalNotifications.requestPermissions()
+  return LocalNotifications.requestPermissions();
 }
 
 export async function cancelReminderNotifications() {
   if (!localNotificationsAvailable()) {
-    return
+    return;
   }
 
   await LocalNotifications.cancel({
     notifications: REMINDER_NOTIFICATION_IDS.map((id) => ({ id })),
-  })
+  });
 }
 
 export async function scheduleReminderNotifications(
   settings: ReminderSettings,
-  counts: UnfinishedReminderCounts,
+  counts: UnfinishedReminderCounts
 ): Promise<ReminderScheduleResult> {
-  await cancelReminderNotifications()
+  await cancelReminderNotifications();
 
   if (!settings.enabled) {
-    return { scheduled: false, reason: 'disabled' }
+    return { scheduled: false, reason: 'disabled' };
   }
 
   if (!localNotificationsAvailable()) {
-    return { scheduled: false, reason: 'unavailable' }
+    return { scheduled: false, reason: 'unavailable' };
   }
 
-  const permission = await LocalNotifications.checkPermissions()
+  const permission = await LocalNotifications.checkPermissions();
 
   if (permission.display !== 'granted') {
-    return { scheduled: false, reason: 'permission-denied' }
+    return { scheduled: false, reason: 'permission-denied' };
   }
 
-  await ensureAndroidChannel()
+  await ensureAndroidChannel();
 
   const notifications: LocalNotificationSchema[] = [
     {
@@ -103,7 +99,7 @@ export async function scheduleReminderNotifications(
       autoCancel: true,
       schedule: createWeeklySchedule(settings.weeklyMeetingReminder),
     },
-  ]
+  ];
 
   if (counts.tasks > 0 || counts.agreements > 0) {
     notifications.push({
@@ -113,17 +109,17 @@ export async function scheduleReminderNotifications(
       channelId: ANDROID_CHANNEL_ID,
       autoCancel: true,
       schedule: createWeeklySchedule(settings.unfinishedTaskReminder),
-    })
+    });
   }
 
-  await LocalNotifications.schedule({ notifications })
+  await LocalNotifications.schedule({ notifications });
 
-  return { scheduled: true }
+  return { scheduled: true };
 }
 
 async function ensureAndroidChannel() {
   if (Capacitor.getPlatform() !== 'android') {
-    return
+    return;
   }
 
   await LocalNotifications.createChannel({
@@ -134,13 +130,13 @@ async function ensureAndroidChannel() {
     visibility: 1,
     lights: false,
     vibration: false,
-  })
+  });
 }
 
 function createWeeklySchedule(slot: ReminderSettings['weeklyMeetingReminder']) {
   const [hour = 18, minute = 0] = slot.time
     .split(':')
-    .map((value) => Number.parseInt(value, 10))
+    .map((value) => Number.parseInt(value, 10));
 
   return {
     on: {
@@ -150,17 +146,17 @@ function createWeeklySchedule(slot: ReminderSettings['weeklyMeetingReminder']) {
       second: 0,
     },
     repeats: true,
-  }
+  };
 }
 
 function createUnfinishedReminderBody(counts: UnfinishedReminderCounts) {
   if (counts.tasks > 0 && counts.agreements > 0) {
-    return 'A gentle reminder to review unfinished agreements and tasks.'
+    return 'A gentle reminder to review unfinished agreements and tasks.';
   }
 
   if (counts.tasks > 0) {
-    return 'A gentle reminder to review unfinished tasks.'
+    return 'A gentle reminder to review unfinished tasks.';
   }
 
-  return 'A gentle reminder to review unfinished agreements.'
+  return 'A gentle reminder to review unfinished agreements.';
 }

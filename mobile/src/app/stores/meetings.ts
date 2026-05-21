@@ -1,7 +1,7 @@
-import { defineStore } from 'pinia'
-import { useParticipantsStore } from '@/app/stores/participants'
-import { useTasksStore } from '@/app/stores/tasks'
-import type { Task, TaskResponsibilityType } from '@/features/tasks/types'
+import { defineStore } from 'pinia';
+import { useParticipantsStore } from '@/app/stores/participants';
+import { useTasksStore } from '@/app/stores/tasks';
+import type { Task, TaskResponsibilityType } from '@/features/tasks/types';
 import type {
   Agreement,
   Meeting,
@@ -12,102 +12,102 @@ import type {
   MeetingSummaryTask,
   MeetingTask,
   MeetingTaskStatus,
-} from '@/features/meeting/types'
+} from '@/features/meeting/types';
 
-const STORAGE_KEY = 'weekly-us:meetings'
+const STORAGE_KEY = 'weekly-us:meetings';
 
 interface MeetingsState {
-  meetings: Meeting[]
-  activeMeetingId: string | null
-  draftSavedAt: string | null
+  meetings: Meeting[];
+  activeMeetingId: string | null;
+  draftSavedAt: string | null;
 }
 
 interface AddTaskPayload {
-  title: string
-  description?: string
-  responsibilityType: TaskResponsibilityType
-  responsibleParticipantIds: string[]
-  dueDate?: string
+  title: string;
+  description?: string;
+  responsibilityType: TaskResponsibilityType;
+  responsibleParticipantIds: string[];
+  dueDate?: string;
 }
 
 interface UpdateTaskPayload {
-  title?: string
-  description?: string
-  responsibilityType?: TaskResponsibilityType
-  responsibleParticipantIds?: string[]
-  dueDate?: string
+  title?: string;
+  description?: string;
+  responsibilityType?: TaskResponsibilityType;
+  responsibleParticipantIds?: string[];
+  dueDate?: string;
 }
 
 interface LegacyParticipant {
-  id?: string
-  name?: string
+  id?: string;
+  name?: string;
 }
 
 interface LegacyMeetingSummaryTask {
-  title?: string
-  description?: string
-  responsibilityType?: TaskResponsibilityType
-  responsibleParticipantIds?: string[]
-  dueDate?: string
-  status?: MeetingTaskStatus
+  title?: string;
+  description?: string;
+  responsibilityType?: TaskResponsibilityType;
+  responsibleParticipantIds?: string[];
+  dueDate?: string;
+  status?: MeetingTaskStatus;
 }
 
 interface LegacyMeetingSummary {
-  id?: string
-  meetingId?: string
-  shortSummary?: string
-  mainTopics?: string[]
-  keyTensions?: string[]
-  agreements?: string[]
-  tasks?: LegacyMeetingSummaryTask[]
-  suggestedNextMeetingFocus?: string[]
-  createdAt?: string
+  id?: string;
+  meetingId?: string;
+  shortSummary?: string;
+  mainTopics?: string[];
+  keyTensions?: string[];
+  agreements?: string[];
+  tasks?: LegacyMeetingSummaryTask[];
+  suggestedNextMeetingFocus?: string[];
+  createdAt?: string;
 }
 
 interface LegacyMeetingTask {
-  id?: string
-  sectionId?: MeetingSectionId
-  title?: string
-  description?: string
-  responsibilityType?: TaskResponsibilityType
-  responsibleParticipantIds?: string[]
-  responsiblePersonId?: string
-  dueDate?: string
-  status?: MeetingTaskStatus
-  createdAt?: string
-  updatedAt?: string
-  completedAt?: string
+  id?: string;
+  sectionId?: MeetingSectionId;
+  title?: string;
+  description?: string;
+  responsibilityType?: TaskResponsibilityType;
+  responsibleParticipantIds?: string[];
+  responsiblePersonId?: string;
+  dueDate?: string;
+  status?: MeetingTaskStatus;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string;
 }
 
 interface LegacyAgreement {
-  id?: string
-  sectionId?: MeetingSectionId
-  text?: string
-  participantIds?: string[]
-  createdAt?: string
+  id?: string;
+  sectionId?: MeetingSectionId;
+  text?: string;
+  participantIds?: string[];
+  createdAt?: string;
 }
 
 interface LegacyMeetingSection {
-  id?: MeetingSectionId
-  title?: string
-  prompt?: string
-  notes?: MeetingNote[]
-  tasks?: LegacyMeetingTask[]
-  agreements?: LegacyAgreement[]
+  id?: MeetingSectionId;
+  title?: string;
+  prompt?: string;
+  notes?: MeetingNote[];
+  tasks?: LegacyMeetingTask[];
+  agreements?: LegacyAgreement[];
 }
 
 interface LegacyMeeting {
-  id?: string
-  title?: string
-  status?: Meeting['status']
-  participants?: LegacyParticipant[]
-  participantIds?: string[]
-  sections?: LegacyMeetingSection[]
-  currentSectionIndex?: number
-  createdAt?: string
-  updatedAt?: string
-  completedAt?: string
-  aiSummary?: LegacyMeetingSummary
+  id?: string;
+  title?: string;
+  status?: Meeting['status'];
+  participants?: LegacyParticipant[];
+  participantIds?: string[];
+  sections?: LegacyMeetingSection[];
+  currentSectionIndex?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string;
+  aiSummary?: LegacyMeetingSummary;
 }
 
 const sectionTemplates: Array<Pick<MeetingSection, 'id' | 'title' | 'prompt'>> =
@@ -148,30 +148,30 @@ const sectionTemplates: Array<Pick<MeetingSection, 'id' | 'title' | 'prompt'>> =
       title: 'Final agreements',
       prompt: 'Review what was decided and finish when it feels complete.',
     },
-  ]
+  ];
 
 function createId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`
+    return `${prefix}-${crypto.randomUUID()}`;
   }
 
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function nowIso() {
-  return new Date().toISOString()
+  return new Date().toISOString();
 }
 
 function uniqueIds(ids: Array<string | undefined>) {
-  return [...new Set(ids.filter((id): id is string => Boolean(id?.trim())))]
+  return [...new Set(ids.filter((id): id is string => Boolean(id?.trim())))];
 }
 
 function getActiveParticipantIds() {
-  const participantsStore = useParticipantsStore()
-  participantsStore.ensureDefaultParticipants()
+  const participantsStore = useParticipantsStore();
+  participantsStore.ensureDefaultParticipants();
   return participantsStore.activeParticipants.map(
-    (participant) => participant.id,
-  )
+    (participant) => participant.id
+  );
 }
 
 function createSections(): MeetingSection[] {
@@ -180,11 +180,11 @@ function createSections(): MeetingSection[] {
     notes: [],
     tasks: [],
     agreements: [],
-  }))
+  }));
 }
 
 function createDefaultMeeting(participantIds: string[]): Meeting {
-  const createdAt = nowIso()
+  const createdAt = nowIso();
 
   return {
     id: createId('meeting'),
@@ -195,27 +195,27 @@ function createDefaultMeeting(participantIds: string[]): Meeting {
     currentSectionIndex: 0,
     createdAt,
     updatedAt: createdAt,
-  }
+  };
 }
 
 function normalizeMeetingTask(
   task: LegacyMeetingTask,
-  sectionId: MeetingSectionId,
+  sectionId: MeetingSectionId
 ): MeetingTask | null {
-  const title = task.title?.trim()
+  const title = task.title?.trim();
 
   if (!title) {
-    return null
+    return null;
   }
 
   const responsibleParticipantIds = uniqueIds([
     ...(task.responsibleParticipantIds ?? []),
     task.responsiblePersonId,
-  ])
+  ]);
   const responsibilityType =
     task.responsibilityType ??
-    (responsibleParticipantIds.length ? 'participant' : 'needsDiscussion')
-  const createdAt = task.createdAt ?? nowIso()
+    (responsibleParticipantIds.length ? 'participant' : 'needsDiscussion');
+  const createdAt = task.createdAt ?? nowIso();
 
   return {
     id: task.id ?? createId('task'),
@@ -230,19 +230,19 @@ function normalizeMeetingTask(
     createdAt,
     updatedAt: task.updatedAt ?? createdAt,
     completedAt: task.completedAt,
-  }
+  };
 }
 
 function normalizeMeetingSummaryTask(
-  task: LegacyMeetingSummaryTask,
+  task: LegacyMeetingSummaryTask
 ): MeetingSummaryTask | null {
-  const title = task.title?.trim()
+  const title = task.title?.trim();
 
   if (!title) {
-    return null
+    return null;
   }
 
-  const responsibilityType = task.responsibilityType ?? 'needsDiscussion'
+  const responsibilityType = task.responsibilityType ?? 'needsDiscussion';
 
   return {
     title,
@@ -254,25 +254,25 @@ function normalizeMeetingSummaryTask(
         : uniqueIds(task.responsibleParticipantIds ?? []),
     dueDate: task.dueDate?.trim() || undefined,
     status: task.status ?? 'open',
-  }
+  };
 }
 
 function normalizeStringList(items?: string[]) {
   return Array.isArray(items)
     ? items.map((item) => item.trim()).filter(Boolean)
-    : []
+    : [];
 }
 
 function normalizeMeetingSummary(
   summary: LegacyMeetingSummary | undefined,
-  meetingId: string,
+  meetingId: string
 ): MeetingSummary | undefined {
-  const id = summary?.id?.trim()
-  const shortSummary = summary?.shortSummary?.trim()
-  const createdAt = summary?.createdAt
+  const id = summary?.id?.trim();
+  const shortSummary = summary?.shortSummary?.trim();
+  const createdAt = summary?.createdAt;
 
   if (!summary || !id || !shortSummary || !createdAt) {
-    return undefined
+    return undefined;
   }
 
   return {
@@ -287,21 +287,21 @@ function normalizeMeetingSummary(
         ?.map(normalizeMeetingSummaryTask)
         .filter((task): task is MeetingSummaryTask => Boolean(task)) ?? [],
     suggestedNextMeetingFocus: normalizeStringList(
-      summary.suggestedNextMeetingFocus,
+      summary.suggestedNextMeetingFocus
     ),
     createdAt,
-  }
+  };
 }
 
 function normalizeAgreement(
   agreement: LegacyAgreement,
   sectionId: MeetingSectionId,
-  fallbackParticipantIds: string[],
+  fallbackParticipantIds: string[]
 ): Agreement | null {
-  const text = agreement.text?.trim()
+  const text = agreement.text?.trim();
 
   if (!text) {
-    return null
+    return null;
   }
 
   return {
@@ -312,18 +312,18 @@ function normalizeAgreement(
       ? uniqueIds(agreement.participantIds)
       : fallbackParticipantIds,
     createdAt: agreement.createdAt ?? nowIso(),
-  }
+  };
 }
 
 function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
-  const createdAt = meeting.createdAt ?? nowIso()
-  const id = meeting.id ?? createId('meeting')
+  const createdAt = meeting.createdAt ?? nowIso();
+  const id = meeting.id ?? createId('meeting');
   const participantIds = uniqueIds([
     ...(meeting.participantIds ?? []),
     ...(meeting.participants ?? []).map((participant) => participant.id),
-  ])
+  ]);
   const sections = sectionTemplates.map((template) => {
-    const section = meeting.sections?.find((item) => item.id === template.id)
+    const section = meeting.sections?.find((item) => item.id === template.id);
 
     return {
       ...template,
@@ -335,12 +335,12 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
       agreements:
         section?.agreements
           ?.map((agreement) =>
-            normalizeAgreement(agreement, template.id, participantIds),
+            normalizeAgreement(agreement, template.id, participantIds)
           )
           .filter((agreement): agreement is Agreement => Boolean(agreement)) ??
         [],
-    }
-  })
+    };
+  });
 
   return {
     id,
@@ -350,32 +350,32 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
     sections,
     currentSectionIndex: Math.min(
       Math.max(meeting.currentSectionIndex ?? 0, 0),
-      sections.length - 1,
+      sections.length - 1
     ),
     createdAt,
     updatedAt: meeting.updatedAt ?? createdAt,
     completedAt: meeting.completedAt,
     aiSummary: normalizeMeetingSummary(meeting.aiSummary, id),
-  }
+  };
 }
 
 function getStoredState(): MeetingsState {
   if (typeof window === 'undefined') {
-    return { meetings: [], activeMeetingId: null, draftSavedAt: null }
+    return { meetings: [], activeMeetingId: null, draftSavedAt: null };
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY)
+  const rawValue = window.localStorage.getItem(STORAGE_KEY);
 
   if (!rawValue) {
-    return { meetings: [], activeMeetingId: null, draftSavedAt: null }
+    return { meetings: [], activeMeetingId: null, draftSavedAt: null };
   }
 
   try {
     const parsedValue = JSON.parse(rawValue) as Partial<{
-      meetings: LegacyMeeting[]
-      activeMeetingId: string | null
-      draftSavedAt: string | null
-    }>
+      meetings: LegacyMeeting[];
+      activeMeetingId: string | null;
+      draftSavedAt: string | null;
+    }>;
 
     return {
       meetings: Array.isArray(parsedValue.meetings)
@@ -385,28 +385,28 @@ function getStoredState(): MeetingsState {
         : [],
       activeMeetingId: parsedValue.activeMeetingId ?? null,
       draftSavedAt: parsedValue.draftSavedAt ?? null,
-    }
+    };
   } catch {
-    return { meetings: [], activeMeetingId: null, draftSavedAt: null }
+    return { meetings: [], activeMeetingId: null, draftSavedAt: null };
   }
 }
 
 function findSection(meeting: Meeting, sectionId: MeetingSectionId) {
-  return meeting.sections.find((section) => section.id === sectionId)
+  return meeting.sections.find((section) => section.id === sectionId);
 }
 
 function findTask(meetings: Meeting[], taskId: string) {
   for (const meeting of meetings) {
     for (const section of meeting.sections) {
-      const task = section.tasks.find((item) => item.id === taskId)
+      const task = section.tasks.find((item) => item.id === taskId);
 
       if (task) {
-        return { meeting, task }
+        return { meeting, task };
       }
     }
   }
 
-  return null
+  return null;
 }
 
 function meetingHasContent(meeting: Meeting) {
@@ -414,24 +414,24 @@ function meetingHasContent(meeting: Meeting) {
     (section) =>
       section.notes.length > 0 ||
       section.tasks.length > 0 ||
-      section.agreements.length > 0,
-  )
+      section.agreements.length > 0
+  );
 }
 
 function syncMeetingParticipants(meeting: Meeting) {
-  const activeIds = getActiveParticipantIds()
+  const activeIds = getActiveParticipantIds();
   const nextParticipantIds = uniqueIds([
     ...meeting.participantIds,
     ...activeIds,
-  ])
+  ]);
 
   if (nextParticipantIds.length === meeting.participantIds.length) {
-    return false
+    return false;
   }
 
-  meeting.participantIds = nextParticipantIds
-  meeting.updatedAt = nowIso()
-  return true
+  meeting.participantIds = nextParticipantIds;
+  meeting.updatedAt = nowIso();
+  return true;
 }
 
 export const useMeetingsStore = defineStore('meetings', {
@@ -446,7 +446,7 @@ export const useMeetingsStore = defineStore('meetings', {
   actions: {
     persist() {
       if (typeof window === 'undefined') {
-        return
+        return;
       }
 
       window.localStorage.setItem(
@@ -455,102 +455,102 @@ export const useMeetingsStore = defineStore('meetings', {
           meetings: this.meetings,
           activeMeetingId: this.activeMeetingId,
           draftSavedAt: this.draftSavedAt,
-        }),
-      )
+        })
+      );
     },
     ensureActiveMeeting() {
-      const activeMeeting = this.activeMeeting
+      const activeMeeting = this.activeMeeting;
 
       if (activeMeeting && activeMeeting.status !== 'completed') {
         if (syncMeetingParticipants(activeMeeting)) {
-          this.persist()
+          this.persist();
         }
 
-        return activeMeeting
+        return activeMeeting;
       }
 
       const existingDraft = this.meetings.find(
-        (meeting) => meeting.status !== 'completed',
-      )
+        (meeting) => meeting.status !== 'completed'
+      );
 
       if (existingDraft) {
-        this.activeMeetingId = existingDraft.id
-        syncMeetingParticipants(existingDraft)
-        this.persist()
-        return existingDraft
+        this.activeMeetingId = existingDraft.id;
+        syncMeetingParticipants(existingDraft);
+        this.persist();
+        return existingDraft;
       }
 
-      const meeting = createDefaultMeeting(getActiveParticipantIds())
-      this.meetings.unshift(meeting)
-      this.activeMeetingId = meeting.id
-      this.persist()
-      return meeting
+      const meeting = createDefaultMeeting(getActiveParticipantIds());
+      this.meetings.unshift(meeting);
+      this.activeMeetingId = meeting.id;
+      this.persist();
+      return meeting;
     },
     startNewMeeting() {
-      const meeting = createDefaultMeeting(getActiveParticipantIds())
-      this.meetings.unshift(meeting)
-      this.activeMeetingId = meeting.id
-      this.draftSavedAt = null
-      this.persist()
-      return meeting
+      const meeting = createDefaultMeeting(getActiveParticipantIds());
+      this.meetings.unshift(meeting);
+      this.activeMeetingId = meeting.id;
+      this.draftSavedAt = null;
+      this.persist();
+      return meeting;
     },
     resumeMeeting(meetingId: string) {
-      const meeting = this.meetings.find((item) => item.id === meetingId)
+      const meeting = this.meetings.find((item) => item.id === meetingId);
 
       if (!meeting || meeting.status === 'completed') {
-        return null
+        return null;
       }
 
-      this.activeMeetingId = meeting.id
-      syncMeetingParticipants(meeting)
-      this.persist()
-      return meeting
+      this.activeMeetingId = meeting.id;
+      syncMeetingParticipants(meeting);
+      this.persist();
+      return meeting;
     },
     syncActiveMeetingParticipants() {
-      const meeting = this.activeMeeting
+      const meeting = this.activeMeeting;
 
       if (!meeting) {
-        return
+        return;
       }
 
       if (syncMeetingParticipants(meeting)) {
-        this.persist()
+        this.persist();
       }
     },
     setCurrentSection(index: number) {
-      const meeting = this.activeMeeting
+      const meeting = this.activeMeeting;
 
       if (!meeting) {
-        return
+        return;
       }
 
       meeting.currentSectionIndex = Math.min(
         Math.max(index, 0),
-        meeting.sections.length - 1,
-      )
-      meeting.status = 'in_progress'
-      meeting.updatedAt = nowIso()
-      this.persist()
+        meeting.sections.length - 1
+      );
+      meeting.status = 'in_progress';
+      meeting.updatedAt = nowIso();
+      this.persist();
     },
     addNote(
       sectionId: MeetingSectionId,
       participantId: string,
-      text: string,
+      text: string
     ): string | null {
-      const meeting = this.activeMeeting
-      const section = meeting ? findSection(meeting, sectionId) : undefined
-      const trimmedText = text.trim()
+      const meeting = this.activeMeeting;
+      const section = meeting ? findSection(meeting, sectionId) : undefined;
+      const trimmedText = text.trim();
 
       if (!meeting || !section) {
-        return 'Open a meeting before adding a note.'
+        return 'Open a meeting before adding a note.';
       }
 
       if (!trimmedText) {
-        return 'Add a short note first.'
+        return 'Add a short note first.';
       }
 
       if (!meeting.participantIds.includes(participantId)) {
-        return 'Choose who is adding this note.'
+        return 'Choose who is adding this note.';
       }
 
       const note: MeetingNote = {
@@ -559,52 +559,52 @@ export const useMeetingsStore = defineStore('meetings', {
         participantId,
         text: trimmedText,
         createdAt: nowIso(),
-      }
+      };
 
-      section.notes.push(note)
-      meeting.updatedAt = nowIso()
-      this.persist()
-      return null
+      section.notes.push(note);
+      meeting.updatedAt = nowIso();
+      this.persist();
+      return null;
     },
     addTask(
       sectionId: MeetingSectionId,
-      payload: AddTaskPayload,
+      payload: AddTaskPayload
     ): string | null {
-      const meeting = this.activeMeeting
-      const section = meeting ? findSection(meeting, sectionId) : undefined
-      const title = payload.title.trim()
-      const description = payload.description?.trim()
-      const dueDate = payload.dueDate?.trim()
-      const responsibilityType = payload.responsibilityType
+      const meeting = this.activeMeeting;
+      const section = meeting ? findSection(meeting, sectionId) : undefined;
+      const title = payload.title.trim();
+      const description = payload.description?.trim();
+      const dueDate = payload.dueDate?.trim();
+      const responsibilityType = payload.responsibilityType;
       const responsibleParticipantIds =
         responsibilityType === 'needsDiscussion'
           ? []
-          : uniqueIds(payload.responsibleParticipantIds)
+          : uniqueIds(payload.responsibleParticipantIds);
 
       if (!meeting || !section) {
-        return 'Open a meeting before adding a task.'
+        return 'Open a meeting before adding a task.';
       }
 
       if (!title) {
-        return 'Task title is required.'
+        return 'Task title is required.';
       }
 
       if (
         responsibilityType === 'participant' &&
         !responsibleParticipantIds.length
       ) {
-        return 'Choose a responsible person or mark it for discussion.'
+        return 'Choose a responsible person or mark it for discussion.';
       }
 
       if (
         responsibleParticipantIds.some(
-          (participantId) => !meeting.participantIds.includes(participantId),
+          (participantId) => !meeting.participantIds.includes(participantId)
         )
       ) {
-        return 'Choose someone from this meeting.'
+        return 'Choose someone from this meeting.';
       }
 
-      const createdAt = nowIso()
+      const createdAt = nowIso();
       const task: MeetingTask = {
         id: createId('task'),
         sectionId,
@@ -616,50 +616,50 @@ export const useMeetingsStore = defineStore('meetings', {
         status: 'open',
         createdAt,
         updatedAt: createdAt,
-      }
+      };
 
-      section.tasks.push(task)
-      meeting.updatedAt = createdAt
-      useTasksStore().addTask({ ...task, sourceMeetingId: meeting.id })
-      this.persist()
-      return null
+      section.tasks.push(task);
+      meeting.updatedAt = createdAt;
+      useTasksStore().addTask({ ...task, sourceMeetingId: meeting.id });
+      this.persist();
+      return null;
     },
     updateTaskStatus(taskId: string, status: MeetingTaskStatus) {
-      const found = findTask(this.meetings, taskId)
+      const found = findTask(this.meetings, taskId);
 
       if (!found) {
-        return
+        return;
       }
 
-      const updatedAt = nowIso()
-      found.task.status = status
-      found.task.updatedAt = updatedAt
-      found.task.completedAt = status === 'done' ? updatedAt : undefined
-      found.meeting.updatedAt = updatedAt
-      useTasksStore().updateTaskStatus(taskId, status)
-      this.persist()
+      const updatedAt = nowIso();
+      found.task.status = status;
+      found.task.updatedAt = updatedAt;
+      found.task.completedAt = status === 'done' ? updatedAt : undefined;
+      found.meeting.updatedAt = updatedAt;
+      useTasksStore().updateTaskStatus(taskId, status);
+      this.persist();
     },
     updateTaskDetails(taskId: string, payload: UpdateTaskPayload) {
-      const found = findTask(this.meetings, taskId)
+      const found = findTask(this.meetings, taskId);
 
       if (!found) {
-        return
+        return;
       }
 
-      const title = payload.title?.trim()
-      const description = payload.description?.trim()
-      const dueDate = payload.dueDate?.trim()
+      const title = payload.title?.trim();
+      const description = payload.description?.trim();
+      const dueDate = payload.dueDate?.trim();
 
       if (title !== undefined) {
         if (!title) {
-          return
+          return;
         }
 
-        found.task.title = title
+        found.task.title = title;
       }
 
       if (payload.description !== undefined) {
-        found.task.description = description || undefined
+        found.task.description = description || undefined;
       }
 
       if (
@@ -667,72 +667,72 @@ export const useMeetingsStore = defineStore('meetings', {
         payload.responsibleParticipantIds !== undefined
       ) {
         const responsibilityType =
-          payload.responsibilityType ?? found.task.responsibilityType
+          payload.responsibilityType ?? found.task.responsibilityType;
         const responsibleParticipantIds =
           responsibilityType === 'needsDiscussion'
             ? []
-            : uniqueIds(payload.responsibleParticipantIds ?? [])
+            : uniqueIds(payload.responsibleParticipantIds ?? []);
 
         if (
           responsibilityType === 'participant' &&
           !responsibleParticipantIds.length
         ) {
-          return
+          return;
         }
 
-        found.task.responsibilityType = responsibilityType
-        found.task.responsibleParticipantIds = responsibleParticipantIds
+        found.task.responsibilityType = responsibilityType;
+        found.task.responsibleParticipantIds = responsibleParticipantIds;
       }
 
       if (payload.dueDate !== undefined) {
-        found.task.dueDate = dueDate || undefined
+        found.task.dueDate = dueDate || undefined;
       }
 
-      const updatedAt = nowIso()
-      found.task.updatedAt = updatedAt
-      found.meeting.updatedAt = updatedAt
-      this.persist()
+      const updatedAt = nowIso();
+      found.task.updatedAt = updatedAt;
+      found.meeting.updatedAt = updatedAt;
+      this.persist();
     },
     updateTasksFromMeeting(sourceMeetingId: string, status: MeetingTaskStatus) {
-      const meeting = this.meetings.find((item) => item.id === sourceMeetingId)
+      const meeting = this.meetings.find((item) => item.id === sourceMeetingId);
 
       if (!meeting) {
-        return
+        return;
       }
 
-      const updatedAt = nowIso()
-      let changed = false
+      const updatedAt = nowIso();
+      let changed = false;
 
       for (const task of meeting.sections.flatMap((section) => section.tasks)) {
         if (task.status !== 'open') {
-          continue
+          continue;
         }
 
-        task.status = status
-        task.updatedAt = updatedAt
-        task.completedAt = status === 'done' ? updatedAt : undefined
-        changed = true
+        task.status = status;
+        task.updatedAt = updatedAt;
+        task.completedAt = status === 'done' ? updatedAt : undefined;
+        changed = true;
       }
 
       if (changed) {
-        meeting.updatedAt = updatedAt
-        this.persist()
+        meeting.updatedAt = updatedAt;
+        this.persist();
       }
     },
     addMovedTasksToMeeting(
       sourceMeetingId: string,
       targetMeetingId: string,
-      movedTasks: Task[],
+      movedTasks: Task[]
     ) {
       const sourceMeeting = this.meetings.find(
-        (meeting) => meeting.id === sourceMeetingId,
-      )
+        (meeting) => meeting.id === sourceMeetingId
+      );
       const targetMeeting = this.meetings.find(
-        (meeting) => meeting.id === targetMeetingId,
-      )
+        (meeting) => meeting.id === targetMeetingId
+      );
       const targetSection = targetMeeting
         ? findSection(targetMeeting, 'tasks')
-        : undefined
+        : undefined;
 
       if (
         !sourceMeeting ||
@@ -740,18 +740,18 @@ export const useMeetingsStore = defineStore('meetings', {
         !targetSection ||
         !movedTasks.length
       ) {
-        return
+        return;
       }
 
-      const updatedAt = nowIso()
-      const movedTaskIds = new Set(movedTasks.map((task) => task.id))
+      const updatedAt = nowIso();
+      const movedTaskIds = new Set(movedTasks.map((task) => task.id));
 
       for (const task of sourceMeeting.sections.flatMap(
-        (section) => section.tasks,
+        (section) => section.tasks
       )) {
         if (task.status === 'open') {
-          task.status = 'skipped'
-          task.updatedAt = updatedAt
+          task.status = 'skipped';
+          task.updatedAt = updatedAt;
         }
       }
 
@@ -771,131 +771,131 @@ export const useMeetingsStore = defineStore('meetings', {
             status: task.status,
             createdAt: task.createdAt,
             updatedAt: task.updatedAt,
-          })
+          });
         }
       }
 
-      sourceMeeting.updatedAt = updatedAt
-      targetMeeting.updatedAt = updatedAt
-      this.persist()
+      sourceMeeting.updatedAt = updatedAt;
+      targetMeeting.updatedAt = updatedAt;
+      this.persist();
     },
     deleteTask(taskId: string) {
-      let changed = false
+      let changed = false;
 
       for (const meeting of this.meetings) {
         for (const section of meeting.sections) {
-          const nextTasks = section.tasks.filter((task) => task.id !== taskId)
+          const nextTasks = section.tasks.filter((task) => task.id !== taskId);
 
           if (nextTasks.length !== section.tasks.length) {
-            section.tasks = nextTasks
-            meeting.updatedAt = nowIso()
-            changed = true
+            section.tasks = nextTasks;
+            meeting.updatedAt = nowIso();
+            changed = true;
           }
         }
       }
 
       if (changed) {
-        this.persist()
+        this.persist();
       }
     },
     addAgreement(
       sectionId: MeetingSectionId,
       text: string,
-      participantIds: string[],
+      participantIds: string[]
     ): string | null {
-      const meeting = this.activeMeeting
-      const section = meeting ? findSection(meeting, sectionId) : undefined
-      const trimmedText = text.trim()
-      const selectedParticipantIds = uniqueIds(participantIds)
+      const meeting = this.activeMeeting;
+      const section = meeting ? findSection(meeting, sectionId) : undefined;
+      const trimmedText = text.trim();
+      const selectedParticipantIds = uniqueIds(participantIds);
 
       if (!meeting || !section) {
-        return 'Open a meeting before adding an agreement.'
+        return 'Open a meeting before adding an agreement.';
       }
 
       if (!trimmedText) {
-        return 'Add the agreement first.'
+        return 'Add the agreement first.';
       }
 
       if (!selectedParticipantIds.length) {
-        return 'Choose who this agreement includes.'
+        return 'Choose who this agreement includes.';
       }
 
       if (
         selectedParticipantIds.some(
-          (participantId) => !meeting.participantIds.includes(participantId),
+          (participantId) => !meeting.participantIds.includes(participantId)
         )
       ) {
-        return 'Choose people from this meeting.'
+        return 'Choose people from this meeting.';
       }
 
-      const createdAt = nowIso()
+      const createdAt = nowIso();
       const agreement: Agreement = {
         id: createId('agreement'),
         sectionId,
         text: trimmedText,
         participantIds: selectedParticipantIds,
         createdAt,
-      }
+      };
 
-      section.agreements.push(agreement)
-      meeting.updatedAt = createdAt
+      section.agreements.push(agreement);
+      meeting.updatedAt = createdAt;
       useTasksStore().addAgreement({
         id: agreement.id,
         title: trimmedText,
         participantIds: selectedParticipantIds,
         relatedTaskIds: meeting.sections.flatMap((item) =>
-          item.tasks.map((task) => task.id),
+          item.tasks.map((task) => task.id)
         ),
         sourceMeetingId: meeting.id,
         createdAt,
         updatedAt: createdAt,
-      })
-      this.persist()
-      return null
+      });
+      this.persist();
+      return null;
     },
     saveAiSummary(meetingId: string, summary: MeetingSummary) {
-      const meeting = this.meetings.find((item) => item.id === meetingId)
+      const meeting = this.meetings.find((item) => item.id === meetingId);
 
       if (!meeting || summary.meetingId !== meetingId) {
-        return
+        return;
       }
 
-      meeting.aiSummary = summary
-      meeting.updatedAt = nowIso()
-      this.persist()
+      meeting.aiSummary = summary;
+      meeting.updatedAt = nowIso();
+      this.persist();
     },
     saveDraft() {
-      const meeting = this.activeMeeting
+      const meeting = this.activeMeeting;
 
       if (!meeting) {
-        return
+        return;
       }
 
-      const savedAt = nowIso()
-      meeting.status = 'draft'
-      meeting.updatedAt = savedAt
-      this.draftSavedAt = savedAt
-      this.persist()
+      const savedAt = nowIso();
+      meeting.status = 'draft';
+      meeting.updatedAt = savedAt;
+      this.draftSavedAt = savedAt;
+      this.persist();
     },
     finishMeeting(): string | null {
-      const meeting = this.activeMeeting
+      const meeting = this.activeMeeting;
 
       if (!meeting) {
-        return 'Open a meeting before finishing.'
+        return 'Open a meeting before finishing.';
       }
 
       if (!meetingHasContent(meeting)) {
-        return 'Add at least one note, task, or agreement before finishing.'
+        return 'Add at least one note, task, or agreement before finishing.';
       }
 
-      const completedAt = nowIso()
-      meeting.status = 'completed'
-      meeting.completedAt = completedAt
-      meeting.updatedAt = completedAt
-      meeting.currentSectionIndex = meeting.sections.length - 1
-      this.draftSavedAt = null
-      this.persist()
-      return null
+      const completedAt = nowIso();
+      meeting.status = 'completed';
+      meeting.completedAt = completedAt;
+      meeting.updatedAt = completedAt;
+      meeting.currentSectionIndex = meeting.sections.length - 1;
+      this.draftSavedAt = null;
+      this.persist();
+      return null;
     },
   },
-})
+});

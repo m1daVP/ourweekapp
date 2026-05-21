@@ -1,8 +1,8 @@
-import js from '@eslint/js'
-import pluginVue from 'eslint-plugin-vue'
-import tseslint from 'typescript-eslint'
-import vueTsEslintConfig from '@vue/eslint-config-typescript'
-import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
+import js from '@eslint/js';
+import pluginVue from 'eslint-plugin-vue';
+import tseslint from 'typescript-eslint';
+import vueTsEslintConfig from '@vue/eslint-config-typescript';
+import skipFormatting from '@vue/eslint-config-prettier/skip-formatting';
 
 export default tseslint.config(
   {
@@ -24,5 +24,5 @@ export default tseslint.config(
       'vue/multi-word-component-names': 'off',
     },
   },
-  skipFormatting,
-)
+  skipFormatting
+);

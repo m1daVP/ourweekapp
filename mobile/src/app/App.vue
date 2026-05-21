@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import AppNavigation from '@/shared/components/AppNavigation.vue'
-import { useNotifications } from '@/shared/composables/useNotifications'
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import AppNavigation from '@/shared/components/AppNavigation.vue';
+import { useNotifications } from '@/shared/composables/useNotifications';
 
-const route = useRoute()
-const { initializeReminderSync } = useNotifications()
-const showNavigation = computed(() => !route.meta.hideNavigation)
+const route = useRoute();
+const { initializeReminderSync } = useNotifications();
+const showNavigation = computed(() => !route.meta.hideNavigation);
 
-initializeReminderSync()
+initializeReminderSync();
 </script>
 
 <template>

@@ -1,9 +1,9 @@
-import { defineStore } from 'pinia'
-import type { PlanType, UserRole } from '@/features/access/types'
+import { defineStore } from 'pinia';
+import type { PlanType, UserRole } from '@/features/access/types';
 
 interface UserAccessState {
-  planType: PlanType
-  userRole: UserRole
+  planType: PlanType;
+  userRole: UserRole;
 }
 
 export const useUserAccessStore = defineStore('userAccess', {
@@ -16,13 +16,13 @@ export const useUserAccessStore = defineStore('userAccess', {
   },
   actions: {
     setMockPlan(planType: PlanType) {
-      this.planType = planType
+      this.planType = planType;
     },
     setAccountPlan(planType: PlanType) {
-      this.planType = planType
+      this.planType = planType;
     },
     setMockRole(userRole: UserRole) {
-      this.userRole = userRole
+      this.userRole = userRole;
     },
   },
-})
+});

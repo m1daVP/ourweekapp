@@ -1,41 +1,41 @@
-import type { Meeting, MeetingSummary } from '@/features/meeting/types'
-import { apiRequest, isBackendApiConfigured } from './httpClient'
+import type { Meeting, MeetingSummary } from '@/features/meeting/types';
+import { apiRequest, isBackendApiConfigured } from './httpClient';
 
 export interface MeetingDto extends Meeting {
-  serverRevision?: number
-  deletedAt?: string
+  serverRevision?: number;
+  deletedAt?: string;
 }
 
 export interface ListMeetingsResponseDto {
-  meetings: MeetingDto[]
-  activeMeetingId: string | null
-  draftSavedAt: string | null
-  syncedAt: string
+  meetings: MeetingDto[];
+  activeMeetingId: string | null;
+  draftSavedAt: string | null;
+  syncedAt: string;
 }
 
 export interface SyncMeetingsRequestDto {
-  meetings: MeetingDto[]
-  activeMeetingId: string | null
-  draftSavedAt: string | null
-  lastSyncedAt?: string
-  clientUpdatedAt: string
+  meetings: MeetingDto[];
+  activeMeetingId: string | null;
+  draftSavedAt: string | null;
+  lastSyncedAt?: string;
+  clientUpdatedAt: string;
 }
 
 export interface SyncMeetingsResponseDto {
-  meetings: MeetingDto[]
-  activeMeetingId: string | null
-  draftSavedAt: string | null
-  conflicts: MeetingDto[]
-  syncedAt: string
+  meetings: MeetingDto[];
+  activeMeetingId: string | null;
+  draftSavedAt: string | null;
+  conflicts: MeetingDto[];
+  syncedAt: string;
 }
 
 export interface SaveMeetingSummaryRequestDto {
-  meetingId: string
-  summary: MeetingSummary
+  meetingId: string;
+  summary: MeetingSummary;
 }
 
 function nowIso() {
-  return new Date().toISOString()
+  return new Date().toISOString();
 }
 
 export async function listMeetings(): Promise<ListMeetingsResponseDto> {
@@ -45,14 +45,14 @@ export async function listMeetings(): Promise<ListMeetingsResponseDto> {
       activeMeetingId: null,
       draftSavedAt: null,
       syncedAt: nowIso(),
-    }
+    };
   }
 
-  return apiRequest<ListMeetingsResponseDto>('/meetings')
+  return apiRequest<ListMeetingsResponseDto>('/meetings');
 }
 
 export async function syncMeetingsApi(
-  payload: SyncMeetingsRequestDto,
+  payload: SyncMeetingsRequestDto
 ): Promise<SyncMeetingsResponseDto> {
   if (!isBackendApiConfigured()) {
     return {
@@ -61,26 +61,26 @@ export async function syncMeetingsApi(
       draftSavedAt: payload.draftSavedAt,
       conflicts: [],
       syncedAt: nowIso(),
-    }
+    };
   }
 
   return apiRequest<SyncMeetingsResponseDto>('/meetings/sync', {
     method: 'POST',
     body: payload,
-  })
+  });
 }
 
 export async function saveMeetingSummary(
-  payload: SaveMeetingSummaryRequestDto,
+  payload: SaveMeetingSummaryRequestDto
 ): Promise<MeetingDto> {
   if (!isBackendApiConfigured()) {
     throw new Error(
-      'Saving meeting summaries to the backend is not configured.',
-    )
+      'Saving meeting summaries to the backend is not configured.'
+    );
   }
 
   return apiRequest<MeetingDto>(`/meetings/${payload.meetingId}/summary`, {
     method: 'PUT',
     body: { summary: payload.summary },
-  })
+  });
 }

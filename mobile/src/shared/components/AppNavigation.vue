@@ -6,7 +6,7 @@ const navigationItems = [
   { to: '/tasks', label: 'Tasks' },
   { to: '/private-notes', label: 'Notes' },
   { to: '/settings', label: 'Settings' },
-]
+];
 </script>
 
 <template>

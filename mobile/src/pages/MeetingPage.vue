@@ -1,76 +1,78 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useMeetingsStore } from '@/app/stores/meetings'
-import { useParticipantsStore } from '@/app/stores/participants'
-import { useTasksStore } from '@/app/stores/tasks'
-import type { MeetingSectionId } from '@/features/meeting/types'
-import type { Participant } from '@/features/participants/types'
-import type { TaskResponsibilityType } from '@/features/tasks/types'
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useMeetingsStore } from '@/app/stores/meetings';
+import { useParticipantsStore } from '@/app/stores/participants';
+import { useTasksStore } from '@/app/stores/tasks';
+import type { MeetingSectionId } from '@/features/meeting/types';
+import type { Participant } from '@/features/participants/types';
+import type { TaskResponsibilityType } from '@/features/tasks/types';
 
-const meetingsStore = useMeetingsStore()
-const participantsStore = useParticipantsStore()
-const tasksStore = useTasksStore()
+const meetingsStore = useMeetingsStore();
+const participantsStore = useParticipantsStore();
+const tasksStore = useTasksStore();
 
-const noteText = ref('')
-const agreementText = ref('')
-const participantName = ref('')
-const selectedParticipantId = ref('')
-const agreementParticipantIds = ref<string[]>([])
-const formError = ref('')
-const statusMessage = ref('')
+const noteText = ref('');
+const agreementText = ref('');
+const participantName = ref('');
+const selectedParticipantId = ref('');
+const agreementParticipantIds = ref<string[]>([]);
+const formError = ref('');
+const statusMessage = ref('');
 
 const taskDraft = reactive({
   title: '',
   description: '',
   responsibilityChoice: 'needsDiscussion',
   dueDate: '',
-})
+});
 
-const activeMeeting = computed(() => meetingsStore.activeMeeting)
+const activeMeeting = computed(() => meetingsStore.activeMeeting);
 const meetingParticipants = computed(() => {
-  const meeting = activeMeeting.value
+  const meeting = activeMeeting.value;
 
   if (!meeting) {
-    return participantsStore.activeParticipants
+    return participantsStore.activeParticipants;
   }
 
   return meeting.participantIds
     .map((participantId) => participantsStore.getParticipantById(participantId))
-    .filter((participant): participant is Participant => Boolean(participant))
-})
+    .filter((participant): participant is Participant => Boolean(participant));
+});
 const activeMeetingParticipants = computed(() =>
-  meetingParticipants.value.filter((participant) => participant.isActive),
-)
+  meetingParticipants.value.filter((participant) => participant.isActive)
+);
 const currentSection = computed(() => {
-  const meeting = activeMeeting.value
-  return meeting?.sections[meeting.currentSectionIndex] ?? null
-})
+  const meeting = activeMeeting.value;
+  return meeting?.sections[meeting.currentSectionIndex] ?? null;
+});
 const currentStepNumber = computed(
-  () => (activeMeeting.value?.currentSectionIndex ?? 0) + 1,
-)
-const totalSteps = computed(() => activeMeeting.value?.sections.length ?? 0)
+  () => (activeMeeting.value?.currentSectionIndex ?? 0) + 1
+);
+const totalSteps = computed(() => activeMeeting.value?.sections.length ?? 0);
 const progressPercent = computed(() =>
   totalSteps.value > 0
     ? `${(currentStepNumber.value / totalSteps.value) * 100}%`
-    : '0%',
-)
+    : '0%'
+);
 const isFinalSection = computed(
-  () => currentSection.value?.id === 'finalAgreements',
-)
+  () => currentSection.value?.id === 'finalAgreements'
+);
 const canAddTasks = computed(() =>
   currentSection.value
     ? ['tasks', 'familyCare'].includes(currentSection.value.id)
-    : false,
-)
+    : false
+);
 const canAddAgreements = computed(() =>
   currentSection.value
     ? ['money', 'finalAgreements'].includes(currentSection.value.id)
-    : false,
-)
-const showNotes = computed(() => currentSection.value?.id !== 'finalAgreements')
-const isCompleted = computed(() => activeMeeting.value?.status === 'completed')
+    : false
+);
+const showNotes = computed(
+  () => currentSection.value?.id !== 'finalAgreements'
+);
+const isCompleted = computed(() => activeMeeting.value?.status === 'completed');
 const previousCompletedMeeting = computed(() => {
-  const currentMeetingId = activeMeeting.value?.id
+  const currentMeetingId = activeMeeting.value?.id;
 
   return (
     [...meetingsStore.completedMeetings]
@@ -78,25 +80,25 @@ const previousCompletedMeeting = computed(() => {
       .sort(
         (first, second) =>
           new Date(second.completedAt ?? second.updatedAt).getTime() -
-          new Date(first.completedAt ?? first.updatedAt).getTime(),
+          new Date(first.completedAt ?? first.updatedAt).getTime()
       )[0] ?? null
-  )
-})
+  );
+});
 const previousUnfinishedTasks = computed(() => {
-  const previousMeeting = previousCompletedMeeting.value
+  const previousMeeting = previousCompletedMeeting.value;
 
   if (!previousMeeting) {
-    return []
+    return [];
   }
 
   return tasksStore.tasks.filter(
     (task) =>
-      task.status === 'open' && task.sourceMeetingId === previousMeeting.id,
-  )
-})
+      task.status === 'open' && task.sourceMeetingId === previousMeeting.id
+  );
+});
 const showTaskReview = computed(() => {
-  const meeting = activeMeeting.value
-  const previousMeeting = previousCompletedMeeting.value
+  const meeting = activeMeeting.value;
+  const previousMeeting = previousCompletedMeeting.value;
 
   return Boolean(
     meeting &&
@@ -104,9 +106,9 @@ const showTaskReview = computed(() => {
     !isCompleted.value &&
     meeting.currentSectionIndex === 0 &&
     previousUnfinishedTasks.value.length > 0 &&
-    !tasksStore.wasReviewHandled(meeting.id, previousMeeting.id),
-  )
-})
+    !tasksStore.wasReviewHandled(meeting.id, previousMeeting.id)
+  );
+});
 
 const allNotes = computed(() =>
   activeMeeting.value
@@ -115,10 +117,10 @@ const allNotes = computed(() =>
           ...note,
           sectionTitle: section.title,
           participantName: getParticipantName(note.participantId),
-        })),
+        }))
       )
-    : [],
-)
+    : []
+);
 const allTasks = computed(() =>
   activeMeeting.value
     ? activeMeeting.value.sections.flatMap((section) =>
@@ -127,12 +129,12 @@ const allTasks = computed(() =>
           sectionTitle: section.title,
           responsibilityLabel: getResponsibilityLabel(
             task.responsibilityType,
-            task.responsibleParticipantIds,
+            task.responsibleParticipantIds
           ),
-        })),
+        }))
       )
-    : [],
-)
+    : []
+);
 const allAgreements = computed(() =>
   activeMeeting.value
     ? activeMeeting.value.sections.flatMap((section) =>
@@ -142,78 +144,78 @@ const allAgreements = computed(() =>
           participantLabel: agreement.participantIds
             .map(getParticipantName)
             .join(', '),
-        })),
+        }))
       )
-    : [],
-)
+    : []
+);
 const hasMeetingContent = computed(
   () =>
     allNotes.value.length > 0 ||
     allTasks.value.length > 0 ||
-    allAgreements.value.length > 0,
-)
+    allAgreements.value.length > 0
+);
 
 const neutralHint = computed(() => {
   if (currentSection.value?.id !== 'tensions' || !noteText.value.trim()) {
-    return ''
+    return '';
   }
 
-  const loadedWords = ['always', 'never', 'lazy', 'stupid', 'fault', 'blame']
-  const lowerText = noteText.value.toLowerCase()
+  const loadedWords = ['always', 'never', 'lazy', 'stupid', 'fault', 'blame'];
+  const lowerText = noteText.value.toLowerCase();
 
   return loadedWords.some((word) => lowerText.includes(word))
     ? 'Try naming what happened and what would help, without labels or blame.'
-    : ''
-})
+    : '';
+});
 
 onMounted(() => {
-  participantsStore.ensureDefaultParticipants()
-  const meeting = meetingsStore.ensureActiveMeeting()
-  tasksStore.syncFromMeetings(meetingsStore.meetings)
-  selectedParticipantId.value = firstActiveParticipantId()
-  taskDraft.responsibilityChoice = 'needsDiscussion'
-  agreementParticipantIds.value = [...meeting.participantIds]
-})
+  participantsStore.ensureDefaultParticipants();
+  const meeting = meetingsStore.ensureActiveMeeting();
+  tasksStore.syncFromMeetings(meetingsStore.meetings);
+  selectedParticipantId.value = firstActiveParticipantId();
+  taskDraft.responsibilityChoice = 'needsDiscussion';
+  agreementParticipantIds.value = [...meeting.participantIds];
+});
 
 watch(
   () =>
     participantsStore.activeParticipants.map((participant) => participant.id),
   () => {
-    meetingsStore.syncActiveMeetingParticipants()
-    ensureSelectedParticipants()
+    meetingsStore.syncActiveMeetingParticipants();
+    ensureSelectedParticipants();
   },
-  { immediate: true },
-)
+  { immediate: true }
+);
 
 watch(
   () => currentSection.value?.id,
   () => {
-    noteText.value = ''
-    agreementText.value = ''
-    formError.value = ''
-    statusMessage.value = ''
+    noteText.value = '';
+    agreementText.value = '';
+    formError.value = '';
+    statusMessage.value = '';
     agreementParticipantIds.value = activeMeetingParticipants.value.map(
-      (participant) => participant.id,
-    )
-    resetTaskForm()
-  },
-)
+      (participant) => participant.id
+    );
+    resetTaskForm();
+  }
+);
 
 function firstActiveParticipantId() {
-  return activeMeetingParticipants.value[0]?.id ?? ''
+  return activeMeetingParticipants.value[0]?.id ?? '';
 }
 
 function ensureSelectedParticipants() {
   const activeIds = activeMeetingParticipants.value.map(
-    (participant) => participant.id,
-  )
+    (participant) => participant.id
+  );
 
   if (!activeIds.includes(selectedParticipantId.value)) {
-    selectedParticipantId.value = activeIds[0] ?? ''
+    selectedParticipantId.value = activeIds[0] ?? '';
   }
 
   if (!agreementParticipantIds.value.length) {
-    agreementParticipantIds.value = [...activeIds]
+    agreementParticipantIds.value = [...activeIds];
   }
 }
 
@@ -221,35 +223,35 @@ function getParticipantName(participantId: string) {
   return (
     participantsStore.getParticipantById(participantId)?.name ??
     'Former participant'
-  )
+  );
 }
 
 function getResponsibilityLabel(
   responsibilityType: TaskResponsibilityType,
-  participantIds: string[],
+  participantIds: string[]
 ) {
   if (responsibilityType === 'shared') {
-    return 'Shared'
+    return 'Shared';
   }
 
   if (responsibilityType === 'needsDiscussion') {
-    return 'Needs discussion'
+    return 'Needs discussion';
   }
 
   return (
     participantIds.map(getParticipantName).join(', ') || 'Former participant'
-  )
+  );
 }
 
 function formatMeetingDate(value?: string) {
   if (!value) {
-    return 'Recent meeting'
+    return 'Recent meeting';
   }
 
   return new Intl.DateTimeFormat(undefined, {
     month: 'short',
     day: 'numeric',
-  }).format(new Date(value))
+  }).format(new Date(value));
 }
 
 function notePlaceholder(sectionId: MeetingSectionId) {
@@ -261,21 +263,21 @@ function notePlaceholder(sectionId: MeetingSectionId) {
     familyCare: 'A family care note to remember is...',
     plans: 'Something coming up next week is...',
     finalAgreements: 'A decision we want to keep is...',
-  }
+  };
 
-  return placeholders[sectionId]
+  return placeholders[sectionId];
 }
 
 function clearMessages() {
-  formError.value = ''
-  statusMessage.value = ''
+  formError.value = '';
+  statusMessage.value = '';
 }
 
 function resetTaskForm() {
-  taskDraft.title = ''
-  taskDraft.description = ''
-  taskDraft.dueDate = ''
-  taskDraft.responsibilityChoice = 'needsDiscussion'
+  taskDraft.title = '';
+  taskDraft.description = '';
+  taskDraft.dueDate = '';
+  taskDraft.responsibilityChoice = 'needsDiscussion';
 }
 
 function resolveTaskResponsibility() {
@@ -283,201 +285,201 @@ function resolveTaskResponsibility() {
     return {
       responsibilityType: 'shared' as const,
       responsibleParticipantIds: activeMeetingParticipants.value.map(
-        (participant) => participant.id,
+        (participant) => participant.id
       ),
-    }
+    };
   }
 
   if (taskDraft.responsibilityChoice === 'needsDiscussion') {
     return {
       responsibilityType: 'needsDiscussion' as const,
       responsibleParticipantIds: [],
-    }
+    };
   }
 
   return {
     responsibilityType: 'participant' as const,
     responsibleParticipantIds: [taskDraft.responsibilityChoice],
-  }
+  };
 }
 
 function addParticipant() {
-  clearMessages()
+  clearMessages();
   const participant = participantsStore.createParticipant({
     name: participantName.value,
     type: 'adult',
-  })
+  });
 
   if (!participant) {
-    formError.value = 'Add a name first.'
-    return
+    formError.value = 'Add a name first.';
+    return;
   }
 
-  meetingsStore.syncActiveMeetingParticipants()
-  selectedParticipantId.value = participant.id
-  participantName.value = ''
-  statusMessage.value = 'Person added.'
+  meetingsStore.syncActiveMeetingParticipants();
+  selectedParticipantId.value = participant.id;
+  participantName.value = '';
+  statusMessage.value = 'Person added.';
 }
 
 function addNote() {
-  const section = currentSection.value
+  const section = currentSection.value;
 
   if (!section) {
-    return
+    return;
   }
 
-  clearMessages()
+  clearMessages();
   const error = meetingsStore.addNote(
     section.id,
     selectedParticipantId.value,
-    noteText.value,
-  )
+    noteText.value
+  );
 
   if (error) {
-    formError.value = error
-    return
+    formError.value = error;
+    return;
   }
 
-  noteText.value = ''
-  statusMessage.value = 'Note added.'
+  noteText.value = '';
+  statusMessage.value = 'Note added.';
 }
 
 function addTask() {
-  const section = currentSection.value
+  const section = currentSection.value;
 
   if (!section) {
-    return
+    return;
   }
 
-  clearMessages()
+  clearMessages();
   const error = meetingsStore.addTask(section.id, {
     title: taskDraft.title,
     description: taskDraft.description,
     dueDate: taskDraft.dueDate,
     ...resolveTaskResponsibility(),
-  })
+  });
 
   if (error) {
-    formError.value = error
-    return
+    formError.value = error;
+    return;
   }
 
-  resetTaskForm()
-  statusMessage.value = 'Task added.'
+  resetTaskForm();
+  statusMessage.value = 'Task added.';
 }
 
 function addAgreement() {
-  const section = currentSection.value
+  const section = currentSection.value;
 
   if (!section) {
-    return
+    return;
   }
 
-  clearMessages()
+  clearMessages();
   const error = meetingsStore.addAgreement(
     section.id,
     agreementText.value,
-    agreementParticipantIds.value,
-  )
+    agreementParticipantIds.value
+  );
 
   if (error) {
-    formError.value = error
-    return
+    formError.value = error;
+    return;
   }
 
-  agreementText.value = ''
+  agreementText.value = '';
   agreementParticipantIds.value = activeMeetingParticipants.value.map(
-    (participant) => participant.id,
-  )
-  statusMessage.value = 'Agreement added.'
+    (participant) => participant.id
+  );
+  statusMessage.value = 'Agreement added.';
 }
 
 function toggleTask(taskId: string, status: 'open' | 'done' | 'skipped') {
-  meetingsStore.updateTaskStatus(taskId, status === 'open' ? 'done' : 'open')
+  meetingsStore.updateTaskStatus(taskId, status === 'open' ? 'done' : 'open');
 }
 
 function handleUnfinishedTasks(action: 'keep' | 'done' | 'skipped' | 'move') {
-  const meeting = activeMeeting.value
-  const previousMeeting = previousCompletedMeeting.value
+  const meeting = activeMeeting.value;
+  const previousMeeting = previousCompletedMeeting.value;
 
   if (!meeting || !previousMeeting) {
-    return
+    return;
   }
 
-  clearMessages()
+  clearMessages();
 
   if (action === 'keep') {
-    statusMessage.value = 'Kept for now.'
+    statusMessage.value = 'Kept for now.';
   }
 
   if (action === 'done' || action === 'skipped') {
-    tasksStore.updateTasksFromMeeting(previousMeeting.id, action)
-    meetingsStore.updateTasksFromMeeting(previousMeeting.id, action)
+    tasksStore.updateTasksFromMeeting(previousMeeting.id, action);
+    meetingsStore.updateTasksFromMeeting(previousMeeting.id, action);
     statusMessage.value =
-      action === 'done' ? 'Marked as done.' : 'Skipped for now.'
+      action === 'done' ? 'Marked as done.' : 'Skipped for now.';
   }
 
   if (action === 'move') {
     const movedTasks = tasksStore.moveOpenTasksToMeeting(
       previousMeeting.id,
-      meeting.id,
-    )
+      meeting.id
+    );
     meetingsStore.addMovedTasksToMeeting(
       previousMeeting.id,
       meeting.id,
-      movedTasks,
-    )
-    statusMessage.value = 'Moved to this week.'
+      movedTasks
+    );
+    statusMessage.value = 'Moved to this week.';
   }
 
-  tasksStore.markReviewHandled(meeting.id, previousMeeting.id)
+  tasksStore.markReviewHandled(meeting.id, previousMeeting.id);
 }
 
 function goBack() {
-  const meeting = activeMeeting.value
+  const meeting = activeMeeting.value;
 
   if (!meeting) {
-    return
+    return;
   }
 
-  meetingsStore.setCurrentSection(meeting.currentSectionIndex - 1)
+  meetingsStore.setCurrentSection(meeting.currentSectionIndex - 1);
 }
 
 function goNext() {
-  const meeting = activeMeeting.value
+  const meeting = activeMeeting.value;
 
   if (!meeting) {
-    return
+    return;
   }
 
-  meetingsStore.setCurrentSection(meeting.currentSectionIndex + 1)
+  meetingsStore.setCurrentSection(meeting.currentSectionIndex + 1);
 }
 
 function saveDraft() {
-  clearMessages()
-  meetingsStore.saveDraft()
-  statusMessage.value = 'Draft saved on this phone.'
+  clearMessages();
+  meetingsStore.saveDraft();
+  statusMessage.value = 'Draft saved on this phone.';
 }
 
 function finishMeeting() {
-  clearMessages()
-  const error = meetingsStore.finishMeeting()
+  clearMessages();
+  const error = meetingsStore.finishMeeting();
 
   if (error) {
-    formError.value = error
-    return
+    formError.value = error;
+    return;
   }
 
-  statusMessage.value = 'Meeting finished.'
+  statusMessage.value = 'Meeting finished.';
 }
 
 function startNewMeeting() {
-  const meeting = meetingsStore.startNewMeeting()
-  tasksStore.syncFromMeetings(meetingsStore.meetings)
-  selectedParticipantId.value = firstActiveParticipantId()
-  agreementParticipantIds.value = [...meeting.participantIds]
-  resetTaskForm()
-  clearMessages()
+  const meeting = meetingsStore.startNewMeeting();
+  tasksStore.syncFromMeetings(meetingsStore.meetings);
+  selectedParticipantId.value = firstActiveParticipantId();
+  agreementParticipantIds.value = [...meeting.participantIds];
+  resetTaskForm();
+  clearMessages();
 }
 </script>
 
@@ -525,7 +527,7 @@ function startNewMeeting() {
           {{
             formatMeetingDate(
               previousCompletedMeeting?.completedAt ??
-                previousCompletedMeeting?.updatedAt,
+                previousCompletedMeeting?.updatedAt
             )
           }}
         </p>
@@ -539,7 +541,7 @@ function startNewMeeting() {
               {{
                 getResponsibilityLabel(
                   task.responsibilityType,
-                  task.responsibleParticipantIds,
+                  task.responsibleParticipantIds
                 )
               }}
             </span>
@@ -694,7 +696,7 @@ function startNewMeeting() {
               {{
                 getResponsibilityLabel(
                   task.responsibilityType,
-                  task.responsibleParticipantIds,
+                  task.responsibleParticipantIds
                 )
               }}
             </span>

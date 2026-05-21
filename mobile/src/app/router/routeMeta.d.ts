@@ -1,15 +1,15 @@
-import type { FeatureKey } from '@/features/access/types'
+import type { FeatureKey } from '@/features/access/types';
 
-import 'vue-router'
+import 'vue-router';
 
 declare module 'vue-router' {
   interface RouteMeta {
-    requiresFeature?: FeatureKey
-    requiresPremium?: boolean
-    lockedRedirectName?: string
-    requiresAuth?: boolean
-    guestOnly?: boolean
-    hideNavigation?: boolean
-    isPublicEntry?: boolean
+    requiresFeature?: FeatureKey;
+    requiresPremium?: boolean;
+    lockedRedirectName?: string;
+    requiresAuth?: boolean;
+    guestOnly?: boolean;
+    hideNavigation?: boolean;
+    isPublicEntry?: boolean;
   }
 }

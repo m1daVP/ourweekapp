@@ -338,11 +338,11 @@ Avoid `any` unless there is a clear reason.
 Use union types for controlled values:
 
 ```ts
-type PlanType = 'free' | 'premium'
+type PlanType = 'free' | 'premium';
 
-type TaskStatus = 'open' | 'done' | 'skipped'
+type TaskStatus = 'open' | 'done' | 'skipped';
 
-type UserRole = 'owner' | 'adult_member' | 'viewer'
+type UserRole = 'owner' | 'adult_member' | 'viewer';
 ```
 
 Keep types close to the feature when they are feature-specific. Move to `shared/types` only when reused across multiple features.
@@ -368,9 +368,9 @@ Do not scatter direct localStorage calls across components.
 Use a service like:
 
 ```ts
-storageService.get()
-storageService.set()
-storageService.remove()
+storageService.get();
+storageService.set();
+storageService.remove();
 ```
 
 ## Data Persistence
@@ -564,20 +564,20 @@ Follow these rules:
 Prefer:
 
 ```ts
-createMeeting()
-finishMeeting()
-addTask()
-markTaskDone()
-canUseFeature()
+createMeeting();
+finishMeeting();
+addTask();
+markTaskDone();
+canUseFeature();
 ```
 
 Avoid vague names:
 
 ```ts
-handleStuff()
-processData()
-doAction()
-manager()
+handleStuff();
+processData();
+doAction();
+manager();
 ```
 
 ## Component Guidelines

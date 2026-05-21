@@ -1,43 +1,43 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useAuthStore } from '@/app/stores/auth'
-import { appConfig } from '@/shared/config/env'
+import { computed, ref } from 'vue';
+import { useAuthStore } from '@/app/stores/auth';
+import { appConfig } from '@/shared/config/env';
 
-const authStore = useAuthStore()
-const displayName = ref(authStore.user?.displayName ?? '')
-const statusMessage = ref('')
-const formError = ref('')
+const authStore = useAuthStore();
+const displayName = ref(authStore.user?.displayName ?? '');
+const statusMessage = ref('');
+const formError = ref('');
 
-const user = computed(() => authStore.user)
-const isMockAuth = computed(() => appConfig.apiMode === 'mock')
+const user = computed(() => authStore.user);
+const isMockAuth = computed(() => appConfig.apiMode === 'mock');
 
 function formatDate(value?: string) {
   if (!value) {
-    return 'Not available'
+    return 'Not available';
   }
 
   return new Intl.DateTimeFormat(undefined, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(value))
+  }).format(new Date(value));
 }
 
 function saveProfile() {
-  statusMessage.value = ''
-  formError.value = ''
+  statusMessage.value = '';
+  formError.value = '';
 
   if (!displayName.value.trim()) {
-    formError.value = 'Add a display name.'
-    return
+    formError.value = 'Add a display name.';
+    return;
   }
 
   if (!authStore.updateProfile(displayName.value)) {
-    formError.value = 'Could not update the account.'
-    return
+    formError.value = 'Could not update the account.';
+    return;
   }
 
-  statusMessage.value = 'Account updated on this device.'
+  statusMessage.value = 'Account updated on this device.';
 }
 </script>
 

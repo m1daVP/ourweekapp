@@ -1,25 +1,25 @@
-import type { PlanType } from '@/features/access/types'
+import type { PlanType } from '@/features/access/types';
 
 export type AuthStatus =
   | 'idle'
   | 'loading'
   | 'authenticated'
   | 'localOnly'
-  | 'error'
+  | 'error';
 
 export interface AuthUser {
-  id: string
-  email: string
-  displayName: string
-  plan: PlanType
-  createdAt: string
+  id: string;
+  email: string;
+  displayName: string;
+  plan: PlanType;
+  createdAt: string;
 }
 
 export interface SignInPayload {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export interface SignUpPayload extends SignInPayload {
-  displayName: string
+  displayName: string;
 }

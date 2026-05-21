@@ -1,53 +1,53 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/app/stores/auth'
-import { appConfig } from '@/shared/config/env'
+import { computed, reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/app/stores/auth';
+import { appConfig } from '@/shared/config/env';
 
-const route = useRoute()
-const router = useRouter()
-const authStore = useAuthStore()
-const formError = ref('')
+const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const formError = ref('');
 const form = reactive({
   email: '',
   password: '',
-})
+});
 
-const isSubmitting = computed(() => authStore.authStatus === 'loading')
-const isMockAuth = computed(() => appConfig.apiMode === 'mock')
+const isSubmitting = computed(() => authStore.authStatus === 'loading');
+const isMockAuth = computed(() => appConfig.apiMode === 'mock');
 
 function getRedirectPath() {
-  const redirect = route.query.redirect
+  const redirect = route.query.redirect;
 
   return typeof redirect === 'string' && redirect.startsWith('/')
     ? redirect
-    : '/'
+    : '/';
 }
 
 async function handleSubmit() {
-  formError.value = ''
+  formError.value = '';
 
   if (!form.email.trim()) {
-    formError.value = 'Add an email address.'
-    return
+    formError.value = 'Add an email address.';
+    return;
   }
 
   if (!form.password) {
-    formError.value = 'Add your password.'
-    return
+    formError.value = 'Add your password.';
+    return;
   }
 
   const didSignIn = await authStore.signIn({
     email: form.email,
     password: form.password,
-  })
+  });
 
   if (didSignIn) {
-    void router.push(getRedirectPath())
-    return
+    void router.push(getRedirectPath());
+    return;
   }
 
-  formError.value = authStore.errorMessage || 'Could not sign in.'
+  formError.value = authStore.errorMessage || 'Could not sign in.';
 }
 </script>
 

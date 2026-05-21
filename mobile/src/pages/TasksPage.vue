@@ -1,49 +1,49 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useMeetingsStore } from '@/app/stores/meetings'
-import { useParticipantsStore } from '@/app/stores/participants'
-import { useTasksStore } from '@/app/stores/tasks'
-import type { Participant } from '@/features/participants/types'
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useMeetingsStore } from '@/app/stores/meetings';
+import { useParticipantsStore } from '@/app/stores/participants';
+import { useTasksStore } from '@/app/stores/tasks';
+import type { Participant } from '@/features/participants/types';
 import type {
   Agreement,
   Task,
   TaskResponsibilityType,
   TaskStatus,
-} from '@/features/tasks/types'
+} from '@/features/tasks/types';
 
-const meetingsStore = useMeetingsStore()
-const participantsStore = useParticipantsStore()
-const tasksStore = useTasksStore()
+const meetingsStore = useMeetingsStore();
+const participantsStore = useParticipantsStore();
+const tasksStore = useTasksStore();
 
 const editDrafts = reactive<
   Record<
     string,
     { title: string; dueDate: string; responsibilityChoice: string }
   >
->({})
-const selectedAgreement = ref<Agreement | null>(null)
-const statusMessage = ref('')
+>({});
+const selectedAgreement = ref<Agreement | null>(null);
+const statusMessage = ref('');
 
-const openTasks = computed(() => tasksStore.openTasks)
-const doneTasks = computed(() => tasksStore.doneTasks)
-const skippedTasks = computed(() => tasksStore.skippedTasks)
-const recentAgreements = computed(() => tasksStore.recentAgreements)
-const activeParticipants = computed(() => participantsStore.activeParticipants)
+const openTasks = computed(() => tasksStore.openTasks);
+const doneTasks = computed(() => tasksStore.doneTasks);
+const skippedTasks = computed(() => tasksStore.skippedTasks);
+const recentAgreements = computed(() => tasksStore.recentAgreements);
+const activeParticipants = computed(() => participantsStore.activeParticipants);
 
 onMounted(() => {
-  participantsStore.ensureDefaultParticipants()
-  tasksStore.syncFromMeetings(meetingsStore.meetings)
-})
+  participantsStore.ensureDefaultParticipants();
+  tasksStore.syncFromMeetings(meetingsStore.meetings);
+});
 
 watch(
   () =>
     tasksStore.tasks.map((task) => `${task.id}:${task.updatedAt}`).join('|'),
   () => syncDrafts(),
-  { immediate: true },
-)
+  { immediate: true }
+);
 
 function syncDrafts() {
-  const taskIds = new Set(tasksStore.tasks.map((task) => task.id))
+  const taskIds = new Set(tasksStore.tasks.map((task) => task.id));
 
   for (const task of tasksStore.tasks) {
     if (!editDrafts[task.id]) {
@@ -51,13 +51,13 @@ function syncDrafts() {
         title: task.title,
         dueDate: task.dueDate ?? '',
         responsibilityChoice: getResponsibilityChoice(task),
-      }
+      };
     }
   }
 
   for (const taskId of Object.keys(editDrafts)) {
     if (!taskIds.has(taskId)) {
-      delete editDrafts[taskId]
+      delete editDrafts[taskId];
     }
   }
 }
@@ -66,54 +66,54 @@ function getParticipantName(participantId: string) {
   return (
     participantsStore.getParticipantById(participantId)?.name ??
     'Former participant'
-  )
+  );
 }
 
 function getResponsibilityLabel(
   responsibilityType: TaskResponsibilityType,
-  participantIds: string[],
+  participantIds: string[]
 ) {
   if (responsibilityType === 'shared') {
-    return 'Shared'
+    return 'Shared';
   }
 
   if (responsibilityType === 'needsDiscussion') {
-    return 'Needs discussion'
+    return 'Needs discussion';
   }
 
   return (
     participantIds.map(getParticipantName).join(', ') || 'Former participant'
-  )
+  );
 }
 
 function getResponsibilityChoice(task: Task) {
   if (task.responsibilityType === 'shared') {
-    return 'shared'
+    return 'shared';
   }
 
   if (task.responsibilityType === 'needsDiscussion') {
-    return 'needsDiscussion'
+    return 'needsDiscussion';
   }
 
-  return task.responsibleParticipantIds[0] ?? 'needsDiscussion'
+  return task.responsibleParticipantIds[0] ?? 'needsDiscussion';
 }
 
 function getTaskParticipants(task: Task) {
-  const participantsById = new Map<string, Participant>()
+  const participantsById = new Map<string, Participant>();
 
   for (const participant of activeParticipants.value) {
-    participantsById.set(participant.id, participant)
+    participantsById.set(participant.id, participant);
   }
 
   for (const participantId of task.responsibleParticipantIds) {
-    const participant = participantsStore.getParticipantById(participantId)
+    const participant = participantsStore.getParticipantById(participantId);
 
     if (participant) {
-      participantsById.set(participant.id, participant)
+      participantsById.set(participant.id, participant);
     }
   }
 
-  return [...participantsById.values()]
+  return [...participantsById.values()];
 }
 
 function resolveDraftResponsibility(choice: string) {
@@ -121,38 +121,38 @@ function resolveDraftResponsibility(choice: string) {
     return {
       responsibilityType: 'shared' as const,
       responsibleParticipantIds: activeParticipants.value.map(
-        (participant) => participant.id,
+        (participant) => participant.id
       ),
-    }
+    };
   }
 
   if (choice === 'needsDiscussion') {
     return {
       responsibilityType: 'needsDiscussion' as const,
       responsibleParticipantIds: [],
-    }
+    };
   }
 
   return {
     responsibilityType: 'participant' as const,
     responsibleParticipantIds: [choice],
-  }
+  };
 }
 
 function getMeeting(meetingId?: string) {
   return (
     meetingsStore.meetings.find((meeting) => meeting.id === meetingId) ?? null
-  )
+  );
 }
 
 function getMeetingLabel(meetingId?: string) {
-  const meeting = getMeeting(meetingId)
+  const meeting = getMeeting(meetingId);
 
   if (!meeting) {
-    return ''
+    return '';
   }
 
-  return `${meeting.title} - ${formatDate(meeting.completedAt ?? meeting.updatedAt)}`
+  return `${meeting.title} - ${formatDate(meeting.completedAt ?? meeting.updatedAt)}`;
 }
 
 function formatDate(value: string) {
@@ -160,66 +160,66 @@ function formatDate(value: string) {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(value))
+  }).format(new Date(value));
 }
 
 function saveTask(task: Task) {
-  const draft = editDrafts[task.id]
+  const draft = editDrafts[task.id];
 
   if (!draft?.title.trim()) {
-    statusMessage.value = 'Add a short title first.'
-    return
+    statusMessage.value = 'Add a short title first.';
+    return;
   }
 
-  const responsibility = resolveDraftResponsibility(draft.responsibilityChoice)
+  const responsibility = resolveDraftResponsibility(draft.responsibilityChoice);
 
   tasksStore.updateTask(task.id, {
     title: draft.title,
     dueDate: draft.dueDate,
     ...responsibility,
-  })
+  });
   meetingsStore.updateTaskDetails(task.id, {
     title: draft.title,
     dueDate: draft.dueDate,
     ...responsibility,
-  })
-  statusMessage.value = 'Task updated.'
+  });
+  statusMessage.value = 'Task updated.';
 }
 
 function setTaskStatus(task: Task, status: TaskStatus) {
-  tasksStore.updateTaskStatus(task.id, status)
-  meetingsStore.updateTaskStatus(task.id, status)
-  statusMessage.value = status === 'done' ? 'Marked done.' : 'Updated.'
+  tasksStore.updateTaskStatus(task.id, status);
+  meetingsStore.updateTaskStatus(task.id, status);
+  statusMessage.value = status === 'done' ? 'Marked done.' : 'Updated.';
 }
 
 function deleteTask(task: Task) {
-  const confirmed = window.confirm('Delete this task?')
+  const confirmed = window.confirm('Delete this task?');
 
   if (!confirmed) {
-    return
+    return;
   }
 
-  tasksStore.deleteTask(task.id)
-  meetingsStore.deleteTask(task.id)
-  statusMessage.value = 'Task deleted.'
+  tasksStore.deleteTask(task.id);
+  meetingsStore.deleteTask(task.id);
+  statusMessage.value = 'Task deleted.';
 }
 
 function openAgreement(agreement: Agreement) {
-  selectedAgreement.value = agreement
+  selectedAgreement.value = agreement;
 }
 
 function closeAgreement() {
-  selectedAgreement.value = null
+  selectedAgreement.value = null;
 }
 
 function relatedTaskTitles(agreement: Agreement) {
   return (
     agreement.relatedTaskIds
       ?.map(
-        (taskId) => tasksStore.tasks.find((task) => task.id === taskId)?.title,
+        (taskId) => tasksStore.tasks.find((task) => task.id === taskId)?.title
       )
       .filter((title): title is string => Boolean(title)) ?? []
-  )
+  );
 }
 </script>
 
@@ -320,7 +320,7 @@ function relatedTaskTitles(agreement: Agreement) {
               {{
                 getResponsibilityLabel(
                   task.responsibilityType,
-                  task.responsibleParticipantIds,
+                  task.responsibleParticipantIds
                 )
               }}
             </p>
@@ -347,7 +347,7 @@ function relatedTaskTitles(agreement: Agreement) {
               {{
                 getResponsibilityLabel(
                   task.responsibilityType,
-                  task.responsibleParticipantIds,
+                  task.responsibleParticipantIds
                 )
               }}
             </p>

@@ -1,51 +1,51 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/app/stores/auth'
-import { appConfig } from '@/shared/config/env'
+import { computed, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/app/stores/auth';
+import { appConfig } from '@/shared/config/env';
 
-const router = useRouter()
-const authStore = useAuthStore()
-const formError = ref('')
+const router = useRouter();
+const authStore = useAuthStore();
+const formError = ref('');
 const form = reactive({
   displayName: '',
   email: '',
   password: '',
-})
+});
 
-const isSubmitting = computed(() => authStore.authStatus === 'loading')
-const isMockAuth = computed(() => appConfig.apiMode === 'mock')
+const isSubmitting = computed(() => authStore.authStatus === 'loading');
+const isMockAuth = computed(() => appConfig.apiMode === 'mock');
 
 async function handleSubmit() {
-  formError.value = ''
+  formError.value = '';
 
   if (!form.displayName.trim()) {
-    formError.value = 'Add a display name.'
-    return
+    formError.value = 'Add a display name.';
+    return;
   }
 
   if (!form.email.trim()) {
-    formError.value = 'Add an email address.'
-    return
+    formError.value = 'Add an email address.';
+    return;
   }
 
   if (form.password.length < 8) {
-    formError.value = 'Use at least 8 characters for the password.'
-    return
+    formError.value = 'Use at least 8 characters for the password.';
+    return;
   }
 
   const didSignUp = await authStore.signUp({
     displayName: form.displayName,
     email: form.email,
     password: form.password,
-  })
+  });
 
   if (didSignUp) {
-    void router.push({ name: 'home' })
-    return
+    void router.push({ name: 'home' });
+    return;
   }
 
-  formError.value = authStore.errorMessage || 'Could not create the account.'
+  formError.value = authStore.errorMessage || 'Could not create the account.';
 }
 </script>
 

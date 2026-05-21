@@ -1,11 +1,11 @@
-import { defineStore } from 'pinia'
+import { defineStore } from 'pinia';
 import type {
   Participant,
   ParticipantType,
-} from '@/features/participants/types'
+} from '@/features/participants/types';
 
-const STORAGE_KEY = 'weekly-us:participants'
-const MEETINGS_STORAGE_KEY = 'weekly-us:meetings'
+const STORAGE_KEY = 'weekly-us:participants';
+const MEETINGS_STORAGE_KEY = 'weekly-us:meetings';
 
 export const participantColors = [
   '#496a8f',
@@ -14,69 +14,69 @@ export const participantColors = [
   '#8a6f9b',
   '#b07a48',
   '#5f7f82',
-]
+];
 
 interface ParticipantsState {
-  participants: Participant[]
+  participants: Participant[];
 }
 
 interface CreateParticipantPayload {
-  name: string
-  initials?: string
-  avatarColor?: string
-  type: ParticipantType
+  name: string;
+  initials?: string;
+  avatarColor?: string;
+  type: ParticipantType;
 }
 
 interface UpdateParticipantPayload {
-  name?: string
-  initials?: string
-  avatarColor?: string
-  type?: ParticipantType
-  isActive?: boolean
+  name?: string;
+  initials?: string;
+  avatarColor?: string;
+  type?: ParticipantType;
+  isActive?: boolean;
 }
 
 interface LegacyParticipant {
-  id?: string
-  name?: string
-  initials?: string
-  avatarColor?: string
-  type?: ParticipantType
-  isActive?: boolean
-  createdAt?: string
-  updatedAt?: string
+  id?: string;
+  name?: string;
+  initials?: string;
+  avatarColor?: string;
+  type?: ParticipantType;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 function createId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`
+    return `${prefix}-${crypto.randomUUID()}`;
   }
 
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function nowIso() {
-  return new Date().toISOString()
+  return new Date().toISOString();
 }
 
 function getInitials(name: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean)
+  const words = name.trim().split(/\s+/).filter(Boolean);
 
   if (!words.length) {
-    return '?'
+    return '?';
   }
 
   return words
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() ?? '')
-    .join('')
+    .join('');
 }
 
 function createParticipant(
   name: string,
   type: ParticipantType,
-  index: number,
+  index: number
 ): Participant {
-  const createdAt = nowIso()
+  const createdAt = nowIso();
 
   return {
     id: createId('person'),
@@ -87,27 +87,27 @@ function createParticipant(
     isActive: true,
     createdAt,
     updatedAt: createdAt,
-  }
+  };
 }
 
 function createDefaultParticipants() {
   return [
     createParticipant('Me', 'adult', 0),
     createParticipant('Partner', 'adult', 1),
-  ]
+  ];
 }
 
 function normalizeParticipant(
   participant: LegacyParticipant,
-  index: number,
+  index: number
 ): Participant | null {
-  const name = participant.name?.trim()
+  const name = participant.name?.trim();
 
   if (!name) {
-    return null
+    return null;
   }
 
-  const createdAt = participant.createdAt ?? nowIso()
+  const createdAt = participant.createdAt ?? nowIso();
 
   return {
     id: participant.id ?? createId('person'),
@@ -122,76 +122,78 @@ function normalizeParticipant(
     isActive: participant.isActive ?? true,
     createdAt,
     updatedAt: participant.updatedAt ?? createdAt,
-  }
+  };
 }
 
 function getLegacyMeetingParticipants() {
   if (typeof window === 'undefined') {
-    return []
+    return [];
   }
 
-  const rawValue = window.localStorage.getItem(MEETINGS_STORAGE_KEY)
+  const rawValue = window.localStorage.getItem(MEETINGS_STORAGE_KEY);
 
   if (!rawValue) {
-    return []
+    return [];
   }
 
   try {
     const parsedValue = JSON.parse(rawValue) as {
-      meetings?: Array<{ participants?: LegacyParticipant[] }>
-    }
-    const participantsById = new Map<string, LegacyParticipant>()
+      meetings?: Array<{ participants?: LegacyParticipant[] }>;
+    };
+    const participantsById = new Map<string, LegacyParticipant>();
 
     for (const meeting of parsedValue.meetings ?? []) {
       for (const participant of meeting.participants ?? []) {
         if (participant.id && participant.name) {
-          participantsById.set(participant.id, participant)
+          participantsById.set(participant.id, participant);
         }
       }
     }
 
-    return [...participantsById.values()]
+    return [...participantsById.values()];
   } catch {
-    return []
+    return [];
   }
 }
 
 function getStoredState(): ParticipantsState {
   if (typeof window === 'undefined') {
-    return { participants: createDefaultParticipants() }
+    return { participants: createDefaultParticipants() };
   }
 
-  const rawValue = window.localStorage.getItem(STORAGE_KEY)
+  const rawValue = window.localStorage.getItem(STORAGE_KEY);
 
   if (!rawValue) {
     const legacyParticipants = getLegacyMeetingParticipants()
       .map(normalizeParticipant)
-      .filter((participant): participant is Participant => Boolean(participant))
+      .filter((participant): participant is Participant =>
+        Boolean(participant)
+      );
 
     return {
       participants: legacyParticipants.length
         ? legacyParticipants
         : createDefaultParticipants(),
-    }
+    };
   }
 
   try {
-    const parsedValue = JSON.parse(rawValue) as Partial<ParticipantsState>
+    const parsedValue = JSON.parse(rawValue) as Partial<ParticipantsState>;
     const participants = Array.isArray(parsedValue.participants)
       ? parsedValue.participants
           .map(normalizeParticipant)
           .filter((participant): participant is Participant =>
-            Boolean(participant),
+            Boolean(participant)
           )
-      : []
+      : [];
 
     return {
       participants: participants.length
         ? participants
         : createDefaultParticipants(),
-    }
+    };
   } catch {
-    return { participants: createDefaultParticipants() }
+    return { participants: createDefaultParticipants() };
   }
 }
 
@@ -202,36 +204,36 @@ export const useParticipantsStore = defineStore('participants', {
       state.participants.filter((participant) => participant.isActive),
     getParticipantById: (state) => (participantId: string) =>
       state.participants.find(
-        (participant) => participant.id === participantId,
+        (participant) => participant.id === participantId
       ) ?? null,
   },
   actions: {
     persist() {
       if (typeof window === 'undefined') {
-        return
+        return;
       }
 
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ participants: this.participants }),
-      )
+        JSON.stringify({ participants: this.participants })
+      );
     },
     ensureDefaultParticipants() {
       if (this.participants.length) {
-        return
+        return;
       }
 
-      this.participants = createDefaultParticipants()
-      this.persist()
+      this.participants = createDefaultParticipants();
+      this.persist();
     },
     createParticipant(payload: CreateParticipantPayload) {
-      const name = payload.name.trim()
+      const name = payload.name.trim();
 
       if (!name) {
-        return null
+        return null;
       }
 
-      const createdAt = nowIso()
+      const createdAt = nowIso();
       const participant: Participant = {
         id: createId('person'),
         name,
@@ -247,75 +249,75 @@ export const useParticipantsStore = defineStore('participants', {
         isActive: true,
         createdAt,
         updatedAt: createdAt,
-      }
+      };
 
-      this.participants.push(participant)
-      this.persist()
-      return participant
+      this.participants.push(participant);
+      this.persist();
+      return participant;
     },
     updateParticipant(
       participantId: string,
-      payload: UpdateParticipantPayload,
+      payload: UpdateParticipantPayload
     ) {
       const participant = this.participants.find(
-        (item) => item.id === participantId,
-      )
+        (item) => item.id === participantId
+      );
 
       if (!participant) {
-        return null
+        return null;
       }
 
-      const name = payload.name?.trim()
-      const initials = payload.initials?.trim()
+      const name = payload.name?.trim();
+      const initials = payload.initials?.trim();
 
       if (payload.name !== undefined) {
         if (!name) {
-          return null
+          return null;
         }
 
-        participant.name = name
+        participant.name = name;
         participant.initials = initials
           ? initials.slice(0, 3).toUpperCase()
-          : getInitials(name)
+          : getInitials(name);
       }
 
       if (payload.initials !== undefined && payload.name === undefined) {
         participant.initials = (initials || getInitials(participant.name))
           .slice(0, 3)
-          .toUpperCase()
+          .toUpperCase();
       }
 
       if (payload.avatarColor !== undefined) {
-        participant.avatarColor = payload.avatarColor
+        participant.avatarColor = payload.avatarColor;
       }
 
       if (payload.type !== undefined) {
-        participant.type = payload.type
+        participant.type = payload.type;
       }
 
       if (payload.isActive !== undefined) {
-        participant.isActive = payload.isActive
+        participant.isActive = payload.isActive;
       }
 
-      participant.updatedAt = nowIso()
-      this.persist()
-      return participant
+      participant.updatedAt = nowIso();
+      this.persist();
+      return participant;
     },
     disableParticipant(participantId: string) {
-      return this.updateParticipant(participantId, { isActive: false })
+      return this.updateParticipant(participantId, { isActive: false });
     },
     enableParticipant(participantId: string) {
-      return this.updateParticipant(participantId, { isActive: true })
+      return this.updateParticipant(participantId, { isActive: true });
     },
     removeParticipant(participantId: string) {
-      const originalLength = this.participants.length
+      const originalLength = this.participants.length;
       this.participants = this.participants.filter(
-        (participant) => participant.id !== participantId,
-      )
+        (participant) => participant.id !== participantId
+      );
 
       if (this.participants.length !== originalLength) {
-        this.persist()
+        this.persist();
       }
     },
   },
-})
+});
