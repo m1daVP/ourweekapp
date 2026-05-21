@@ -7,3 +7,4 @@ dist-ssr
 !.vscode/extensions.json
 android/app/build
 android/build
+android/.idea
