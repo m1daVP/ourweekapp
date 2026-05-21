@@ -7,5 +7,9 @@ declare module 'vue-router' {
     requiresFeature?: FeatureKey
     requiresPremium?: boolean
     lockedRedirectName?: string
+    requiresAuth?: boolean
+    guestOnly?: boolean
+    hideNavigation?: boolean
+    isPublicEntry?: boolean
   }
 }

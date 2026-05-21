@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/app/stores/auth'
 import { useMeetingsStore } from '@/app/stores/meetings'
 import {
   participantColors,
@@ -21,6 +22,7 @@ import { useFeatureAccess } from '@/shared/composables/useFeatureAccess'
 import { useNotifications } from '@/shared/composables/useNotifications'
 
 const route = useRoute()
+const authStore = useAuthStore()
 const { planType, userRole, canUseFeature, setMockPlan, setMockRole } =
   useFeatureAccess()
 const participantsStore = useParticipantsStore()
@@ -78,6 +80,17 @@ const participantMessage = reactive({
 })
 
 const canUseReminders = computed(() => canUseFeature('agreementReminders'))
+const accountStatusText = computed(() => {
+  if (authStore.isAuthenticated) {
+    return `Signed in as ${authStore.user?.email ?? 'your account'}.`
+  }
+
+  if (authStore.isLocalOnly) {
+    return 'Using Weekly Us on this device only.'
+  }
+
+  return 'No account connected yet.'
+})
 const reminderStatusText = computed(() => {
   if (!canUseReminders.value) {
     return 'Reminder settings are available with Premium.'
@@ -297,6 +310,26 @@ function enableParticipant(participantId: string) {
       </p>
     </div>
 
+    <section class="content-panel settings-panel">
+      <div>
+        <h2>Account</h2>
+        <p>{{ accountStatusText }}</p>
+      </div>
+      <RouterLink
+        v-if="authStore.isAuthenticated"
+        class="secondary-button link-button"
+        :to="{ name: 'account' }"
+      >
+        Account settings
+      </RouterLink>
+      <RouterLink
+        v-else
+        class="secondary-button link-button"
+        :to="{ name: 'welcome' }"
+      >
+        Account options
+      </RouterLink>
+    </section>
     <PremiumLock
       feature="agreementReminders"
       title="Reminder settings are premium"
@@ -581,6 +614,3 @@ function enableParticipant(participantId: string) {
     </div>
   </section>
 </template>
-
-
-
