@@ -58,6 +58,10 @@ body,
   margin: 0;
 }
 
+html {
+  overflow: hidden;
+}
+
 body {
   overflow: hidden;
   background: var(--color-bg);
@@ -960,12 +964,19 @@ input[type='radio'] {
 
 .color-selector label {
   display: block;
+  position: relative;
 }
 
 .color-selector input {
   position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
 }
 
 .color-selector span {
@@ -979,6 +990,11 @@ input[type='radio'] {
 
 .color-selector input:checked + span {
   border-color: var(--color-primary-dark);
+}
+
+.color-selector input:focus-visible + span {
+  outline: 3px solid var(--color-primary-soft);
+  outline-offset: 2px;
 }
 
 .color-selector--compact span {
