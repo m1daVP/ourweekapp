@@ -4,6 +4,8 @@ import type {
   MeetingSummary,
   MeetingSummaryTask,
 } from './types'
+import { generateAiMeetingSummary } from '@/shared/api/aiApi'
+import { appConfig } from '@/shared/config/env'
 
 export interface AiSummaryProvider {
   generateMeetingSummary(meeting: Meeting): Promise<MeetingSummary>
@@ -134,15 +136,29 @@ const localPlaceholderAiSummaryProvider: AiSummaryProvider = {
   },
 }
 
-let aiSummaryProvider: AiSummaryProvider = localPlaceholderAiSummaryProvider
+const backendAiSummaryProvider: AiSummaryProvider = {
+  async generateMeetingSummary(meeting) {
+    const response = await generateAiMeetingSummary({
+      meeting,
+      promptContract: aiSummaryPromptContract,
+    })
+
+    return response.summary
+  },
+}
+
+let aiSummaryProvider: AiSummaryProvider | null = null
 
 export function setAiSummaryProvider(provider: AiSummaryProvider) {
   aiSummaryProvider = provider
 }
 
 export function generateMeetingSummary(meeting: Meeting) {
-  // TODO: Replace the local placeholder with a backend-backed provider. Real AI
-  // calls must go through the backend so API keys and provider-specific logic are
-  // never exposed in the mobile app.
-  return aiSummaryProvider.generateMeetingSummary(meeting)
+  const provider =
+    aiSummaryProvider ??
+    (appConfig.isBackendApiEnabled
+      ? backendAiSummaryProvider
+      : localPlaceholderAiSummaryProvider)
+
+  return provider.generateMeetingSummary(meeting)
 }
