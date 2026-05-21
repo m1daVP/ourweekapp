@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSubscriptionStore } from '@/app/stores/subscription';
-import AppNavigation from '@/shared/components/AppNavigation.vue';
+import AppShell from '@/shared/components/AppShell.vue';
 import { useNotifications } from '@/shared/composables/useNotifications';
 
 const route = useRoute();
@@ -15,10 +15,7 @@ initializeReminderSync();
 </script>
 
 <template>
-  <div class="app-shell">
-    <main class="app-main">
-      <RouterView />
-    </main>
-    <AppNavigation v-if="showNavigation" />
-  </div>
+  <AppShell :show-navigation="showNavigation">
+    <RouterView />
+  </AppShell>
 </template>
