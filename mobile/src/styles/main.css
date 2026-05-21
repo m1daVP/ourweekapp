@@ -1290,3 +1290,137 @@ h2 {
   padding: 10px 12px;
   color: #221f1b;
 }
+
+.auth-page {
+  display: grid;
+  min-height: 100%;
+  align-content: center;
+  gap: 22px;
+  padding: 8px 0 18px;
+}
+
+.auth-page h1 {
+  max-width: 13ch;
+}
+
+.welcome-page {
+  align-content: start;
+  padding-top: 16px;
+}
+
+.auth-hero {
+  display: grid;
+  gap: 4px;
+}
+
+.auth-benefit-list {
+  display: grid;
+  gap: 10px;
+}
+
+.auth-benefit-list div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #dfd8ca;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.auth-benefit-list p,
+.auth-note,
+.auth-switch {
+  margin-bottom: 0;
+  color: #5b5f58;
+}
+
+.auth-note {
+  border: 1px solid #cbd9d2;
+  border-radius: 8px;
+  background: #f3f8f4;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.auth-actions,
+.auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 6px;
+  color: #3e463f;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.auth-form input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #cfc7ba;
+  border-radius: 8px;
+  background: #fffdf9;
+  padding: 11px 12px;
+  color: #221f1b;
+}
+
+.auth-form button,
+.auth-actions a,
+.auth-actions button {
+  min-height: 48px;
+}
+
+.auth-form button:disabled,
+.auth-actions button:disabled {
+  opacity: 0.52;
+}
+
+.text-button {
+  border: 0;
+  background: transparent;
+  color: #22312b;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.small-link,
+.auth-switch a {
+  color: #22312b;
+  font-weight: 900;
+}
+
+.auth-switch {
+  text-align: center;
+}
+
+.account-page h1 {
+  max-width: 10ch;
+}
+
+.account-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.account-summary div {
+  display: grid;
+  gap: 3px;
+  border-top: 1px solid #ebe4d8;
+  padding-top: 12px;
+}
+
+.account-summary div:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.account-label {
+  color: #687064;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
