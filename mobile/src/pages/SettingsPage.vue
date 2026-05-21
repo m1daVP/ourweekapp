@@ -332,6 +332,12 @@ function enableParticipant(participantId: string) {
       >
         Workspace settings
       </RouterLink>
+      <RouterLink
+        class="secondary-button link-button"
+        :to="{ name: 'calendar-sync' }"
+      >
+        Calendar sync
+      </RouterLink>
     </section>
     <PremiumLock
       feature="agreementReminders"

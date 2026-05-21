@@ -4,6 +4,7 @@ import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import AccountPage from '@/pages/AccountPage.vue';
+import CalendarSyncPage from '@/pages/CalendarSyncPage.vue';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
 import HomePage from '@/pages/HomePage.vue';
 import HistoryPage from '@/pages/HistoryPage.vue';
@@ -88,6 +89,11 @@ export const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: SettingsPage,
+    },
+    {
+      path: '/calendar-sync',
+      name: 'calendar-sync',
+      component: CalendarSyncPage,
     },
     {
       path: '/upgrade',

@@ -1526,6 +1526,103 @@ h2 {
   color: #7b2e21;
 }
 
+.calendar-sync-page h1 {
+  max-width: 10ch;
+}
+
+.calendar-sync-page .premium-lock {
+  display: grid;
+  gap: 0;
+}
+
+.calendar-sync-page .premium-lock__preview {
+  display: grid;
+  gap: 16px;
+}
+
+.calendar-sync-note,
+.calendar-sync-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.calendar-sync-note {
+  border-color: #cbd9d2;
+  background: #f3f8f4;
+}
+
+.calendar-sync-note strong {
+  color: #22312b;
+}
+
+.calendar-sync-note p,
+.calendar-sync-panel p {
+  margin-bottom: 0;
+  color: #5b5f58;
+}
+
+.calendar-sync-panel .meeting-primary,
+.calendar-sync-secondary {
+  min-height: 46px;
+  border: 1px solid #22312b;
+  border-radius: 8px;
+  background: #22312b;
+  padding: 0 14px;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.calendar-sync-panel .meeting-primary:disabled,
+.calendar-sync-secondary:disabled {
+  opacity: 0.55;
+}
+
+.calendar-sync-secondary {
+  border-color: #cfc7ba;
+  background: #ffffff;
+  color: #2c2924;
+}
+
+.calendar-sync-options {
+  display: grid;
+  gap: 10px;
+}
+
+.calendar-sync-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  min-height: 52px;
+  align-items: start;
+  gap: 10px;
+  border: 1px solid #ebe4d8;
+  border-radius: 8px;
+  background: #fffdf9;
+  padding: 12px;
+}
+
+.calendar-sync-option input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: #22312b;
+}
+
+.calendar-sync-option span {
+  display: grid;
+  gap: 3px;
+}
+
+.calendar-sync-option strong {
+  color: #2c2924;
+  font-size: 0.92rem;
+}
+
+.calendar-sync-option small {
+  color: #687064;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .reminder-panel {
   gap: 16px;
 }
