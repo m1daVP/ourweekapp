@@ -1,9 +1,18 @@
 import type {
   CalendarConnectionStatus,
+  CalendarFollowUpDatePayload,
   CalendarMeetingReminderPayload,
   CalendarSyncResult,
   CalendarTaskDueDatePayload,
 } from '@/features/calendar/types';
+import {
+  disconnectGoogleCalendar,
+  getGoogleCalendarConnectionStatus,
+  startGoogleCalendarConnection,
+  syncGoogleCalendarFollowUpDate,
+  syncGoogleCalendarMeetingReminder,
+  syncGoogleCalendarTaskDueDate,
+} from '@/shared/api/calendarApi';
 
 function nowIso() {
   return new Date().toISOString();
@@ -47,19 +56,21 @@ export async function connectCalendar(): Promise<CalendarConnectionStatus> {
   // TODO: Implement Google OAuth through a backend-supported or otherwise
   // securely recommended flow before enabling real calendar connections.
   // Do not store Google access or refresh tokens in frontend localStorage.
-  return createSetupRequiredStatus();
+  return (await startGoogleCalendarConnection()) ?? createSetupRequiredStatus();
 }
 
 export async function disconnectCalendar(): Promise<CalendarConnectionStatus> {
   // TODO: Revoke backend-held Google tokens when the backend calendar
   // connection flow exists. The mobile app should not manage raw tokens.
-  return createDisconnectedStatus();
+  return (await disconnectGoogleCalendar()) ?? createDisconnectedStatus();
 }
 
 export async function getCalendarConnectionStatus(): Promise<CalendarConnectionStatus> {
   // TODO: Read this from the backend once OAuth and token storage are handled
   // securely outside the mobile app.
-  return createDisconnectedStatus();
+  return (
+    (await getGoogleCalendarConnectionStatus()) ?? createDisconnectedStatus()
+  );
 }
 
 export async function syncMeetingReminder(
@@ -72,9 +83,12 @@ export async function syncMeetingReminder(
     );
   }
 
-  return createSkippedResult(
-    'oauth-not-configured',
-    'Calendar sync is waiting for a secure Google connection flow.'
+  return (
+    (await syncGoogleCalendarMeetingReminder(payload)) ??
+    createSkippedResult(
+      'oauth-not-configured',
+      'Calendar sync is waiting for a secure Google connection flow.'
+    )
   );
 }
 
@@ -88,9 +102,31 @@ export async function syncTaskDueDate(
     );
   }
 
-  return createSkippedResult(
-    'oauth-not-configured',
-    'Calendar sync is waiting for a secure Google connection flow.'
+  return (
+    (await syncGoogleCalendarTaskDueDate(payload)) ??
+    createSkippedResult(
+      'oauth-not-configured',
+      'Calendar sync is waiting for a secure Google connection flow.'
+    )
+  );
+}
+
+export async function syncFollowUpDate(
+  payload: CalendarFollowUpDatePayload
+): Promise<CalendarSyncResult> {
+  if (!payload.followUpDate) {
+    return createSkippedResult(
+      'missing-calendar-date',
+      'Add a follow-up date before syncing it to Google Calendar.'
+    );
+  }
+
+  return (
+    (await syncGoogleCalendarFollowUpDate(payload)) ??
+    createSkippedResult(
+      'oauth-not-configured',
+      'Calendar sync is waiting for a secure Google connection flow.'
+    )
   );
 }
 
@@ -98,6 +134,7 @@ export const calendarService = {
   connectCalendar,
   disconnectCalendar,
   getCalendarConnectionStatus,
+  syncFollowUpDate,
   syncMeetingReminder,
   syncTaskDueDate,
 };

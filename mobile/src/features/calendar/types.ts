@@ -33,6 +33,13 @@ export interface CalendarTaskDueDatePayload {
   dueDate?: string;
 }
 
+export interface CalendarFollowUpDatePayload {
+  followUpId: string;
+  title: string;
+  followUpDate?: string;
+  sourceMeetingId?: string;
+}
+
 export interface CalendarSyncResult {
   provider: CalendarProvider;
   synced: boolean;
