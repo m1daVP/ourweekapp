@@ -8,6 +8,8 @@ import type {
   MeetingNote,
   MeetingSection,
   MeetingSectionId,
+  MeetingSummary,
+  MeetingSummaryTask,
   MeetingTask,
   MeetingTaskStatus,
 } from '@/features/meeting/types'
@@ -39,6 +41,27 @@ interface UpdateTaskPayload {
 interface LegacyParticipant {
   id?: string
   name?: string
+}
+
+interface LegacyMeetingSummaryTask {
+  title?: string
+  description?: string
+  responsibilityType?: TaskResponsibilityType
+  responsibleParticipantIds?: string[]
+  dueDate?: string
+  status?: MeetingTaskStatus
+}
+
+interface LegacyMeetingSummary {
+  id?: string
+  meetingId?: string
+  shortSummary?: string
+  mainTopics?: string[]
+  keyTensions?: string[]
+  agreements?: string[]
+  tasks?: LegacyMeetingSummaryTask[]
+  suggestedNextMeetingFocus?: string[]
+  createdAt?: string
 }
 
 interface LegacyMeetingTask {
@@ -84,6 +107,7 @@ interface LegacyMeeting {
   createdAt?: string
   updatedAt?: string
   completedAt?: string
+  aiSummary?: LegacyMeetingSummary
 }
 
 const sectionTemplates: Array<Pick<MeetingSection, 'id' | 'title' | 'prompt'>> =
@@ -209,6 +233,66 @@ function normalizeMeetingTask(
   }
 }
 
+function normalizeMeetingSummaryTask(
+  task: LegacyMeetingSummaryTask,
+): MeetingSummaryTask | null {
+  const title = task.title?.trim()
+
+  if (!title) {
+    return null
+  }
+
+  const responsibilityType = task.responsibilityType ?? 'needsDiscussion'
+
+  return {
+    title,
+    description: task.description?.trim() || undefined,
+    responsibilityType,
+    responsibleParticipantIds:
+      responsibilityType === 'needsDiscussion'
+        ? []
+        : uniqueIds(task.responsibleParticipantIds ?? []),
+    dueDate: task.dueDate?.trim() || undefined,
+    status: task.status ?? 'open',
+  }
+}
+
+function normalizeStringList(items?: string[]) {
+  return Array.isArray(items)
+    ? items.map((item) => item.trim()).filter(Boolean)
+    : []
+}
+
+function normalizeMeetingSummary(
+  summary: LegacyMeetingSummary | undefined,
+  meetingId: string,
+): MeetingSummary | undefined {
+  const id = summary?.id?.trim()
+  const shortSummary = summary?.shortSummary?.trim()
+  const createdAt = summary?.createdAt
+
+  if (!summary || !id || !shortSummary || !createdAt) {
+    return undefined
+  }
+
+  return {
+    id,
+    meetingId,
+    shortSummary,
+    mainTopics: normalizeStringList(summary.mainTopics),
+    keyTensions: normalizeStringList(summary.keyTensions),
+    agreements: normalizeStringList(summary.agreements),
+    tasks:
+      summary.tasks
+        ?.map(normalizeMeetingSummaryTask)
+        .filter((task): task is MeetingSummaryTask => Boolean(task)) ?? [],
+    suggestedNextMeetingFocus: normalizeStringList(
+      summary.suggestedNextMeetingFocus,
+    ),
+    createdAt,
+  }
+}
+
 function normalizeAgreement(
   agreement: LegacyAgreement,
   sectionId: MeetingSectionId,
@@ -233,6 +317,7 @@ function normalizeAgreement(
 
 function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
   const createdAt = meeting.createdAt ?? nowIso()
+  const id = meeting.id ?? createId('meeting')
   const participantIds = uniqueIds([
     ...(meeting.participantIds ?? []),
     ...(meeting.participants ?? []).map((participant) => participant.id),
@@ -258,7 +343,7 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
   })
 
   return {
-    id: meeting.id ?? createId('meeting'),
+    id,
     title: meeting.title?.trim() || 'Weekly meeting',
     status: meeting.status ?? 'in_progress',
     participantIds,
@@ -270,6 +355,7 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
     createdAt,
     updatedAt: meeting.updatedAt ?? createdAt,
     completedAt: meeting.completedAt,
+    aiSummary: normalizeMeetingSummary(meeting.aiSummary, id),
   }
 }
 
@@ -766,6 +852,17 @@ export const useMeetingsStore = defineStore('meetings', {
       })
       this.persist()
       return null
+    },
+    saveAiSummary(meetingId: string, summary: MeetingSummary) {
+      const meeting = this.meetings.find((item) => item.id === meetingId)
+
+      if (!meeting || summary.meetingId !== meetingId) {
+        return
+      }
+
+      meeting.aiSummary = summary
+      meeting.updatedAt = nowIso()
+      this.persist()
     },
     saveDraft() {
       const meeting = this.activeMeeting

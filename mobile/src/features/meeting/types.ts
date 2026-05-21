@@ -38,6 +38,27 @@ export interface MeetingTask {
   completedAt?: string
 }
 
+export interface MeetingSummaryTask {
+  title: string
+  description?: string
+  responsibilityType: TaskResponsibilityType
+  responsibleParticipantIds: string[]
+  dueDate?: string
+  status: MeetingTaskStatus
+}
+
+export interface MeetingSummary {
+  id: string
+  meetingId: string
+  shortSummary: string
+  mainTopics: string[]
+  keyTensions: string[]
+  agreements: string[]
+  tasks: MeetingSummaryTask[]
+  suggestedNextMeetingFocus: string[]
+  createdAt: string
+}
+
 export interface Agreement {
   id: string
   sectionId: MeetingSectionId
@@ -65,11 +86,5 @@ export interface Meeting {
   createdAt: string
   updatedAt: string
   completedAt?: string
-}
-
-export interface MeetingSummary {
-  id: string
-  title: string
-  status: MeetingStatus
-  updatedAt: string
+  aiSummary?: MeetingSummary
 }
