@@ -580,6 +580,18 @@ doAction();
 manager();
 ```
 
+The project formatting and linting configs are the source of truth:
+
+- Prettier rules are defined in `.prettierrc.json`;
+- Prettier ignored files are defined in `.prettierignore`;
+- ESLint rules are defined in `eslint.config.js`.
+
+After changing code, run:
+
+npm run format
+npm run lint:fix
+npm run check
+
 ## Component Guidelines
 
 Components should be focused, readable, mobile-friendly, and easy to test manually.
