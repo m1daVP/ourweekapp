@@ -570,33 +570,49 @@ function startNewMeeting() {
 
 <template>
   <section v-if="activeMeeting && currentSection" class="meeting-page">
-    <header class="meeting-header">
-      <p class="page-kicker">Weekly Meeting</p>
-      <div class="meeting-header__row">
-        <div>
-          <h1>{{ currentSection.title }}</h1>
-          <p class="meeting-prompt">{{ currentSection.prompt }}</p>
-        </div>
-        <button
-          v-if="!isCompleted && canEditMeeting"
-          class="meeting-save"
-          type="button"
-          @click="saveDraft"
-        >
-          Save draft
-        </button>
-      </div>
-
-      <div class="meeting-progress" aria-label="Meeting progress">
-        <div class="meeting-progress__label">
-          <span>Step {{ currentStepNumber }} of {{ totalSteps }}</span>
-          <span>{{ Math.round((currentStepNumber / totalSteps) * 100) }}%</span>
-        </div>
+    <header class="meeting-focus-bar">
+      <button
+        class="meeting-focus-bar__icon material-symbols-outlined"
+        type="button"
+        aria-label="Close meeting"
+        @click="router.push({ name: 'home' })"
+      >
+        close
+      </button>
+      <div class="meeting-focus-bar__progress">
+        <span>Step {{ currentStepNumber }} of {{ totalSteps }}</span>
         <div class="meeting-progress__track">
           <div
             class="meeting-progress__bar"
             :style="{ width: progressPercent }"
           />
+        </div>
+      </div>
+      <button
+        v-if="!isCompleted && canEditMeeting"
+        class="meeting-focus-bar__save"
+        type="button"
+        @click="saveDraft"
+      >
+        Save
+      </button>
+      <span v-else />
+    </header>
+
+    <header class="meeting-header">
+      <div v-if="activeMeetingParticipants.length" class="meeting-avatar-stack">
+        <span
+          v-for="participant in activeMeetingParticipants.slice(0, 3)"
+          :key="participant.id"
+          :style="{ backgroundColor: participant.avatarColor }"
+        >
+          {{ participant.initials }}
+        </span>
+      </div>
+      <div class="meeting-header__row">
+        <div>
+          <h1>{{ currentSection.title }}</h1>
+          <p class="meeting-prompt">{{ currentSection.prompt }}</p>
         </div>
       </div>
     </header>

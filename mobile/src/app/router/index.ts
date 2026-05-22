@@ -25,6 +25,9 @@ import WorkspaceSettingsPage from '@/pages/WorkspaceSettingsPage.vue';
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior() {
+    return { top: 0, left: 0 };
+  },
   routes: [
     {
       path: '/welcome',
@@ -64,6 +67,7 @@ export const router = createRouter({
       path: '/meeting',
       name: 'meeting',
       component: MeetingPage,
+      meta: { hideNavigation: true },
     },
     {
       path: '/history',
