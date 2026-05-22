@@ -53,10 +53,10 @@ async function handleSubmit() {
   <section class="auth-page">
     <div>
       <p class="page-kicker">Create account</p>
-      <h1>Set up Weekly Us for sync later.</h1>
+      <h1>Weekly Us</h1>
       <p class="page-copy">
-        Email and password are enough for the MVP. Google and Apple sign-in are
-        not enabled yet.
+        Set up a calm shared place for weekly check-ins, agreements, and
+        household follow-up.
       </p>
     </div>
 

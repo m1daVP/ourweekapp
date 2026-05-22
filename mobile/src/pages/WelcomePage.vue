@@ -19,12 +19,11 @@ function continueLocalOnly() {
   <section class="auth-page welcome-page">
     <div class="auth-hero">
       <p class="page-kicker">Weekly Us</p>
-      <h1>
-        A calmer weekly check-in, with your household history kept together.
-      </h1>
+      <h1>Weekly Us</h1>
+      <h2>A calmer way to plan the week together</h2>
       <p class="page-copy">
-        Create an account when you want sync, history across devices, and future
-        premium features. You can also keep using this phone only.
+        A guided 15-minute weekly meeting for shared tasks, practical
+        agreements, and fewer repeated household conversations.
       </p>
     </div>
 
@@ -52,7 +51,7 @@ function continueLocalOnly() {
 
     <div class="auth-actions">
       <RouterLink class="meeting-primary link-button" :to="{ name: 'sign-up' }">
-        Create account
+        Get Started
       </RouterLink>
       <RouterLink
         class="secondary-button link-button"

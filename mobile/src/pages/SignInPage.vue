@@ -55,9 +55,9 @@ async function handleSubmit() {
   <section class="auth-page">
     <div>
       <p class="page-kicker">Sign in</p>
-      <h1>Open your Weekly Us account.</h1>
+      <h1>Welcome Back</h1>
       <p class="page-copy">
-        Use email and password for now. Local-only data stays on this device.
+        Continue your weekly household rhythm and pick up where you left off.
       </p>
     </div>
 
