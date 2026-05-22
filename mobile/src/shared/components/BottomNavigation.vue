@@ -1,10 +1,10 @@
 <script setup lang="ts">
 const navigationItems = [
-  { to: '/', label: 'Home' },
-  { to: '/meeting', label: 'Meeting' },
-  { to: '/tasks', label: 'Tasks' },
-  { to: '/history', label: 'History' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/', label: 'Home', icon: 'home' },
+  { to: '/meeting', label: 'Meeting', icon: 'chat_bubble' },
+  { to: '/tasks', label: 'Tasks', icon: 'check_circle' },
+  { to: '/history', label: 'History', icon: 'history' },
+  { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
 </script>
 
@@ -16,7 +16,10 @@ const navigationItems = [
       :to="item.to"
       class="bottom-navigation__item"
     >
-      {{ item.label }}
+      <span class="material-symbols-outlined" aria-hidden="true">
+        {{ item.icon }}
+      </span>
+      <span>{{ item.label }}</span>
     </RouterLink>
   </nav>
 </template>
