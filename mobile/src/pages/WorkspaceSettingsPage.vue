@@ -1,56 +1,31 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import type { UserRole } from '@/features/access/types';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 const workspaceStore = useWorkspaceStore();
-const {
-  can,
-  currentPermissions,
-  currentRoleLabel,
-  getRoleLabel,
-  getStatusLabel,
-} = useWorkspacePermissions();
+const { can, getRoleLabel } = useWorkspacePermissions();
 
-const workspaceName = ref(workspaceStore.workspace.name);
+const isInviteSheetOpen = ref(false);
 const statusMessage = ref('');
 const errorMessage = ref('');
 const inviteDraft = reactive({
-  displayName: '',
-  email: '',
+  contact: '',
   role: 'adult_member' as Exclude<UserRole, 'owner'>,
 });
 
 const roleOptions: Array<{ label: string; value: Exclude<UserRole, 'owner'> }> =
   [
-    { label: 'Adult member', value: 'adult_member' },
+    { label: 'Member', value: 'adult_member' },
     { label: 'Viewer', value: 'viewer' },
   ];
 
-const memberOptions = computed(() =>
-  workspaceStore.visibleMembers.filter((member) => member.status !== 'removed')
+const activeMembers = computed(() =>
+  workspaceStore.visibleMembers.filter((member) => member.status === 'active')
 );
-const permissionLabels: Record<string, string> = {
-  manageWorkspace: 'Manage workspace',
-  inviteMembers: 'Invite or remove members',
-  removeMembers: 'Remove members',
-  manageSubscription: 'Manage subscription',
-  createMeetings: 'Create meetings',
-  editMeetings: 'Edit meetings',
-  deleteMeetings: 'Delete meetings',
-  createTasks: 'Create tasks',
-  editTasks: 'Edit tasks',
-  deleteTasks: 'Delete tasks',
-  viewHistory: 'View meeting history',
-  viewSelectedSummariesAndTasks: 'View shared summaries and tasks',
-};
-
-watch(
-  () => workspaceStore.workspace.name,
-  (name) => {
-    workspaceName.value = name;
-  }
+const pendingInvites = computed(() =>
+  workspaceStore.visibleMembers.filter((member) => member.status === 'invited')
 );
 
 function clearMessages() {
@@ -58,20 +33,39 @@ function clearMessages() {
   errorMessage.value = '';
 }
 
-function saveWorkspaceName() {
+function openInviteSheet() {
   clearMessages();
+  isInviteSheetOpen.value = true;
+}
 
-  if (!can('manageWorkspace')) {
-    errorMessage.value = 'Only the owner can rename the workspace.';
-    return;
+function closeInviteSheet() {
+  isInviteSheetOpen.value = false;
+}
+
+function getInitials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase() ?? '')
+      .join('') || '?'
+  );
+}
+
+function getMemberTone(index: number) {
+  const tones = ['#5d7c60', '#976871', '#7e5622', '#5f7f82'];
+  return tones[index % tones.length];
+}
+
+function getInviteName(contact: string) {
+  const trimmedContact = contact.trim();
+
+  if (!trimmedContact.includes('@')) {
+    return trimmedContact;
   }
 
-  if (!workspaceStore.updateWorkspaceName(workspaceName.value)) {
-    errorMessage.value = 'Add a workspace name first.';
-    return;
-  }
-
-  statusMessage.value = 'Workspace updated.';
+  return trimmedContact.split('@')[0]?.replace(/[._-]+/g, ' ') || 'Member';
 }
 
 function inviteMember() {
@@ -82,31 +76,29 @@ function inviteMember() {
     return;
   }
 
-  const member = workspaceStore.inviteMember(inviteDraft);
+  const contact = inviteDraft.contact.trim();
 
-  if (!member) {
-    errorMessage.value = 'Add a name first.';
+  if (!contact) {
+    errorMessage.value = 'Add an email or phone number first.';
     return;
   }
 
-  inviteDraft.displayName = '';
-  inviteDraft.email = '';
+  const member = workspaceStore.inviteMember({
+    displayName: getInviteName(contact),
+    email: contact.includes('@') ? contact : undefined,
+    role: inviteDraft.role,
+  });
+
+  if (!member) {
+    errorMessage.value = 'Could not save this invite.';
+    return;
+  }
+
+  inviteDraft.contact = '';
   inviteDraft.role = 'adult_member';
   statusMessage.value =
     'Invitation saved locally. No email has been sent in this MVP.';
-}
-
-function updateMemberRole(userId: string, event: Event) {
-  clearMessages();
-
-  if (!can('manageWorkspace')) {
-    errorMessage.value = 'Only the owner can change roles.';
-    return;
-  }
-
-  const role = (event.target as HTMLSelectElement).value as UserRole;
-  workspaceStore.updateMemberRole(userId, role);
-  statusMessage.value = 'Member role updated.';
+  closeInviteSheet();
 }
 
 function removeMember(userId: string) {
@@ -120,127 +112,137 @@ function removeMember(userId: string) {
   workspaceStore.removeMember(userId);
   statusMessage.value = 'Member removed from the workspace.';
 }
-
-function switchCurrentMember(event: Event) {
-  const userId = (event.target as HTMLSelectElement).value;
-  workspaceStore.setCurrentUser(userId);
-}
 </script>
 
 <template>
-  <section class="page-stack workspace-page">
-    <div>
-      <p class="page-kicker">Workspace</p>
-      <h1>Family workspace</h1>
-      <p class="page-copy">
-        A simple shared space for the people who use Weekly Us together.
-      </p>
-    </div>
+  <section class="page-stack workspace-page workspace-members-page">
+    <header class="workspace-members-hero">
+      <h1>Household Members</h1>
+      <p class="page-copy">Manage who has access to your shared space.</p>
+    </header>
 
-    <section class="content-panel settings-panel">
-      <div>
-        <h2>Workspace name</h2>
-        <p>
-          Stored locally for now. Backend sync and real invitations can be added
-          later.
-        </p>
-      </div>
-      <label class="workspace-field">
-        <span>Name</span>
-        <input
-          v-model="workspaceName"
-          type="text"
-          :disabled="!can('manageWorkspace')"
-        />
-      </label>
+    <section class="workspace-member-cards" aria-label="Current members">
+      <article
+        v-for="(member, index) in activeMembers"
+        :key="member.userId"
+        class="workspace-member-card"
+      >
+        <span
+          class="workspace-member-card__avatar"
+          :style="{ backgroundColor: getMemberTone(index) }"
+        >
+          {{ getInitials(member.displayName) }}
+        </span>
+        <span class="workspace-member-card__body">
+          <strong>{{ member.displayName }}</strong>
+          <small>
+            {{
+              member.role === 'owner'
+                ? 'Admin'
+                : getRoleLabel(member.role).replace('Adult member', 'Member')
+            }}
+          </small>
+        </span>
+        <button
+          v-if="member.userId !== workspaceStore.workspace.ownerId"
+          class="workspace-member-card__remove material-symbols-outlined"
+          type="button"
+          aria-label="Remove member"
+          @click="removeMember(member.userId)"
+        >
+          close
+        </button>
+      </article>
+    </section>
+
+    <section
+      v-if="pendingInvites.length"
+      class="workspace-pending-invites"
+      aria-labelledby="pending-invites-title"
+    >
+      <h2 id="pending-invites-title">Pending Invites</h2>
+      <article
+        v-for="invite in pendingInvites"
+        :key="invite.userId"
+        class="workspace-invite-card"
+      >
+        <span class="workspace-invite-card__icon material-symbols-outlined">
+          mail
+        </span>
+        <span class="workspace-invite-card__body">
+          <strong>{{ invite.email ?? invite.displayName }}</strong>
+          <small>Saved locally</small>
+        </span>
+        <button type="button" @click="statusMessage = 'Invite kept locally.'">
+          Resend
+        </button>
+      </article>
+    </section>
+
+    <p v-if="statusMessage" class="meeting-status" role="status">
+      {{ statusMessage }}
+    </p>
+    <p v-if="errorMessage" class="meeting-error" role="alert">
+      {{ errorMessage }}
+    </p>
+
+    <div class="workspace-invite-dock">
       <button
         class="meeting-primary"
         type="button"
-        :disabled="!can('manageWorkspace')"
-        @click="saveWorkspaceName"
+        :disabled="!can('inviteMembers')"
+        @click="openInviteSheet"
       >
-        Save workspace
+        <span class="material-symbols-outlined" aria-hidden="true">
+          person_add
+        </span>
+        Invite New Member
       </button>
-    </section>
+    </div>
 
-    <section class="content-panel settings-panel">
-      <div>
-        <h2>Members</h2>
-        <p>Roles keep editing rules calm and predictable.</p>
-      </div>
+    <div
+      v-if="isInviteSheetOpen"
+      class="workspace-invite-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="invite-sheet-title"
+    >
+      <button
+        class="workspace-invite-sheet__scrim"
+        type="button"
+        aria-label="Close invite form"
+        @click="closeInviteSheet"
+      />
+      <form
+        class="workspace-invite-sheet__panel"
+        @submit.prevent="inviteMember"
+      >
+        <header>
+          <button
+            class="material-symbols-outlined"
+            type="button"
+            aria-label="Go back"
+            @click="closeInviteSheet"
+          >
+            arrow_back
+          </button>
+          <h2 id="invite-sheet-title">Add Member</h2>
+        </header>
 
-      <ul class="workspace-member-list">
-        <li
-          v-for="member in workspaceStore.visibleMembers"
-          :key="member.userId"
-        >
-          <div class="workspace-member-list__body">
-            <strong>{{ member.displayName }}</strong>
-            <span v-if="member.email">{{ member.email }}</span>
-            <small>
-              {{ getRoleLabel(member.role) }} -
-              {{ getStatusLabel(member.status) }}
-              <template v-if="member.userId === workspaceStore.currentUserId">
-                - Current view
-              </template>
-            </small>
-          </div>
-
-          <div class="workspace-member-list__actions">
-            <select
-              :value="member.role"
-              :disabled="
-                !can('manageWorkspace') ||
-                member.userId === workspaceStore.workspace.ownerId
-              "
-              @change="updateMemberRole(member.userId, $event)"
-            >
-              <option value="owner">Owner</option>
-              <option value="adult_member">Adult member</option>
-              <option value="viewer">Viewer</option>
-            </select>
-            <button
-              type="button"
-              :disabled="
-                !can('removeMembers') ||
-                member.userId === workspaceStore.workspace.ownerId
-              "
-              @click="removeMember(member.userId)"
-            >
-              Remove
-            </button>
-          </div>
-        </li>
-      </ul>
-    </section>
-
-    <section class="content-panel settings-panel">
-      <div>
-        <h2>Invite member</h2>
-        <p>This only creates a local placeholder. No email is sent yet.</p>
-      </div>
-      <form class="workspace-invite-form" @submit.prevent="inviteMember">
         <label>
-          <span>Name</span>
+          <span>Email or Phone Number</span>
           <input
-            v-model="inviteDraft.displayName"
+            v-model="inviteDraft.contact"
+            autocomplete="email"
+            inputmode="email"
             type="text"
-            placeholder="Name"
-            :disabled="!can('inviteMembers')"
+            placeholder="Enter email or phone number"
           />
         </label>
-        <label>
-          <span>Email optional</span>
-          <input
-            v-model="inviteDraft.email"
-            type="email"
-            placeholder="name@example.com"
-            :disabled="!can('inviteMembers')"
-          />
-        </label>
+
         <label>
           <span>Role</span>
-          <select v-model="inviteDraft.role" :disabled="!can('inviteMembers')">
+          <select v-model="inviteDraft.role">
             <option
               v-for="role in roleOptions"
               :key="role.value"
@@ -250,62 +252,18 @@ function switchCurrentMember(event: Event) {
             </option>
           </select>
         </label>
-        <button
-          class="meeting-primary"
-          type="submit"
-          :disabled="!can('inviteMembers')"
-        >
-          Add invite placeholder
-        </button>
-      </form>
-    </section>
 
-    <section class="content-panel settings-panel">
-      <div>
-        <h2>Current role</h2>
-        <p>{{ currentRoleLabel }} access is active in this local MVP.</p>
-      </div>
-      <label class="workspace-field">
-        <span>View as</span>
-        <select
-          :value="workspaceStore.currentUserId"
-          @change="switchCurrentMember"
-        >
-          <option
-            v-for="member in memberOptions"
-            :key="member.userId"
-            :value="member.userId"
-          >
-            {{ member.displayName }} - {{ getRoleLabel(member.role) }}
-          </option>
-        </select>
-      </label>
-      <ul class="workspace-permission-list">
-        <li v-for="permission in currentPermissions" :key="permission">
-          {{ permissionLabels[permission] }}
-        </li>
-      </ul>
-      <p class="meeting-help">
-        Owners manage the workspace and subscription. Adult members can help run
-        meetings and tasks. Viewers are read-only.
-      </p>
-    </section>
-
-    <section class="content-panel settings-panel">
-      <div>
-        <h2>Subscription</h2>
         <p>
-          {{ can('manageSubscription') ? 'Owner access.' : 'Owner only.' }}
-          Real payments are not implemented in this MVP.
+          Invited members will receive a link to join your household's weekly
+          ritual once backend invitations are connected.
         </p>
-      </div>
-    </section>
 
-    <p v-if="statusMessage" class="meeting-status" role="status">
-      {{ statusMessage }}
-    </p>
-    <p v-if="errorMessage" class="meeting-error" role="alert">
-      {{ errorMessage }}
-    </p>
+        <p v-if="errorMessage" class="meeting-error" role="alert">
+          {{ errorMessage }}
+        </p>
+
+        <button class="meeting-primary" type="submit">Send Invitation</button>
+      </form>
+    </div>
   </section>
 </template>
