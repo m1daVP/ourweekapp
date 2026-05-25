@@ -134,6 +134,22 @@ function openHistoryItem(item: (typeof historyItems.value)[number]) {
       </p>
     </header>
 
+    <RouterLink
+      class="content-panel history-private-notes-link"
+      :to="{ name: 'private-notes' }"
+    >
+      <span class="section-icon material-symbols-outlined" aria-hidden="true">
+        edit_note
+      </span>
+      <span>
+        <strong>Private notes</strong>
+        <small>Keep personal notes separate from shared meeting history.</small>
+      </span>
+      <span class="material-symbols-outlined" aria-hidden="true">
+        chevron_right
+      </span>
+    </RouterLink>
+
     <ul v-if="historyItems.length" class="history-list">
       <li
         v-for="item in historyItems"

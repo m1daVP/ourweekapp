@@ -76,6 +76,11 @@ export const router = createRouter({
       meta: { requiresFeature: 'limitedHistory' },
     },
     {
+      path: '/history/private-notes',
+      name: 'private-notes',
+      component: PrivateNotesPage,
+    },
+    {
       path: '/history/:meetingId',
       name: 'meeting-details',
       component: MeetingDetailsPage,
@@ -87,44 +92,39 @@ export const router = createRouter({
       component: TasksPage,
     },
     {
-      path: '/private-notes',
-      name: 'private-notes',
-      component: PrivateNotesPage,
-    },
-    {
       path: '/settings',
       name: 'settings',
       component: SettingsPage,
     },
     {
-      path: '/privacy',
+      path: '/settings/privacy',
       name: 'privacy',
       component: PrivacyPolicyPage,
       meta: { isPublicEntry: true },
     },
     {
-      path: '/terms',
+      path: '/settings/terms',
       name: 'terms',
       component: TermsPage,
       meta: { isPublicEntry: true },
     },
     {
-      path: '/calendar-sync',
+      path: '/settings/calendar-sync',
       name: 'calendar-sync',
       component: CalendarSyncPage,
     },
     {
-      path: '/upgrade',
+      path: '/settings/upgrade',
       name: 'upgrade',
       component: UpgradePage,
     },
     {
-      path: '/workspace-settings',
+      path: '/settings/workspace',
       name: 'workspace-settings',
       component: WorkspaceSettingsPage,
     },
     {
-      path: '/account',
+      path: '/settings/account',
       name: 'account',
       component: AccountPage,
       meta: { requiresAuth: true },
