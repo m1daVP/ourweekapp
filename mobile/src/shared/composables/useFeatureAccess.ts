@@ -1,4 +1,5 @@
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
@@ -7,6 +8,7 @@ import type { Meeting } from '@/features/meeting/types';
 import { useUserAccessStore } from '@/app/stores/userAccess';
 
 export function useFeatureAccess() {
+  const { t, te } = useI18n();
   const accessStore = useUserAccessStore();
   const subscriptionStore = useSubscriptionStore();
   const workspaceStore = useWorkspaceStore();
@@ -58,7 +60,20 @@ export function useFeatureAccess() {
   }
 
   function getFeatureAccess(featureKey: FeatureKey) {
-    return featureAccessConfig[featureKey];
+    const feature = featureAccessConfig[featureKey];
+
+    return {
+      ...feature,
+      label: te(`features.${featureKey}.label`)
+        ? t(`features.${featureKey}.label`)
+        : feature.label,
+      description: te(`features.${featureKey}.description`)
+        ? t(`features.${featureKey}.description`)
+        : feature.description,
+      lockedReason: te(`features.${featureKey}.lockedReason`)
+        ? t(`features.${featureKey}.lockedReason`)
+        : feature.lockedReason,
+    };
   }
 
   function getFreeLimit(featureKey: FeatureKey) {

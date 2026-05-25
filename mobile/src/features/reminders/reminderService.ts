@@ -5,6 +5,7 @@ import {
   type LocalNotificationSchema,
   type PermissionStatus,
 } from '@capacitor/local-notifications';
+import { translate } from '@/features/localization/i18n';
 import type { ReminderDay, ReminderSettings } from './types';
 
 export interface UnfinishedReminderCounts {
@@ -93,8 +94,8 @@ export async function scheduleReminderNotifications(
   const notifications: LocalNotificationSchema[] = [
     {
       id: WEEKLY_MEETING_NOTIFICATION_ID,
-      title: 'Weekly Us',
-      body: 'A gentle reminder for your weekly meeting.',
+      title: translate('reminders.title'),
+      body: translate('reminders.weeklyMeetingBody'),
       channelId: ANDROID_CHANNEL_ID,
       autoCancel: true,
       schedule: createWeeklySchedule(settings.weeklyMeetingReminder),
@@ -104,7 +105,7 @@ export async function scheduleReminderNotifications(
   if (counts.tasks > 0 || counts.agreements > 0) {
     notifications.push({
       id: UNFINISHED_TASKS_NOTIFICATION_ID,
-      title: 'Weekly Us',
+      title: translate('reminders.title'),
       body: createUnfinishedReminderBody(counts),
       channelId: ANDROID_CHANNEL_ID,
       autoCancel: true,
@@ -124,8 +125,8 @@ async function ensureAndroidChannel() {
 
   await LocalNotifications.createChannel({
     id: ANDROID_CHANNEL_ID,
-    name: 'Weekly Us reminders',
-    description: 'Gentle reminders for meetings and unfinished items.',
+    name: translate('reminders.channelName'),
+    description: translate('reminders.channelDescription'),
     importance: 3,
     visibility: 1,
     lights: false,
@@ -151,12 +152,12 @@ function createWeeklySchedule(slot: ReminderSettings['weeklyMeetingReminder']) {
 
 function createUnfinishedReminderBody(counts: UnfinishedReminderCounts) {
   if (counts.tasks > 0 && counts.agreements > 0) {
-    return 'A gentle reminder to review unfinished agreements and tasks.';
+    return translate('reminders.unfinishedBoth');
   }
 
   if (counts.tasks > 0) {
-    return 'A gentle reminder to review unfinished tasks.';
+    return translate('reminders.unfinishedTasks');
   }
 
-  return 'A gentle reminder to review unfinished agreements.';
+  return translate('reminders.unfinishedAgreements');
 }

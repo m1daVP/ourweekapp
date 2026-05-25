@@ -1,16 +1,21 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
 defineProps<{
   status: 'open' | 'done' | 'skipped' | 'draft' | 'finished' | 'premium';
 }>();
 
-const statusLabel = {
-  open: 'Open',
-  done: 'Done',
+const { t } = useI18n();
+
+const statusLabel = computed(() => ({
+  open: t('common.open'),
+  done: t('common.done'),
   skipped: 'Skipped',
   draft: 'Draft',
   finished: 'Finished',
-  premium: 'Premium',
-};
+  premium: t('premium.badge'),
+}));
 </script>
 
 <template>

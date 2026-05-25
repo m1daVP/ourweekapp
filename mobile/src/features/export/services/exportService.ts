@@ -3,11 +3,19 @@ import type {
   MeetingSummaryTask,
   MeetingTask,
 } from '@/features/meeting/types';
+import { translate } from '@/features/localization/i18n';
+import {
+  getMeetingSectionPrompt,
+  getMeetingSectionTitle,
+  getMeetingTemplateName,
+} from '@/features/meeting/meetingTemplates';
+import type { SupportedLocale } from '@/features/localization/types';
 
 export type MeetingExportFormat = 'text' | 'markdown';
 
 export interface MeetingExportContext {
   getParticipantName: (participantId: string) => string;
+  locale?: SupportedLocale;
   formatDate?: (date: Date) => string;
   formatDateTime?: (value: string) => string;
 }
@@ -24,16 +32,16 @@ interface WebNavigatorWithShare extends Navigator {
 
 const lineBreak = '\n';
 
-function defaultFormatDate(date: Date) {
-  return new Intl.DateTimeFormat(undefined, {
+function defaultFormatDate(date: Date, locale?: SupportedLocale) {
+  return new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   }).format(date);
 }
 
-function defaultFormatDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+function defaultFormatDateTime(value: string, locale?: SupportedLocale) {
+  return new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
@@ -48,7 +56,9 @@ function getMeetingDate(meeting: Meeting) {
 }
 
 function getMeetingStatusLabel(meeting: Meeting) {
-  return meeting.status === 'completed' ? 'finished' : 'draft';
+  return meeting.status === 'completed'
+    ? translate('export.finished')
+    : translate('export.draft');
 }
 
 function getResponsibleLabel(
@@ -59,11 +69,13 @@ function getResponsibleLabel(
   getParticipantName: MeetingExportContext['getParticipantName']
 ) {
   if (task.responsibilityType === 'needsDiscussion') {
-    return 'Needs discussion';
+    return translate('export.needsDiscussion');
   }
 
   if (!task.responsibleParticipantIds.length) {
-    return task.responsibilityType === 'shared' ? 'Shared' : 'Unassigned';
+    return task.responsibilityType === 'shared'
+      ? translate('export.shared')
+      : translate('export.unassigned');
   }
 
   return task.responsibleParticipantIds.map(getParticipantName).join(', ');
@@ -77,12 +89,15 @@ function getTaskMeta(
   context: MeetingExportContext
 ) {
   const details = [
-    `Status: ${task.status}`,
-    `Responsible: ${getResponsibleLabel(task, context.getParticipantName)}`,
+    `${translate('export.status')}: ${task.status}`,
+    `${translate('export.responsible')}: ${getResponsibleLabel(
+      task,
+      context.getParticipantName
+    )}`,
   ];
 
   if (task.dueDate) {
-    details.push(`Due: ${task.dueDate}`);
+    details.push(`${translate('export.due')}: ${task.dueDate}`);
   }
 
   return details.join(' | ');
@@ -120,17 +135,29 @@ function addAiSummaryText(
   }
 
   lines.push(
-    'AI summary',
-    'AI summaries may be inaccurate. Review before relying on them.',
+    translate('export.aiSummary'),
+    translate('export.aiDisclaimer'),
     meeting.aiSummary.shortSummary,
     ''
   );
 
-  addListText(lines, 'Main topics discussed', meeting.aiSummary.mainTopics);
-  addListText(lines, 'Key tensions', meeting.aiSummary.keyTensions);
-  addListText(lines, 'Agreements made', meeting.aiSummary.agreements);
+  addListText(
+    lines,
+    translate('export.mainTopics'),
+    meeting.aiSummary.mainTopics
+  );
+  addListText(
+    lines,
+    translate('export.keyTensions'),
+    meeting.aiSummary.keyTensions
+  );
+  addListText(
+    lines,
+    translate('export.agreementsMade'),
+    meeting.aiSummary.agreements
+  );
 
-  lines.push('Open tasks');
+  lines.push(translate('export.openTasks'));
   if (meeting.aiSummary.tasks.length) {
     for (const task of meeting.aiSummary.tasks) {
       lines.push(`- ${task.title}`);
@@ -140,13 +167,13 @@ function addAiSummaryText(
       lines.push(`  ${getTaskMeta(task, context)}`);
     }
   } else {
-    lines.push('- No open tasks were summarized.');
+    lines.push(`- ${translate('export.noOpenTasks')}`);
   }
   lines.push('');
 
   addListText(
     lines,
-    'Topics to revisit next week',
+    translate('export.revisitNextWeek'),
     meeting.aiSummary.suggestedNextMeetingFocus
   );
 }
@@ -156,7 +183,7 @@ function addListText(lines: string[], title: string, items: string[]) {
   if (items.length) {
     lines.push(...items.map((item) => `- ${item}`));
   } else {
-    lines.push('- None recorded.');
+    lines.push(`- ${translate('export.noneRecorded')}`);
   }
   lines.push('');
 }
@@ -171,18 +198,30 @@ function addAiSummaryMarkdown(
   }
 
   lines.push(
-    '## AI summary',
-    '_AI summaries may be inaccurate. Review before relying on them._',
+    `## ${translate('export.aiSummary')}`,
+    `_${translate('export.aiDisclaimer')}_`,
     '',
     meeting.aiSummary.shortSummary,
     ''
   );
 
-  addListMarkdown(lines, 'Main topics discussed', meeting.aiSummary.mainTopics);
-  addListMarkdown(lines, 'Key tensions', meeting.aiSummary.keyTensions);
-  addListMarkdown(lines, 'Agreements made', meeting.aiSummary.agreements);
+  addListMarkdown(
+    lines,
+    translate('export.mainTopics'),
+    meeting.aiSummary.mainTopics
+  );
+  addListMarkdown(
+    lines,
+    translate('export.keyTensions'),
+    meeting.aiSummary.keyTensions
+  );
+  addListMarkdown(
+    lines,
+    translate('export.agreementsMade'),
+    meeting.aiSummary.agreements
+  );
 
-  lines.push('### Open tasks');
+  lines.push(`### ${translate('export.openTasks')}`);
   if (meeting.aiSummary.tasks.length) {
     for (const task of meeting.aiSummary.tasks) {
       lines.push(`- **${task.title}**`);
@@ -192,13 +231,13 @@ function addAiSummaryMarkdown(
       lines.push(`  ${getTaskMeta(task, context)}`);
     }
   } else {
-    lines.push('- No open tasks were summarized.');
+    lines.push(`- ${translate('export.noOpenTasks')}`);
   }
   lines.push('');
 
   addListMarkdown(
     lines,
-    'Topics to revisit next week',
+    translate('export.revisitNextWeek'),
     meeting.aiSummary.suggestedNextMeetingFocus
   );
 }
@@ -208,7 +247,7 @@ function addListMarkdown(lines: string[], title: string, items: string[]) {
   if (items.length) {
     lines.push(...items.map((item) => `- ${item}`));
   } else {
-    lines.push('- None recorded.');
+    lines.push(`- ${translate('export.noneRecorded')}`);
   }
   lines.push('');
 }
@@ -217,24 +256,32 @@ export function exportMeetingAsText(
   meeting: Meeting,
   context: MeetingExportContext
 ) {
-  const formatDate = context.formatDate ?? defaultFormatDate;
-  const formatDateTime = context.formatDateTime ?? defaultFormatDateTime;
+  const formatDate =
+    context.formatDate ??
+    ((date: Date) => defaultFormatDate(date, context.locale));
+  const formatDateTime =
+    context.formatDateTime ??
+    ((value: string) => defaultFormatDateTime(value, context.locale));
   const lines: string[] = [
-    'Weekly Us meeting',
-    meeting.title,
-    `Date: ${formatDate(getMeetingDate(meeting))}`,
-    `Status: ${getMeetingStatusLabel(meeting)}`,
+    translate('export.meetingTitle'),
+    getMeetingTemplateName(meeting.templateId, meeting.title),
+    `${translate('export.date')}: ${formatDate(getMeetingDate(meeting))}`,
+    `${translate('export.status')}: ${getMeetingStatusLabel(meeting)}`,
     '',
   ];
 
   addAiSummaryText(lines, meeting, context);
 
-  lines.push('Meeting sections', '');
+  lines.push(translate('export.meetingSections'), '');
 
   for (const section of meeting.sections) {
-    lines.push(section.title, section.prompt, '');
+    lines.push(
+      getMeetingSectionTitle(section.id, section.title),
+      getMeetingSectionPrompt(section.id, section.prompt),
+      ''
+    );
 
-    lines.push('Notes');
+    lines.push(translate('export.notes'));
     if (section.notes.length) {
       for (const note of section.notes) {
         lines.push(
@@ -244,11 +291,11 @@ export function exportMeetingAsText(
         );
       }
     } else {
-      lines.push('- No notes in this section.');
+      lines.push(`- ${translate('export.noNotes')}`);
     }
     lines.push('');
 
-    lines.push('Tasks');
+    lines.push(translate('export.tasks'));
     if (section.tasks.length) {
       for (const task of section.tasks) {
         lines.push(`- ${task.title}`);
@@ -258,11 +305,11 @@ export function exportMeetingAsText(
         lines.push(`  ${getTaskMeta(task, context)}`);
       }
     } else {
-      lines.push('- No tasks in this section.');
+      lines.push(`- ${translate('export.noTasks')}`);
     }
     lines.push('');
 
-    lines.push('Agreements');
+    lines.push(translate('export.agreements'));
     if (section.agreements.length) {
       for (const agreement of section.agreements) {
         const participants = agreement.participantIds
@@ -270,16 +317,16 @@ export function exportMeetingAsText(
           .join(', ');
         lines.push(`- ${agreement.text}`);
         if (participants) {
-          lines.push(`  People: ${participants}`);
+          lines.push(`  ${translate('export.people')}: ${participants}`);
         }
       }
     } else {
-      lines.push('- No agreements in this section.');
+      lines.push(`- ${translate('export.noAgreements')}`);
     }
     lines.push('');
   }
 
-  lines.push('Private notes are not included in this export.');
+  lines.push(translate('export.privateNotesExcluded'));
 
   return lines.join(lineBreak).trimEnd();
 }
@@ -288,24 +335,32 @@ export function exportMeetingAsMarkdown(
   meeting: Meeting,
   context: MeetingExportContext
 ) {
-  const formatDate = context.formatDate ?? defaultFormatDate;
-  const formatDateTime = context.formatDateTime ?? defaultFormatDateTime;
+  const formatDate =
+    context.formatDate ??
+    ((date: Date) => defaultFormatDate(date, context.locale));
+  const formatDateTime =
+    context.formatDateTime ??
+    ((value: string) => defaultFormatDateTime(value, context.locale));
   const lines: string[] = [
-    `# ${meeting.title}`,
+    `# ${getMeetingTemplateName(meeting.templateId, meeting.title)}`,
     '',
-    `- Date: ${formatDate(getMeetingDate(meeting))}`,
-    `- Status: ${getMeetingStatusLabel(meeting)}`,
+    `- ${translate('export.date')}: ${formatDate(getMeetingDate(meeting))}`,
+    `- ${translate('export.status')}: ${getMeetingStatusLabel(meeting)}`,
     '',
   ];
 
   addAiSummaryMarkdown(lines, meeting, context);
 
-  lines.push('## Meeting sections', '');
+  lines.push(`## ${translate('export.meetingSections')}`, '');
 
   for (const section of meeting.sections) {
-    lines.push(`### ${section.title}`, section.prompt, '');
+    lines.push(
+      `### ${getMeetingSectionTitle(section.id, section.title)}`,
+      getMeetingSectionPrompt(section.id, section.prompt),
+      ''
+    );
 
-    lines.push('#### Notes');
+    lines.push(`#### ${translate('export.notes')}`);
     if (section.notes.length) {
       for (const note of section.notes) {
         lines.push(
@@ -315,11 +370,11 @@ export function exportMeetingAsMarkdown(
         );
       }
     } else {
-      lines.push('- No notes in this section.');
+      lines.push(`- ${translate('export.noNotes')}`);
     }
     lines.push('');
 
-    lines.push('#### Tasks');
+    lines.push(`#### ${translate('export.tasks')}`);
     if (section.tasks.length) {
       for (const task of section.tasks) {
         lines.push(`- **${task.title}**`);
@@ -329,11 +384,11 @@ export function exportMeetingAsMarkdown(
         lines.push(`  ${getTaskMeta(task, context)}`);
       }
     } else {
-      lines.push('- No tasks in this section.');
+      lines.push(`- ${translate('export.noTasks')}`);
     }
     lines.push('');
 
-    lines.push('#### Agreements');
+    lines.push(`#### ${translate('export.agreements')}`);
     if (section.agreements.length) {
       for (const agreement of section.agreements) {
         const participants = agreement.participantIds
@@ -341,16 +396,16 @@ export function exportMeetingAsMarkdown(
           .join(', ');
         lines.push(`- ${agreement.text}`);
         if (participants) {
-          lines.push(`  People: ${participants}`);
+          lines.push(`  ${translate('export.people')}: ${participants}`);
         }
       }
     } else {
-      lines.push('- No agreements in this section.');
+      lines.push(`- ${translate('export.noAgreements')}`);
     }
     lines.push('');
   }
 
-  lines.push('_Private notes are not included in this export._');
+  lines.push(`_${translate('export.privateNotesExcluded')}_`);
 
   return lines.join(lineBreak).trimEnd();
 }
@@ -377,7 +432,7 @@ export function createMeetingExportFile(
 
 export async function copyExportToClipboard(content: string) {
   if (!navigator.clipboard?.writeText) {
-    throw new Error('Clipboard is not available in this browser.');
+    throw new Error(translate('export.clipboardUnavailable'));
   }
 
   await navigator.clipboard.writeText(content);

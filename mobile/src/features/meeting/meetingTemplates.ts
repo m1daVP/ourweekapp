@@ -3,6 +3,7 @@ import type {
   MeetingTemplate,
   MeetingTemplateId,
 } from '@/features/meeting/types';
+import { translate } from '@/features/localization/i18n';
 
 export const DEFAULT_MEETING_TEMPLATE_ID: MeetingTemplateId =
   'weekly-family-check-in';
@@ -264,4 +265,46 @@ export function getMeetingTemplate(templateId?: string) {
     meetingTemplates.find((template) => template.id === templateId) ??
     meetingTemplates[0]
   );
+}
+
+const templateTranslationKeys: Record<MeetingTemplateId, string> = {
+  'weekly-family-check-in': 'weeklyFamilyCheckIn',
+  'couple-reset': 'coupleReset',
+  'family-with-kids': 'familyWithKids',
+  'money-check-in': 'moneyCheckIn',
+  'conflict-cleanup': 'conflictCleanup',
+  'busy-week-planning': 'busyWeekPlanning',
+};
+
+export function getMeetingTemplateName(templateId?: string, fallback?: string) {
+  const template = getMeetingTemplate(templateId);
+  const key = templateTranslationKeys[template.id];
+  const translated = translate(`templates.${key}.name`);
+  return translated || fallback || template.name;
+}
+
+export function getMeetingTemplateDescription(
+  templateId?: string,
+  fallback?: string
+) {
+  const template = getMeetingTemplate(templateId);
+  const key = templateTranslationKeys[template.id];
+  const translated = translate(`templates.${key}.description`);
+  return translated || fallback || template.description;
+}
+
+export function getMeetingSectionTitle(
+  sectionId: MeetingSectionId,
+  fallback?: string
+) {
+  const translated = translate(`templates.sections.${sectionId}.title`);
+  return translated || fallback || sectionId;
+}
+
+export function getMeetingSectionPrompt(
+  sectionId: MeetingSectionId,
+  fallback?: string
+) {
+  const translated = translate(`templates.sections.${sectionId}.prompt`);
+  return translated || fallback || '';
 }

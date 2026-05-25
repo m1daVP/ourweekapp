@@ -24,11 +24,16 @@ type TopLevelStorageSliceKey =
   | 'privateNotes'
   | 'subscriptionMockState';
 
-type SettingsStorageSliceKey = 'calendarSync' | 'reminders' | 'workspace';
+type SettingsStorageSliceKey =
+  | 'calendarSync'
+  | 'localization'
+  | 'reminders'
+  | 'workspace';
 type OnboardingStorageSliceKey = 'auth';
 
 interface AppDataSettings {
   calendarSync: unknown;
+  localization: unknown;
   reminders: unknown;
   workspace: unknown;
 }
@@ -107,6 +112,7 @@ function createEmptyAppData(): AppDataEnvelope {
     privateNotes: null,
     settings: {
       calendarSync: null,
+      localization: null,
       reminders: null,
       workspace: null,
     },
@@ -219,6 +225,7 @@ function validateAppDataEnvelope(value: unknown): AppDataEnvelope | null {
     privateNotes: value.privateNotes ?? null,
     settings: {
       calendarSync: settings.calendarSync ?? null,
+      localization: settings.localization ?? null,
       reminders: settings.reminders ?? null,
       workspace: settings.workspace ?? null,
     },
@@ -244,6 +251,7 @@ function migrateAppDataFromVersion1ToVersion2(
     privateNotes: data.privateNotes ?? null,
     settings: {
       calendarSync: data.calendarSyncSettings ?? settings.calendarSync ?? null,
+      localization: settings.localization ?? null,
       reminders: data.reminderSettings ?? settings.reminders ?? null,
       workspace: data.workspace ?? settings.workspace ?? null,
     },

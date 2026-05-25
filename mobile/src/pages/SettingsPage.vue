@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
+import { useLocalizationStore } from '@/app/stores/localization';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import {
   participantColors,
@@ -16,14 +18,18 @@ import {
 import type { FeatureKey, UserRole } from '@/features/access/types';
 import type { ReminderDay } from '@/features/reminders/types';
 import type { ParticipantType } from '@/features/participants/types';
+import { localeNames, supportedLocales } from '@/features/localization/locale';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
 import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useNotifications } from '@/shared/composables/useNotifications';
 
 const route = useRoute();
+const { t } = useI18n();
 const authStore = useAuthStore();
-const { userRole, canUseFeature, setMockRole } = useFeatureAccess();
+const localizationStore = useLocalizationStore();
+const { userRole, canUseFeature, getFeatureAccess, setMockRole } =
+  useFeatureAccess();
 const participantsStore = useParticipantsStore();
 const remindersStore = useRemindersStore();
 const tasksStore = useTasksStore();
@@ -42,17 +48,35 @@ void syncPermissionStatus();
 
 participantsStore.ensureDefaultParticipants();
 
-const roleOptions: Array<{ label: string; value: UserRole }> = [
-  { label: 'Owner', value: 'owner' },
-  { label: 'Adult member', value: 'adult_member' },
-  { label: 'Viewer', value: 'viewer' },
-];
+const roleOptions = computed<Array<{ label: string; value: UserRole }>>(() => [
+  { label: t('settings.role.owner'), value: 'owner' },
+  { label: t('settings.role.adultMember'), value: 'adult_member' },
+  { label: t('settings.role.viewer'), value: 'viewer' },
+]);
 const timeInputStep = 300;
-const typeOptions: Array<{ label: string; value: ParticipantType }> = [
-  { label: 'Adult', value: 'adult' },
-  { label: 'Child', value: 'child' },
-  { label: 'Other', value: 'other' },
-];
+const typeOptions = computed<Array<{ label: string; value: ParticipantType }>>(
+  () => [
+    { label: t('settings.participantType.adult'), value: 'adult' },
+    { label: t('settings.participantType.child'), value: 'child' },
+    { label: t('settings.participantType.other'), value: 'other' },
+  ]
+);
+const localizedReminderDayOptions = computed(() =>
+  reminderDayOptions.map((option) => ({
+    ...option,
+    label: t(`days.${option.value}`),
+  }))
+);
+const localeOptions = supportedLocales.map((locale) => ({
+  value: locale,
+  label: localeNames[locale],
+}));
+const premiumFeatures = computed(() =>
+  premiumFeatureKeys.map((featureKey) => ({
+    key: featureKey,
+    access: getFeatureAccess(featureKey),
+  }))
+);
 
 const participantDraft = reactive({
   name: '',
@@ -79,37 +103,39 @@ const participantMessage = reactive({
 const canUseReminders = computed(() => canUseFeature('agreementReminders'));
 const accountStatusText = computed(() => {
   if (authStore.isAuthenticated) {
-    return `Signed in as ${authStore.user?.email ?? 'your account'}.`;
+    return t('settings.signedInAs', {
+      email: authStore.user?.email ?? t('settings.signedInFallback'),
+    });
   }
 
   if (authStore.isLocalOnly) {
-    return 'Using Weekly Us on this device only.';
+    return t('settings.localOnly');
   }
 
-  return 'No account connected yet.';
+  return t('settings.noAccount');
 });
 const reminderStatusText = computed(() => {
   if (!canUseReminders.value) {
-    return 'Reminder settings are available with Premium.';
+    return t('settings.reminderLocked');
   }
 
   if (!remindersStore.settings.enabled) {
-    return 'Reminders are off.';
+    return t('settings.remindersOff');
   }
 
   if (!notificationsAvailable.value) {
-    return 'Local notifications are available in the Android app. Web dev mode keeps these settings without scheduling notifications.';
+    return t('settings.notificationsUnavailable');
   }
 
   if (permissionStatus.value === 'denied') {
-    return 'Notifications are blocked in system settings.';
+    return t('settings.notificationsBlocked');
   }
 
   if (lastReminderResult.value?.scheduled) {
-    return 'Reminders are scheduled on this device.';
+    return t('settings.remindersScheduled');
   }
 
-  return 'Reminders are saved and will be scheduled when notifications are available.';
+  return t('settings.remindersSaved');
 });
 
 const lockedFeature = computed(() => {
@@ -199,6 +225,11 @@ function updateUnfinishedTaskReminderTime(event: Event) {
   });
 }
 
+function updateLocale(event: Event) {
+  const value = (event.target as HTMLSelectElement).value;
+  localizationStore.setLocale(value === 'uk' ? 'uk' : 'en');
+}
+
 function setParticipantMessage(
   text: string,
   tone: 'status' | 'error' = 'status'
@@ -216,7 +247,7 @@ function createParticipant() {
   });
 
   if (!participant) {
-    setParticipantMessage('Add a name first.', 'error');
+    setParticipantMessage(t('settings.addNameFirst'), 'error');
     return;
   }
 
@@ -228,7 +259,7 @@ function createParticipant() {
       participantsStore.participants.length % participantColors.length
     ];
   participantDraft.type = 'adult';
-  setParticipantMessage('Participant added.');
+  setParticipantMessage(t('settings.participantAdded'));
 }
 
 function saveParticipant(participantId: string) {
@@ -241,11 +272,11 @@ function saveParticipant(participantId: string) {
   const participant = participantsStore.updateParticipant(participantId, draft);
 
   if (!participant) {
-    setParticipantMessage('Add a name first.', 'error');
+    setParticipantMessage(t('settings.addNameFirst'), 'error');
     return;
   }
 
-  setParticipantMessage('Participant updated.');
+  setParticipantMessage(t('settings.participantUpdated'));
 }
 
 function participantIsUsed(participantId: string) {
@@ -280,36 +311,51 @@ function disableOrRemoveParticipant(participantId: string) {
 
   if (participantIsUsed(participantId)) {
     participantsStore.disableParticipant(participantId);
-    setParticipantMessage(
-      'Participant disabled. Existing records still keep their name.'
-    );
+    setParticipantMessage(t('settings.participantDisabled'));
     return;
   }
 
   participantsStore.removeParticipant(participantId);
-  setParticipantMessage('Unused participant removed.');
+  setParticipantMessage(t('settings.participantRemoved'));
 }
 
 function enableParticipant(participantId: string) {
   participantsStore.enableParticipant(participantId);
   meetingsStore.syncActiveMeetingParticipants();
-  setParticipantMessage('Participant enabled.');
+  setParticipantMessage(t('settings.participantEnabled'));
 }
 </script>
 
 <template>
   <section class="page-stack">
     <div>
-      <p class="page-kicker">Settings</p>
-      <h1>Household setup</h1>
-      <p class="page-copy">
-        Manage the local people list used for notes, tasks, and agreements.
-      </p>
+      <p class="page-kicker">{{ t('settings.kicker') }}</p>
+      <h1>{{ t('settings.title') }}</h1>
+      <p class="page-copy">{{ t('settings.intro') }}</p>
     </div>
 
     <section class="content-panel settings-panel">
       <div>
-        <h2>Account</h2>
+        <h2>{{ t('localization.title') }}</h2>
+        <p>{{ t('localization.description') }}</p>
+      </div>
+      <label>
+        <span>{{ t('localization.label') }}</span>
+        <select :value="localizationStore.locale" @change="updateLocale">
+          <option
+            v-for="locale in localeOptions"
+            :key="locale.value"
+            :value="locale.value"
+          >
+            {{ locale.label }}
+          </option>
+        </select>
+      </label>
+    </section>
+
+    <section class="content-panel settings-panel">
+      <div>
+        <h2>{{ t('settings.account') }}</h2>
         <p>{{ accountStatusText }}</p>
       </div>
       <RouterLink
@@ -317,61 +363,54 @@ function enableParticipant(participantId: string) {
         class="secondary-button link-button"
         :to="{ name: 'account' }"
       >
-        Account settings
+        {{ t('settings.accountSettings') }}
       </RouterLink>
       <RouterLink
         v-else
         class="secondary-button link-button"
         :to="{ name: 'welcome' }"
       >
-        Account options
+        {{ t('settings.accountOptions') }}
       </RouterLink>
       <RouterLink
         class="secondary-button link-button"
         :to="{ name: 'workspace-settings' }"
       >
-        Workspace settings
+        {{ t('settings.workspaceSettings') }}
       </RouterLink>
       <RouterLink
         class="secondary-button link-button"
         :to="{ name: 'calendar-sync' }"
       >
-        Calendar sync
+        {{ t('settings.calendarSync') }}
       </RouterLink>
     </section>
 
     <section class="content-panel settings-panel">
       <div>
-        <h2>Legal</h2>
-        <p>
-          Placeholder documents for internal testing. Review before public
-          release.
-        </p>
+        <h2>{{ t('settings.legal') }}</h2>
+        <p>{{ t('settings.legalText') }}</p>
       </div>
       <RouterLink
         class="secondary-button link-button"
         :to="{ name: 'privacy' }"
       >
-        Privacy Policy
+        {{ t('settings.privacyPolicy') }}
       </RouterLink>
       <RouterLink class="secondary-button link-button" :to="{ name: 'terms' }">
-        Terms
+        {{ t('settings.terms') }}
       </RouterLink>
     </section>
 
     <PremiumLock
       feature="agreementReminders"
-      title="Reminder settings are premium"
-      message="Upgrade to schedule gentle local reminders for weekly meetings and unfinished household follow-ups."
+      :title="t('settings.reminderPremiumTitle')"
+      :message="t('settings.reminderPremiumMessage')"
     >
       <section class="content-panel settings-panel reminder-panel">
         <div>
-          <h2>Reminders</h2>
-          <p>
-            Weekly Us can use local device notifications for your meeting and
-            unfinished follow-ups. No push notifications or account setup are
-            used.
-          </p>
+          <h2>{{ t('settings.reminders') }}</h2>
+          <p>{{ t('settings.reminderIntro') }}</p>
         </div>
 
         <label class="reminder-toggle">
@@ -380,20 +419,20 @@ function enableParticipant(participantId: string) {
             :checked="remindersStore.settings.enabled"
             @change="handleReminderEnabledChange"
           />
-          <span>Enable reminders</span>
+          <span>{{ t('settings.enableReminders') }}</span>
         </label>
 
         <div class="reminder-grid">
           <fieldset class="reminder-fieldset">
-            <legend>Weekly meeting reminder</legend>
+            <legend>{{ t('settings.weeklyMeetingReminder') }}</legend>
             <label>
-              <span>Day</span>
+              <span>{{ t('settings.day') }}</span>
               <select
                 :value="remindersStore.settings.weeklyMeetingReminder.day"
                 @change="updateWeeklyMeetingReminderDay"
               >
                 <option
-                  v-for="day in reminderDayOptions"
+                  v-for="day in localizedReminderDayOptions"
                   :key="day.value"
                   :value="day.value"
                 >
@@ -402,7 +441,7 @@ function enableParticipant(participantId: string) {
               </select>
             </label>
             <label>
-              <span>Time</span>
+              <span>{{ t('settings.time') }}</span>
               <input
                 type="time"
                 :step="timeInputStep"
@@ -413,15 +452,15 @@ function enableParticipant(participantId: string) {
           </fieldset>
 
           <fieldset class="reminder-fieldset">
-            <legend>Unfinished task reminder</legend>
+            <legend>{{ t('settings.unfinishedTaskReminder') }}</legend>
             <label>
-              <span>Day</span>
+              <span>{{ t('settings.day') }}</span>
               <select
                 :value="remindersStore.settings.unfinishedTaskReminder.day"
                 @change="updateUnfinishedTaskReminderDay"
               >
                 <option
-                  v-for="day in reminderDayOptions"
+                  v-for="day in localizedReminderDayOptions"
                   :key="day.value"
                   :value="day.value"
                 >
@@ -430,7 +469,7 @@ function enableParticipant(participantId: string) {
               </select>
             </label>
             <label>
-              <span>Time</span>
+              <span>{{ t('settings.time') }}</span>
               <input
                 type="time"
                 :step="timeInputStep"
@@ -442,7 +481,7 @@ function enableParticipant(participantId: string) {
         </div>
 
         <p class="meeting-help">
-          Example: A gentle reminder to review unfinished agreements.
+          {{ t('settings.reminderExample') }}
         </p>
         <p class="meeting-status" role="status">{{ reminderStatusText }}</p>
         <p v-if="notificationError" class="meeting-error" role="status">
@@ -453,30 +492,30 @@ function enableParticipant(participantId: string) {
 
     <section class="content-panel settings-panel participant-panel">
       <div>
-        <h2>Participants</h2>
-        <p>Stored on this device for now. No accounts or invitations yet.</p>
+        <h2>{{ t('settings.participants') }}</h2>
+        <p>{{ t('settings.participantsIntro') }}</p>
       </div>
 
       <form class="participant-form" @submit.prevent="createParticipant">
         <label>
-          <span>Name</span>
+          <span>{{ t('settings.name') }}</span>
           <input
             v-model="participantDraft.name"
             type="text"
-            placeholder="Name"
+            :placeholder="t('settings.name')"
           />
         </label>
         <label>
-          <span>Initials</span>
+          <span>{{ t('settings.initials') }}</span>
           <input
             v-model="participantDraft.initials"
             type="text"
             maxlength="3"
-            placeholder="Auto"
+            :placeholder="t('settings.auto')"
           />
         </label>
         <label>
-          <span>Type</span>
+          <span>{{ t('settings.type') }}</span>
           <select v-model="participantDraft.type">
             <option
               v-for="type in typeOptions"
@@ -488,7 +527,7 @@ function enableParticipant(participantId: string) {
           </select>
         </label>
         <fieldset class="color-selector">
-          <legend>Avatar color</legend>
+          <legend>{{ t('settings.avatarColor') }}</legend>
           <label v-for="color in participantColors" :key="color">
             <input
               v-model="participantDraft.avatarColor"
@@ -498,7 +537,9 @@ function enableParticipant(participantId: string) {
             <span :style="{ backgroundColor: color }" />
           </label>
         </fieldset>
-        <button class="meeting-primary" type="submit">Add participant</button>
+        <button class="meeting-primary" type="submit">
+          {{ t('settings.addParticipant') }}
+        </button>
       </form>
 
       <ul class="participant-list">
@@ -517,11 +558,11 @@ function enableParticipant(participantId: string) {
           </span>
           <div class="participant-list__fields">
             <label>
-              <span>Name</span>
+              <span>{{ t('settings.name') }}</span>
               <input v-model="editDrafts[participant.id].name" type="text" />
             </label>
             <label>
-              <span>Initials</span>
+              <span>{{ t('settings.initials') }}</span>
               <input
                 v-model="editDrafts[participant.id].initials"
                 type="text"
@@ -529,7 +570,7 @@ function enableParticipant(participantId: string) {
               />
             </label>
             <label>
-              <span>Type</span>
+              <span>{{ t('settings.type') }}</span>
               <select v-model="editDrafts[participant.id].type">
                 <option
                   v-for="type in typeOptions"
@@ -541,7 +582,7 @@ function enableParticipant(participantId: string) {
               </select>
             </label>
             <fieldset class="color-selector color-selector--compact">
-              <legend>Color</legend>
+              <legend>{{ t('settings.color') }}</legend>
               <label v-for="color in participantColors" :key="color">
                 <input
                   v-model="editDrafts[participant.id].avatarColor"
@@ -554,21 +595,25 @@ function enableParticipant(participantId: string) {
           </div>
           <div class="participant-list__actions">
             <button type="button" @click="saveParticipant(participant.id)">
-              Save
+              {{ t('common.save') }}
             </button>
             <button
               v-if="participant.isActive"
               type="button"
               @click="disableOrRemoveParticipant(participant.id)"
             >
-              {{ participantIsUsed(participant.id) ? 'Disable' : 'Remove' }}
+              {{
+                participantIsUsed(participant.id)
+                  ? t('settings.disable')
+                  : t('common.remove')
+              }}
             </button>
             <button
               v-else
               type="button"
               @click="enableParticipant(participant.id)"
             >
-              Enable
+              {{ t('common.enable') }}
             </button>
           </div>
         </li>
@@ -590,7 +635,7 @@ function enableParticipant(participantId: string) {
     <UpgradePrompt v-if="lockedFeature" :feature="lockedFeature" />
 
     <div class="content-panel settings-panel">
-      <h2>Mock workspace role</h2>
+      <h2>{{ t('settings.mockWorkspaceRole') }}</h2>
       <div class="role-grid">
         <button
           v-for="role in roleOptions"
@@ -605,20 +650,24 @@ function enableParticipant(participantId: string) {
     </div>
 
     <div class="content-panel settings-panel">
-      <h2>Premium feature checks</h2>
+      <h2>{{ t('settings.premiumFeatureChecks') }}</h2>
       <ul class="feature-list">
-        <li v-for="featureKey in premiumFeatureKeys" :key="featureKey">
+        <li v-for="feature in premiumFeatures" :key="feature.key">
           <div>
-            <strong>{{ featureAccessConfig[featureKey].label }}</strong>
-            <p>{{ featureAccessConfig[featureKey].description }}</p>
+            <strong>{{ feature.access.label }}</strong>
+            <p>{{ feature.access.description }}</p>
           </div>
           <span
             :class="[
               'feature-status',
-              { 'is-available': canUseFeature(featureKey) },
+              { 'is-available': canUseFeature(feature.key) },
             ]"
           >
-            {{ canUseFeature(featureKey) ? 'Available' : 'Locked' }}
+            {{
+              canUseFeature(feature.key)
+                ? t('common.available')
+                : t('common.locked')
+            }}
           </span>
         </li>
       </ul>

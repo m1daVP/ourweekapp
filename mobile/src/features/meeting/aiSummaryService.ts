@@ -6,27 +6,16 @@ import type {
 } from './types';
 import { generateAiMeetingSummary } from '@/shared/api/aiApi';
 import { appConfig } from '@/shared/config/env';
+import { i18n, translate } from '@/features/localization/i18n';
+import { getMeetingSectionTitle } from '@/features/meeting/meetingTemplates';
 
 export interface AiSummaryProvider {
   generateMeetingSummary(meeting: Meeting): Promise<MeetingSummary>;
 }
 
-export const aiSummaryPromptContract = [
-  'Write a short neutral summary.',
-  'List the main topics discussed.',
-  'List agreements made.',
-  'List open tasks and responsible people.',
-  'List topics to revisit next week.',
-  'Stay practical and non-judgmental.',
-  'Do not act as a therapist or decide who is right or wrong.',
-  'Do not include diagnostic or psychological claims.',
-] as const;
-
-const emptyTensions = ['No specific tensions were recorded in this meeting.'];
-const emptyAgreements = ['No agreements were recorded in this meeting.'];
-const emptyFocus = [
-  'Review open tasks, confirm any new agreements, and revisit topics that still need a decision.',
-];
+export function getAiSummaryPromptContract() {
+  return i18n.global.tm('ai.promptContract') as string[];
+}
 
 function createId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -47,9 +36,9 @@ function sectionHasContent(section: MeetingSection) {
 function getMainTopics(meeting: Meeting) {
   const topics = meeting.sections
     .filter(sectionHasContent)
-    .map((section) => section.title);
+    .map((section) => getMeetingSectionTitle(section.id, section.title));
 
-  return topics.length ? topics : ['No meeting topics were recorded.'];
+  return topics.length ? topics : [translate('ai.noTopics')];
 }
 
 function getKeyTensions(meeting: Meeting) {
@@ -61,7 +50,7 @@ function getKeyTensions(meeting: Meeting) {
     tensionsSection?.notes.map((note) => note.text.trim()).filter(Boolean) ??
     [];
 
-  return tensions.length ? tensions : emptyTensions;
+  return tensions.length ? tensions : [translate('ai.emptyTensions')];
 }
 
 function getAgreements(meeting: Meeting) {
@@ -70,7 +59,7 @@ function getAgreements(meeting: Meeting) {
     .map((agreement) => agreement.text.trim())
     .filter(Boolean);
 
-  return agreements.length ? agreements : emptyAgreements;
+  return agreements.length ? agreements : [translate('ai.emptyAgreements')];
 }
 
 function getTasks(meeting: Meeting): MeetingSummaryTask[] {
@@ -92,14 +81,14 @@ function getSuggestedNextMeetingFocus(
 ) {
   const openTasks = tasks
     .filter((task) => task.status === 'open')
-    .map((task) => `Check progress on "${task.title}".`);
+    .map((task) => translate('ai.checkProgress', { title: task.title }));
   const plans = meeting.sections
     .find((section) => section.id === 'plans')
     ?.notes.map((note) => note.text.trim())
     .filter(Boolean);
 
   const focus = [...openTasks, ...(plans ?? [])];
-  return focus.length ? focus : emptyFocus;
+  return focus.length ? focus : [translate('ai.emptyFocus')];
 }
 
 function createShortSummary(
@@ -109,11 +98,24 @@ function createShortSummary(
 ) {
   const topicLabel =
     mainTopics.length === 1 ? mainTopics[0] : mainTopics.slice(0, 3).join(', ');
-  const agreementCount = agreements === emptyAgreements ? 0 : agreements.length;
+  const agreementCount =
+    agreements.length === 1 && agreements[0] === translate('ai.emptyAgreements')
+      ? 0
+      : agreements.length;
+  const agreementWord =
+    agreementCount === 1
+      ? translate('ai.agreementOne')
+      : translate('ai.agreementOther');
+  const taskWord =
+    tasks.length === 1 ? translate('ai.taskOne') : translate('ai.taskOther');
 
-  return `This meeting covered ${topicLabel}. The notes show ${agreementCount} agreement${
-    agreementCount === 1 ? '' : 's'
-  } and ${tasks.length} task${tasks.length === 1 ? '' : 's'} to follow up.`;
+  return translate('ai.shortSummary', {
+    topics: topicLabel,
+    agreementCount,
+    agreementWord,
+    taskCount: tasks.length,
+    taskWord,
+  });
 }
 
 const localPlaceholderAiSummaryProvider: AiSummaryProvider = {
@@ -141,7 +143,8 @@ const backendAiSummaryProvider: AiSummaryProvider = {
   async generateMeetingSummary(meeting) {
     const response = await generateAiMeetingSummary({
       meeting,
-      promptContract: aiSummaryPromptContract,
+      promptContract: getAiSummaryPromptContract(),
+      locale: i18n.global.locale.value,
     });
 
     return response.summary;

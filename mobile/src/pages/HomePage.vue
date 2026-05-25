@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import PremiumLock from '@/shared/components/PremiumLock.vue';
 import { computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
@@ -8,6 +9,7 @@ import { useTasksStore } from '@/app/stores/tasks';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 
 const { canUseFeature, getFreeLimit } = useFeatureAccess();
+const { t, locale } = useI18n();
 const router = useRouter();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
@@ -20,7 +22,7 @@ onMounted(() => {
 });
 
 const todayLabel = computed(() =>
-  new Intl.DateTimeFormat(undefined, {
+  new Intl.DateTimeFormat(locale.value, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
@@ -31,6 +33,9 @@ const householdNames = computed(() =>
     .slice(0, 2)
     .map((participant) => participant.name)
     .join(' & ')
+);
+const greetingName = computed(
+  () => householdNames.value || t('home.householdFallback')
 );
 const openTaskCount = computed(() => tasksStore.openTasks.length);
 const completedCount = computed(() => meetingsStore.completedMeetings.length);
@@ -45,7 +50,7 @@ function startMeeting() {
     <section class="home-intro">
       <p class="home-date">{{ todayLabel }}</p>
       <h1 class="home-greeting">
-        Good morning,<br />{{ householdNames || 'your household' }}.
+        {{ t('home.greetingPrefix') }}<br />{{ greetingName }}.
       </h1>
     </section>
 
@@ -57,27 +62,27 @@ function startMeeting() {
         spa
       </span>
       <div>
-        <h2>Ready for your 15-minute weekly reset?</h2>
-        <p>
-          Take a moment to align on the week ahead, celebrate wins, and connect.
-        </p>
+        <h2>{{ t('home.heroTitle') }}</h2>
+        <p>{{ t('home.heroText') }}</p>
       </div>
       <button class="meeting-primary" type="button" @click="startMeeting">
-        Start Meeting
+        {{ t('home.startMeeting') }}
         <span class="material-symbols-outlined" aria-hidden="true">
           arrow_forward
         </span>
       </button>
     </section>
 
-    <section class="home-action-list" aria-label="Weekly Us shortcuts">
+    <section class="home-action-list" :aria-label="t('home.shortcutsLabel')">
       <RouterLink class="content-panel home-action" :to="{ name: 'tasks' }">
         <span class="section-icon material-symbols-outlined" aria-hidden="true">
           check_circle
         </span>
         <span>
-          <strong>{{ openTaskCount }} tasks to review</strong>
-          <small>From weekly check-ins</small>
+          <strong>{{
+            t('home.tasksToReview', { count: openTaskCount })
+          }}</strong>
+          <small>{{ t('home.fromCheckIns') }}</small>
         </span>
         <span class="material-symbols-outlined" aria-hidden="true">
           chevron_right
@@ -89,11 +94,15 @@ function startMeeting() {
           history
         </span>
         <span>
-          <strong>{{ completedCount }} meetings saved</strong>
+          <strong>{{
+            t('home.meetingsSaved', { count: completedCount })
+          }}</strong>
           <small v-if="canUseFeature('unlimitedHistory')">
-            Full history available
+            {{ t('home.fullHistory') }}
           </small>
-          <small v-else> Free opens latest {{ freeHistoryLimit }} </small>
+          <small v-else>
+            {{ t('home.freeLatest', { count: freeHistoryLimit }) }}
+          </small>
         </span>
         <span class="material-symbols-outlined" aria-hidden="true">
           chevron_right
@@ -103,8 +112,8 @@ function startMeeting() {
 
     <PremiumLock
       feature="unlimitedHistory"
-      title="Unlock full history"
-      message="Look back at older weekly check-ins and agreements when your household needs context."
+      :title="t('home.unlockHistory')"
+      :message="t('home.unlockHistoryMessage')"
       :show-preview="false"
     />
   </section>

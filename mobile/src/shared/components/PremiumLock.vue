@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { FeatureKey } from '@/features/access/types';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import UpgradePrompt from './UpgradePrompt.vue';
@@ -19,6 +20,7 @@ const props = withDefaults(
 );
 
 const { canUseFeature, getFeatureAccess } = useFeatureAccess();
+const { t } = useI18n();
 
 const canUse = computed(() => canUseFeature(props.feature));
 const featureAccess = computed(() => getFeatureAccess(props.feature));
@@ -30,7 +32,7 @@ const featureAccess = computed(() => getFeatureAccess(props.feature));
   <div
     v-else
     class="premium-lock"
-    :aria-label="`${featureAccess.label} locked`"
+    :aria-label="`${featureAccess.label} ${t('common.locked')}`"
   >
     <div
       v-if="showPreview"

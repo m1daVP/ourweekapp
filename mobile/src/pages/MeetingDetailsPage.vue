@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
@@ -12,6 +13,11 @@ import {
   type MeetingExportFormat,
 } from '@/features/export/services/exportService';
 import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
+import {
+  getMeetingSectionPrompt,
+  getMeetingSectionTitle,
+  getMeetingTemplateName,
+} from '@/features/meeting/meetingTemplates';
 import type {
   Meeting,
   MeetingSummaryTask,
@@ -21,6 +27,7 @@ import PremiumLock from '@/shared/components/PremiumLock.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 
 const meetingsStore = useMeetingsStore();
+const { t, locale } = useI18n();
 const participantsStore = useParticipantsStore();
 const route = useRoute();
 const router = useRouter();
@@ -92,7 +99,7 @@ function getMeetingDate(item: Meeting) {
 }
 
 function formatDate(date: Date) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale.value, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -100,7 +107,7 @@ function formatDate(date: Date) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale.value, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
@@ -133,15 +140,18 @@ function getMeetingPreview(item: Meeting) {
     }
   }
 
-  return 'No notes, tasks, or agreements yet.';
+  return t('meeting.noContentPreview');
 }
 
 function getMeetingStatusLabel(item: Meeting) {
-  return item.status === 'completed' ? 'finished' : 'draft';
+  return item.status === 'completed' ? t('export.finished') : t('export.draft');
 }
 
 function getParticipantName(participantId: string) {
-  return participantsStore.getParticipantById(participantId)?.name ?? 'Someone';
+  return (
+    participantsStore.getParticipantById(participantId)?.name ??
+    t('meeting.someone')
+  );
 }
 
 function getTaskResponsibleLabel(
@@ -151,11 +161,11 @@ function getTaskResponsibleLabel(
   >
 ) {
   if (task.responsibilityType === 'needsDiscussion') {
-    return 'Needs discussion';
+    return t('meeting.needsDiscussion');
   }
 
   if (!task.responsibleParticipantIds.length) {
-    return 'Unassigned';
+    return t('meeting.unassigned');
   }
 
   return task.responsibleParticipantIds.map(getParticipantName).join(', ');
@@ -173,9 +183,22 @@ function resumeDraft() {
 function getExportContext() {
   return {
     getParticipantName,
+    locale: locale.value,
     formatDate,
     formatDateTime,
   };
+}
+
+function displayMeetingTitle(item: Meeting) {
+  return getMeetingTemplateName(item.templateId, item.title);
+}
+
+function sectionTitle(section: Meeting['sections'][number]) {
+  return getMeetingSectionTitle(section.id, section.title);
+}
+
+function sectionPrompt(section: Meeting['sections'][number]) {
+  return getMeetingSectionPrompt(section.id, section.prompt);
 }
 
 function openExportModal() {
@@ -221,9 +244,9 @@ async function copySelectedExport() {
 
   try {
     await copyExportToClipboard(file.content);
-    exportStatus.value = 'Export copied to clipboard.';
+    exportStatus.value = t('meeting.copied');
   } catch {
-    exportError.value = 'Could not copy this export. Try sharing or saving it.';
+    exportError.value = t('meeting.copyFailed');
   } finally {
     isExporting.value = false;
   }
@@ -244,14 +267,14 @@ async function shareOrSaveSelectedExport() {
     const didShare = await shareExportFile(file);
 
     if (didShare) {
-      exportStatus.value = 'Export shared.';
+      exportStatus.value = t('meeting.sharedExport');
       return;
     }
 
     downloadExportFile(file);
-    exportStatus.value = 'Export saved as a file.';
+    exportStatus.value = t('meeting.savedExport');
   } catch {
-    exportError.value = 'Could not share or save this export right now.';
+    exportError.value = t('meeting.shareFailed');
   } finally {
     isExporting.value = false;
   }
@@ -268,11 +291,11 @@ function printPdfExport() {
   const didOpen = exportMeetingAsPdf(meeting.value, getExportContext());
 
   if (didOpen) {
-    exportStatus.value = 'Print view opened. Choose Save as PDF if available.';
+    exportStatus.value = t('meeting.printOpened');
     return;
   }
 
-  exportError.value = 'Could not open the PDF print view on this device.';
+  exportError.value = t('meeting.printFailed');
 }
 
 async function generateSummary() {
@@ -291,7 +314,7 @@ async function generateSummary() {
     const summary = await generateMeetingSummary(meeting.value);
     meetingsStore.saveAiSummary(meeting.value.id, summary);
   } catch {
-    aiSummaryError.value = 'Could not generate a summary right now.';
+    aiSummaryError.value = t('meeting.generateFailed');
   } finally {
     isGeneratingSummary.value = false;
   }
@@ -301,27 +324,27 @@ async function generateSummary() {
 <template>
   <section class="page-stack meeting-details-page">
     <div v-if="!meeting" class="content-panel">
-      <h1>Meeting not found</h1>
-      <p>This meeting is not saved on this device.</p>
+      <h1>{{ t('meeting.meetingNotFound') }}</h1>
+      <p>{{ t('meeting.notSaved') }}</p>
       <RouterLink class="secondary-button link-button" to="/history">
-        Back to history
+        {{ t('meeting.backToHistory') }}
       </RouterLink>
     </div>
 
     <template v-else-if="isLocked">
       <header>
         <p class="page-kicker">{{ meetingDateLabel }}</p>
-        <h1>{{ meeting.title }}</h1>
+        <h1>{{ displayMeetingTitle(meeting) }}</h1>
         <p class="page-copy">{{ meetingPreview }}</p>
       </header>
 
       <PremiumLock
         feature="unlimitedHistory"
-        title="Older meeting locked"
-        :message="`Free history opens the latest ${freeHistoryLimit} finished meetings. Upgrade to review every section, note, task, and agreement.`"
+        :title="t('meeting.olderMeetingLocked')"
+        :message="t('meeting.freeHistoryLimit', { count: freeHistoryLimit })"
       >
         <div class="content-panel feature-summary">
-          <h2>{{ meeting.title }}</h2>
+          <h2>{{ displayMeetingTitle(meeting) }}</h2>
           <p>{{ getMeetingStatusLabel(meeting) }} - {{ meetingDateLabel }}</p>
         </div>
       </PremiumLock>
@@ -331,10 +354,11 @@ async function generateSummary() {
       <header class="meeting-details-header">
         <div>
           <p class="page-kicker">{{ meetingDateLabel }}</p>
-          <h1>{{ meeting.title }}</h1>
+          <h1>{{ displayMeetingTitle(meeting) }}</h1>
           <p class="page-copy">
-            {{ getMeetingStatusLabel(meeting) }} - {{ allTasks.length }} tasks -
-            {{ allAgreements.length }} agreements
+            {{ getMeetingStatusLabel(meeting) }} - {{ allTasks.length }}
+            {{ t('meeting.tasks') }} - {{ allAgreements.length }}
+            {{ t('meeting.agreements') }}
           </p>
         </div>
         <button
@@ -343,46 +367,40 @@ async function generateSummary() {
           class="meeting-save"
           @click="resumeDraft"
         >
-          Resume
+          {{ t('common.resume') }}
         </button>
       </header>
 
       <PremiumLock
         feature="export"
-        title="Export is premium"
-        message="Upgrade to export meeting summaries, agreements, and tasks."
+        :title="t('meeting.exportPremiumTitle')"
+        :message="t('meeting.exportPremiumMessage')"
       >
         <section class="meeting-panel export-panel">
           <div>
-            <h2>Export meeting</h2>
-            <p class="meeting-help">
-              Save a clean copy of the summary, notes, tasks, and agreements.
-              Private notes are not included.
-            </p>
+            <h2>{{ t('meeting.exportMeeting') }}</h2>
+            <p class="meeting-help">{{ t('meeting.exportHelp') }}</p>
           </div>
           <button
             type="button"
             class="meeting-primary"
             @click="openExportModal"
           >
-            Export
+            {{ t('common.export') }}
           </button>
         </section>
       </PremiumLock>
 
       <PremiumLock
         feature="aiSummary"
-        title="AI summaries are premium"
-        message="Upgrade to generate neutral meeting summaries and next steps."
+        :title="t('meeting.aiPremiumTitle')"
+        :message="t('meeting.aiPremiumMessage')"
       >
         <section class="meeting-panel ai-summary-panel">
           <div class="ai-summary-panel__header">
             <div>
-              <h2>AI summary</h2>
-              <p class="meeting-help">
-                AI summaries may be inaccurate. Review before relying on them.
-                This is not professional relationship advice.
-              </p>
+              <h2>{{ t('meeting.aiSummary') }}</h2>
+              <p class="meeting-help">{{ t('meeting.aiDisclaimer') }}</p>
             </div>
             <button
               type="button"
@@ -390,7 +408,13 @@ async function generateSummary() {
               :disabled="isGeneratingSummary"
               @click="generateSummary"
             >
-              {{ aiSummary ? 'Regenerate' : 'Generate' }} summary
+              {{
+                t('meeting.generateSummary', {
+                  action: aiSummary
+                    ? t('meeting.regenerate')
+                    : t('meeting.generate'),
+                })
+              }}
             </button>
           </div>
 
@@ -404,7 +428,7 @@ async function generateSummary() {
             </p>
 
             <div class="meeting-summary__group">
-              <h3>Main topics discussed</h3>
+              <h3>{{ t('meeting.mainTopics') }}</h3>
               <ul class="meeting-list">
                 <li v-for="topic in aiSummary.mainTopics" :key="topic">
                   <p>{{ topic }}</p>
@@ -413,7 +437,7 @@ async function generateSummary() {
             </div>
 
             <div class="meeting-summary__group">
-              <h3>Key tensions</h3>
+              <h3>{{ t('meeting.keyTensions') }}</h3>
               <ul class="meeting-list">
                 <li v-for="tension in aiSummary.keyTensions" :key="tension">
                   <p>{{ tension }}</p>
@@ -422,7 +446,7 @@ async function generateSummary() {
             </div>
 
             <div class="meeting-summary__group">
-              <h3>Agreements made</h3>
+              <h3>{{ t('meeting.agreementsMade') }}</h3>
               <ul class="meeting-list">
                 <li v-for="agreement in aiSummary.agreements" :key="agreement">
                   <p>{{ agreement }}</p>
@@ -431,7 +455,7 @@ async function generateSummary() {
             </div>
 
             <div class="meeting-summary__group">
-              <h3>Open tasks</h3>
+              <h3>{{ t('meeting.openTasks') }}</h3>
               <ul
                 v-if="aiSummary.tasks.length"
                 class="meeting-list meeting-task-list"
@@ -443,17 +467,19 @@ async function generateSummary() {
                     <small>
                       {{ task.status }} - {{ getTaskResponsibleLabel(task) }}
                       <template v-if="task.dueDate">
-                        - due {{ task.dueDate }}</template
+                        - {{ t('common.due') }} {{ task.dueDate }}</template
                       >
                     </small>
                   </div>
                 </li>
               </ul>
-              <p v-else class="meeting-empty">No open tasks were summarized.</p>
+              <p v-else class="meeting-empty">
+                {{ t('meeting.noOpenTasksSummarized') }}
+              </p>
             </div>
 
             <div class="meeting-summary__group">
-              <h3>Topics to revisit next week</h3>
+              <h3>{{ t('meeting.revisitNextWeek') }}</h3>
               <ul class="meeting-list">
                 <li
                   v-for="focus in aiSummary.suggestedNextMeetingFocus"
@@ -466,8 +492,7 @@ async function generateSummary() {
           </template>
 
           <p v-else class="meeting-empty">
-            Generate a neutral summary of the meeting, agreements, and next
-            steps.
+            {{ t('meeting.generateEmpty') }}
           </p>
         </section>
       </PremiumLock>
@@ -477,11 +502,11 @@ async function generateSummary() {
         :key="section.id"
         class="meeting-panel meeting-details-section"
       >
-        <h2>{{ section.title }}</h2>
-        <p class="meeting-help">{{ section.prompt }}</p>
+        <h2>{{ sectionTitle(section) }}</h2>
+        <p class="meeting-help">{{ sectionPrompt(section) }}</p>
 
         <div class="meeting-summary__group">
-          <h3>Notes</h3>
+          <h3>{{ t('meeting.notes') }}</h3>
           <ul v-if="section.notes.length" class="meeting-list">
             <li v-for="note in section.notes" :key="note.id">
               <span>
@@ -491,11 +516,13 @@ async function generateSummary() {
               <p>{{ note.text }}</p>
             </li>
           </ul>
-          <p v-else class="meeting-empty">No notes in this section.</p>
+          <p v-else class="meeting-empty">
+            {{ t('meeting.noNotesInSection') }}
+          </p>
         </div>
 
         <div class="meeting-summary__group">
-          <h3>Tasks</h3>
+          <h3>{{ t('meeting.tasks') }}</h3>
           <ul
             v-if="section.tasks.length"
             class="meeting-list meeting-task-list"
@@ -507,17 +534,19 @@ async function generateSummary() {
                 <small>
                   {{ task.status }} - {{ getTaskResponsibleLabel(task) }}
                   <template v-if="task.dueDate">
-                    - due {{ task.dueDate }}</template
+                    - {{ t('common.due') }} {{ task.dueDate }}</template
                   >
                 </small>
               </div>
             </li>
           </ul>
-          <p v-else class="meeting-empty">No tasks in this section.</p>
+          <p v-else class="meeting-empty">
+            {{ t('meeting.noTasksInSection') }}
+          </p>
         </div>
 
         <div class="meeting-summary__group">
-          <h3>Agreements</h3>
+          <h3>{{ t('meeting.agreements') }}</h3>
           <ul v-if="section.agreements.length" class="meeting-list">
             <li v-for="agreement in section.agreements" :key="agreement.id">
               <span>
@@ -528,7 +557,9 @@ async function generateSummary() {
               <p>{{ agreement.text }}</p>
             </li>
           </ul>
-          <p v-else class="meeting-empty">No agreements in this section.</p>
+          <p v-else class="meeting-empty">
+            {{ t('meeting.noAgreementsInSection') }}
+          </p>
         </div>
       </section>
 
@@ -541,15 +572,13 @@ async function generateSummary() {
       >
         <div class="agreement-modal__panel export-modal__panel">
           <div>
-            <p class="page-kicker">Export</p>
-            <h2 id="export-modal-title">{{ meeting.title }}</h2>
-            <p class="meeting-help">
-              Choose a simple format. Private notes are not included.
-            </p>
+            <p class="page-kicker">{{ t('common.export') }}</p>
+            <h2 id="export-modal-title">{{ displayMeetingTitle(meeting) }}</h2>
+            <p class="meeting-help">{{ t('meeting.exportChoose') }}</p>
           </div>
 
           <fieldset class="export-format-options">
-            <legend>Format</legend>
+            <legend>{{ t('meeting.format') }}</legend>
             <label
               :class="{ 'is-selected': exportFormat === 'text' }"
               for="export-format-text"
@@ -561,8 +590,8 @@ async function generateSummary() {
                 value="text"
               />
               <span>
-                <strong>Plain text</strong>
-                <small>Best for copying into messages or notes.</small>
+                <strong>{{ t('meeting.plainText') }}</strong>
+                <small>{{ t('meeting.plainTextHelp') }}</small>
               </span>
             </label>
             <label
@@ -576,8 +605,8 @@ async function generateSummary() {
                 value="markdown"
               />
               <span>
-                <strong>Markdown</strong>
-                <small>Clean headings and lists for documents.</small>
+                <strong>{{ t('common.markdown') }}</strong>
+                <small>{{ t('meeting.markdownHelp') }}</small>
               </span>
             </label>
           </fieldset>
@@ -589,28 +618,28 @@ async function generateSummary() {
               :disabled="isExporting"
               @click="copySelectedExport"
             >
-              Copy
+              {{ t('common.copy') }}
             </button>
             <button
               type="button"
               :disabled="isExporting"
               @click="shareOrSaveSelectedExport"
             >
-              Share or save
+              {{ t('common.shareOrSave') }}
             </button>
             <button
               type="button"
               :disabled="isExporting"
               @click="printPdfExport"
             >
-              PDF
+              {{ t('common.pdf') }}
             </button>
             <button
               type="button"
               :disabled="isExporting"
               @click="closeExportModal"
             >
-              Close
+              {{ t('common.close') }}
             </button>
           </div>
 

@@ -7,9 +7,13 @@ import {
 } from '@/shared/services/storageService';
 import {
   DEFAULT_MEETING_TEMPLATE_ID,
+  getMeetingSectionPrompt,
+  getMeetingSectionTitle,
   getMeetingTemplate,
+  getMeetingTemplateName,
   taskSectionIds,
 } from '@/features/meeting/meetingTemplates';
+import { translate } from '@/features/localization/i18n';
 import type { Task, TaskResponsibilityType } from '@/features/tasks/types';
 import type {
   Agreement,
@@ -147,6 +151,8 @@ function getActiveParticipantIds() {
 function createSections(template: MeetingTemplate): MeetingSection[] {
   return template.sections.map((section) => ({
     ...section,
+    title: getMeetingSectionTitle(section.id, section.title),
+    prompt: getMeetingSectionPrompt(section.id, section.prompt),
     notes: [],
     tasks: [],
     agreements: [],
@@ -163,7 +169,7 @@ function createDefaultMeeting(
   return {
     id: createId('meeting'),
     templateId: template.id,
-    title: template.name,
+    title: getMeetingTemplateName(template.id, template.name),
     status: 'in_progress',
     participantIds,
     sections: createSections(template),
@@ -305,6 +311,8 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
 
     return {
       ...sectionTemplate,
+      title: getMeetingSectionTitle(sectionTemplate.id, section?.title),
+      prompt: getMeetingSectionPrompt(sectionTemplate.id, section?.prompt),
       notes: section?.notes ?? [],
       tasks:
         section?.tasks
@@ -323,7 +331,7 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
   return {
     id,
     templateId: template.id,
-    title: meeting.title?.trim() || template.name,
+    title: meeting.title?.trim() || getMeetingTemplateName(template.id),
     status: meeting.status ?? 'in_progress',
     participantIds,
     sections,
@@ -519,15 +527,15 @@ export const useMeetingsStore = defineStore('meetings', {
       const trimmedText = text.trim();
 
       if (!meeting || !section) {
-        return 'Open a meeting before adding a note.';
+        return translate('meetingStore.openBeforeNote');
       }
 
       if (!trimmedText) {
-        return 'Add a short note first.';
+        return translate('meetingStore.addShortNote');
       }
 
       if (!meeting.participantIds.includes(participantId)) {
-        return 'Choose who is adding this note.';
+        return translate('meetingStore.chooseNoteAuthor');
       }
 
       const note: MeetingNote = {
@@ -559,18 +567,18 @@ export const useMeetingsStore = defineStore('meetings', {
           : uniqueIds(payload.responsibleParticipantIds);
 
       if (!meeting || !section) {
-        return 'Open a meeting before adding a task.';
+        return translate('meetingStore.openBeforeTask');
       }
 
       if (!title) {
-        return 'Task title is required.';
+        return translate('meetingStore.taskTitleRequired');
       }
 
       if (
         responsibilityType === 'participant' &&
         !responsibleParticipantIds.length
       ) {
-        return 'Choose a responsible person or mark it for discussion.';
+        return translate('meetingStore.chooseResponsible');
       }
 
       if (
@@ -578,7 +586,7 @@ export const useMeetingsStore = defineStore('meetings', {
           (participantId) => !meeting.participantIds.includes(participantId)
         )
       ) {
-        return 'Choose someone from this meeting.';
+        return translate('meetingStore.chooseFromMeeting');
       }
 
       const createdAt = nowIso();
@@ -786,15 +794,15 @@ export const useMeetingsStore = defineStore('meetings', {
       const selectedParticipantIds = uniqueIds(participantIds);
 
       if (!meeting || !section) {
-        return 'Open a meeting before adding an agreement.';
+        return translate('meetingStore.openBeforeAgreement');
       }
 
       if (!trimmedText) {
-        return 'Add the agreement first.';
+        return translate('meetingStore.addAgreementFirst');
       }
 
       if (!selectedParticipantIds.length) {
-        return 'Choose who this agreement includes.';
+        return translate('meetingStore.chooseAgreementPeople');
       }
 
       if (
@@ -802,7 +810,7 @@ export const useMeetingsStore = defineStore('meetings', {
           (participantId) => !meeting.participantIds.includes(participantId)
         )
       ) {
-        return 'Choose people from this meeting.';
+        return translate('meetingStore.choosePeopleFromMeeting');
       }
 
       const createdAt = nowIso();
@@ -858,11 +866,11 @@ export const useMeetingsStore = defineStore('meetings', {
       const meeting = this.activeMeeting;
 
       if (!meeting) {
-        return 'Open a meeting before finishing.';
+        return translate('meetingStore.openBeforeFinish');
       }
 
       if (!meetingHasContent(meeting)) {
-        return 'Add at least one note, task, or agreement before finishing.';
+        return translate('meeting.atLeastOne');
       }
 
       const completedAt = nowIso();

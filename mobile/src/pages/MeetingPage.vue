@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
 import {
   agreementSectionIds,
+  getMeetingSectionPrompt,
+  getMeetingSectionTitle,
+  getMeetingTemplateName,
   taskSectionIds,
 } from '@/features/meeting/meetingTemplates';
 import type { MeetingSectionId } from '@/features/meeting/types';
@@ -14,6 +18,7 @@ import type { TaskResponsibilityType } from '@/features/tasks/types';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 const meetingsStore = useMeetingsStore();
+const { t, locale } = useI18n();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
 const router = useRouter();
@@ -61,6 +66,7 @@ const currentStepNumber = computed(
   () => (activeMeeting.value?.currentSectionIndex ?? 0) + 1
 );
 const totalSteps = computed(() => activeMeeting.value?.sections.length ?? 0);
+const isFirstStep = computed(() => currentStepNumber.value === 1);
 const progressPercent = computed(() =>
   totalSteps.value > 0
     ? `${(currentStepNumber.value / totalSteps.value) * 100}%`
@@ -130,7 +136,7 @@ const allNotes = computed(() =>
     ? activeMeeting.value.sections.flatMap((section) =>
         section.notes.map((note) => ({
           ...note,
-          sectionTitle: section.title,
+          sectionTitle: getMeetingSectionTitle(section.id, section.title),
           participantName: getParticipantName(note.participantId),
         }))
       )
@@ -141,7 +147,7 @@ const allTasks = computed(() =>
     ? activeMeeting.value.sections.flatMap((section) =>
         section.tasks.map((task) => ({
           ...task,
-          sectionTitle: section.title,
+          sectionTitle: getMeetingSectionTitle(section.id, section.title),
           responsibilityLabel: getResponsibilityLabel(
             task.responsibilityType,
             task.responsibleParticipantIds
@@ -155,7 +161,7 @@ const allAgreements = computed(() =>
     ? activeMeeting.value.sections.flatMap((section) =>
         section.agreements.map((agreement) => ({
           ...agreement,
-          sectionTitle: section.title,
+          sectionTitle: getMeetingSectionTitle(section.id, section.title),
           participantLabel: agreement.participantIds
             .map(getParticipantName)
             .join(', '),
@@ -179,7 +185,7 @@ const neutralHint = computed(() => {
   const lowerText = noteText.value.toLowerCase();
 
   return loadedWords.some((word) => lowerText.includes(word))
-    ? 'Try naming what happened and what would help, without labels or blame.'
+    ? t('meeting.neutralHint')
     : '';
 });
 
@@ -260,7 +266,7 @@ function ensureSelectedParticipants() {
 function getParticipantName(participantId: string) {
   return (
     participantsStore.getParticipantById(participantId)?.name ??
-    'Former participant'
+    t('meeting.formerParticipant')
   );
 }
 
@@ -269,41 +275,43 @@ function getResponsibilityLabel(
   participantIds: string[]
 ) {
   if (responsibilityType === 'shared') {
-    return 'Shared';
+    return t('meeting.shared');
   }
 
   if (responsibilityType === 'needsDiscussion') {
-    return 'Needs discussion';
+    return t('meeting.needsDiscussion');
   }
 
   return (
-    participantIds.map(getParticipantName).join(', ') || 'Former participant'
+    participantIds.map(getParticipantName).join(', ') ||
+    t('meeting.formerParticipant')
   );
 }
 
 function formatMeetingDate(value?: string) {
   if (!value) {
-    return 'Recent meeting';
+    return t('meeting.recentMeeting');
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale.value, {
     month: 'short',
     day: 'numeric',
   }).format(new Date(value));
 }
 
 function notePlaceholder(sectionId: MeetingSectionId) {
-  const placeholders: Partial<Record<MeetingSectionId, string>> = {
-    goodThings: 'One thing I appreciated was...',
-    tensions: 'I noticed this felt hard because...',
-    tasks: 'A useful detail for this week is...',
-    money: 'Something to buy or decide about money is...',
-    familyCare: 'A family care note to remember is...',
-    plans: 'Something coming up next week is...',
-    finalAgreements: 'A decision we want to keep is...',
-  };
+  return (
+    t(`meeting.notePlaceholders.${sectionId}`) ||
+    t('meeting.notePlaceholders.default')
+  );
+}
 
-  return placeholders[sectionId] ?? 'Add a short practical note...';
+function sectionTitle(sectionId: MeetingSectionId, fallback?: string) {
+  return getMeetingSectionTitle(sectionId, fallback);
+}
+
+function sectionPrompt(sectionId: MeetingSectionId, fallback?: string) {
+  return getMeetingSectionPrompt(sectionId, fallback);
 }
 
 function clearMessages() {
@@ -345,7 +353,7 @@ function addParticipant() {
   clearMessages();
 
   if (!canEditMeeting.value) {
-    formError.value = 'This workspace role can view meetings but cannot edit.';
+    formError.value = t('meeting.roleCannotEditMeetings');
     return;
   }
 
@@ -355,14 +363,14 @@ function addParticipant() {
   });
 
   if (!participant) {
-    formError.value = 'Add a name first.';
+    formError.value = t('meeting.addNameFirst');
     return;
   }
 
   meetingsStore.syncActiveMeetingParticipants();
   selectedParticipantId.value = participant.id;
   participantName.value = '';
-  statusMessage.value = 'Person added.';
+  statusMessage.value = t('meeting.personAdded');
 }
 
 function addNote() {
@@ -375,7 +383,7 @@ function addNote() {
   clearMessages();
 
   if (!canEditMeeting.value) {
-    formError.value = 'This workspace role can view meetings but cannot edit.';
+    formError.value = t('meeting.roleCannotEditMeetings');
     return;
   }
 
@@ -391,7 +399,7 @@ function addNote() {
   }
 
   noteText.value = '';
-  statusMessage.value = 'Note added.';
+  statusMessage.value = t('meeting.noteAdded');
 }
 
 function addTask() {
@@ -404,7 +412,7 @@ function addTask() {
   clearMessages();
 
   if (!canCreateTasks.value) {
-    formError.value = 'This workspace role can view tasks but cannot edit.';
+    formError.value = t('meeting.roleCannotEditTasks');
     return;
   }
 
@@ -421,7 +429,7 @@ function addTask() {
   }
 
   resetTaskForm();
-  statusMessage.value = 'Task added.';
+  statusMessage.value = t('meeting.taskAdded');
 }
 
 function addAgreement() {
@@ -434,8 +442,7 @@ function addAgreement() {
   clearMessages();
 
   if (!canEditMeeting.value) {
-    formError.value =
-      'This workspace role can view agreements but cannot edit.';
+    formError.value = t('meeting.roleCannotEditAgreements');
     return;
   }
 
@@ -454,12 +461,12 @@ function addAgreement() {
   agreementParticipantIds.value = activeMeetingParticipants.value.map(
     (participant) => participant.id
   );
-  statusMessage.value = 'Agreement added.';
+  statusMessage.value = t('meeting.agreementAdded');
 }
 
 function toggleTask(taskId: string, status: 'open' | 'done' | 'skipped') {
   if (!canEditTasks.value) {
-    formError.value = 'This workspace role can view tasks but cannot edit.';
+    formError.value = t('meeting.roleCannotEditTasks');
     return;
   }
 
@@ -477,19 +484,19 @@ function handleUnfinishedTasks(action: 'keep' | 'done' | 'skipped' | 'move') {
   clearMessages();
 
   if (!canEditTasks.value) {
-    formError.value = 'This workspace role can view tasks but cannot edit.';
+    formError.value = t('meeting.roleCannotEditTasks');
     return;
   }
 
   if (action === 'keep') {
-    statusMessage.value = 'Kept for now.';
+    statusMessage.value = t('meeting.keptForNow');
   }
 
   if (action === 'done' || action === 'skipped') {
     tasksStore.updateTasksFromMeeting(previousMeeting.id, action);
     meetingsStore.updateTasksFromMeeting(previousMeeting.id, action);
     statusMessage.value =
-      action === 'done' ? 'Marked as done.' : 'Skipped for now.';
+      action === 'done' ? t('meeting.markedDone') : t('meeting.skippedForNow');
   }
 
   if (action === 'move') {
@@ -502,7 +509,7 @@ function handleUnfinishedTasks(action: 'keep' | 'done' | 'skipped' | 'move') {
       meeting.id,
       movedTasks
     );
-    statusMessage.value = 'Moved to this week.';
+    statusMessage.value = t('meeting.movedToThisWeek');
   }
 
   tasksStore.markReviewHandled(meeting.id, previousMeeting.id);
@@ -511,11 +518,20 @@ function handleUnfinishedTasks(action: 'keep' | 'done' | 'skipped' | 'move') {
 function goBack() {
   const meeting = activeMeeting.value;
 
-  if (!meeting || !canEditMeeting.value) {
+  if (!meeting || !canEditMeeting.value || isFirstStep.value) {
     return;
   }
 
   meetingsStore.setCurrentSection(meeting.currentSectionIndex - 1);
+}
+
+function exitMeeting() {
+  if (window.history.length > 1) {
+    router.back();
+    return;
+  }
+
+  router.push({ name: 'home' });
 }
 
 function goNext() {
@@ -532,19 +548,19 @@ function saveDraft() {
   clearMessages();
 
   if (!canEditMeeting.value) {
-    formError.value = 'This workspace role can view meetings but cannot edit.';
+    formError.value = t('meeting.roleCannotEditMeetings');
     return;
   }
 
   meetingsStore.saveDraft();
-  statusMessage.value = 'Draft saved on this phone.';
+  statusMessage.value = t('meeting.draftSaved');
 }
 
 function finishMeeting() {
   clearMessages();
 
   if (!canEditMeeting.value) {
-    formError.value = 'This workspace role can view meetings but cannot edit.';
+    formError.value = t('meeting.roleCannotEditMeetings');
     return;
   }
 
@@ -555,12 +571,12 @@ function finishMeeting() {
     return;
   }
 
-  statusMessage.value = 'Meeting finished.';
+  statusMessage.value = t('meeting.meetingFinished');
 }
 
 function startNewMeeting() {
   if (!canCreateMeeting.value) {
-    formError.value = 'This workspace role can view meetings but cannot edit.';
+    formError.value = t('meeting.roleCannotEditMeetings');
     return;
   }
 
@@ -574,13 +590,18 @@ function startNewMeeting() {
       <button
         class="meeting-focus-bar__icon material-symbols-outlined"
         type="button"
-        aria-label="Close meeting"
+        :aria-label="t('meeting.closeMeeting')"
         @click="router.push({ name: 'home' })"
       >
         close
       </button>
       <div class="meeting-focus-bar__progress">
-        <span>Step {{ currentStepNumber }} of {{ totalSteps }}</span>
+        <span>{{
+          t('meeting.stepOf', {
+            current: currentStepNumber,
+            total: totalSteps,
+          })
+        }}</span>
         <div class="meeting-progress__track">
           <div
             class="meeting-progress__bar"
@@ -594,7 +615,7 @@ function startNewMeeting() {
         type="button"
         @click="saveDraft"
       >
-        Save
+        {{ t('common.save') }}
       </button>
       <span v-else />
     </header>
@@ -611,8 +632,10 @@ function startNewMeeting() {
       </div>
       <div class="meeting-header__row">
         <div>
-          <h1>{{ currentSection.title }}</h1>
-          <p class="meeting-prompt">{{ currentSection.prompt }}</p>
+          <h1>{{ sectionTitle(currentSection.id, currentSection.title) }}</h1>
+          <p class="meeting-prompt">
+            {{ sectionPrompt(currentSection.id, currentSection.prompt) }}
+          </p>
         </div>
       </div>
     </header>
@@ -624,15 +647,22 @@ function startNewMeeting() {
     >
       <div>
         <p class="meeting-review__eyebrow">
-          From {{ previousCompletedMeeting?.title }} -
           {{
-            formatMeetingDate(
-              previousCompletedMeeting?.completedAt ??
-                previousCompletedMeeting?.updatedAt
-            )
+            t('meeting.fromMeeting', {
+              title: previousCompletedMeeting
+                ? getMeetingTemplateName(
+                    previousCompletedMeeting.templateId,
+                    previousCompletedMeeting.title
+                  )
+                : '',
+              date: formatMeetingDate(
+                previousCompletedMeeting?.completedAt ??
+                  previousCompletedMeeting?.updatedAt
+              ),
+            })
           }}
         </p>
-        <h2 id="task-review-title">What should we do with unfinished tasks?</h2>
+        <h2 id="task-review-title">{{ t('meeting.unfinishedTitle') }}</h2>
       </div>
 
       <ul class="meeting-list meeting-review__list">
@@ -647,9 +677,9 @@ function startNewMeeting() {
               }}
             </span>
             <p>{{ task.title }}</p>
-            <small v-if="task.dueDate"
-              >Still relevant? {{ task.dueDate }}</small
-            >
+            <small v-if="task.dueDate">{{
+              t('meeting.stillRelevant', { date: task.dueDate })
+            }}</small>
           </div>
         </li>
       </ul>
@@ -657,23 +687,23 @@ function startNewMeeting() {
       <div
         v-if="canEditTasks"
         class="meeting-review__actions"
-        aria-label="Unfinished task choices"
+        :aria-label="t('meeting.unfinishedChoices')"
       >
         <button type="button" @click="handleUnfinishedTasks('keep')">
-          Keep
+          {{ t('meeting.keep') }}
         </button>
         <button type="button" @click="handleUnfinishedTasks('done')">
-          Mark done
+          {{ t('meeting.markDone') }}
         </button>
         <button type="button" @click="handleUnfinishedTasks('skipped')">
-          Skip
+          {{ t('meeting.skip') }}
         </button>
         <button
           type="button"
           class="meeting-primary"
           @click="handleUnfinishedTasks('move')"
         >
-          Move to this week
+          {{ t('meeting.moveToThisWeek') }}
         </button>
       </div>
     </section>
@@ -682,7 +712,7 @@ function startNewMeeting() {
       class="meeting-panel meeting-people"
       aria-labelledby="meeting-people-title"
     >
-      <h2 id="meeting-people-title">People here</h2>
+      <h2 id="meeting-people-title">{{ t('meeting.peopleHere') }}</h2>
       <div class="meeting-chip-row">
         <span
           v-for="participant in meetingParticipants"
@@ -703,14 +733,16 @@ function startNewMeeting() {
         class="meeting-inline-form"
         @submit.prevent="addParticipant"
       >
-        <label class="sr-only" for="participant-name">Add person</label>
+        <label class="sr-only" for="participant-name">
+          {{ t('meeting.addPerson') }}
+        </label>
         <input
           id="participant-name"
           v-model="participantName"
           type="text"
-          placeholder="Add person"
+          :placeholder="t('meeting.addPerson')"
         />
-        <button type="submit">Add</button>
+        <button type="submit">{{ t('common.add') }}</button>
       </form>
     </section>
 
@@ -719,8 +751,10 @@ function startNewMeeting() {
       class="meeting-panel"
       aria-labelledby="meeting-notes-title"
     >
-      <h2 id="meeting-notes-title">Notes</h2>
-      <label class="meeting-label" for="note-person">Author</label>
+      <h2 id="meeting-notes-title">{{ t('meeting.notes') }}</h2>
+      <label class="meeting-label" for="note-person">
+        {{ t('meeting.author') }}
+      </label>
       <select
         id="note-person"
         v-model="selectedParticipantId"
@@ -735,7 +769,9 @@ function startNewMeeting() {
         </option>
       </select>
 
-      <label class="meeting-label" for="meeting-note">Note</label>
+      <label class="meeting-label" for="meeting-note">
+        {{ t('meeting.note') }}
+      </label>
       <textarea
         id="meeting-note"
         v-model="noteText"
@@ -750,7 +786,7 @@ function startNewMeeting() {
         type="button"
         @click="addNote"
       >
-        Add note
+        {{ t('meeting.addNote') }}
       </button>
 
       <ul v-if="currentSection.notes.length" class="meeting-list">
@@ -759,7 +795,7 @@ function startNewMeeting() {
           <p>{{ note.text }}</p>
         </li>
       </ul>
-      <p v-else class="meeting-empty">No notes yet.</p>
+      <p v-else class="meeting-empty">{{ t('meeting.noNotesYet') }}</p>
     </section>
 
     <section
@@ -767,30 +803,36 @@ function startNewMeeting() {
       class="meeting-panel"
       aria-labelledby="meeting-tasks-title"
     >
-      <h2 id="meeting-tasks-title">Tasks</h2>
+      <h2 id="meeting-tasks-title">{{ t('meeting.tasks') }}</h2>
       <template v-if="canCreateTasks">
-        <label class="meeting-label" for="task-title">Task title</label>
+        <label class="meeting-label" for="task-title">
+          {{ t('meeting.taskTitle') }}
+        </label>
         <input
           id="task-title"
           v-model="taskDraft.title"
           type="text"
-          placeholder="What needs care?"
+          :placeholder="t('meeting.taskTitlePlaceholder')"
         />
 
-        <label class="meeting-label" for="task-description"
-          >Optional detail</label
-        >
+        <label class="meeting-label" for="task-description">{{
+          t('meeting.optionalDetail')
+        }}</label>
         <textarea
           id="task-description"
           v-model="taskDraft.description"
           rows="3"
-          placeholder="Anything that would make this easier?"
+          :placeholder="t('meeting.taskDetailPlaceholder')"
         />
 
-        <label class="meeting-label" for="task-person">Responsible</label>
+        <label class="meeting-label" for="task-person">
+          {{ t('meeting.responsible') }}
+        </label>
         <select id="task-person" v-model="taskDraft.responsibilityChoice">
-          <option value="needsDiscussion">Needs discussion</option>
-          <option value="shared">Shared</option>
+          <option value="needsDiscussion">
+            {{ t('meeting.needsDiscussion') }}
+          </option>
+          <option value="shared">{{ t('meeting.shared') }}</option>
           <option
             v-for="participant in activeMeetingParticipants"
             :key="participant.id"
@@ -800,10 +842,12 @@ function startNewMeeting() {
           </option>
         </select>
 
-        <label class="meeting-label" for="task-due-date">Due date</label>
+        <label class="meeting-label" for="task-due-date">
+          {{ t('meeting.dueDate') }}
+        </label>
         <input id="task-due-date" v-model="taskDraft.dueDate" type="date" />
         <button class="meeting-primary" type="button" @click="addTask">
-          Add task
+          {{ t('meeting.addTask') }}
         </button>
       </template>
 
@@ -823,18 +867,20 @@ function startNewMeeting() {
             </span>
             <p>{{ task.title }}</p>
             <small v-if="task.description">{{ task.description }}</small>
-            <small v-if="task.dueDate">Due {{ task.dueDate }}</small>
+            <small v-if="task.dueDate">
+              {{ t('common.due') }} {{ task.dueDate }}
+            </small>
           </div>
           <button
             v-if="canEditTasks"
             type="button"
             @click="toggleTask(task.id, task.status)"
           >
-            {{ task.status === 'done' ? 'Done' : 'Open' }}
+            {{ task.status === 'done' ? t('common.done') : t('common.open') }}
           </button>
         </li>
       </ul>
-      <p v-else class="meeting-empty">No tasks yet.</p>
+      <p v-else class="meeting-empty">{{ t('meeting.noTasksYet') }}</p>
     </section>
 
     <section
@@ -842,19 +888,19 @@ function startNewMeeting() {
       class="meeting-panel"
       aria-labelledby="meeting-agreements-title"
     >
-      <h2 id="meeting-agreements-title">Agreements</h2>
-      <label class="meeting-label" for="agreement-text"
-        >Decision or agreement</label
-      >
+      <h2 id="meeting-agreements-title">{{ t('meeting.agreements') }}</h2>
+      <label class="meeting-label" for="agreement-text">{{
+        t('meeting.decisionOrAgreement')
+      }}</label>
       <textarea
         id="agreement-text"
         v-model="agreementText"
         rows="3"
-        placeholder="What did we agree to?"
+        :placeholder="t('meeting.agreementPlaceholder')"
         :disabled="!canEditMeeting"
       />
       <fieldset class="participant-selector">
-        <legend>Participants</legend>
+        <legend>{{ t('meeting.participants') }}</legend>
         <label
           v-for="participant in activeMeetingParticipants"
           :key="participant.id"
@@ -874,7 +920,7 @@ function startNewMeeting() {
         type="button"
         @click="addAgreement"
       >
-        Add agreement
+        {{ t('meeting.addAgreement') }}
       </button>
 
       <ul v-if="currentSection.agreements.length" class="meeting-list">
@@ -885,7 +931,7 @@ function startNewMeeting() {
           <p>{{ agreement.text }}</p>
         </li>
       </ul>
-      <p v-else class="meeting-empty">No agreements yet.</p>
+      <p v-else class="meeting-empty">{{ t('meeting.noAgreementsYet') }}</p>
     </section>
 
     <section
@@ -893,13 +939,13 @@ function startNewMeeting() {
       class="meeting-panel meeting-summary"
       aria-labelledby="meeting-summary-title"
     >
-      <h2 id="meeting-summary-title">Review together</h2>
+      <h2 id="meeting-summary-title">{{ t('meeting.reviewTogether') }}</h2>
       <p class="meeting-summary__intro">
-        Look over the notes, tasks, and agreements before finishing.
+        {{ t('meeting.reviewIntro') }}
       </p>
 
       <div class="meeting-summary__group">
-        <h3>Agreements</h3>
+        <h3>{{ t('meeting.agreements') }}</h3>
         <ul v-if="allAgreements.length" class="meeting-list">
           <li v-for="agreement in allAgreements" :key="agreement.id">
             <span
@@ -909,47 +955,49 @@ function startNewMeeting() {
             <p>{{ agreement.text }}</p>
           </li>
         </ul>
-        <p v-else class="meeting-empty">No agreements yet.</p>
+        <p v-else class="meeting-empty">{{ t('meeting.noAgreementsYet') }}</p>
       </div>
 
       <div class="meeting-summary__group">
-        <h3>Tasks and responsibilities</h3>
+        <h3>{{ t('meeting.tasksAndResponsibilities') }}</h3>
         <ul v-if="allTasks.length" class="meeting-list meeting-task-list">
           <li v-for="task in allTasks" :key="task.id">
             <div>
               <span>{{ task.responsibilityLabel }}</span>
               <p>{{ task.title }}</p>
               <small>{{ task.sectionTitle }}</small>
-              <small v-if="task.dueDate">Due {{ task.dueDate }}</small>
+              <small v-if="task.dueDate">
+                {{ t('common.due') }} {{ task.dueDate }}
+              </small>
             </div>
             <button
               v-if="canEditTasks"
               type="button"
               @click="toggleTask(task.id, task.status)"
             >
-              {{ task.status === 'done' ? 'Done' : 'Open' }}
+              {{ task.status === 'done' ? t('common.done') : t('common.open') }}
             </button>
           </li>
         </ul>
-        <p v-else class="meeting-empty">No tasks yet.</p>
+        <p v-else class="meeting-empty">{{ t('meeting.noTasksYet') }}</p>
       </div>
 
       <div class="meeting-summary__group">
-        <h3>Notes</h3>
+        <h3>{{ t('meeting.notes') }}</h3>
         <ul v-if="allNotes.length" class="meeting-list">
           <li v-for="note in allNotes" :key="note.id">
             <span>{{ note.sectionTitle }} - {{ note.participantName }}</span>
             <p>{{ note.text }}</p>
           </li>
         </ul>
-        <p v-else class="meeting-empty">No notes yet.</p>
+        <p v-else class="meeting-empty">{{ t('meeting.noNotesYet') }}</p>
       </div>
 
       <p v-if="!hasMeetingContent" class="meeting-help">
-        Add at least one note, task, or agreement before finishing.
+        {{ t('meeting.atLeastOne') }}
       </p>
       <p v-if="isCompleted" class="meeting-complete">
-        This meeting is finished.
+        {{ t('meeting.finished') }}
       </p>
     </section>
 
@@ -961,17 +1009,17 @@ function startNewMeeting() {
     <footer class="meeting-actions">
       <button
         type="button"
-        :disabled="currentStepNumber === 1 || !canEditMeeting"
-        @click="goBack"
+        :disabled="!isFirstStep && !canEditMeeting"
+        @click="isFirstStep ? exitMeeting() : goBack()"
       >
-        Back
+        {{ isFirstStep ? t('common.exit') : t('common.back') }}
       </button>
       <button
         v-if="!isCompleted && canEditMeeting"
         type="button"
         @click="saveDraft"
       >
-        Save draft
+        {{ t('meeting.saveDraft') }}
       </button>
       <button
         v-if="!isFinalSection && !isCompleted && canEditMeeting"
@@ -979,7 +1027,7 @@ function startNewMeeting() {
         type="button"
         @click="goNext"
       >
-        Next
+        {{ t('common.next') }}
       </button>
       <button
         v-else-if="!isCompleted && canEditMeeting"
@@ -987,7 +1035,7 @@ function startNewMeeting() {
         type="button"
         @click="finishMeeting"
       >
-        Finish
+        {{ t('common.finish') }}
       </button>
       <button
         v-else-if="canCreateMeeting"
@@ -995,21 +1043,18 @@ function startNewMeeting() {
         type="button"
         @click="startNewMeeting"
       >
-        New meeting
+        {{ t('meeting.newMeeting') }}
       </button>
     </footer>
   </section>
   <section v-else class="page-stack">
     <div>
-      <p class="page-kicker">Weekly Meeting</p>
-      <h1>Read-only access</h1>
-      <p class="page-copy">
-        Viewers can see shared summaries and tasks, but cannot start or edit a
-        weekly meeting.
-      </p>
+      <p class="page-kicker">{{ t('meeting.weeklyMeeting') }}</p>
+      <h1>{{ t('meeting.readOnlyTitle') }}</h1>
+      <p class="page-copy">{{ t('meeting.readOnlyText') }}</p>
     </div>
     <RouterLink class="secondary-button link-button" :to="{ name: 'history' }">
-      View history
+      {{ t('meeting.viewHistory') }}
     </RouterLink>
   </section>
 </template>

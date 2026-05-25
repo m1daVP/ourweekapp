@@ -1,9 +1,12 @@
 import type { Meeting, MeetingSummary } from '@/features/meeting/types';
+import type { SupportedLocale } from '@/features/localization/types';
+import { translate } from '@/features/localization/i18n';
 import { apiRequest, isBackendApiConfigured } from './httpClient';
 
 export interface GenerateMeetingSummaryRequestDto {
   meeting: Meeting;
   promptContract: readonly string[];
+  locale: SupportedLocale;
 }
 
 export interface GenerateMeetingSummaryResponseDto {
@@ -53,7 +56,7 @@ function createMockSummary(meeting: Meeting): MeetingSummary {
     tasks,
     suggestedNextMeetingFocus: tasks
       .filter((task) => task.status === 'open')
-      .map((task) => `Check progress on "${task.title}".`),
+      .map((task) => translate('ai.checkProgress', { title: task.title })),
     createdAt: new Date().toISOString(),
   };
 }
@@ -64,8 +67,7 @@ export async function generateAiMeetingSummary(
   if (!isBackendApiConfigured()) {
     return {
       summary: createMockSummary(payload.meeting),
-      disclaimer:
-        'AI summaries may be inaccurate. Review before relying on them.',
+      disclaimer: translate('export.aiDisclaimer'),
       generatedAt: new Date().toISOString(),
     };
   }

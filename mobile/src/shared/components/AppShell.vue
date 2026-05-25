@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import BottomNavigation from '@/shared/components/BottomNavigation.vue';
 import { useParticipantsStore } from '@/app/stores/participants';
@@ -18,30 +19,32 @@ withDefaults(
 );
 
 const route = useRoute();
+const { t } = useI18n();
 const mainElement = ref<HTMLElement | null>(null);
 const participantsStore = useParticipantsStore();
 const recoveryMessages = computed(() => storageRecoveryState.value.messages);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
 const firstParticipant = computed(() => activeParticipants.value[0] ?? null);
+const isMeetingRoute = computed(() => route.name === 'meeting');
 const pageTitle = computed(() => {
   const routeName = String(route.name ?? '');
 
   const titles: Record<string, string> = {
-    home: 'Weekly Us',
-    meeting: 'Weekly Ritual',
-    'meeting-templates': 'Choose a Template',
-    tasks: 'Tasks',
-    history: 'History',
-    settings: 'Settings',
-    upgrade: 'Premium',
-    'private-notes': 'Private Notes',
-    'calendar-sync': 'Calendar Sync',
-    'workspace-settings': 'Household',
-    account: 'Account',
-    'meeting-details': 'Meeting Summary',
+    home: t('app.routeTitles.home'),
+    meeting: t('app.routeTitles.meeting'),
+    'meeting-templates': t('app.routeTitles.meetingTemplates'),
+    tasks: t('app.routeTitles.tasks'),
+    history: t('app.routeTitles.history'),
+    settings: t('app.routeTitles.settings'),
+    upgrade: t('app.routeTitles.upgrade'),
+    'private-notes': t('app.routeTitles.privateNotes'),
+    'calendar-sync': t('app.routeTitles.calendarSync'),
+    'workspace-settings': t('app.routeTitles.workspaceSettings'),
+    account: t('app.routeTitles.account'),
+    'meeting-details': t('app.routeTitles.meetingDetails'),
   };
 
-  return titles[routeName] ?? 'Weekly Us';
+  return titles[routeName] ?? t('app.name');
 });
 
 watch(
@@ -54,12 +57,20 @@ watch(
 </script>
 
 <template>
-  <div class="app-shell">
+  <div
+    :class="[
+      'app-shell',
+      {
+        'app-shell--with-navigation': showNavigation,
+        'app-shell--meeting': isMeetingRoute,
+      },
+    ]"
+  >
     <header v-if="showNavigation" class="app-top-bar">
       <RouterLink
         class="app-top-bar__avatar"
         :to="{ name: 'settings' }"
-        aria-label="Open settings"
+        :aria-label="t('app.openSettings')"
       >
         <span
           v-if="firstParticipant"
@@ -73,7 +84,7 @@ watch(
       <RouterLink
         class="app-top-bar__icon material-symbols-outlined"
         :to="{ name: 'workspace-settings' }"
-        aria-label="Household members"
+        :aria-label="t('app.householdMembers')"
       >
         group_work
       </RouterLink>
@@ -85,13 +96,13 @@ watch(
         aria-live="polite"
       >
         <div>
-          <strong>Some saved data needs attention</strong>
+          <strong>{{ t('app.storageAttention') }}</strong>
           <p>
             {{ recoveryMessages[0] }}
           </p>
         </div>
         <button type="button" @click="clearStorageRecoveryMessages">
-          Dismiss
+          {{ t('app.dismiss') }}
         </button>
       </aside>
       <slot />

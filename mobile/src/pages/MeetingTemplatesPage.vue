@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
 import TemplateCard from '@/features/meeting/components/TemplateCard.vue';
 import { meetingTemplates } from '@/features/meeting/meetingTemplates';
+import { getMeetingTemplateName } from '@/features/meeting/meetingTemplates';
 import type { MeetingTemplate } from '@/features/meeting/types';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 const router = useRouter();
+const { t } = useI18n();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
@@ -46,7 +49,7 @@ function selectTemplate(template: MeetingTemplate) {
   formError.value = '';
 
   if (!canCreateMeeting.value) {
-    formError.value = 'This workspace role can view meetings but cannot edit.';
+    formError.value = t('meeting.roleCannotEditMeetings');
     return;
   }
 
@@ -68,12 +71,9 @@ function selectTemplate(template: MeetingTemplate) {
 <template>
   <section class="page-stack templates-page">
     <header>
-      <p class="page-kicker">Meeting templates</p>
-      <h1>Choose a check-in</h1>
-      <p class="page-copy">
-        Pick the agenda that fits this week. The default weekly check-in is
-        included for everyone.
-      </p>
+      <p class="page-kicker">{{ t('templatePage.kicker') }}</p>
+      <h1>{{ t('templatePage.title') }}</h1>
+      <p class="page-copy">{{ t('templatePage.intro') }}</p>
     </header>
 
     <section
@@ -81,11 +81,15 @@ function selectTemplate(template: MeetingTemplate) {
       class="content-panel template-draft-panel"
     >
       <div>
-        <h2>Continue current meeting</h2>
-        <p>{{ activeDraft.title }}</p>
+        <h2>{{ t('templatePage.continueDraft') }}</h2>
+        <p>
+          {{
+            getMeetingTemplateName(activeDraft.templateId, activeDraft.title)
+          }}
+        </p>
       </div>
       <button type="button" class="meeting-primary" @click="resumeDraft">
-        Resume
+        {{ t('common.resume') }}
       </button>
     </section>
 
