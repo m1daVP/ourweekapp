@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
@@ -12,10 +13,13 @@ import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 const router = useRouter();
 const authStore = useAuthStore();
 const subscriptionStore = useSubscriptionStore();
+const { t } = useI18n();
 const selectedPlanId = ref<SubscriptionPlanId>('premium_monthly');
 
 const currentPlanLabel = computed(() =>
-  subscriptionStore.currentPlan === 'premium' ? 'Premium' : 'Free'
+  subscriptionStore.currentPlan === 'premium'
+    ? t('premium.badge')
+    : t('common.free')
 );
 const selectedPlan = computed(() =>
   subscriptionStore.availablePlans.find(
@@ -36,36 +40,27 @@ function purchaseSelectedPlan() {
 <template>
   <section class="page-stack upgrade-page">
     <header>
-      <p class="page-kicker">Premium</p>
-      <h1>Upgrade Weekly Us</h1>
-      <p class="page-copy">
-        Premium is for households that want a longer memory, gentle follow-up,
-        and clean summaries after each weekly check-in.
-      </p>
+      <p class="page-kicker">{{ t('upgrade.kicker') }}</p>
+      <h1>{{ t('upgrade.title') }}</h1>
+      <p class="page-copy">{{ t('upgrade.intro') }}</p>
     </header>
 
     <section class="content-panel upgrade-hero">
       <div>
         <PremiumBadge />
-        <h2>Keep the weekly ritual easier to revisit</h2>
-        <p>
-          Unlock practical additions without changing Weekly Us into a task
-          tracker or a budgeting app.
-        </p>
+        <h2>{{ t('upgrade.heroTitle') }}</h2>
+        <p>{{ t('upgrade.heroText') }}</p>
       </div>
       <FeatureList :features="planComparisonItems[1].benefits" />
     </section>
 
     <section class="content-panel subscription-plans">
       <div>
-        <h2>Plan placeholders</h2>
-        <p>
-          Prices and billing will be connected later through the proper mobile
-          subscription flow.
-        </p>
+        <h2>{{ t('upgrade.placeholdersTitle') }}</h2>
+        <p>{{ t('upgrade.placeholdersText') }}</p>
       </div>
 
-      <div class="plan-card-grid" aria-label="Premium plan options">
+      <div class="plan-card-grid" :aria-label="t('upgrade.planOptionsLabel')">
         <PlanCard
           v-for="plan in subscriptionStore.availablePlans"
           :key="plan.id"
@@ -84,12 +79,14 @@ function purchaseSelectedPlan() {
         "
         @click="purchaseSelectedPlan"
       >
-        {{ hasPremium ? 'Premium active' : 'Start mock Premium' }}
+        {{
+          hasPremium
+            ? t('upgrade.premiumActive')
+            : t('upgrade.startMockPremium')
+        }}
       </button>
       <p class="subscription-note">
-        This paywall uses a mock billing provider only. Real mobile billing must
-        validate entitlements through a trusted provider or backend before
-        unlocking Premium in production.
+        {{ t('upgrade.billingNote') }}
       </p>
       <button
         class="secondary-button"
@@ -97,7 +94,7 @@ function purchaseSelectedPlan() {
         :disabled="subscriptionStore.isRestoring"
         @click="subscriptionStore.restorePurchases()"
       >
-        Restore purchases
+        {{ t('common.restorePurchases') }}
       </button>
       <p
         v-if="subscriptionStore.statusMessage"
@@ -117,8 +114,8 @@ function purchaseSelectedPlan() {
 
     <section class="content-panel plan-comparison">
       <div>
-        <h2>Plan comparison</h2>
-        <p>No pressure. Free keeps the core weekly meeting flow available.</p>
+        <h2>{{ t('upgrade.comparisonTitle') }}</h2>
+        <p>{{ t('upgrade.comparisonText') }}</p>
       </div>
 
       <article
@@ -127,7 +124,13 @@ function purchaseSelectedPlan() {
         class="plan-comparison__group"
       >
         <div class="plan-comparison__header">
-          <h3>{{ plan.label }}</h3>
+          <h3>
+            {{
+              plan.planType === 'premium'
+                ? t('premium.badge')
+                : t('common.free')
+            }}
+          </h3>
           <PremiumBadge v-if="plan.planType === 'premium'" />
         </div>
         <FeatureList :features="plan.benefits" />
@@ -136,36 +139,36 @@ function purchaseSelectedPlan() {
 
     <section class="content-panel subscription-status-panel">
       <div>
-        <h2>Subscription status</h2>
-        <p>Current plan: {{ currentPlanLabel }}</p>
+        <h2>{{ t('upgrade.statusTitle') }}</h2>
+        <p>{{ t('upgrade.currentPlan', { plan: currentPlanLabel }) }}</p>
       </div>
       <dl class="subscription-status-list">
         <div>
-          <dt>Renewal</dt>
+          <dt>{{ t('upgrade.renewal') }}</dt>
           <dd>
             {{
               subscriptionStore.premiumEntitlement?.expiresAt ??
-              'Not available until real billing is connected.'
+              t('upgrade.renewalUnavailable')
             }}
           </dd>
         </div>
         <div>
-          <dt>Manage subscription</dt>
+          <dt>{{ t('upgrade.manageSubscription') }}</dt>
           <dd>
             {{
               subscriptionStore.canManageSubscription
-                ? 'Available through the store.'
-                : 'Mobile billing management will be added later.'
+                ? t('upgrade.manageAvailable')
+                : t('upgrade.manageUnavailable')
             }}
           </dd>
         </div>
         <div>
-          <dt>Account</dt>
+          <dt>{{ t('upgrade.account') }}</dt>
           <dd>
             {{
               authStore.isAuthenticated
                 ? authStore.user?.email
-                : 'Local device mode'
+                : t('upgrade.localDeviceMode')
             }}
           </dd>
         </div>
@@ -176,10 +179,10 @@ function purchaseSelectedPlan() {
         :disabled="subscriptionStore.isManaging"
         @click="subscriptionStore.manageSubscription()"
       >
-        Manage subscription
+        {{ t('common.manageSubscription') }}
       </button>
       <button class="secondary-button" type="button" @click="router.back()">
-        Go back
+        {{ t('common.goBack') }}
       </button>
     </section>
   </section>

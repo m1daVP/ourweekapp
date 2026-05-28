@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
 import { appConfig } from '@/shared/config/env';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 const isMockAuth = computed(() => appConfig.apiMode === 'mock');
 
@@ -18,49 +20,43 @@ function continueLocalOnly() {
 <template>
   <section class="auth-page welcome-page">
     <div class="auth-hero">
-      <p class="page-kicker">Weekly Us</p>
-      <h1>Weekly Us</h1>
-      <h2>A calmer way to plan the week together</h2>
-      <p class="page-copy">
-        A guided 15-minute weekly meeting for shared tasks, practical
-        agreements, and fewer repeated household conversations.
-      </p>
+      <p class="page-kicker">{{ t('app.name') }}</p>
+      <h1>{{ t('app.name') }}</h1>
+      <h2>{{ t('welcome.tagline') }}</h2>
+      <p class="page-copy">{{ t('welcome.intro') }}</p>
     </div>
 
-    <div class="auth-benefit-list" aria-label="Why create an account">
+    <div class="auth-benefit-list" :aria-label="t('welcome.benefitsLabel')">
       <div>
-        <strong>Sync later</strong>
-        <p>Prepare for cross-device access when backend sync is connected.</p>
+        <strong>{{ t('welcome.syncLater') }}</strong>
+        <p>{{ t('welcome.syncLaterText') }}</p>
       </div>
       <div>
-        <strong>Keep history</strong>
-        <p>Connect meetings, agreements, and unfinished follow-ups to you.</p>
+        <strong>{{ t('welcome.keepHistory') }}</strong>
+        <p>{{ t('welcome.keepHistoryText') }}</p>
       </div>
       <div>
-        <strong>Premium ready</strong>
-        <p>
-          Use the same account model for paid features when payments are added.
-        </p>
+        <strong>{{ t('welcome.premiumReady') }}</strong>
+        <p>{{ t('welcome.premiumReadyText') }}</p>
       </div>
     </div>
 
     <p v-if="isMockAuth" class="auth-note">
-      Account sign-in is mocked in this build. No real password is stored
-      locally.
+      {{ t('welcome.mockAuth') }}
     </p>
 
     <div class="auth-actions">
       <RouterLink class="meeting-primary link-button" :to="{ name: 'sign-up' }">
-        Get Started
+        {{ t('welcome.getStarted') }}
       </RouterLink>
       <RouterLink
         class="secondary-button link-button"
         :to="{ name: 'sign-in' }"
       >
-        Sign in
+        {{ t('auth.signIn') }}
       </RouterLink>
       <button type="button" class="text-button" @click="continueLocalOnly">
-        Continue on this device only
+        {{ t('welcome.continueLocal') }}
       </button>
     </div>
   </section>

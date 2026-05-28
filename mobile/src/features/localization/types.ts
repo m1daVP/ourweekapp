@@ -1,4 +1,4 @@
-export type SupportedLocale = 'en' | 'uk';
+export type SupportedLocale = 'en' | 'uk' | 'es';
 
 export type LocalizationSource = 'device' | 'settings';
 

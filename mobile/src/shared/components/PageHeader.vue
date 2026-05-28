@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
 defineProps<{
   kicker?: string;
   title: string;
@@ -6,6 +8,7 @@ defineProps<{
   showBack?: boolean;
 }>();
 
+const { t } = useI18n();
 const emit = defineEmits<{
   back: [];
 }>();
@@ -17,10 +20,10 @@ const emit = defineEmits<{
       v-if="showBack"
       class="page-header__back"
       type="button"
-      aria-label="Go back"
+      :aria-label="t('common.goBack')"
       @click="emit('back')"
     >
-      Back
+      {{ t('common.back') }}
     </button>
     <div>
       <p v-if="kicker" class="page-kicker">{{ kicker }}</p>

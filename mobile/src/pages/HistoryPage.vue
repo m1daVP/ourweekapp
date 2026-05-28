@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import type { Meeting } from '@/features/meeting/types';
@@ -9,6 +10,7 @@ import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 const meetingsStore = useMeetingsStore();
 const router = useRouter();
 const { canAccessMeetingHistoryItem, getFreeLimit } = useFeatureAccess();
+const { t, locale } = useI18n();
 
 const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
 
@@ -49,7 +51,7 @@ function getMeetingDate(meeting: Meeting) {
 }
 
 function formatDate(date: Date) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale.value, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -81,7 +83,7 @@ function getMeetingPreview(meeting: Meeting) {
     }
   }
 
-  return 'No notes, tasks, or agreements yet.';
+  return t('meeting.noContentPreview');
 }
 
 function getMeetingCounts(meeting: Meeting) {
@@ -98,11 +100,13 @@ function getMeetingCounts(meeting: Meeting) {
     0
   );
 
-  return `${notes} notes - ${tasks} tasks - ${agreements} agreements`;
+  return t('history.counts', { notes, tasks, agreements });
 }
 
 function getMeetingStatusLabel(meeting: Meeting) {
-  return meeting.status === 'completed' ? 'finished' : 'draft';
+  return meeting.status === 'completed'
+    ? t('export.finished')
+    : t('export.draft');
 }
 
 function openHistoryItem(item: (typeof historyItems.value)[number]) {
@@ -126,11 +130,10 @@ function openHistoryItem(item: (typeof historyItems.value)[number]) {
 <template>
   <section class="page-stack history-page">
     <header>
-      <p class="page-kicker">Meeting history</p>
-      <h1>Past check-ins</h1>
+      <p class="page-kicker">{{ t('history.kicker') }}</p>
+      <h1>{{ t('history.title') }}</h1>
       <p class="page-copy">
-        Finished meetings stay saved locally. Free history opens the latest
-        {{ freeHistoryLimit }} finished meetings.
+        {{ t('history.intro', { count: freeHistoryLimit }) }}
       </p>
     </header>
 
@@ -142,8 +145,8 @@ function openHistoryItem(item: (typeof historyItems.value)[number]) {
         edit_note
       </span>
       <span>
-        <strong>Private notes</strong>
-        <small>Keep personal notes separate from shared meeting history.</small>
+        <strong>{{ t('history.privateNotes') }}</strong>
+        <small>{{ t('history.privateNotesText') }}</small>
       </span>
       <span class="material-symbols-outlined" aria-hidden="true">
         chevron_right
@@ -181,8 +184,8 @@ function openHistoryItem(item: (typeof historyItems.value)[number]) {
           <small>{{ item.counts }}</small>
           <PremiumLock
             feature="unlimitedHistory"
-            title="Older meeting locked"
-            :message="`Free history opens the latest ${freeHistoryLimit} finished meetings. Upgrade to review this meeting.`"
+            :title="t('history.lockedTitle')"
+            :message="t('history.lockedMessage', { count: freeHistoryLimit })"
             :show-preview="false"
           />
         </div>
@@ -190,8 +193,8 @@ function openHistoryItem(item: (typeof historyItems.value)[number]) {
     </ul>
 
     <div v-else class="content-panel">
-      <h2>No meetings yet</h2>
-      <p>Draft and finished meetings will appear here.</p>
+      <h2>{{ t('history.emptyTitle') }}</h2>
+      <p>{{ t('history.emptyText') }}</p>
     </div>
   </section>
 </template>

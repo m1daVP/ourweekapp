@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
 defineProps<{
   open: boolean;
   title?: string;
 }>();
 
+const { t } = useI18n();
 const emit = defineEmits<{
   close: [];
 }>();
@@ -21,13 +24,15 @@ const emit = defineEmits<{
       <button
         class="base-bottom-sheet__scrim"
         type="button"
-        aria-label="Close"
+        :aria-label="t('common.close')"
         @click="emit('close')"
       />
       <section class="base-bottom-sheet__panel">
         <header v-if="title" class="base-bottom-sheet__header">
           <h2>{{ title }}</h2>
-          <button type="button" @click="emit('close')">Close</button>
+          <button type="button" @click="emit('close')">
+            {{ t('common.close') }}
+          </button>
         </header>
         <slot />
       </section>

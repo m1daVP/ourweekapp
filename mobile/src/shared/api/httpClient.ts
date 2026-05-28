@@ -1,4 +1,5 @@
 import { appConfig } from '@/shared/config/env';
+import { translate } from '@/features/localization/i18n';
 
 export type ApiRequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -42,7 +43,7 @@ export function isBackendApiConfigured() {
 
 function createUrl(path: string) {
   if (!appConfig.apiBaseUrl) {
-    throw new ApiClientError('Backend API is not configured.', {
+    throw new ApiClientError(translate('api.backendNotConfigured'), {
       code: 'backend_unavailable',
     });
   }
@@ -65,7 +66,7 @@ export async function apiRequest<TResponse>(
   options: ApiRequestOptions = {}
 ): Promise<TResponse> {
   if (!isBackendApiConfigured()) {
-    throw new ApiClientError('Backend API is not configured.', {
+    throw new ApiClientError(translate('api.backendNotConfigured'), {
       code: 'backend_unavailable',
     });
   }
@@ -97,8 +98,7 @@ export async function apiRequest<TResponse>(
     const errorBody = responseBody as ApiErrorBody | null;
 
     throw new ApiClientError(
-      errorBody?.message ??
-        'Something went wrong while contacting the backend.',
+      errorBody?.message ?? translate('api.backendContactFailed'),
       {
         status: response.status,
         code: errorBody?.code,

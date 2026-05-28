@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useCalendarSyncStore } from '@/app/stores/calendarSync';
 import type { CalendarSyncSettings } from '@/features/calendar/types';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
@@ -7,6 +8,7 @@ import PremiumLock from '@/shared/components/PremiumLock.vue';
 type CalendarSyncOptionKey = keyof Omit<CalendarSyncSettings, 'updatedAt'>;
 
 const calendarSyncStore = useCalendarSyncStore();
+const { t } = useI18n();
 
 void calendarSyncStore.initializeCalendarConnection();
 
@@ -17,29 +19,28 @@ const calendarOptions: Array<{
 }> = [
   {
     key: 'addWeeklyMeetingReminder',
-    label: 'Add weekly meeting reminder to calendar',
-    description: 'Create one calendar event for the household check-in.',
+    label: t('calendar.options.weeklyMeeting.label'),
+    description: t('calendar.options.weeklyMeeting.description'),
   },
   {
     key: 'addTaskDueDates',
-    label: 'Add task due dates to calendar',
-    description: 'Use due dates from tasks that need a clear follow-up.',
+    label: t('calendar.options.taskDueDates.label'),
+    description: t('calendar.options.taskDueDates.description'),
   },
   {
     key: 'addFollowUpDates',
-    label: 'Add follow-up dates to calendar',
-    description: 'Keep agreed revisit dates visible between meetings.',
+    label: t('calendar.options.followUpDates.label'),
+    description: t('calendar.options.followUpDates.description'),
   },
 ];
 
 const connectionStatusText = computed(() => {
   if (calendarSyncStore.isCheckingConnection) {
-    return 'Checking Google Calendar connection.';
+    return t('calendar.checkingConnection');
   }
 
   return (
-    calendarSyncStore.connectionStatus?.message ??
-    'Google Calendar is not connected.'
+    calendarSyncStore.connectionStatus?.message ?? t('calendar.notConnected')
   );
 });
 
@@ -54,30 +55,24 @@ function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
 <template>
   <section class="page-stack calendar-sync-page">
     <header>
-      <p class="page-kicker">Calendar sync</p>
-      <h1>Google Calendar</h1>
-      <p class="page-copy">
-        Prepare weekly meetings, task due dates, and follow-ups for calendar
-        sync.
-      </p>
+      <p class="page-kicker">{{ t('calendar.kicker') }}</p>
+      <h1>{{ t('calendar.title') }}</h1>
+      <p class="page-copy">{{ t('calendar.intro') }}</p>
     </header>
 
     <section class="content-panel calendar-sync-note">
-      <strong>Connection placeholder</strong>
-      <p>
-        Google OAuth and token handling should be backend-supported or use a
-        secure recommended flow before real sync is enabled.
-      </p>
+      <strong>{{ t('calendar.placeholderTitle') }}</strong>
+      <p>{{ t('calendar.placeholderText') }}</p>
     </section>
 
     <PremiumLock
       feature="googleCalendarSync"
-      title="Google Calendar sync is premium"
-      message="Upgrade to prepare Weekly Us meetings, task due dates, and follow-ups for Google Calendar."
+      :title="t('calendar.premiumTitle')"
+      :message="t('calendar.premiumMessage')"
     >
       <section class="content-panel calendar-sync-panel">
         <div>
-          <h2>Google Calendar connection</h2>
+          <h2>{{ t('calendar.connectionTitle') }}</h2>
           <p>{{ connectionStatusText }}</p>
         </div>
 
@@ -89,8 +84,8 @@ function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
         >
           {{
             calendarSyncStore.isConnecting
-              ? 'Preparing connection'
-              : 'Connect Google Calendar'
+              ? t('calendar.preparingConnection')
+              : t('calendar.connect')
           }}
         </button>
 
@@ -101,20 +96,18 @@ function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
           :disabled="calendarSyncStore.isDisconnecting"
           @click="calendarSyncStore.disconnectCalendar"
         >
-          Disconnect
+          {{ t('calendar.disconnect') }}
         </button>
 
         <p class="meeting-help">
-          No Google tokens are stored in this mobile app.
+          {{ t('calendar.noTokens') }}
         </p>
       </section>
 
       <section class="content-panel calendar-sync-panel">
         <div>
-          <h2>Sync options</h2>
-          <p>
-            Choose what Weekly Us should sync once Google Calendar is ready.
-          </p>
+          <h2>{{ t('calendar.optionsTitle') }}</h2>
+          <p>{{ t('calendar.optionsText') }}</p>
         </div>
 
         <div class="calendar-sync-options">

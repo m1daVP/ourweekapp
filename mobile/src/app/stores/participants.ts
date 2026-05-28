@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { translate } from '@/features/localization/i18n';
 import {
   readStorageSlice,
   writeStorageSlice,
@@ -93,8 +94,12 @@ function createParticipant(
 
 function createDefaultParticipants() {
   return [
-    createParticipant('Me', 'adult', 0),
-    createParticipant('Partner', 'adult', 1),
+    createParticipant(translate('settings.defaultParticipant.me'), 'adult', 0),
+    createParticipant(
+      translate('settings.defaultParticipant.partner'),
+      'adult',
+      1
+    ),
   ];
 }
 

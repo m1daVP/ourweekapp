@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { translate } from '@/features/localization/i18n';
 import { calendarService } from '@/features/calendar/services/calendarService';
 import {
   readSettingsStorage,
@@ -94,7 +95,7 @@ export const useCalendarSyncStore = defineStore('calendarSync', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while checking Calendar sync.';
+            : translate('calendar.checkFailed');
       } finally {
         this.isCheckingConnection = false;
       }
@@ -111,7 +112,7 @@ export const useCalendarSyncStore = defineStore('calendarSync', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while starting Calendar sync.';
+            : translate('calendar.startFailed');
       } finally {
         this.isConnecting = false;
       }
@@ -128,7 +129,7 @@ export const useCalendarSyncStore = defineStore('calendarSync', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while disconnecting Calendar sync.';
+            : translate('calendar.disconnectFailed');
       } finally {
         this.isDisconnecting = false;
       }

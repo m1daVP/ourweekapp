@@ -11,9 +11,9 @@ const { t } = useI18n();
 const statusLabel = computed(() => ({
   open: t('common.open'),
   done: t('common.done'),
-  skipped: 'Skipped',
-  draft: 'Draft',
-  finished: 'Finished',
+  skipped: t('common.skipped'),
+  draft: t('common.draft'),
+  finished: t('common.finished'),
   premium: t('premium.badge'),
 }));
 </script>

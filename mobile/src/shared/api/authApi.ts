@@ -1,4 +1,5 @@
 import type { PlanType, UserRole } from '@/features/access/types';
+import { translate } from '@/features/localization/i18n';
 import { apiRequest, isBackendApiConfigured } from './httpClient';
 
 export interface AuthUserDto {
@@ -45,7 +46,10 @@ function createMockSession(
     user: {
       id: 'mock-user-local',
       email,
-      displayName: displayName?.trim() || email.split('@')[0] || 'Local user',
+      displayName:
+        displayName?.trim() ||
+        email.split('@')[0] ||
+        translate('common.localUser'),
       role: 'owner',
       planType: 'free',
       createdAt: now,

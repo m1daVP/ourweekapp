@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { usePrivateNotesStore } from '@/app/stores/privateNotes';
 import type { Meeting } from '@/features/meeting/types';
@@ -8,6 +9,7 @@ import PremiumLock from '@/shared/components/PremiumLock.vue';
 
 const meetingsStore = useMeetingsStore();
 const privateNotesStore = usePrivateNotesStore();
+const { t, locale } = useI18n();
 
 const editingNoteId = ref<string | null>(null);
 const statusMessage = ref('');
@@ -35,7 +37,7 @@ function getMeetingDate(meeting: Meeting) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale.value, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -70,7 +72,7 @@ function saveNote() {
   clearMessages();
 
   if (!noteDraft.title.trim() || !noteDraft.content.trim()) {
-    formError.value = 'Add a title and note before saving.';
+    formError.value = t('privateNotes.addTitleAndNote');
     return;
   }
 
@@ -84,13 +86,13 @@ function saveNote() {
     : privateNotesStore.createNote(payload);
 
   if (!note) {
-    formError.value = 'Add a title and note before saving.';
+    formError.value = t('privateNotes.addTitleAndNote');
     return;
   }
 
   statusMessage.value = editingNoteId.value
-    ? 'Private note updated.'
-    : 'Private note saved.';
+    ? t('privateNotes.noteUpdated')
+    : t('privateNotes.noteSaved');
   resetDraft();
 }
 
@@ -103,7 +105,7 @@ function editNote(note: PrivateNote) {
 }
 
 function deleteNote(note: PrivateNote) {
-  const confirmed = window.confirm('Delete this private note?');
+  const confirmed = window.confirm(t('privateNotes.confirmDelete'));
 
   if (!confirmed) {
     return;
@@ -116,33 +118,30 @@ function deleteNote(note: PrivateNote) {
     resetDraft();
   }
 
-  statusMessage.value = 'Private note deleted.';
+  statusMessage.value = t('privateNotes.noteDeleted');
 }
 </script>
 
 <template>
   <section class="page-stack private-notes-page">
     <header>
-      <p class="page-kicker">Private notes</p>
-      <h1>Personal reflections</h1>
-      <p class="page-copy">
-        Keep personal thoughts separate from shared meeting notes, tasks, and
-        agreements.
-      </p>
+      <p class="page-kicker">{{ t('privateNotes.kicker') }}</p>
+      <h1>{{ t('privateNotes.title') }}</h1>
+      <p class="page-copy">{{ t('privateNotes.intro') }}</p>
     </header>
 
     <section
       class="content-panel private-note-disclaimer"
-      aria-label="Private notes storage note"
+      :aria-label="t('privateNotes.storageLabel')"
     >
-      <strong>For your own reflection</strong>
-      <p>Private notes are stored on this device in the current MVP.</p>
+      <strong>{{ t('privateNotes.reflectionTitle') }}</strong>
+      <p>{{ t('privateNotes.storageText') }}</p>
     </section>
 
     <PremiumLock
       feature="privateNotes"
-      title="Private notes are premium"
-      message="Upgrade to keep personal meeting prep and reflections separate from shared household records."
+      :title="t('privateNotes.premiumTitle')"
+      :message="t('privateNotes.premiumMessage')"
       :show-preview="false"
     >
       <section
@@ -151,36 +150,40 @@ function deleteNote(note: PrivateNote) {
       >
         <div>
           <h2 id="private-note-editor-title">
-            {{ isEditing ? 'Edit private note' : 'Create private note' }}
+            {{
+              isEditing
+                ? t('privateNotes.editTitle')
+                : t('privateNotes.createTitle')
+            }}
           </h2>
           <p>
-            These notes stay out of shared meeting summaries and agreements.
+            {{ t('privateNotes.editorHelp') }}
           </p>
         </div>
 
         <form class="private-note-form" @submit.prevent="saveNote">
           <label>
-            <span>Title</span>
+            <span>{{ t('privateNotes.titleLabel') }}</span>
             <input
               v-model="noteDraft.title"
               type="text"
-              placeholder="What is this about?"
+              :placeholder="t('privateNotes.titlePlaceholder')"
             />
           </label>
 
           <label>
-            <span>Note</span>
+            <span>{{ t('privateNotes.noteLabel') }}</span>
             <textarea
               v-model="noteDraft.content"
               rows="6"
-              placeholder="Write what you want to remember for yourself."
+              :placeholder="t('privateNotes.notePlaceholder')"
             />
           </label>
 
           <label>
-            <span>Related meeting</span>
+            <span>{{ t('privateNotes.relatedMeeting') }}</span>
             <select v-model="noteDraft.relatedMeetingId">
-              <option value="">No meeting link</option>
+              <option value="">{{ t('privateNotes.noMeetingLink') }}</option>
               <option
                 v-for="meeting in linkedMeetingOptions"
                 :key="meeting.id"
@@ -193,10 +196,14 @@ function deleteNote(note: PrivateNote) {
 
           <div class="private-note-form__actions">
             <button class="meeting-primary" type="submit">
-              {{ isEditing ? 'Save changes' : 'Save note' }}
+              {{
+                isEditing
+                  ? t('privateNotes.saveChanges')
+                  : t('privateNotes.saveNote')
+              }}
             </button>
             <button v-if="isEditing" type="button" @click="resetDraft">
-              Cancel
+              {{ t('common.cancel') }}
             </button>
           </div>
         </form>
@@ -207,8 +214,10 @@ function deleteNote(note: PrivateNote) {
         aria-labelledby="private-note-list-title"
       >
         <div>
-          <h2 id="private-note-list-title">Saved private notes</h2>
-          <p>{{ notes.length }} personal notes on this device.</p>
+          <h2 id="private-note-list-title">
+            {{ t('privateNotes.savedTitle') }}
+          </h2>
+          <p>{{ t('privateNotes.notesCount', { count: notes.length }) }}</p>
         </div>
 
         <ul v-if="notes.length" class="private-note-list">
@@ -218,24 +227,30 @@ function deleteNote(note: PrivateNote) {
               <h3>{{ note.title }}</h3>
               <p>{{ note.content }}</p>
               <small v-if="note.relatedMeetingId">
-                Linked to {{ getMeetingLabel(note.relatedMeetingId) }}
+                {{
+                  t('privateNotes.linkedTo', {
+                    meeting: getMeetingLabel(note.relatedMeetingId),
+                  })
+                }}
               </small>
             </div>
             <div class="private-note-item__actions">
-              <button type="button" @click="editNote(note)">Edit</button>
+              <button type="button" @click="editNote(note)">
+                {{ t('common.edit') }}
+              </button>
               <button
                 type="button"
                 class="private-note-item__danger"
                 @click="deleteNote(note)"
               >
-                Delete
+                {{ t('common.delete') }}
               </button>
             </div>
           </li>
         </ul>
 
         <p v-else class="meeting-empty">
-          No private notes yet. Add one before or after a meeting.
+          {{ t('privateNotes.noNotes') }}
         </p>
       </section>
 

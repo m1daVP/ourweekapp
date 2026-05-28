@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { translate } from '@/features/localization/i18n';
 import {
   readSettingsStorage,
   writeSettingsStorage,
@@ -70,18 +71,18 @@ function createDefaultWorkspace(): Workspace {
 
   return {
     id: createId('workspace'),
-    name: 'Our weekly space',
+    name: translate('settings.defaultWorkspace'),
     ownerId: LOCAL_OWNER_ID,
     members: [
       {
         userId: LOCAL_OWNER_ID,
-        displayName: 'Me',
+        displayName: translate('settings.defaultParticipant.me'),
         role: 'owner',
         status: 'active',
       },
       {
         userId: 'local-adult-member',
-        displayName: 'Partner',
+        displayName: translate('settings.defaultParticipant.partner'),
         role: 'adult_member',
         status: 'active',
       },
@@ -303,7 +304,10 @@ export const useWorkspaceStore = defineStore('workspace', {
         const createdAt = nowIso();
         this.workspace.members.push({
           userId: createId('member'),
-          displayName: role === 'adult_member' ? 'Adult member' : 'Viewer',
+          displayName:
+            role === 'adult_member'
+              ? translate('settings.role.adultMember')
+              : translate('settings.role.viewer'),
           role,
           status: 'active',
         });

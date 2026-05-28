@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 const isLoggingOut = ref(false);
-const userEmail = computed(() => authStore.user?.email ?? 'this account');
+const userEmail = computed(
+  () => authStore.user?.email ?? t('logout.accountFallback')
+);
 
 async function confirmLogout() {
   isLoggingOut.value = true;
@@ -18,18 +22,16 @@ async function confirmLogout() {
 <template>
   <section class="auth-page">
     <div>
-      <p class="page-kicker">Log out</p>
-      <h1>Log out of Weekly Us?</h1>
+      <p class="page-kicker">{{ t('logout.kicker') }}</p>
+      <h1>{{ t('logout.title') }}</h1>
       <p class="page-copy">
-        You will leave {{ userEmail }} on this device. Local meeting data
-        already saved on this phone is not deleted.
+        {{ t('logout.intro', { email: userEmail }) }}
       </p>
     </div>
 
     <div class="content-panel settings-panel">
       <p>
-        You can continue local-only after logging out, or sign back in from the
-        welcome screen.
+        {{ t('logout.help') }}
       </p>
       <button
         class="meeting-primary"
@@ -37,13 +39,13 @@ async function confirmLogout() {
         :disabled="isLoggingOut"
         @click="confirmLogout"
       >
-        {{ isLoggingOut ? 'Logging out...' : 'Log out' }}
+        {{ isLoggingOut ? t('logout.loggingOut') : t('logout.kicker') }}
       </button>
       <RouterLink
         class="secondary-button link-button"
         :to="{ name: 'account' }"
       >
-        Keep signed in
+        {{ t('logout.keepSignedIn') }}
       </RouterLink>
     </div>
   </section>

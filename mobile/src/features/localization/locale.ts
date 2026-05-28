@@ -1,14 +1,15 @@
 import type { LocalizationSettings, SupportedLocale } from './types';
 
-export const supportedLocales: SupportedLocale[] = ['en', 'uk'];
+export const supportedLocales: SupportedLocale[] = ['en', 'uk', 'es'];
 
 export const localeNames: Record<SupportedLocale, string> = {
   en: 'English',
   uk: 'Українська',
+  es: 'Español',
 };
 
 export function isSupportedLocale(value: unknown): value is SupportedLocale {
-  return value === 'en' || value === 'uk';
+  return value === 'en' || value === 'uk' || value === 'es';
 }
 
 export function getPrimaryDeviceLanguage() {
@@ -32,6 +33,10 @@ export function resolveInitialLocale(language = getPrimaryDeviceLanguage()) {
 
   if (normalized.startsWith('en')) {
     return 'en';
+  }
+
+  if (normalized.startsWith('es')) {
+    return 'es';
   }
 
   return 'en';

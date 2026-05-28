@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
 import { appConfig } from '@/shared/config/env';
@@ -7,6 +8,7 @@ import { appConfig } from '@/shared/config/env';
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 const formError = ref('');
 const form = reactive({
   email: '',
@@ -28,12 +30,12 @@ async function handleSubmit() {
   formError.value = '';
 
   if (!form.email.trim()) {
-    formError.value = 'Add an email address.';
+    formError.value = t('auth.addEmail');
     return;
   }
 
   if (!form.password) {
-    formError.value = 'Add your password.';
+    formError.value = t('auth.addPassword');
     return;
   }
 
@@ -47,61 +49,60 @@ async function handleSubmit() {
     return;
   }
 
-  formError.value = authStore.errorMessage || 'Could not sign in.';
+  formError.value = authStore.errorMessage || t('auth.signInFailed');
 }
 </script>
 
 <template>
   <section class="auth-page">
     <div>
-      <p class="page-kicker">Sign in</p>
-      <h1>Welcome Back</h1>
-      <p class="page-copy">
-        Continue your weekly household rhythm and pick up where you left off.
-      </p>
+      <p class="page-kicker">{{ t('auth.signInKicker') }}</p>
+      <h1>{{ t('auth.welcomeBack') }}</h1>
+      <p class="page-copy">{{ t('auth.signInIntro') }}</p>
     </div>
 
     <form class="auth-form" @submit.prevent="handleSubmit">
       <label>
-        <span>Email</span>
+        <span>{{ t('common.email') }}</span>
         <input
           v-model="form.email"
           autocomplete="email"
           inputmode="email"
           type="email"
-          placeholder="you@example.com"
+          :placeholder="t('auth.emailPlaceholder')"
         />
       </label>
       <label>
-        <span>Password</span>
+        <span>{{ t('common.password') }}</span>
         <input
           v-model="form.password"
           autocomplete="current-password"
           type="password"
-          placeholder="Password"
+          :placeholder="t('common.password')"
         />
       </label>
 
       <RouterLink class="small-link" :to="{ name: 'forgot-password' }">
-        Forgot password?
+        {{ t('auth.forgotPassword') }}
       </RouterLink>
 
       <p v-if="isMockAuth" class="auth-note">
-        Mock auth is active. Any email and password will create a temporary
-        frontend session.
+        {{ t('auth.mockSignIn') }}
       </p>
       <p v-if="formError" class="meeting-error" role="alert">
         {{ formError }}
       </p>
 
       <button class="meeting-primary" type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'Signing in...' : 'Sign in' }}
+        {{ isSubmitting ? t('auth.signingIn') : t('auth.signIn') }}
       </button>
     </form>
 
     <p class="auth-switch">
-      New to Weekly Us?
-      <RouterLink :to="{ name: 'sign-up' }">Create account</RouterLink>
+      {{ t('auth.newHere') }}
+      <RouterLink :to="{ name: 'sign-up' }">
+        {{ t('auth.createAccount') }}
+      </RouterLink>
     </p>
   </section>
 </template>

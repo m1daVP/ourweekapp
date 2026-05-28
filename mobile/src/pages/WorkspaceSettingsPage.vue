@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import type { UserRole } from '@/features/access/types';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 const workspaceStore = useWorkspaceStore();
 const { can, getRoleLabel } = useWorkspacePermissions();
+const { t } = useI18n();
 
 const isInviteSheetOpen = ref(false);
 const statusMessage = ref('');
@@ -17,8 +19,8 @@ const inviteDraft = reactive({
 
 const roleOptions: Array<{ label: string; value: Exclude<UserRole, 'owner'> }> =
   [
-    { label: 'Member', value: 'adult_member' },
-    { label: 'Viewer', value: 'viewer' },
+    { label: t('workspace.member'), value: 'adult_member' },
+    { label: t('workspace.viewer'), value: 'viewer' },
   ];
 
 const activeMembers = computed(() =>
@@ -65,21 +67,24 @@ function getInviteName(contact: string) {
     return trimmedContact;
   }
 
-  return trimmedContact.split('@')[0]?.replace(/[._-]+/g, ' ') || 'Member';
+  return (
+    trimmedContact.split('@')[0]?.replace(/[._-]+/g, ' ') ||
+    t('workspace.member')
+  );
 }
 
 function inviteMember() {
   clearMessages();
 
   if (!can('inviteMembers')) {
-    errorMessage.value = 'Only the owner can invite members.';
+    errorMessage.value = t('workspace.ownerInviteOnly');
     return;
   }
 
   const contact = inviteDraft.contact.trim();
 
   if (!contact) {
-    errorMessage.value = 'Add an email or phone number first.';
+    errorMessage.value = t('workspace.addContactFirst');
     return;
   }
 
@@ -90,14 +95,13 @@ function inviteMember() {
   });
 
   if (!member) {
-    errorMessage.value = 'Could not save this invite.';
+    errorMessage.value = t('workspace.saveInviteFailed');
     return;
   }
 
   inviteDraft.contact = '';
   inviteDraft.role = 'adult_member';
-  statusMessage.value =
-    'Invitation saved locally. No email has been sent in this MVP.';
+  statusMessage.value = t('workspace.invitationSaved');
   closeInviteSheet();
 }
 
@@ -105,23 +109,26 @@ function removeMember(userId: string) {
   clearMessages();
 
   if (!can('removeMembers')) {
-    errorMessage.value = 'Only the owner can remove members.';
+    errorMessage.value = t('workspace.ownerRemoveOnly');
     return;
   }
 
   workspaceStore.removeMember(userId);
-  statusMessage.value = 'Member removed from the workspace.';
+  statusMessage.value = t('workspace.memberRemoved');
 }
 </script>
 
 <template>
   <section class="page-stack workspace-page workspace-members-page">
     <header class="workspace-members-hero">
-      <h1>Household Members</h1>
-      <p class="page-copy">Manage who has access to your shared space.</p>
+      <h1>{{ t('workspace.title') }}</h1>
+      <p class="page-copy">{{ t('workspace.intro') }}</p>
     </header>
 
-    <section class="workspace-member-cards" aria-label="Current members">
+    <section
+      class="workspace-member-cards"
+      :aria-label="t('workspace.currentMembersLabel')"
+    >
       <article
         v-for="(member, index) in activeMembers"
         :key="member.userId"
@@ -138,8 +145,11 @@ function removeMember(userId: string) {
           <small>
             {{
               member.role === 'owner'
-                ? 'Admin'
-                : getRoleLabel(member.role).replace('Adult member', 'Member')
+                ? t('workspace.admin')
+                : getRoleLabel(member.role).replace(
+                    'Adult member',
+                    t('workspace.member')
+                  )
             }}
           </small>
         </span>
@@ -147,7 +157,7 @@ function removeMember(userId: string) {
           v-if="member.userId !== workspaceStore.workspace.ownerId"
           class="workspace-member-card__remove material-symbols-outlined"
           type="button"
-          aria-label="Remove member"
+          :aria-label="t('workspace.removeMember')"
           @click="removeMember(member.userId)"
         >
           close
@@ -160,7 +170,7 @@ function removeMember(userId: string) {
       class="workspace-pending-invites"
       aria-labelledby="pending-invites-title"
     >
-      <h2 id="pending-invites-title">Pending Invites</h2>
+      <h2 id="pending-invites-title">{{ t('workspace.pendingInvites') }}</h2>
       <article
         v-for="invite in pendingInvites"
         :key="invite.userId"
@@ -171,10 +181,13 @@ function removeMember(userId: string) {
         </span>
         <span class="workspace-invite-card__body">
           <strong>{{ invite.email ?? invite.displayName }}</strong>
-          <small>Saved locally</small>
+          <small>{{ t('workspace.savedLocally') }}</small>
         </span>
-        <button type="button" @click="statusMessage = 'Invite kept locally.'">
-          Resend
+        <button
+          type="button"
+          @click="statusMessage = t('workspace.inviteKept')"
+        >
+          {{ t('workspace.resend') }}
         </button>
       </article>
     </section>
@@ -196,7 +209,7 @@ function removeMember(userId: string) {
         <span class="material-symbols-outlined" aria-hidden="true">
           person_add
         </span>
-        Invite New Member
+        {{ t('workspace.inviteNewMember') }}
       </button>
     </div>
 
@@ -210,7 +223,7 @@ function removeMember(userId: string) {
       <button
         class="workspace-invite-sheet__scrim"
         type="button"
-        aria-label="Close invite form"
+        :aria-label="t('workspace.closeInviteForm')"
         @click="closeInviteSheet"
       />
       <form
@@ -221,27 +234,27 @@ function removeMember(userId: string) {
           <button
             class="material-symbols-outlined"
             type="button"
-            aria-label="Go back"
+            :aria-label="t('workspace.goBack')"
             @click="closeInviteSheet"
           >
             arrow_back
           </button>
-          <h2 id="invite-sheet-title">Add Member</h2>
+          <h2 id="invite-sheet-title">{{ t('workspace.addMember') }}</h2>
         </header>
 
         <label>
-          <span>Email or Phone Number</span>
+          <span>{{ t('workspace.contact') }}</span>
           <input
             v-model="inviteDraft.contact"
             autocomplete="email"
             inputmode="email"
             type="text"
-            placeholder="Enter email or phone number"
+            :placeholder="t('workspace.contactPlaceholder')"
           />
         </label>
 
         <label>
-          <span>Role</span>
+          <span>{{ t('workspace.role') }}</span>
           <select v-model="inviteDraft.role">
             <option
               v-for="role in roleOptions"
@@ -254,15 +267,16 @@ function removeMember(userId: string) {
         </label>
 
         <p>
-          Invited members will receive a link to join your household's weekly
-          ritual once backend invitations are connected.
+          {{ t('workspace.inviteHelp') }}
         </p>
 
         <p v-if="errorMessage" class="meeting-error" role="alert">
           {{ errorMessage }}
         </p>
 
-        <button class="meeting-primary" type="submit">Send Invitation</button>
+        <button class="meeting-primary" type="submit">
+          {{ t('workspace.sendInvitation') }}
+        </button>
       </form>
     </div>
   </section>

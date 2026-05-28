@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { useUserAccessStore } from '@/app/stores/userAccess';
+import { translate } from '@/features/localization/i18n';
 import { subscriptionsService } from '@/features/subscription/services/subscriptionService';
 import type { FeatureKey, PlanType } from '@/features/access/types';
 import type {
@@ -78,7 +79,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while checking Premium access.';
+            : translate('upgrade.checkFailed');
       } finally {
         this.isLoading = false;
       }
@@ -94,7 +95,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while checking Premium access.';
+            : translate('upgrade.checkFailed');
       } finally {
         this.isLoading = false;
       }
@@ -113,7 +114,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while starting Premium.';
+            : translate('upgrade.startFailed');
         return false;
       } finally {
         this.isPurchasing = false;
@@ -133,7 +134,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while restoring purchases.';
+            : translate('upgrade.restoreFailed');
         return false;
       } finally {
         this.isRestoring = false;
@@ -157,7 +158,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while opening subscription management.';
+            : translate('upgrade.manageFailed');
         return null;
       } finally {
         this.isManaging = false;

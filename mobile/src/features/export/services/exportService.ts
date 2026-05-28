@@ -89,7 +89,7 @@ function getTaskMeta(
   context: MeetingExportContext
 ) {
   const details = [
-    `${translate('export.status')}: ${task.status}`,
+    `${translate('export.status')}: ${translate(`export.taskStatus.${task.status}`)}`,
     `${translate('export.responsible')}: ${getResponsibleLabel(
       task,
       context.getParticipantName

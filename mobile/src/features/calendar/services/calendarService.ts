@@ -5,6 +5,7 @@ import type {
   CalendarSyncResult,
   CalendarTaskDueDatePayload,
 } from '@/features/calendar/types';
+import { translate } from '@/features/localization/i18n';
 import {
   disconnectGoogleCalendar,
   getGoogleCalendarConnectionStatus,
@@ -24,8 +25,7 @@ function createSetupRequiredStatus(): CalendarConnectionStatus {
     state: 'setup_required',
     connected: false,
     lastCheckedAt: nowIso(),
-    message:
-      'Google Calendar connection is prepared, but secure OAuth is not configured yet.',
+    message: translate('calendar.setupRequired'),
   };
 }
 
@@ -35,7 +35,7 @@ function createDisconnectedStatus(): CalendarConnectionStatus {
     state: 'disconnected',
     connected: false,
     lastCheckedAt: nowIso(),
-    message: 'Google Calendar is not connected.',
+    message: translate('calendar.notConnected'),
   };
 }
 
@@ -79,7 +79,7 @@ export async function syncMeetingReminder(
   if (!payload.startsAt) {
     return createSkippedResult(
       'missing-calendar-date',
-      'Add a meeting date before syncing a calendar reminder.'
+      translate('calendar.addMeetingDate')
     );
   }
 
@@ -87,7 +87,7 @@ export async function syncMeetingReminder(
     (await syncGoogleCalendarMeetingReminder(payload)) ??
     createSkippedResult(
       'oauth-not-configured',
-      'Calendar sync is waiting for a secure Google connection flow.'
+      translate('calendar.oauthWaiting')
     )
   );
 }
@@ -98,7 +98,7 @@ export async function syncTaskDueDate(
   if (!payload.dueDate) {
     return createSkippedResult(
       'missing-calendar-date',
-      'Add a task due date before syncing it to Google Calendar.'
+      translate('calendar.addTaskDueDate')
     );
   }
 
@@ -106,7 +106,7 @@ export async function syncTaskDueDate(
     (await syncGoogleCalendarTaskDueDate(payload)) ??
     createSkippedResult(
       'oauth-not-configured',
-      'Calendar sync is waiting for a secure Google connection flow.'
+      translate('calendar.oauthWaiting')
     )
   );
 }
@@ -117,7 +117,7 @@ export async function syncFollowUpDate(
   if (!payload.followUpDate) {
     return createSkippedResult(
       'missing-calendar-date',
-      'Add a follow-up date before syncing it to Google Calendar.'
+      translate('calendar.addFollowUpDate')
     );
   }
 
@@ -125,7 +125,7 @@ export async function syncFollowUpDate(
     (await syncGoogleCalendarFollowUpDate(payload)) ??
     createSkippedResult(
       'oauth-not-configured',
-      'Calendar sync is waiting for a secure Google connection flow.'
+      translate('calendar.oauthWaiting')
     )
   );
 }

@@ -147,6 +147,10 @@ function getMeetingStatusLabel(item: Meeting) {
   return item.status === 'completed' ? t('export.finished') : t('export.draft');
 }
 
+function getTaskStatusLabel(status: MeetingTask['status']) {
+  return t(`meeting.taskStatus.${status}`);
+}
+
 function getParticipantName(participantId: string) {
   return (
     participantsStore.getParticipantById(participantId)?.name ??
@@ -465,7 +469,8 @@ async function generateSummary() {
                     <strong>{{ task.title }}</strong>
                     <p v-if="task.description">{{ task.description }}</p>
                     <small>
-                      {{ task.status }} - {{ getTaskResponsibleLabel(task) }}
+                      {{ getTaskStatusLabel(task.status) }} -
+                      {{ getTaskResponsibleLabel(task) }}
                       <template v-if="task.dueDate">
                         - {{ t('common.due') }} {{ task.dueDate }}</template
                       >
@@ -532,7 +537,8 @@ async function generateSummary() {
                 <strong>{{ task.title }}</strong>
                 <p v-if="task.description">{{ task.description }}</p>
                 <small>
-                  {{ task.status }} - {{ getTaskResponsibleLabel(task) }}
+                  {{ getTaskStatusLabel(task.status) }} -
+                  {{ getTaskResponsibleLabel(task) }}
                   <template v-if="task.dueDate">
                     - {{ t('common.due') }} {{ task.dueDate }}</template
                   >

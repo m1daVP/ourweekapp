@@ -1,6 +1,7 @@
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
+import { translate } from '@/features/localization/i18n';
 import type { Participant } from '@/features/participants/types';
 import { apiRequest } from '@/shared/api/httpClient';
 import { syncMeetingsApi } from '@/shared/api/meetingsApi';
@@ -46,8 +47,7 @@ function createMockResult(
     pulledCount: 0,
     conflictCount: 0,
     syncedAt: nowIso(),
-    skippedReason:
-      'Backend API is not configured. Local data remains stored on this device.',
+    skippedReason: translate('sync.backendUnavailable'),
   };
 }
 

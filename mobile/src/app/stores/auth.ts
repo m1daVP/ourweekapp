@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { translate } from '@/features/localization/i18n';
 import {
   register as registerRequest,
   signIn as signInRequest,
@@ -42,7 +43,8 @@ function mapSessionUser(session: AuthSessionDto): AuthUser {
   return {
     id: session.user.id,
     email: normalizeEmail(session.user.email ?? ''),
-    displayName: session.user.displayName?.trim() || 'Weekly Us user',
+    displayName:
+      session.user.displayName?.trim() || translate('common.weeklyUsUser'),
     plan: session.user.planType,
     createdAt: session.user.createdAt,
   };
@@ -141,7 +143,7 @@ export const useAuthStore = defineStore('auth', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while signing in.';
+            : translate('api.signInFailed');
         this.persist();
         return false;
       }
@@ -166,7 +168,7 @@ export const useAuthStore = defineStore('auth', {
         this.errorMessage =
           error instanceof Error
             ? error.message
-            : 'Something went wrong while creating the account.';
+            : translate('api.signUpFailed');
         this.persist();
         return false;
       }

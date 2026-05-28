@@ -1,15 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { SubscriptionPlanOption } from '@/features/subscription/types';
 
-defineProps<{
+const props = defineProps<{
   plan: SubscriptionPlanOption;
   selected?: boolean;
   disabled?: boolean;
 }>();
 
+const { t } = useI18n();
+
 defineEmits<{
   select: [planId: SubscriptionPlanOption['id']];
 }>();
+
+const planMessageKey = computed(() =>
+  props.plan.id === 'premium_yearly'
+    ? 'upgrade.plans.premiumYearly'
+    : 'upgrade.plans.premiumMonthly'
+);
 </script>
 
 <template>
@@ -21,9 +31,11 @@ defineEmits<{
     @click="$emit('select', plan.id)"
   >
     <span class="plan-card__header">
-      <strong>{{ plan.name }}</strong>
-      <span>{{ plan.priceLabel }}</span>
+      <strong>{{ t(`${planMessageKey}.name`) }}</strong>
+      <span>{{ t(`${planMessageKey}.priceLabel`) }}</span>
     </span>
-    <span class="plan-card__description">{{ plan.description }}</span>
+    <span class="plan-card__description">
+      {{ t(`${planMessageKey}.description`) }}
+    </span>
   </button>
 </template>

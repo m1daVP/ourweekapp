@@ -1,4 +1,5 @@
 import { shallowRef } from 'vue';
+import { translate } from '@/features/localization/i18n';
 
 export const appDataVersion = 2;
 
@@ -90,9 +91,7 @@ function getLocalStorage() {
   } catch {
     if (!hasReportedBlockedStorage) {
       hasReportedBlockedStorage = true;
-      addRecoveryMessage(
-        'Weekly Us cannot access local device storage. You can keep using this session, but changes may not persist.'
-      );
+      addRecoveryMessage(translate('storage.blocked'));
     }
 
     return null;
@@ -136,9 +135,7 @@ function parseJsonValue(value: string, label: string) {
   try {
     return JSON.parse(value) as unknown;
   } catch {
-    addRecoveryMessage(
-      `Some saved ${label} data could not be read. The app kept the original local copy for recovery and started that part with safe defaults.`
-    );
+    addRecoveryMessage(translate('storage.parseFailed', { label }));
     return null;
   }
 }
@@ -154,9 +151,7 @@ function readLegacyJson(key: keyof typeof legacyStorageKeys) {
   try {
     rawValue = storage?.getItem(legacyStorageKeys[key]);
   } catch {
-    addRecoveryMessage(
-      `Some saved ${key} data could not be accessed. The app started that part with safe defaults.`
-    );
+    addRecoveryMessage(translate('storage.accessFailed', { label: key }));
     return null;
   }
 
@@ -273,9 +268,7 @@ function migrateAppData(value: unknown): AppDataEnvelope | null {
   let nextData: MigrationInput = { ...value };
 
   if (version > appDataVersion) {
-    addRecoveryMessage(
-      'Saved data was created by a newer version of Weekly Us. The app kept a backup and started with safe local defaults.'
-    );
+    addRecoveryMessage(translate('storage.newerVersion'));
     return null;
   }
 
@@ -283,9 +276,7 @@ function migrateAppData(value: unknown): AppDataEnvelope | null {
     const migration = migrations[version];
 
     if (!migration) {
-      addRecoveryMessage(
-        'Saved data needs a migration this app version does not know yet. The app kept a backup and started with safe local defaults.'
-      );
+      addRecoveryMessage(translate('storage.missingMigration'));
       return null;
     }
 
@@ -324,9 +315,7 @@ function persistAppData(data: AppDataEnvelope) {
   try {
     getLocalStorage()?.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(data));
   } catch {
-    addRecoveryMessage(
-      'Weekly Us could not save local changes on this device. Storage may be full or blocked. Your current session can continue, but changes may not persist.'
-    );
+    addRecoveryMessage(translate('storage.saveFailed'));
   }
 }
 
@@ -346,9 +335,7 @@ function loadAppData(): AppDataEnvelope {
   try {
     rawValue = storage?.getItem(APP_DATA_STORAGE_KEY);
   } catch {
-    addRecoveryMessage(
-      'Saved Weekly Us data could not be accessed. The app started with safe defaults so you can keep using it.'
-    );
+    addRecoveryMessage(translate('storage.appDataAccessFailed'));
     cachedAppData = createEmptyAppData();
     return cachedAppData;
   }
@@ -377,16 +364,10 @@ function loadAppData(): AppDataEnvelope {
     }
 
     const backupKey = backupRawAppData(rawValue, 'invalid');
-    addRecoveryMessage(
-      'Saved Weekly Us data did not match the expected format. A local backup was kept, and the app started with safe defaults so you can keep using it.',
-      backupKey
-    );
+    addRecoveryMessage(translate('storage.invalidData'), backupKey);
   } catch {
     const backupKey = backupRawAppData(rawValue, 'corrupt');
-    addRecoveryMessage(
-      'Saved Weekly Us data could not be read. A local backup was kept, and the app started with safe defaults so you can keep using it.',
-      backupKey
-    );
+    addRecoveryMessage(translate('storage.corruptData'), backupKey);
   }
 
   cachedAppData = createEmptyAppData();
@@ -482,9 +463,7 @@ export function createInternalAppDataBackup(reason = 'manual') {
       })
     );
   } catch {
-    addRecoveryMessage(
-      'Weekly Us could not create a local data backup because device storage may be full or blocked.'
-    );
+    addRecoveryMessage(translate('storage.backupFailed'));
     return null;
   }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
@@ -16,6 +17,7 @@ const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
 const { can } = useWorkspacePermissions();
+const { t, locale } = useI18n();
 
 const editDrafts = reactive<
   Record<
@@ -69,7 +71,7 @@ function syncDrafts() {
 function getParticipantName(participantId: string) {
   return (
     participantsStore.getParticipantById(participantId)?.name ??
-    'Former participant'
+    t('meeting.formerParticipant')
   );
 }
 
@@ -78,15 +80,16 @@ function getResponsibilityLabel(
   participantIds: string[]
 ) {
   if (responsibilityType === 'shared') {
-    return 'Shared';
+    return t('meeting.shared');
   }
 
   if (responsibilityType === 'needsDiscussion') {
-    return 'Needs discussion';
+    return t('meeting.needsDiscussion');
   }
 
   return (
-    participantIds.map(getParticipantName).join(', ') || 'Former participant'
+    participantIds.map(getParticipantName).join(', ') ||
+    t('meeting.formerParticipant')
   );
 }
 
@@ -160,7 +163,7 @@ function getMeetingLabel(meetingId?: string) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale.value, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -169,14 +172,14 @@ function formatDate(value: string) {
 
 function saveTask(task: Task) {
   if (!canEditTasks.value) {
-    statusMessage.value = 'This workspace role can view tasks but cannot edit.';
+    statusMessage.value = t('meeting.roleCannotEditTasks');
     return;
   }
 
   const draft = editDrafts[task.id];
 
   if (!draft?.title.trim()) {
-    statusMessage.value = 'Add a short title first.';
+    statusMessage.value = t('tasksPage.addShortTitle');
     return;
   }
 
@@ -192,27 +195,28 @@ function saveTask(task: Task) {
     dueDate: draft.dueDate,
     ...responsibility,
   });
-  statusMessage.value = 'Task updated.';
+  statusMessage.value = t('tasksPage.taskUpdated');
 }
 
 function setTaskStatus(task: Task, status: TaskStatus) {
   if (!canEditTasks.value) {
-    statusMessage.value = 'This workspace role can view tasks but cannot edit.';
+    statusMessage.value = t('meeting.roleCannotEditTasks');
     return;
   }
 
   tasksStore.updateTaskStatus(task.id, status);
   meetingsStore.updateTaskStatus(task.id, status);
-  statusMessage.value = status === 'done' ? 'Marked done.' : 'Updated.';
+  statusMessage.value =
+    status === 'done' ? t('tasksPage.markedDone') : t('tasksPage.updated');
 }
 
 function deleteTask(task: Task) {
   if (!canDeleteTasks.value) {
-    statusMessage.value = 'Only the owner can delete tasks.';
+    statusMessage.value = t('tasksPage.ownerDeleteOnly');
     return;
   }
 
-  const confirmed = window.confirm('Delete this task?');
+  const confirmed = window.confirm(t('tasksPage.confirmDeleteTask'));
 
   if (!confirmed) {
     return;
@@ -220,7 +224,7 @@ function deleteTask(task: Task) {
 
   tasksStore.deleteTask(task.id);
   meetingsStore.deleteTask(task.id);
-  statusMessage.value = 'Task deleted.';
+  statusMessage.value = t('tasksPage.taskDeleted');
 }
 
 function openAgreement(agreement: Agreement) {
@@ -245,11 +249,9 @@ function relatedTaskTitles(agreement: Agreement) {
 <template>
   <section class="page-stack tasks-page">
     <div>
-      <p class="page-kicker">Tasks</p>
-      <h1>What we agreed to do</h1>
-      <p class="page-copy">
-        A light place for household follow-ups from your weekly meetings.
-      </p>
+      <p class="page-kicker">{{ t('tasksPage.kicker') }}</p>
+      <h1>{{ t('tasksPage.title') }}</h1>
+      <p class="page-copy">{{ t('tasksPage.intro') }}</p>
     </div>
 
     <section
@@ -258,19 +260,21 @@ function relatedTaskTitles(agreement: Agreement) {
     >
       <div class="task-section__header">
         <div>
-          <h2 id="open-tasks-title">Open tasks</h2>
-          <p>{{ openTasks.length }} still relevant</p>
+          <h2 id="open-tasks-title">{{ t('tasksPage.openTasks') }}</h2>
+          <p>
+            {{ t('tasksPage.stillRelevantCount', { count: openTasks.length }) }}
+          </p>
         </div>
       </div>
       <p v-if="!canEditTasks" class="meeting-help">
-        This workspace role can view tasks but cannot edit them.
+        {{ t('tasksPage.readOnlyTasks') }}
       </p>
 
       <ul v-if="openTasks.length" class="task-list">
         <li v-for="task in openTasks" :key="task.id" class="task-item">
           <div class="task-item__fields">
             <label>
-              <span>Task</span>
+              <span>{{ t('tasksPage.task') }}</span>
               <input
                 v-model="editDrafts[task.id].title"
                 type="text"
@@ -279,26 +283,32 @@ function relatedTaskTitles(agreement: Agreement) {
             </label>
 
             <label>
-              <span>Responsible</span>
+              <span>{{ t('tasksPage.responsible') }}</span>
               <select
                 v-model="editDrafts[task.id].responsibilityChoice"
                 :disabled="!canEditTasks"
               >
-                <option value="needsDiscussion">Needs discussion</option>
-                <option value="shared">Shared</option>
+                <option value="needsDiscussion">
+                  {{ t('tasksPage.needsDiscussion') }}
+                </option>
+                <option value="shared">{{ t('tasksPage.shared') }}</option>
                 <option
                   v-for="participant in getTaskParticipants(task)"
                   :key="participant.id"
                   :value="participant.id"
                 >
                   {{ participant.name
-                  }}{{ participant.isActive ? '' : ' (disabled)' }}
+                  }}{{
+                    participant.isActive
+                      ? ''
+                      : t('tasksPage.disabledParticipant')
+                  }}
                 </option>
               </select>
             </label>
 
             <label>
-              <span>Still relevant?</span>
+              <span>{{ t('tasksPage.stillRelevant') }}</span>
               <input
                 v-model="editDrafts[task.id].dueDate"
                 type="date"
@@ -311,12 +321,16 @@ function relatedTaskTitles(agreement: Agreement) {
             {{ task.description }}
           </p>
           <p v-if="task.sourceMeetingId" class="task-item__source">
-            From {{ getMeetingLabel(task.sourceMeetingId) }}
+            {{
+              t('tasksPage.fromMeeting', {
+                meeting: getMeetingLabel(task.sourceMeetingId),
+              })
+            }}
           </p>
 
           <div v-if="canEditTasks || canDeleteTasks" class="task-item__actions">
             <button v-if="canEditTasks" type="button" @click="saveTask(task)">
-              Save
+              {{ t('common.save') }}
             </button>
             <button
               v-if="canEditTasks"
@@ -324,14 +338,14 @@ function relatedTaskTitles(agreement: Agreement) {
               class="task-item__done"
               @click="setTaskStatus(task, 'done')"
             >
-              Done
+              {{ t('common.done') }}
             </button>
             <button
               v-if="canEditTasks"
               type="button"
               @click="setTaskStatus(task, 'skipped')"
             >
-              Skip
+              {{ t('tasksPage.skip') }}
             </button>
             <button
               v-if="canDeleteTasks"
@@ -339,16 +353,18 @@ function relatedTaskTitles(agreement: Agreement) {
               class="task-item__danger"
               @click="deleteTask(task)"
             >
-              Delete
+              {{ t('common.delete') }}
             </button>
           </div>
         </li>
       </ul>
-      <p v-else class="meeting-empty">No open tasks right now.</p>
+      <p v-else class="meeting-empty">{{ t('tasksPage.noOpenTasks') }}</p>
     </section>
 
     <details class="content-panel task-archive">
-      <summary>Done tasks ({{ doneTasks.length }})</summary>
+      <summary>
+        {{ t('tasksPage.doneTasks', { count: doneTasks.length }) }}
+      </summary>
       <ul v-if="doneTasks.length" class="task-list task-list--compact">
         <li
           v-for="task in doneTasks"
@@ -371,15 +387,17 @@ function relatedTaskTitles(agreement: Agreement) {
             type="button"
             @click="setTaskStatus(task, 'open')"
           >
-            Reopen
+            {{ t('tasksPage.reopen') }}
           </button>
         </li>
       </ul>
-      <p v-else class="meeting-empty">Nothing marked done yet.</p>
+      <p v-else class="meeting-empty">{{ t('tasksPage.nothingDone') }}</p>
     </details>
 
     <details class="content-panel task-archive">
-      <summary>Skipped tasks ({{ skippedTasks.length }})</summary>
+      <summary>
+        {{ t('tasksPage.skippedTasks', { count: skippedTasks.length }) }}
+      </summary>
       <ul v-if="skippedTasks.length" class="task-list task-list--compact">
         <li
           v-for="task in skippedTasks"
@@ -402,11 +420,11 @@ function relatedTaskTitles(agreement: Agreement) {
             type="button"
             @click="setTaskStatus(task, 'open')"
           >
-            Bring back
+            {{ t('tasksPage.bringBack') }}
           </button>
         </li>
       </ul>
-      <p v-else class="meeting-empty">No skipped tasks.</p>
+      <p v-else class="meeting-empty">{{ t('tasksPage.noSkippedTasks') }}</p>
     </details>
 
     <section
@@ -414,8 +432,8 @@ function relatedTaskTitles(agreement: Agreement) {
       aria-labelledby="agreements-title"
     >
       <div>
-        <h2 id="agreements-title">Recent agreements</h2>
-        <p>Decisions saved from weekly meetings.</p>
+        <h2 id="agreements-title">{{ t('tasksPage.recentAgreements') }}</h2>
+        <p>{{ t('tasksPage.agreementsIntro') }}</p>
       </div>
 
       <ul v-if="recentAgreements.length" class="agreement-list">
@@ -426,13 +444,16 @@ function relatedTaskTitles(agreement: Agreement) {
               {{ formatDate(agreement.createdAt) }}
               <template v-if="agreement.sourceMeetingId">
                 -
-                {{ getMeeting(agreement.sourceMeetingId)?.title ?? 'Meeting' }}
+                {{
+                  getMeeting(agreement.sourceMeetingId)?.title ??
+                  t('tasksPage.meeting')
+                }}
               </template>
             </small>
           </button>
         </li>
       </ul>
-      <p v-else class="meeting-empty">No agreements saved yet.</p>
+      <p v-else class="meeting-empty">{{ t('tasksPage.noAgreements') }}</p>
     </section>
 
     <p v-if="statusMessage" class="meeting-status" role="status">
@@ -448,7 +469,7 @@ function relatedTaskTitles(agreement: Agreement) {
     >
       <div class="agreement-modal__panel">
         <div>
-          <p class="page-kicker">Agreement</p>
+          <p class="page-kicker">{{ t('tasksPage.agreement') }}</p>
           <h2 id="agreement-modal-title">{{ selectedAgreement.title }}</h2>
         </div>
         <p v-if="selectedAgreement.description">
@@ -456,19 +477,20 @@ function relatedTaskTitles(agreement: Agreement) {
         </p>
         <dl class="agreement-detail-list">
           <div>
-            <dt>Date</dt>
+            <dt>{{ t('tasksPage.date') }}</dt>
             <dd>{{ formatDate(selectedAgreement.createdAt) }}</dd>
           </div>
           <div>
-            <dt>Meeting</dt>
+            <dt>{{ t('tasksPage.meeting') }}</dt>
             <dd>
               {{
-                getMeetingLabel(selectedAgreement.sourceMeetingId) || 'Meeting'
+                getMeetingLabel(selectedAgreement.sourceMeetingId) ||
+                t('tasksPage.meeting')
               }}
             </dd>
           </div>
           <div>
-            <dt>People</dt>
+            <dt>{{ t('tasksPage.people') }}</dt>
             <dd>
               {{
                 selectedAgreement.participantIds
@@ -482,7 +504,7 @@ function relatedTaskTitles(agreement: Agreement) {
           v-if="relatedTaskTitles(selectedAgreement).length"
           class="agreement-related"
         >
-          <h3>Related tasks</h3>
+          <h3>{{ t('tasksPage.relatedTasks') }}</h3>
           <ul>
             <li
               v-for="title in relatedTaskTitles(selectedAgreement)"
@@ -493,7 +515,7 @@ function relatedTaskTitles(agreement: Agreement) {
           </ul>
         </div>
         <button type="button" class="meeting-primary" @click="closeAgreement">
-          Close
+          {{ t('common.close') }}
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import type { PermissionState } from '@capacitor/core';
 import { useRemindersStore } from '@/app/stores/reminders';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useTasksStore } from '@/app/stores/tasks';
+import { translate } from '@/features/localization/i18n';
 import {
   cancelReminderNotifications,
   checkNotificationPermission,
@@ -38,7 +39,7 @@ export function useNotifications() {
       permissionStatus.value = permission?.display ?? 'unavailable';
     } catch {
       permissionStatus.value = 'unavailable';
-      lastError.value = 'Notifications are not available in this environment.';
+      lastError.value = translate('notifications.unavailable');
     }
   }
 
@@ -46,7 +47,7 @@ export function useNotifications() {
     lastError.value = null;
 
     if (!subscriptionStore.hasPremiumEntitlement) {
-      lastError.value = 'Reminder scheduling is a premium feature.';
+      lastError.value = translate('notifications.premiumOnly');
       remindersStore.setEnabled(false);
       await cancelReminderNotifications();
       return false;
@@ -104,7 +105,7 @@ export function useNotifications() {
       await syncPermissionStatus();
       return lastReminderResult.value;
     } catch {
-      lastError.value = 'Reminder scheduling could not be updated.';
+      lastError.value = translate('notifications.updateFailed');
       lastReminderResult.value = { scheduled: false, reason: 'unavailable' };
       return lastReminderResult.value;
     }

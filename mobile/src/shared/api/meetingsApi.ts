@@ -1,4 +1,5 @@
 import type { Meeting, MeetingSummary } from '@/features/meeting/types';
+import { translate } from '@/features/localization/i18n';
 import { apiRequest, isBackendApiConfigured } from './httpClient';
 
 export interface MeetingDto extends Meeting {
@@ -74,9 +75,7 @@ export async function saveMeetingSummary(
   payload: SaveMeetingSummaryRequestDto
 ): Promise<MeetingDto> {
   if (!isBackendApiConfigured()) {
-    throw new Error(
-      'Saving meeting summaries to the backend is not configured.'
-    );
+    throw new Error(translate('api.saveSummaryNotConfigured'));
   }
 
   return apiRequest<MeetingDto>(`/meetings/${payload.meetingId}/summary`, {

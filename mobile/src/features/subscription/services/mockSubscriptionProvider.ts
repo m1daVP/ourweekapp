@@ -1,4 +1,5 @@
 import { premiumFeatureKeys } from '@/features/access/featureAccess.config';
+import { translate } from '@/features/localization/i18n';
 import { appConfig } from '@/shared/config/env';
 import {
   readStorageSlice,
@@ -64,7 +65,7 @@ function createSnapshot(
     },
     management: {
       supported: false,
-      label: 'Store billing is not connected in this build.',
+      label: translate('upgrade.storeBillingNotConnected'),
     },
     checkedAt,
   };
@@ -133,14 +134,14 @@ export function createMockSubscriptionProvider(): SubscriptionProvider {
         return {
           status: 'not_supported',
           snapshot: createSnapshot(false),
-          message: 'Mock purchases are disabled in production builds.',
+          message: translate('upgrade.mockPurchasesDisabled'),
         };
       }
 
       const plan = premiumPlanOptions.find((option) => option.id === planId);
 
       if (!plan) {
-        throw new Error('This Premium plan is not available.');
+        throw new Error(translate('upgrade.planUnavailable'));
       }
 
       const purchasedAt = new Date();
@@ -159,7 +160,7 @@ export function createMockSubscriptionProvider(): SubscriptionProvider {
       return {
         status: 'completed',
         snapshot: createSnapshot(true, expiresAt),
-        message: 'Mock Premium is enabled on this device.',
+        message: translate('upgrade.mockPremiumEnabled'),
       };
     },
     async restorePurchases(): Promise<SubscriptionActionResult> {
@@ -170,15 +171,14 @@ export function createMockSubscriptionProvider(): SubscriptionProvider {
         snapshot,
         message:
           snapshot.currentPlan === 'premium'
-            ? 'Mock Premium was restored on this device.'
-            : 'No mock Premium purchase was found on this device.',
+            ? translate('upgrade.mockPremiumRestored')
+            : translate('upgrade.noMockPremium'),
       };
     },
     async manageSubscription() {
       return {
         supported: false,
-        message:
-          'Subscription management will open Google Play or App Store settings after real billing is configured.',
+        message: translate('upgrade.managementLater'),
       };
     },
   };
