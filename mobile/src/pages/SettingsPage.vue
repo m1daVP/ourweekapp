@@ -18,7 +18,11 @@ import {
 import type { FeatureKey, UserRole } from '@/features/access/types';
 import type { ReminderDay } from '@/features/reminders/types';
 import type { ParticipantType } from '@/features/participants/types';
-import { localeNames, supportedLocales } from '@/features/localization/locale';
+import {
+  isSupportedLocale,
+  localeNames,
+  supportedLocales,
+} from '@/features/localization/locale';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
 import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
@@ -227,7 +231,10 @@ function updateUnfinishedTaskReminderTime(event: Event) {
 
 function updateLocale(event: Event) {
   const value = (event.target as HTMLSelectElement).value;
-  localizationStore.setLocale(value === 'uk' ? 'uk' : 'en');
+
+  if (isSupportedLocale(value)) {
+    localizationStore.setLocale(value);
+  }
 }
 
 function setParticipantMessage(
