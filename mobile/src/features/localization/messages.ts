@@ -199,6 +199,10 @@ export const messages = {
       privateNotesText:
         'Keep personal notes separate from shared meeting history.',
       counts: '{notes} notes - {tasks} tasks - {agreements} agreements',
+      deleteDraft: 'Delete draft',
+      confirmDeleteDraft:
+        'Delete this draft? Notes, tasks, and agreements from it will be removed.',
+      draftDeleted: 'Draft deleted.',
       lockedTitle: 'Older meeting locked',
       lockedMessage:
         'Free history opens the latest {count} finished meetings. Upgrade to review this meeting.',
@@ -1253,6 +1257,10 @@ export const messages = {
       privateNotesText:
         'Тримайте особисті нотатки окремо від спільної історії зустрічей.',
       counts: '{notes} нотаток - {tasks} завдань - {agreements} домовленостей',
+      deleteDraft: 'Видалити чернетку',
+      confirmDeleteDraft:
+        'Видалити цю чернетку? Нотатки, завдання та домовленості з неї буде видалено.',
+      draftDeleted: 'Чернетку видалено.',
       lockedTitle: 'Старішу зустріч заблоковано',
       lockedMessage:
         'Безкоштовна історія відкриває останні {count} завершені зустрічі. Оновіться, щоб переглянути цю зустріч.',
@@ -2323,6 +2331,10 @@ export const messages = {
       privateNotesText:
         'Mantén las notas personales separadas del historial compartido de reuniones.',
       counts: '{notes} notas - {tasks} tareas - {agreements} acuerdos',
+      deleteDraft: 'Eliminar borrador',
+      confirmDeleteDraft:
+        '¿Eliminar este borrador? Sus notas, tareas y acuerdos se quitarán.',
+      draftDeleted: 'Borrador eliminado.',
       lockedTitle: 'Reunión anterior bloqueada',
       lockedMessage:
         'El historial gratis abre las últimas {count} reuniones finalizadas. Mejora para revisar esta reunión.',

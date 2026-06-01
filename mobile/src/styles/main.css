@@ -648,6 +648,7 @@ input[type='radio'] {
 .secondary-button,
 .meeting-save,
 .meeting-primary,
+.history-item__delete,
 .meeting-actions button,
 .meeting-inline-form button,
 .meeting-task-list button,
@@ -758,7 +759,8 @@ input[type='radio'] {
 
 .base-button--danger,
 .task-item__actions .task-item__danger,
-.private-note-item__actions .private-note-item__danger {
+.private-note-item__actions .private-note-item__danger,
+.history-item__delete {
   border-color: var(--color-error-container);
   background: var(--color-error-container);
   color: var(--color-error);
@@ -1703,6 +1705,15 @@ input[type='radio'] {
   padding: 16px;
   color: var(--color-on-surface);
   text-align: left;
+}
+
+.history-item__available {
+  display: grid;
+}
+
+.history-item__delete {
+  width: calc(100% - 32px);
+  margin: 0 16px 16px;
 }
 
 .history-item__meta {

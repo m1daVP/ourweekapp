@@ -491,6 +491,27 @@ export const useMeetingsStore = defineStore('meetings', {
       this.persist();
       return meeting;
     },
+    deleteDraftMeeting(meetingId: string) {
+      const meeting = this.meetings.find((item) => item.id === meetingId);
+
+      if (!meeting || meeting.status === 'completed') {
+        return false;
+      }
+
+      this.meetings = this.meetings.filter((item) => item.id !== meetingId);
+
+      if (this.activeMeetingId === meetingId) {
+        this.activeMeetingId = null;
+      }
+
+      if (!this.meetings.some((item) => item.status !== 'completed')) {
+        this.draftSavedAt = null;
+      }
+
+      useTasksStore().deleteItemsForMeeting(meetingId);
+      this.persist();
+      return true;
+    },
     syncActiveMeetingParticipants() {
       const meeting = this.activeMeeting;
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
@@ -13,6 +13,7 @@ const { canAccessMeetingHistoryItem, getFreeLimit } = useFeatureAccess();
 const { t, locale } = useI18n();
 
 const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
+const statusMessage = ref('');
 
 const sortedCompletedMeetings = computed(() =>
   [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
@@ -125,6 +126,22 @@ function openHistoryItem(item: (typeof historyItems.value)[number]) {
   meetingsStore.resumeMeeting(item.meeting.id);
   router.push({ name: 'meeting' });
 }
+
+function deleteDraft(meeting: Meeting) {
+  if (meeting.status === 'completed') {
+    return;
+  }
+
+  const confirmed = window.confirm(t('history.confirmDeleteDraft'));
+
+  if (!confirmed) {
+    return;
+  }
+
+  if (meetingsStore.deleteDraftMeeting(meeting.id)) {
+    statusMessage.value = t('history.draftDeleted');
+  }
+}
 </script>
 
 <template>
@@ -159,20 +176,33 @@ function openHistoryItem(item: (typeof historyItems.value)[number]) {
         :key="item.meeting.id"
         :class="['history-item', { 'is-locked': item.isLocked }]"
       >
-        <button
-          v-if="!item.isLocked"
-          type="button"
-          class="history-item__button"
-          @click="openHistoryItem(item)"
-        >
-          <span class="history-item__meta">
-            <span>{{ item.dateLabel }}</span>
-            <span>{{ item.statusLabel }}</span>
-          </span>
-          <strong>{{ item.meeting.title }}</strong>
-          <p>{{ item.preview }}</p>
-          <small>{{ item.counts }}</small>
-        </button>
+        <div v-if="!item.isLocked" class="history-item__available">
+          <button
+            type="button"
+            class="history-item__button"
+            @click="openHistoryItem(item)"
+          >
+            <span class="history-item__meta">
+              <span>{{ item.dateLabel }}</span>
+              <span>{{ item.statusLabel }}</span>
+            </span>
+            <strong>{{ item.meeting.title }}</strong>
+            <p>{{ item.preview }}</p>
+            <small>{{ item.counts }}</small>
+          </button>
+
+          <button
+            v-if="item.meeting.status !== 'completed'"
+            type="button"
+            class="base-button base-button--danger history-item__delete"
+            @click="deleteDraft(item.meeting)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">
+              delete
+            </span>
+            {{ t('history.deleteDraft') }}
+          </button>
+        </div>
 
         <div v-else class="history-item__locked">
           <span class="history-item__meta">
@@ -196,5 +226,9 @@ function openHistoryItem(item: (typeof historyItems.value)[number]) {
       <h2>{{ t('history.emptyTitle') }}</h2>
       <p>{{ t('history.emptyText') }}</p>
     </div>
+
+    <p v-if="statusMessage" class="meeting-status" role="status">
+      {{ statusMessage }}
+    </p>
   </section>
 </template>

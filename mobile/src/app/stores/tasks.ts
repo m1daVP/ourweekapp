@@ -428,6 +428,31 @@ export const useTasksStore = defineStore('tasks', {
         this.persist();
       }
     },
+    deleteItemsForMeeting(sourceMeetingId: string) {
+      const originalTaskLength = this.tasks.length;
+      const originalAgreementLength = this.agreements.length;
+      const originalReviewDecisionLength = this.reviewDecisions.length;
+
+      this.tasks = this.tasks.filter(
+        (task) => task.sourceMeetingId !== sourceMeetingId
+      );
+      this.agreements = this.agreements.filter(
+        (agreement) => agreement.sourceMeetingId !== sourceMeetingId
+      );
+      this.reviewDecisions = this.reviewDecisions.filter(
+        (decision) =>
+          decision.meetingId !== sourceMeetingId &&
+          decision.sourceMeetingId !== sourceMeetingId
+      );
+
+      if (
+        this.tasks.length !== originalTaskLength ||
+        this.agreements.length !== originalAgreementLength ||
+        this.reviewDecisions.length !== originalReviewDecisionLength
+      ) {
+        this.persist();
+      }
+    },
     addAgreement(payload: AddAgreementPayload) {
       const title = payload.title.trim();
 
