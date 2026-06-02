@@ -523,6 +523,26 @@ export const useMeetingsStore = defineStore('meetings', {
         this.persist();
       }
     },
+    setActiveMeetingParticipants(participantIds: string[]) {
+      const meeting = this.activeMeeting;
+
+      if (!meeting) {
+        return;
+      }
+
+      const activeParticipantIds = new Set(getActiveParticipantIds());
+      const selectedParticipantIds = uniqueIds(participantIds).filter(
+        (participantId) => activeParticipantIds.has(participantId)
+      );
+
+      if (!selectedParticipantIds.length) {
+        return;
+      }
+
+      meeting.participantIds = selectedParticipantIds;
+      meeting.updatedAt = nowIso();
+      this.persist();
+    },
     setCurrentSection(index: number) {
       const meeting = this.activeMeeting;
 

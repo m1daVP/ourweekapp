@@ -1,3 +1,5 @@
+/// <reference types="@capacitor/splash-screen" />
+
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
@@ -5,6 +7,16 @@ const config: CapacitorConfig = {
   appName: 'Weekly Us',
   webDir: 'dist',
   plugins: {
+    SplashScreen: {
+      launchAutoHide: false,
+      launchFadeOutDuration: 500,
+      backgroundColor: '#6f8f72',
+      androidSplashResourceName: 'splash_icon',
+      androidScaleType: 'CENTER',
+      showSpinner: false,
+      splashFullScreen: false,
+      splashImmersive: false,
+    },
     LocalNotifications: {
       presentationOptions: ['badge', 'sound', 'banner', 'list'],
     },
