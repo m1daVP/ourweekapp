@@ -1,45 +1,57 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
+import { useParticipantsStore } from '@/app/stores/participants';
+import type { Participant } from '@/features/participants/types';
 import type { Meeting } from '@/features/meeting/types';
-import PremiumLock from '@/shared/components/PremiumLock.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 
 const meetingsStore = useMeetingsStore();
+const participantsStore = useParticipantsStore();
 const router = useRouter();
-const { canAccessMeetingHistoryItem, getFreeLimit } = useFeatureAccess();
+const { canAccessMeetingHistoryItem, canUseFeature, getFreeLimit } =
+  useFeatureAccess();
 const { t, locale } = useI18n();
 
 const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
-const statusMessage = ref('');
 
 const sortedCompletedMeetings = computed(() =>
   [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
 );
 
-const historyItems = computed(() => {
-  const completedIndexes = new Map(
-    sortedCompletedMeetings.value.map((meeting, index) => [meeting.id, index])
-  );
-
-  return [...meetingsStore.meetings]
+const inProgressItems = computed(() =>
+  meetingsStore.meetings
+    .filter((meeting) => meeting.status !== 'completed')
     .sort(compareMeetingsByDate)
-    .map((meeting) => {
-      const completedIndex = completedIndexes.get(meeting.id) ?? -1;
+    .map((meeting) => ({
+      meeting,
+      title: getMeetingTitle(meeting),
+      subtitle: formatDraftLabel(meeting),
+    }))
+);
 
-      return {
-        meeting,
-        completedIndex,
-        isLocked: !canAccessMeetingHistoryItem(meeting, completedIndex),
-        preview: getMeetingPreview(meeting),
-        counts: getMeetingCounts(meeting),
-        dateLabel: formatDate(getMeetingDate(meeting)),
-        statusLabel: getMeetingStatusLabel(meeting),
-      };
-    });
-});
+const completedItems = computed(() =>
+  sortedCompletedMeetings.value.map((meeting) => {
+    const completedIndex = sortedCompletedMeetings.value.findIndex(
+      (item) => item.id === meeting.id
+    );
+
+    return {
+      meeting,
+      completedIndex,
+      isLocked: !canAccessMeetingHistoryItem(meeting, completedIndex),
+      title: `${formatMeetingDate(getMeetingDate(meeting))}: ${getMeetingTitle(
+        meeting
+      )}`,
+      subtitle: formatCompletedLabel(meeting),
+      participants: getMeetingParticipants(meeting),
+    };
+  })
+);
+
+const showPremiumUnlock = computed(() => !canUseFeature('unlimitedHistory'));
 
 function compareMeetingsByDate(first: Meeting, second: Meeting) {
   return getMeetingDate(second).getTime() - getMeetingDate(first).getTime();
@@ -51,184 +63,187 @@ function getMeetingDate(meeting: Meeting) {
   );
 }
 
-function formatDate(date: Date) {
+function getMeetingTitle(meeting: Meeting) {
+  return meeting.title || t('history.defaultMeetingTitle');
+}
+
+function formatMeetingDate(date: Date) {
   return new Intl.DateTimeFormat(locale.value, {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
   }).format(date);
 }
 
-function truncateText(text: string, maxLength = 92) {
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
-}
+function formatDraftLabel(meeting: Meeting) {
+  const date = new Date(meeting.updatedAt ?? meeting.createdAt);
+  const relativeDays = getRelativeDayCount(date);
 
-function getMeetingPreview(meeting: Meeting) {
-  for (const section of meeting.sections) {
-    const note = section.notes[0];
-
-    if (note) {
-      return truncateText(note.text);
-    }
-
-    const task = section.tasks[0];
-
-    if (task) {
-      return truncateText(task.title);
-    }
-
-    const agreement = section.agreements[0];
-
-    if (agreement) {
-      return truncateText(agreement.text);
-    }
+  if (relativeDays === 0) {
+    return t('history.draftedToday');
   }
 
-  return t('meeting.noContentPreview');
+  if (relativeDays === 1) {
+    return t('history.draftedYesterday');
+  }
+
+  return t('history.draftedDaysAgo', { count: relativeDays });
 }
 
-function getMeetingCounts(meeting: Meeting) {
-  const notes = meeting.sections.reduce(
-    (total, section) => total + section.notes.length,
-    0
-  );
-  const tasks = meeting.sections.reduce(
-    (total, section) => total + section.tasks.length,
-    0
-  );
-  const agreements = meeting.sections.reduce(
-    (total, section) => total + section.agreements.length,
-    0
-  );
+function formatCompletedLabel(meeting: Meeting) {
+  const date = getMeetingDate(meeting);
+  const weekday = new Intl.DateTimeFormat(locale.value, {
+    weekday: 'long',
+  }).format(date);
 
-  return t('history.counts', { notes, tasks, agreements });
+  return t('history.completedOn', { day: weekday });
 }
 
-function getMeetingStatusLabel(meeting: Meeting) {
-  return meeting.status === 'completed'
-    ? t('export.finished')
-    : t('export.draft');
+function getRelativeDayCount(date: Date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+
+  return Math.max(
+    0,
+    Math.round((today.getTime() - target.getTime()) / 86_400_000)
+  );
 }
 
-function openHistoryItem(item: (typeof historyItems.value)[number]) {
+function getMeetingParticipants(meeting: Meeting): Participant[] {
+  const participants = meeting.participantIds
+    .map((participantId) => participantsStore.getParticipantById(participantId))
+    .filter((participant): participant is Participant => Boolean(participant));
+
+  if (participants.length) {
+    return participants;
+  }
+
+  return participantsStore.activeParticipants;
+}
+
+function openInProgressMeeting(meeting: Meeting) {
+  meetingsStore.resumeMeeting(meeting.id);
+  router.push({ name: 'meeting' });
+}
+
+function openCompletedMeeting(item: (typeof completedItems.value)[number]) {
   if (item.isLocked) {
     return;
   }
 
-  if (item.meeting.status === 'completed') {
-    router.push({
-      name: 'meeting-details',
-      params: { meetingId: item.meeting.id },
-    });
-    return;
-  }
-
-  meetingsStore.resumeMeeting(item.meeting.id);
-  router.push({ name: 'meeting' });
+  router.push({
+    name: 'meeting-details',
+    params: { meetingId: item.meeting.id },
+  });
 }
 
-function deleteDraft(meeting: Meeting) {
-  if (meeting.status === 'completed') {
-    return;
-  }
-
-  const confirmed = window.confirm(t('history.confirmDeleteDraft'));
-
-  if (!confirmed) {
-    return;
-  }
-
-  if (meetingsStore.deleteDraftMeeting(meeting.id)) {
-    statusMessage.value = t('history.draftDeleted');
-  }
+function openUpgrade() {
+  router.push({
+    name: 'upgrade',
+    query: { lockedFeature: 'unlimitedHistory' },
+  });
 }
 </script>
 
 <template>
-  <section class="page-stack history-page">
-    <header>
-      <p class="page-kicker">{{ t('history.kicker') }}</p>
-      <h1>{{ t('history.title') }}</h1>
-      <p class="page-copy">
-        {{ t('history.intro', { count: freeHistoryLimit }) }}
-      </p>
-    </header>
+  <section class="history-page history-page--redesign">
+    <section class="history-section" aria-labelledby="history-progress-title">
+      <h2 id="history-progress-title">{{ t('history.inProgress') }}</h2>
+      <ul v-if="inProgressItems.length" class="history-card-list">
+        <li
+          v-for="item in inProgressItems"
+          :key="item.meeting.id"
+          class="history-progress-card"
+        >
+          <button
+            type="button"
+            class="history-progress-card__button"
+            @click="openInProgressMeeting(item.meeting)"
+          >
+            <span class="history-progress-card__icon" aria-hidden="true">
+              <span class="material-symbols-outlined">edit_document</span>
+            </span>
+            <span class="history-progress-card__copy">
+              <strong>{{ item.title }}</strong>
+              <small>{{ item.subtitle }}</small>
+            </span>
+            <span
+              class="history-card__chevron material-symbols-outlined"
+              aria-hidden="true"
+            >
+              chevron_right
+            </span>
+          </button>
+        </li>
+      </ul>
+      <p v-else class="history-empty-card">{{ t('history.noDrafts') }}</p>
+    </section>
 
-    <RouterLink
-      class="content-panel history-private-notes-link"
-      :to="{ name: 'private-notes' }"
+    <section class="history-section" aria-labelledby="history-completed-title">
+      <h2 id="history-completed-title">{{ t('history.completedMeetings') }}</h2>
+      <ul v-if="completedItems.length" class="history-card-list">
+        <li
+          v-for="item in completedItems"
+          :key="item.meeting.id"
+          :class="['history-completed-card', { 'is-locked': item.isLocked }]"
+        >
+          <button
+            type="button"
+            class="history-completed-card__button"
+            :disabled="item.isLocked"
+            @click="openCompletedMeeting(item)"
+          >
+            <span class="history-completed-card__header">
+              <span class="history-completed-card__copy">
+                <strong>{{ item.title }}</strong>
+                <small>{{ item.subtitle }}</small>
+              </span>
+              <span
+                class="history-completed-card__status material-symbols-outlined"
+                aria-hidden="true"
+              >
+                {{ item.isLocked ? 'lock' : 'check_circle' }}
+              </span>
+            </span>
+            <span class="history-avatar-stack" aria-hidden="true">
+              <span
+                v-for="participant in item.participants.slice(0, 3)"
+                :key="participant.id"
+                class="history-avatar"
+                :style="{ backgroundColor: participant.avatarColor }"
+              >
+                {{ participant.initials }}
+              </span>
+            </span>
+          </button>
+        </li>
+      </ul>
+      <p v-else class="history-empty-card">{{ t('history.emptyText') }}</p>
+    </section>
+
+    <section
+      v-if="showPremiumUnlock"
+      class="history-premium-card"
+      aria-labelledby="history-premium-title"
     >
-      <span class="section-icon material-symbols-outlined" aria-hidden="true">
-        edit_note
+      <span class="history-premium-card__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">lock</span>
       </span>
-      <span>
-        <strong>{{ t('history.privateNotes') }}</strong>
-        <small>{{ t('history.privateNotesText') }}</small>
-      </span>
-      <span class="material-symbols-outlined" aria-hidden="true">
-        chevron_right
-      </span>
-    </RouterLink>
-
-    <ul v-if="historyItems.length" class="history-list">
-      <li
-        v-for="item in historyItems"
-        :key="item.meeting.id"
-        :class="['history-item', { 'is-locked': item.isLocked }]"
-      >
-        <div v-if="!item.isLocked" class="history-item__available">
-          <button
-            type="button"
-            class="history-item__button"
-            @click="openHistoryItem(item)"
-          >
-            <span class="history-item__meta">
-              <span>{{ item.dateLabel }}</span>
-              <span>{{ item.statusLabel }}</span>
-            </span>
-            <strong>{{ item.meeting.title }}</strong>
-            <p>{{ item.preview }}</p>
-            <small>{{ item.counts }}</small>
-          </button>
-
-          <button
-            v-if="item.meeting.status !== 'completed'"
-            type="button"
-            class="base-button base-button--danger history-item__delete"
-            @click="deleteDraft(item.meeting)"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">
-              delete
-            </span>
-            {{ t('history.deleteDraft') }}
-          </button>
-        </div>
-
-        <div v-else class="history-item__locked">
-          <span class="history-item__meta">
-            <span>{{ item.dateLabel }}</span>
-            <span>{{ item.statusLabel }}</span>
-          </span>
-          <strong>{{ item.meeting.title }}</strong>
-          <p>{{ item.preview }}</p>
-          <small>{{ item.counts }}</small>
-          <PremiumLock
-            feature="unlimitedHistory"
-            :title="t('history.lockedTitle')"
-            :message="t('history.lockedMessage', { count: freeHistoryLimit })"
-            :show-preview="false"
-          />
-        </div>
-      </li>
-    </ul>
-
-    <div v-else class="content-panel">
-      <h2>{{ t('history.emptyTitle') }}</h2>
-      <p>{{ t('history.emptyText') }}</p>
-    </div>
-
-    <p v-if="statusMessage" class="meeting-status" role="status">
-      {{ statusMessage }}
-    </p>
+      <div>
+        <h2 id="history-premium-title">{{ t('history.unlockFullHistory') }}</h2>
+        <p>
+          {{
+            t('history.unlockFullHistoryMessage', {
+              count: freeHistoryLimit,
+            })
+          }}
+        </p>
+      </div>
+      <button type="button" @click="openUpgrade">
+        {{ t('history.upgradePremium') }}
+      </button>
+    </section>
   </section>
 </template>
