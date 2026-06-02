@@ -6,12 +6,28 @@ import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
 import type { Participant } from '@/features/participants/types';
 import type {
-  Agreement,
   Task,
   TaskResponsibilityType,
   TaskStatus,
 } from '@/features/tasks/types';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
+
+type TaskFilter = 'todo' | 'done' | 'all';
+type TaskCardTone = 'default' | 'danger';
+type TaskCardGroup = 'shared' | 'mine';
+
+interface TaskCardView {
+  id: string;
+  title: string;
+  metadataIcon: string;
+  metadataText: string;
+  metadataTone: TaskCardTone;
+  participants: Participant[];
+  accessory: 'avatars' | 'badge' | 'none';
+  badgeCount?: number;
+  group: TaskCardGroup;
+  task?: Task;
+}
 
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
@@ -19,26 +35,107 @@ const tasksStore = useTasksStore();
 const { can } = useWorkspacePermissions();
 const { t, locale } = useI18n();
 
+const taskFilters: Array<{ value: TaskFilter; label: string }> = [
+  { value: 'todo', label: 'To Do' },
+  { value: 'done', label: 'Done' },
+  { value: 'all', label: 'All' },
+];
+
 const editDrafts = reactive<
   Record<
     string,
     { title: string; dueDate: string; responsibilityChoice: string }
   >
 >({});
-const selectedAgreement = ref<Agreement | null>(null);
+const newTaskDraft = reactive({
+  title: '',
+  dueDate: '',
+  responsibilityChoice: 'needsDiscussion',
+});
+const selectedFilter = ref<TaskFilter>('todo');
+const selectedTask = ref<Task | null>(null);
+const isAddTaskSheetOpen = ref(false);
 const statusMessage = ref('');
 
 const openTasks = computed(() => tasksStore.openTasks);
 const doneTasks = computed(() => tasksStore.doneTasks);
 const skippedTasks = computed(() => tasksStore.skippedTasks);
-const recentAgreements = computed(() => tasksStore.recentAgreements);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
+const firstParticipant = computed(() => activeParticipants.value[0] ?? null);
 const canEditTasks = computed(() => can('editTasks'));
 const canDeleteTasks = computed(() => can('deleteTasks'));
+const showDesignSamples = computed(
+  () => selectedFilter.value === 'todo' && tasksStore.tasks.length === 0
+);
+
+const filteredTasks = computed(() => {
+  if (selectedFilter.value === 'todo') {
+    return openTasks.value;
+  }
+
+  if (selectedFilter.value === 'done') {
+    return doneTasks.value;
+  }
+
+  return [...openTasks.value, ...doneTasks.value, ...skippedTasks.value];
+});
+
+const taskCards = computed(() => filteredTasks.value.map(createTaskCard));
+const sharedTaskCards = computed(() =>
+  showDesignSamples.value
+    ? sampleTaskCards.value.filter((card) => card.group === 'shared')
+    : taskCards.value.filter((card) => card.group === 'shared')
+);
+const myTaskCards = computed(() =>
+  showDesignSamples.value
+    ? sampleTaskCards.value.filter((card) => card.group === 'mine')
+    : taskCards.value.filter((card) => card.group === 'mine')
+);
+const selectedTaskDraft = computed(() =>
+  selectedTask.value ? editDrafts[selectedTask.value.id] : null
+);
+const sampleTaskCards = computed<TaskCardView[]>(() => {
+  const participants = getSampleParticipants();
+
+  return [
+    {
+      id: 'sample-grocery',
+      title: 'Weekly Grocery Run',
+      metadataIcon: 'calendar_today',
+      metadataText: 'Today, 4:00 PM',
+      metadataTone: 'default',
+      participants: participants.slice(0, 2),
+      accessory: 'avatars',
+      group: 'shared',
+    },
+    {
+      id: 'sample-clean',
+      title: 'Deep Clean Living Room',
+      metadataIcon: 'calendar_today',
+      metadataText: 'Tomorrow',
+      metadataTone: 'default',
+      participants: [],
+      accessory: 'badge',
+      badgeCount: 2,
+      group: 'shared',
+    },
+    {
+      id: 'sample-utilities',
+      title: 'Pay Utilities Bill',
+      metadataIcon: 'warning',
+      metadataText: 'Overdue',
+      metadataTone: 'danger',
+      participants: [participants[0]],
+      accessory: 'avatars',
+      group: 'mine',
+    },
+  ];
+});
 
 onMounted(() => {
   participantsStore.ensureDefaultParticipants();
   tasksStore.syncFromMeetings(meetingsStore.meetings);
+  newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
 });
 
 watch(
@@ -108,14 +205,16 @@ function getResponsibilityChoice(task: Task) {
 function getTaskParticipants(task: Task) {
   const participantsById = new Map<string, Participant>();
 
-  for (const participant of activeParticipants.value) {
-    participantsById.set(participant.id, participant);
-  }
-
   for (const participantId of task.responsibleParticipantIds) {
     const participant = participantsStore.getParticipantById(participantId);
 
     if (participant) {
+      participantsById.set(participant.id, participant);
+    }
+  }
+
+  if (task.responsibilityType === 'shared' && !participantsById.size) {
+    for (const participant of activeParticipants.value) {
       participantsById.set(participant.id, participant);
     }
   }
@@ -170,6 +269,128 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function createTaskCard(task: Task): TaskCardView {
+  const participants = getTaskParticipants(task);
+  const isShared =
+    task.responsibilityType === 'shared' ||
+    task.responsibleParticipantIds.length !== 1;
+  const metadata = getTaskMetadata(task);
+  const shouldUseBadge =
+    isShared && (participants.length > 2 || participants.length === 0);
+
+  return {
+    id: task.id,
+    title: task.title,
+    metadataIcon: metadata.icon,
+    metadataText: metadata.text,
+    metadataTone: metadata.tone,
+    participants,
+    accessory: shouldUseBadge
+      ? 'badge'
+      : participants.length
+        ? 'avatars'
+        : 'none',
+    badgeCount: shouldUseBadge ? Math.max(participants.length, 2) : undefined,
+    group: isShared ? 'shared' : 'mine',
+    task,
+  };
+}
+
+function getTaskMetadata(task: Task) {
+  if (task.status === 'done') {
+    return { icon: 'check_circle', text: 'Done', tone: 'default' as const };
+  }
+
+  if (task.status === 'skipped') {
+    return { icon: 'remove_circle', text: 'Skipped', tone: 'default' as const };
+  }
+
+  if (task.dueDate) {
+    if (isOverdue(task.dueDate)) {
+      return { icon: 'warning', text: 'Overdue', tone: 'danger' as const };
+    }
+
+    return {
+      icon: 'calendar_today',
+      text: formatDueDate(task.dueDate),
+      tone: 'default' as const,
+    };
+  }
+
+  return {
+    icon: 'calendar_today',
+    text: getResponsibilityLabel(
+      task.responsibilityType,
+      task.responsibleParticipantIds
+    ),
+    tone: 'default' as const,
+  };
+}
+
+function isOverdue(dueDate: string) {
+  return getDateOnly(dueDate).getTime() < getToday().getTime();
+}
+
+function formatDueDate(dueDate: string) {
+  const date = getDateOnly(dueDate);
+  const today = getToday();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  if (date.getTime() === today.getTime()) {
+    return 'Today';
+  }
+
+  if (date.getTime() === tomorrow.getTime()) {
+    return 'Tomorrow';
+  }
+
+  return new Intl.DateTimeFormat(locale.value, {
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+}
+
+function getToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function getDateOnly(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function getSampleParticipants() {
+  if (activeParticipants.value.length) {
+    return activeParticipants.value;
+  }
+
+  return [
+    createPlaceholderParticipant('Me', 'ME', '#c78252'),
+    createPlaceholderParticipant('Partner', 'PA', '#456349'),
+  ];
+}
+
+function createPlaceholderParticipant(
+  name: string,
+  initials: string,
+  avatarColor: string
+): Participant {
+  return {
+    id: `sample-${initials.toLowerCase()}`,
+    name,
+    initials,
+    avatarColor,
+    type: 'adult',
+    isActive: true,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
 function saveTask(task: Task) {
   if (!canEditTasks.value) {
     statusMessage.value = t('meeting.roleCannotEditTasks');
@@ -196,6 +417,40 @@ function saveTask(task: Task) {
     ...responsibility,
   });
   statusMessage.value = t('tasksPage.taskUpdated');
+  selectedTask.value = null;
+}
+
+function addTask() {
+  if (!canEditTasks.value) {
+    statusMessage.value = t('meeting.roleCannotEditTasks');
+    return;
+  }
+
+  if (!newTaskDraft.title.trim()) {
+    statusMessage.value = t('tasksPage.addShortTitle');
+    return;
+  }
+
+  const responsibility = resolveDraftResponsibility(
+    newTaskDraft.responsibilityChoice
+  );
+
+  const createdTask = tasksStore.addTask({
+    title: newTaskDraft.title,
+    dueDate: newTaskDraft.dueDate,
+    ...responsibility,
+  });
+
+  if (!createdTask) {
+    statusMessage.value = t('tasksPage.addShortTitle');
+    return;
+  }
+
+  newTaskDraft.title = '';
+  newTaskDraft.dueDate = '';
+  newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
+  isAddTaskSheetOpen.value = false;
+  statusMessage.value = t('tasksPage.updated');
 }
 
 function setTaskStatus(task: Task, status: TaskStatus) {
@@ -208,6 +463,15 @@ function setTaskStatus(task: Task, status: TaskStatus) {
   meetingsStore.updateTaskStatus(task.id, status);
   statusMessage.value =
     status === 'done' ? t('tasksPage.markedDone') : t('tasksPage.updated');
+  selectedTask.value = null;
+}
+
+function toggleTaskStatus(card: TaskCardView) {
+  if (!card.task) {
+    return;
+  }
+
+  setTaskStatus(card.task, card.task.status === 'done' ? 'open' : 'done');
 }
 
 function deleteTask(task: Task) {
@@ -224,300 +488,338 @@ function deleteTask(task: Task) {
 
   tasksStore.deleteTask(task.id);
   meetingsStore.deleteTask(task.id);
+  selectedTask.value = null;
   statusMessage.value = t('tasksPage.taskDeleted');
 }
 
-function openAgreement(agreement: Agreement) {
-  selectedAgreement.value = agreement;
+function openTask(card: TaskCardView) {
+  if (card.task) {
+    selectedTask.value = card.task;
+  }
 }
 
-function closeAgreement() {
-  selectedAgreement.value = null;
-}
+function openAddTaskSheet() {
+  if (!canEditTasks.value) {
+    statusMessage.value = t('meeting.roleCannotEditTasks');
+    return;
+  }
 
-function relatedTaskTitles(agreement: Agreement) {
-  return (
-    agreement.relatedTaskIds
-      ?.map(
-        (taskId) => tasksStore.tasks.find((task) => task.id === taskId)?.title
-      )
-      .filter((title): title is string => Boolean(title)) ?? []
-  );
+  isAddTaskSheetOpen.value = true;
 }
 </script>
 
 <template>
-  <section class="page-stack tasks-page">
-    <div>
-      <p class="page-kicker">{{ t('tasksPage.kicker') }}</p>
-      <h1>{{ t('tasksPage.title') }}</h1>
-      <p class="page-copy">{{ t('tasksPage.intro') }}</p>
+  <section class="tasks-page tasks-page--redesign" aria-label="Household Tasks">
+    <div class="task-filter-tabs" role="tablist" aria-label="Task filters">
+      <button
+        v-for="filter in taskFilters"
+        :key="filter.value"
+        type="button"
+        role="tab"
+        :aria-selected="selectedFilter === filter.value"
+        :class="[
+          'task-filter-tabs__button',
+          { 'is-active': selectedFilter === filter.value },
+        ]"
+        @click="selectedFilter = filter.value"
+      >
+        {{ filter.label }}
+      </button>
     </div>
 
-    <section
-      class="content-panel task-section"
-      aria-labelledby="open-tasks-title"
-    >
-      <div class="task-section__header">
-        <div>
-          <h2 id="open-tasks-title">{{ t('tasksPage.openTasks') }}</h2>
-          <p>
-            {{ t('tasksPage.stillRelevantCount', { count: openTasks.length }) }}
-          </p>
-        </div>
-      </div>
-      <p v-if="!canEditTasks" class="meeting-help">
-        {{ t('tasksPage.readOnlyTasks') }}
-      </p>
-
-      <ul v-if="openTasks.length" class="task-list">
-        <li v-for="task in openTasks" :key="task.id" class="task-item">
-          <div class="task-item__fields">
-            <label>
-              <span>{{ t('tasksPage.task') }}</span>
-              <input
-                v-model="editDrafts[task.id].title"
-                type="text"
-                :disabled="!canEditTasks"
-              />
-            </label>
-
-            <label>
-              <span>{{ t('tasksPage.responsible') }}</span>
-              <select
-                v-model="editDrafts[task.id].responsibilityChoice"
-                :disabled="!canEditTasks"
+    <section class="task-card-section" aria-labelledby="shared-tasks-title">
+      <h2 id="shared-tasks-title">SHARED RESPONSIBILITIES</h2>
+      <ul v-if="sharedTaskCards.length" class="task-card-list">
+        <li
+          v-for="card in sharedTaskCards"
+          :key="card.id"
+          class="task-card"
+          :class="{ 'task-card--sample': !card.task }"
+        >
+          <button
+            type="button"
+            class="task-card__checkbox"
+            :aria-label="`Mark ${card.title} done`"
+            :disabled="!card.task || !canEditTasks"
+            @click="toggleTaskStatus(card)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">
+              check
+            </span>
+          </button>
+          <button
+            type="button"
+            class="task-card__content"
+            :disabled="!card.task"
+            @click="openTask(card)"
+          >
+            <strong>{{ card.title }}</strong>
+            <span
+              class="task-card__metadata"
+              :class="{ 'is-danger': card.metadataTone === 'danger' }"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">
+                {{ card.metadataIcon }}
+              </span>
+              {{ card.metadataText }}
+            </span>
+          </button>
+          <div class="task-card__side" aria-hidden="true">
+            <div v-if="card.accessory === 'avatars'" class="task-avatar-stack">
+              <span
+                v-for="participant in card.participants.slice(0, 2)"
+                :key="participant.id"
+                class="task-avatar"
+                :style="{ backgroundColor: participant.avatarColor }"
               >
-                <option value="needsDiscussion">
-                  {{ t('tasksPage.needsDiscussion') }}
-                </option>
-                <option value="shared">{{ t('tasksPage.shared') }}</option>
-                <option
-                  v-for="participant in getTaskParticipants(task)"
-                  :key="participant.id"
-                  :value="participant.id"
-                >
-                  {{ participant.name
-                  }}{{
-                    participant.isActive
-                      ? ''
-                      : t('tasksPage.disabledParticipant')
-                  }}
-                </option>
-              </select>
-            </label>
-
-            <label>
-              <span>{{ t('tasksPage.stillRelevant') }}</span>
-              <input
-                v-model="editDrafts[task.id].dueDate"
-                type="date"
-                :disabled="!canEditTasks"
-              />
-            </label>
-          </div>
-
-          <p v-if="task.description" class="task-item__description">
-            {{ task.description }}
-          </p>
-          <p v-if="task.sourceMeetingId" class="task-item__source">
-            {{
-              t('tasksPage.fromMeeting', {
-                meeting: getMeetingLabel(task.sourceMeetingId),
-              })
-            }}
-          </p>
-
-          <div v-if="canEditTasks || canDeleteTasks" class="task-item__actions">
-            <button v-if="canEditTasks" type="button" @click="saveTask(task)">
-              {{ t('common.save') }}
-            </button>
-            <button
-              v-if="canEditTasks"
-              type="button"
-              class="task-item__done"
-              @click="setTaskStatus(task, 'done')"
-            >
-              {{ t('common.done') }}
-            </button>
-            <button
-              v-if="canEditTasks"
-              type="button"
-              @click="setTaskStatus(task, 'skipped')"
-            >
-              {{ t('tasksPage.skip') }}
-            </button>
-            <button
-              v-if="canDeleteTasks"
-              type="button"
-              class="task-item__danger"
-              @click="deleteTask(task)"
-            >
-              {{ t('common.delete') }}
-            </button>
+                {{ participant.initials }}
+              </span>
+            </div>
+            <span v-else-if="card.accessory === 'badge'" class="task-count">
+              {{ card.badgeCount }}
+            </span>
           </div>
         </li>
       </ul>
-      <p v-else class="meeting-empty">{{ t('tasksPage.noOpenTasks') }}</p>
+      <p v-else class="task-empty">{{ t('tasksPage.noOpenTasks') }}</p>
     </section>
 
-    <details class="content-panel task-archive">
-      <summary>
-        {{ t('tasksPage.doneTasks', { count: doneTasks.length }) }}
-      </summary>
-      <ul v-if="doneTasks.length" class="task-list task-list--compact">
+    <section class="task-card-section" aria-labelledby="my-tasks-title">
+      <h2 id="my-tasks-title">MY TASKS</h2>
+      <ul v-if="myTaskCards.length" class="task-card-list">
         <li
-          v-for="task in doneTasks"
-          :key="task.id"
-          class="task-item task-item--compact"
+          v-for="card in myTaskCards"
+          :key="card.id"
+          class="task-card"
+          :class="{ 'task-card--sample': !card.task }"
         >
-          <div>
-            <strong>{{ task.title }}</strong>
-            <p>
-              {{
-                getResponsibilityLabel(
-                  task.responsibilityType,
-                  task.responsibleParticipantIds
-                )
-              }}
-            </p>
-          </div>
           <button
-            v-if="canEditTasks"
             type="button"
-            @click="setTaskStatus(task, 'open')"
+            class="task-card__checkbox"
+            :aria-label="`Mark ${card.title} done`"
+            :disabled="!card.task || !canEditTasks"
+            @click="toggleTaskStatus(card)"
           >
-            {{ t('tasksPage.reopen') }}
+            <span class="material-symbols-outlined" aria-hidden="true">
+              check
+            </span>
           </button>
-        </li>
-      </ul>
-      <p v-else class="meeting-empty">{{ t('tasksPage.nothingDone') }}</p>
-    </details>
-
-    <details class="content-panel task-archive">
-      <summary>
-        {{ t('tasksPage.skippedTasks', { count: skippedTasks.length }) }}
-      </summary>
-      <ul v-if="skippedTasks.length" class="task-list task-list--compact">
-        <li
-          v-for="task in skippedTasks"
-          :key="task.id"
-          class="task-item task-item--compact"
-        >
-          <div>
-            <strong>{{ task.title }}</strong>
-            <p>
-              {{
-                getResponsibilityLabel(
-                  task.responsibilityType,
-                  task.responsibleParticipantIds
-                )
-              }}
-            </p>
-          </div>
           <button
-            v-if="canEditTasks"
             type="button"
-            @click="setTaskStatus(task, 'open')"
+            class="task-card__content"
+            :disabled="!card.task"
+            @click="openTask(card)"
           >
-            {{ t('tasksPage.bringBack') }}
+            <strong>{{ card.title }}</strong>
+            <span
+              class="task-card__metadata"
+              :class="{ 'is-danger': card.metadataTone === 'danger' }"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">
+                {{ card.metadataIcon }}
+              </span>
+              {{ card.metadataText }}
+            </span>
           </button>
+          <div class="task-card__side" aria-hidden="true">
+            <div v-if="card.accessory === 'avatars'" class="task-avatar-stack">
+              <span
+                v-for="participant in card.participants.slice(0, 2)"
+                :key="participant.id"
+                class="task-avatar"
+                :style="{ backgroundColor: participant.avatarColor }"
+              >
+                {{ participant.initials }}
+              </span>
+            </div>
+            <span v-else-if="card.accessory === 'badge'" class="task-count">
+              {{ card.badgeCount }}
+            </span>
+          </div>
         </li>
       </ul>
-      <p v-else class="meeting-empty">{{ t('tasksPage.noSkippedTasks') }}</p>
-    </details>
-
-    <section
-      class="content-panel agreement-history"
-      aria-labelledby="agreements-title"
-    >
-      <div>
-        <h2 id="agreements-title">{{ t('tasksPage.recentAgreements') }}</h2>
-        <p>{{ t('tasksPage.agreementsIntro') }}</p>
-      </div>
-
-      <ul v-if="recentAgreements.length" class="agreement-list">
-        <li v-for="agreement in recentAgreements" :key="agreement.id">
-          <button type="button" @click="openAgreement(agreement)">
-            <span>{{ agreement.title }}</span>
-            <small>
-              {{ formatDate(agreement.createdAt) }}
-              <template v-if="agreement.sourceMeetingId">
-                -
-                {{
-                  getMeeting(agreement.sourceMeetingId)?.title ??
-                  t('tasksPage.meeting')
-                }}
-              </template>
-            </small>
-          </button>
-        </li>
-      </ul>
-      <p v-else class="meeting-empty">{{ t('tasksPage.noAgreements') }}</p>
+      <p v-else class="task-empty">{{ t('tasksPage.noOpenTasks') }}</p>
     </section>
 
     <p v-if="statusMessage" class="meeting-status" role="status">
       {{ statusMessage }}
     </p>
 
+    <button
+      type="button"
+      class="tasks-fab"
+      :aria-label="t('tasksPage.task')"
+      @click="openAddTaskSheet"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+    </button>
+
     <div
-      v-if="selectedAgreement"
-      class="agreement-modal"
+      v-if="isAddTaskSheetOpen"
+      class="task-editor-sheet"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="agreement-modal-title"
+      aria-labelledby="add-task-title"
     >
-      <div class="agreement-modal__panel">
-        <div>
-          <p class="page-kicker">{{ t('tasksPage.agreement') }}</p>
-          <h2 id="agreement-modal-title">{{ selectedAgreement.title }}</h2>
-        </div>
-        <p v-if="selectedAgreement.description">
-          {{ selectedAgreement.description }}
-        </p>
-        <dl class="agreement-detail-list">
-          <div>
-            <dt>{{ t('tasksPage.date') }}</dt>
-            <dd>{{ formatDate(selectedAgreement.createdAt) }}</dd>
-          </div>
-          <div>
-            <dt>{{ t('tasksPage.meeting') }}</dt>
-            <dd>
-              {{
-                getMeetingLabel(selectedAgreement.sourceMeetingId) ||
-                t('tasksPage.meeting')
-              }}
-            </dd>
-          </div>
-          <div>
-            <dt>{{ t('tasksPage.people') }}</dt>
-            <dd>
-              {{
-                selectedAgreement.participantIds
-                  .map(getParticipantName)
-                  .join(', ')
-              }}
-            </dd>
-          </div>
-        </dl>
-        <div
-          v-if="relatedTaskTitles(selectedAgreement).length"
-          class="agreement-related"
-        >
-          <h3>{{ t('tasksPage.relatedTasks') }}</h3>
-          <ul>
-            <li
-              v-for="title in relatedTaskTitles(selectedAgreement)"
-              :key="title"
+      <button
+        type="button"
+        class="task-editor-sheet__scrim"
+        aria-label="Close"
+        @click="isAddTaskSheetOpen = false"
+      ></button>
+      <form class="task-editor-sheet__panel" @submit.prevent="addTask">
+        <header>
+          <h2 id="add-task-title">{{ t('tasksPage.task') }}</h2>
+          <button
+            type="button"
+            class="material-symbols-outlined"
+            aria-label="Close"
+            @click="isAddTaskSheetOpen = false"
+          >
+            close
+          </button>
+        </header>
+        <label>
+          <span>{{ t('tasksPage.task') }}</span>
+          <input v-model="newTaskDraft.title" type="text" />
+        </label>
+        <label>
+          <span>{{ t('tasksPage.responsible') }}</span>
+          <select v-model="newTaskDraft.responsibilityChoice">
+            <option value="needsDiscussion">
+              {{ t('tasksPage.needsDiscussion') }}
+            </option>
+            <option value="shared">{{ t('tasksPage.shared') }}</option>
+            <option
+              v-for="participant in activeParticipants"
+              :key="participant.id"
+              :value="participant.id"
             >
-              {{ title }}
-            </li>
-          </ul>
-        </div>
-        <button type="button" class="meeting-primary" @click="closeAgreement">
-          {{ t('common.close') }}
+              {{ participant.name }}
+            </option>
+          </select>
+        </label>
+        <label>
+          <span>{{ t('tasksPage.stillRelevant') }}</span>
+          <input v-model="newTaskDraft.dueDate" type="date" />
+        </label>
+        <button type="submit" class="meeting-primary">
+          {{ t('common.save') }}
         </button>
-      </div>
+      </form>
+    </div>
+
+    <div
+      v-if="selectedTask && selectedTaskDraft"
+      class="task-editor-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-task-title"
+    >
+      <button
+        type="button"
+        class="task-editor-sheet__scrim"
+        aria-label="Close"
+        @click="selectedTask = null"
+      ></button>
+      <form
+        class="task-editor-sheet__panel"
+        @submit.prevent="saveTask(selectedTask)"
+      >
+        <header>
+          <h2 id="edit-task-title">{{ t('tasksPage.task') }}</h2>
+          <button
+            type="button"
+            class="material-symbols-outlined"
+            aria-label="Close"
+            @click="selectedTask = null"
+          >
+            close
+          </button>
+        </header>
+        <label>
+          <span>{{ t('tasksPage.task') }}</span>
+          <input
+            v-model="selectedTaskDraft.title"
+            type="text"
+            :disabled="!canEditTasks"
+          />
+        </label>
+        <label>
+          <span>{{ t('tasksPage.responsible') }}</span>
+          <select
+            v-model="selectedTaskDraft.responsibilityChoice"
+            :disabled="!canEditTasks"
+          >
+            <option value="needsDiscussion">
+              {{ t('tasksPage.needsDiscussion') }}
+            </option>
+            <option value="shared">{{ t('tasksPage.shared') }}</option>
+            <option
+              v-for="participant in getTaskParticipants(selectedTask)"
+              :key="participant.id"
+              :value="participant.id"
+            >
+              {{ participant.name
+              }}{{
+                participant.isActive ? '' : t('tasksPage.disabledParticipant')
+              }}
+            </option>
+          </select>
+        </label>
+        <label>
+          <span>{{ t('tasksPage.stillRelevant') }}</span>
+          <input
+            v-model="selectedTaskDraft.dueDate"
+            type="date"
+            :disabled="!canEditTasks"
+          />
+        </label>
+        <p v-if="selectedTask.description" class="task-editor-sheet__note">
+          {{ selectedTask.description }}
+        </p>
+        <p v-if="selectedTask.sourceMeetingId" class="task-editor-sheet__note">
+          {{
+            t('tasksPage.fromMeeting', {
+              meeting: getMeetingLabel(selectedTask.sourceMeetingId),
+            })
+          }}
+        </p>
+        <div class="task-editor-sheet__actions">
+          <button v-if="canEditTasks" type="submit" class="meeting-primary">
+            {{ t('common.save') }}
+          </button>
+          <button
+            v-if="canEditTasks && selectedTask.status !== 'done'"
+            type="button"
+            @click="setTaskStatus(selectedTask, 'done')"
+          >
+            {{ t('common.done') }}
+          </button>
+          <button
+            v-if="canEditTasks && selectedTask.status === 'done'"
+            type="button"
+            @click="setTaskStatus(selectedTask, 'open')"
+          >
+            {{ t('tasksPage.reopen') }}
+          </button>
+          <button
+            v-if="canEditTasks"
+            type="button"
+            @click="setTaskStatus(selectedTask, 'skipped')"
+          >
+            {{ t('tasksPage.skip') }}
+          </button>
+          <button
+            v-if="canDeleteTasks"
+            type="button"
+            class="task-editor-sheet__danger"
+            @click="deleteTask(selectedTask)"
+          >
+            {{ t('common.delete') }}
+          </button>
+        </div>
+      </form>
     </div>
   </section>
 </template>
