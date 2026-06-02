@@ -6,11 +6,11 @@ import {
   getMeetingTemplateName,
 } from '@/features/meeting/meetingTemplates';
 import type { MeetingTemplate } from '@/features/meeting/types';
-import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 
 defineProps<{
   template: MeetingTemplate;
   locked: boolean;
+  selected: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -18,37 +18,109 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+const templateIconMap: Record<string, string> = {
+  'weekly-family-check-in': 'family_restroom',
+  'couple-reset': 'favorite',
+  'family-with-kids': 'child_care',
+  'money-check-in': 'account_balance_wallet',
+  'conflict-cleanup': 'cleaning_services',
+  'busy-week-planning': 'event_available',
+};
+
+const templateToneMap: Record<string, string> = {
+  'weekly-family-check-in': 'sage',
+  'couple-reset': 'honey',
+  'family-with-kids': 'rose',
+  'money-check-in': 'mint',
+  'conflict-cleanup': 'coral',
+  'busy-week-planning': 'lavender',
+};
+
+const templateDescriptionMap: Record<string, string> = {
+  'weekly-family-check-in':
+    'A simple 15-minute review of the week, celebrating wins and setting intentions.',
+  'couple-reset': 'Deepen connection and align on relationship goals.',
+  'family-with-kids': 'Kid-friendly prompts for young families.',
+  'money-check-in': 'Align on finances and budgeting calmly.',
+  'conflict-cleanup': 'Structured mediation after a disagreement.',
+  'busy-week-planning': 'Plan schedule, errands, and backup options.',
+};
+
+function getTemplateIcon(template: MeetingTemplate) {
+  return templateIconMap[template.id] ?? 'forum';
+}
+
+function getTemplateTone(template: MeetingTemplate) {
+  return templateToneMap[template.id] ?? 'sage';
+}
+
+function getTemplateDescription(template: MeetingTemplate) {
+  return (
+    templateDescriptionMap[template.id] ??
+    getMeetingTemplateDescription(template.id, template.description)
+  );
+}
 </script>
 
 <template>
-  <article :class="['template-card', { 'is-locked': locked }]">
-    <div class="template-card__header">
-      <div>
-        <h2>{{ getMeetingTemplateName(template.id, template.name) }}</h2>
+  <button
+    type="button"
+    :class="[
+      'template-card',
+      `template-card--${getTemplateTone(template)}`,
+      {
+        'is-selected': selected,
+        'is-locked': locked,
+      },
+    ]"
+    :aria-pressed="selected"
+    @click="emit('select', template)"
+  >
+    <span
+      v-if="selected && !locked"
+      class="template-card__status material-symbols-outlined filled"
+      aria-hidden="true"
+    >
+      check_circle
+    </span>
+    <span
+      v-else-if="locked"
+      class="template-card__status template-card__status--locked material-symbols-outlined"
+      aria-hidden="true"
+    >
+      lock
+    </span>
+
+    <div class="template-card__main">
+      <span class="template-card__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">
+          {{ getTemplateIcon(template) }}
+        </span>
+      </span>
+
+      <div class="template-card__copy">
+        <div class="template-card__title-row">
+          <h2>{{ getMeetingTemplateName(template.id, template.name) }}</h2>
+          <span v-if="template.access === 'free'" class="template-card__badge">
+            {{ t('common.free') }}
+          </span>
+        </div>
+
         <p>
-          {{ getMeetingTemplateDescription(template.id, template.description) }}
+          {{ getTemplateDescription(template) }}
         </p>
       </div>
-      <PremiumBadge v-if="template.access === 'premium'" />
     </div>
 
     <ul
+      v-if="selected"
       class="template-card__sections"
       :aria-label="t('templatePage.sectionsLabel')"
     >
-      <li v-for="section in template.sections" :key="section.id">
+      <li v-for="section in template.sections.slice(0, 3)" :key="section.id">
         {{ getMeetingSectionTitle(section.id, section.title) }}
       </li>
     </ul>
-
-    <button
-      type="button"
-      :class="['template-card__button', { 'meeting-primary': !locked }]"
-      @click="emit('select', template)"
-    >
-      {{
-        locked ? t('templatePage.upgradeToUse') : t('templatePage.startMeeting')
-      }}
-    </button>
-  </article>
+  </button>
 </template>

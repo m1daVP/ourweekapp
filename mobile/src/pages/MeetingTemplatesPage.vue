@@ -6,8 +6,11 @@ import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
 import TemplateCard from '@/features/meeting/components/TemplateCard.vue';
-import { meetingTemplates } from '@/features/meeting/meetingTemplates';
-import { getMeetingTemplateName } from '@/features/meeting/meetingTemplates';
+import {
+  DEFAULT_MEETING_TEMPLATE_ID,
+  getMeetingTemplateName,
+  meetingTemplates,
+} from '@/features/meeting/meetingTemplates';
 import type { MeetingTemplate } from '@/features/meeting/types';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
@@ -21,6 +24,7 @@ const { canUseFeature } = useFeatureAccess();
 const { can } = useWorkspacePermissions();
 
 const formError = ref('');
+const selectedTemplateId = ref(DEFAULT_MEETING_TEMPLATE_ID);
 const canCreateMeeting = computed(() => can('createMeetings'));
 
 const activeDraft = computed(
@@ -30,6 +34,20 @@ const activeDraft = computed(
       : null) ??
     meetingsStore.meetings.find((meeting) => meeting.status !== 'completed') ??
     null
+);
+const selectedTemplate = computed(
+  () =>
+    meetingTemplates.find(
+      (template) => template.id === selectedTemplateId.value
+    ) ?? meetingTemplates[0]
+);
+const selectedTemplateLocked = computed(
+  () => !!selectedTemplate.value && isTemplateLocked(selectedTemplate.value)
+);
+const ctaLabel = computed(() =>
+  selectedTemplateLocked.value
+    ? t('templatePage.getPremium')
+    : t('templatePage.startMeeting')
 );
 
 function isTemplateLocked(template: MeetingTemplate) {
@@ -47,13 +65,18 @@ function resumeDraft() {
 
 function selectTemplate(template: MeetingTemplate) {
   formError.value = '';
+  selectedTemplateId.value = template.id;
+}
+
+function startSelectedTemplate() {
+  formError.value = '';
 
   if (!canCreateMeeting.value) {
     formError.value = t('meeting.roleCannotEditMeetings');
     return;
   }
 
-  if (isTemplateLocked(template)) {
+  if (!selectedTemplate.value || selectedTemplateLocked.value) {
     router.push({
       name: 'upgrade',
       query: { lockedFeature: 'additionalTemplates' },
@@ -62,17 +85,15 @@ function selectTemplate(template: MeetingTemplate) {
   }
 
   participantsStore.ensureDefaultParticipants();
-  meetingsStore.startNewMeetingFromTemplate(template.id);
+  meetingsStore.startNewMeetingFromTemplate(selectedTemplate.value.id);
   tasksStore.syncFromMeetings(meetingsStore.meetings);
   router.push({ name: 'meeting' });
 }
 </script>
 
 <template>
-  <section class="page-stack templates-page">
-    <header>
-      <p class="page-kicker">{{ t('templatePage.kicker') }}</p>
-      <h1>{{ t('templatePage.title') }}</h1>
+  <section class="page-stack templates-page templates-page--redesign">
+    <header class="templates-hero">
       <p class="page-copy">{{ t('templatePage.intro') }}</p>
     </header>
 
@@ -103,8 +124,26 @@ function selectTemplate(template: MeetingTemplate) {
         :key="template.id"
         :template="template"
         :locked="isTemplateLocked(template)"
+        :selected="selectedTemplateId === template.id"
         @select="selectTemplate"
       />
+    </div>
+
+    <div class="templates-cta">
+      <button
+        type="button"
+        :class="[
+          'meeting-primary',
+          'templates-cta__button',
+          { 'templates-cta__button--premium': selectedTemplateLocked },
+        ]"
+        @click="startSelectedTemplate"
+      >
+        <span>{{ ctaLabel }}</span>
+        <span class="material-symbols-outlined" aria-hidden="true">
+          {{ selectedTemplateLocked ? 'workspace_premium' : 'arrow_forward' }}
+        </span>
+      </button>
     </div>
   </section>
 </template>
