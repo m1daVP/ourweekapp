@@ -11,7 +11,7 @@ export const messages = {
         home: 'Weekly Us',
         meeting: 'Weekly Ritual',
         meetingTemplates: 'Choose a Template',
-        tasks: 'Tasks',
+        tasks: 'Household Tasks',
         history: 'History',
         settings: 'Settings',
         upgrade: 'Premium',
@@ -195,6 +195,18 @@ export const messages = {
       title: 'Past check-ins',
       intro:
         'Finished meetings stay saved locally. Free history opens the latest {count} finished meetings.',
+      inProgress: 'In Progress',
+      completedMeetings: 'Completed Meetings',
+      defaultMeetingTitle: 'Weekly family check-in',
+      draftedToday: 'Drafted today',
+      draftedYesterday: 'Drafted yesterday',
+      draftedDaysAgo: 'Drafted {count} days ago',
+      completedOn: 'Completed on {day}',
+      noDrafts: 'No meeting in progress.',
+      unlockFullHistory: 'Unlock full history',
+      unlockFullHistoryMessage:
+        "Looking back helps you see how far you've come together. Upgrade to Weekly Us Premium to view all past check-ins.",
+      upgradePremium: 'Upgrade Premium',
       privateNotes: 'Private notes',
       privateNotesText:
         'Keep personal notes separate from shared meeting history.',
@@ -275,13 +287,13 @@ export const messages = {
     },
     templatePage: {
       kicker: 'Meeting templates',
-      title: 'Choose a check-in',
-      intro:
-        'Pick the agenda that fits this week. The default weekly check-in is included for everyone.',
+      title: 'Choose a Template',
+      intro: 'Start with a focused structure for your next check-in.',
       continueDraft: 'Continue current meeting',
       sectionsLabel: 'Meeting sections',
       upgradeToUse: 'Upgrade to use',
-      startMeeting: 'Start meeting',
+      getPremium: 'Get Premium',
+      startMeeting: 'Start Meeting',
     },
     calendar: {
       kicker: 'Calendar sync',
@@ -1068,7 +1080,7 @@ export const messages = {
         home: 'Weekly Us',
         meeting: 'Щотижневий ритуал',
         meetingTemplates: 'Виберіть шаблон',
-        tasks: 'Завдання',
+        tasks: 'Побутові завдання',
         history: 'Історія',
         settings: 'Налаштування',
         upgrade: 'Premium',
@@ -1253,6 +1265,18 @@ export const messages = {
       title: 'Минулі зустрічі',
       intro:
         'Завершені зустрічі зберігаються локально. Безкоштовна історія відкриває останні {count} завершені зустрічі.',
+      inProgress: 'У процесі',
+      completedMeetings: 'Завершені зустрічі',
+      defaultMeetingTitle: 'Щотижнева сімейна зустріч',
+      draftedToday: 'Чернетку створено сьогодні',
+      draftedYesterday: 'Чернетку створено вчора',
+      draftedDaysAgo: 'Чернетку створено {count} дні тому',
+      completedOn: 'Завершено у {day}',
+      noDrafts: 'Немає зустрічі в процесі.',
+      unlockFullHistory: 'Відкрити повну історію',
+      unlockFullHistoryMessage:
+        'Огляд минулого допомагає побачити, як далеко ви просунулися разом. Оновіться до Weekly Us Premium, щоб переглядати всі минулі зустрічі.',
+      upgradePremium: 'Оновити Premium',
       privateNotes: 'Приватні нотатки',
       privateNotesText:
         'Тримайте особисті нотатки окремо від спільної історії зустрічей.',
@@ -1340,6 +1364,7 @@ export const messages = {
       continueDraft: 'Продовжити поточну зустріч',
       sectionsLabel: 'Розділи зустрічі',
       upgradeToUse: 'Оновитися',
+      getPremium: 'Отримати Premium',
       startMeeting: 'Почати зустріч',
     },
     calendar: {
@@ -2141,7 +2166,7 @@ export const messages = {
         home: 'Weekly Us',
         meeting: 'Ritual semanal',
         meetingTemplates: 'Elegir una plantilla',
-        tasks: 'Tareas',
+        tasks: 'Tareas del hogar',
         history: 'Historial',
         settings: 'Ajustes',
         upgrade: 'Premium',
@@ -2327,6 +2352,18 @@ export const messages = {
       title: 'Revisiones anteriores',
       intro:
         'Las reuniones finalizadas se guardan localmente. El historial gratis abre las últimas {count} reuniones finalizadas.',
+      inProgress: 'En progreso',
+      completedMeetings: 'Reuniones completadas',
+      defaultMeetingTitle: 'Revisión familiar semanal',
+      draftedToday: 'Borrador de hoy',
+      draftedYesterday: 'Borrador de ayer',
+      draftedDaysAgo: 'Borrador de hace {count} días',
+      completedOn: 'Completada el {day}',
+      noDrafts: 'No hay reunión en progreso.',
+      unlockFullHistory: 'Desbloquear historial completo',
+      unlockFullHistoryMessage:
+        'Mirar atrás les ayuda a ver cuánto han avanzado juntos. Actualiza a Weekly Us Premium para ver todas las revisiones anteriores.',
+      upgradePremium: 'Actualizar Premium',
       privateNotes: 'Notas privadas',
       privateNotesText:
         'Mantén las notas personales separadas del historial compartido de reuniones.',
@@ -2415,6 +2452,7 @@ export const messages = {
       continueDraft: 'Continuar reunión actual',
       sectionsLabel: 'Secciones de la reunión',
       upgradeToUse: 'Mejorar para usar',
+      getPremium: 'Obtener Premium',
       startMeeting: 'Iniciar reunión',
     },
     calendar: {
