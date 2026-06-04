@@ -134,7 +134,7 @@ function openCompletedMeeting(item: (typeof completedItems.value)[number]) {
   }
 
   router.push({
-    name: 'meeting-details',
+    name: 'meeting-summary',
     params: { meetingId: item.meeting.id },
   });
 }

@@ -42,6 +42,7 @@ const pageTitle = computed(() => {
     'workspace-settings': t('app.routeTitles.workspaceSettings'),
     account: t('app.routeTitles.account'),
     'meeting-details': t('app.routeTitles.meetingDetails'),
+    'meeting-summary': t('app.routeTitles.meetingSummary'),
   };
 
   return titles[routeName] ?? t('app.name');
