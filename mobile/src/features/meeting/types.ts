@@ -1,7 +1,12 @@
 import type { Participant } from '@/features/participants/types';
 import type { TaskResponsibilityType } from '@/features/tasks/types';
 
-export type MeetingStatus = 'draft' | 'in_progress' | 'completed';
+export type MeetingStatus =
+  | 'draft'
+  | 'in_progress'
+  | 'paused'
+  | 'incomplete'
+  | 'completed';
 
 export type MeetingTaskStatus = 'open' | 'done' | 'skipped';
 

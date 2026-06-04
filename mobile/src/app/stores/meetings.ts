@@ -488,6 +488,8 @@ export const useMeetingsStore = defineStore('meetings', {
 
       this.activeMeetingId = meeting.id;
       syncMeetingParticipants(meeting);
+      meeting.status = 'in_progress';
+      meeting.updatedAt = nowIso();
       this.persist();
       return meeting;
     },
@@ -902,6 +904,46 @@ export const useMeetingsStore = defineStore('meetings', {
       meeting.updatedAt = savedAt;
       this.draftSavedAt = savedAt;
       this.persist();
+    },
+    pauseMeeting() {
+      const meeting = this.activeMeeting;
+
+      if (!meeting || meeting.status === 'completed') {
+        return false;
+      }
+
+      const pausedAt = nowIso();
+      meeting.status = 'paused';
+      meeting.updatedAt = pausedAt;
+      this.draftSavedAt = pausedAt;
+      this.persist();
+      return true;
+    },
+    resumeActiveMeeting() {
+      const meeting = this.activeMeeting;
+
+      if (!meeting || meeting.status === 'completed') {
+        return false;
+      }
+
+      meeting.status = 'in_progress';
+      meeting.updatedAt = nowIso();
+      this.persist();
+      return true;
+    },
+    endMeetingIncomplete() {
+      const meeting = this.activeMeeting;
+
+      if (!meeting || meeting.status === 'completed') {
+        return false;
+      }
+
+      const endedAt = nowIso();
+      meeting.status = 'incomplete';
+      meeting.updatedAt = endedAt;
+      this.draftSavedAt = endedAt;
+      this.persist();
+      return true;
     },
     finishMeeting(): string | null {
       const meeting = this.activeMeeting;
