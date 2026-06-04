@@ -8,6 +8,12 @@ import {
 } from '@/shared/api/authApi';
 import { useUserAccessStore } from '@/app/stores/userAccess';
 import {
+  clearAuthTokens,
+  readAuthTokens,
+  writeAuthTokens,
+  type AuthTokens,
+} from '@/shared/services/authTokenStorageService';
+import {
   readOnboardingStorage,
   writeOnboardingStorage,
 } from '@/shared/services/storageService';
@@ -19,21 +25,29 @@ import type {
   SignUpPayload,
 } from '@/features/auth/types';
 
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 
 interface StoredAuthState {
   version: number;
   user: AuthUser | null;
-  accessToken: string | null;
   authStatus: AuthStatus;
+  accessToken?: string | null;
+  refreshToken?: string | null;
 }
 
 interface AuthState {
   user: AuthUser | null;
   accessToken: string | null;
+  refreshToken: string | null;
   authStatus: AuthStatus;
   errorMessage: string;
+  hasHydratedSecureTokens: boolean;
 }
+
+let legacyTokensToMigrate: AuthTokens = {
+  accessToken: null,
+  refreshToken: null,
+};
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -59,28 +73,44 @@ function isStoredAuthState(value: unknown): value is StoredAuthState {
   const status = candidate.authStatus;
 
   return (
-    candidate.version === STORAGE_VERSION &&
+    (candidate.version === 1 || candidate.version === STORAGE_VERSION) &&
     (status === 'authenticated' || status === 'localOnly' || status === 'idle')
   );
 }
 
 function getStoredState(): Pick<
   AuthState,
-  'user' | 'accessToken' | 'authStatus'
+  'user' | 'accessToken' | 'refreshToken' | 'authStatus'
 > {
   const storedState = readOnboardingStorage<unknown | null>('auth', null);
 
   if (!isStoredAuthState(storedState)) {
-    return { user: null, accessToken: null, authStatus: 'idle' };
+    return {
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      authStatus: 'idle',
+    };
   }
 
+  legacyTokensToMigrate = {
+    accessToken: storedState.accessToken ?? null,
+    refreshToken: storedState.refreshToken ?? null,
+  };
+
   if (storedState.authStatus === 'authenticated' && !storedState.user) {
-    return { user: null, accessToken: null, authStatus: 'idle' };
+    return {
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      authStatus: 'idle',
+    };
   }
 
   return {
     user: storedState.user,
-    accessToken: storedState.accessToken,
+    accessToken: null,
+    refreshToken: null,
     authStatus: storedState.authStatus,
   };
 }
@@ -89,6 +119,7 @@ export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     ...getStoredState(),
     errorMessage: '',
+    hasHydratedSecureTokens: false,
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.user && state.accessToken),
@@ -103,11 +134,64 @@ export const useAuthStore = defineStore('auth', {
       const storedState: StoredAuthState = {
         version: STORAGE_VERSION,
         user: this.user,
-        accessToken: this.accessToken,
         authStatus: this.authStatus,
       };
 
       writeOnboardingStorage('auth', storedState);
+    },
+    async hydrateSecureTokens() {
+      if (this.hasHydratedSecureTokens) {
+        return;
+      }
+
+      this.hasHydratedSecureTokens = true;
+
+      if (this.authStatus !== 'authenticated') {
+        legacyTokensToMigrate = { accessToken: null, refreshToken: null };
+        return;
+      }
+
+      let tokens: AuthTokens;
+
+      try {
+        tokens = await readAuthTokens();
+      } catch {
+        this.user = null;
+        this.accessToken = null;
+        this.refreshToken = null;
+        this.authStatus = 'idle';
+        this.persist();
+        return;
+      }
+
+      if (!tokens.accessToken && legacyTokensToMigrate.accessToken) {
+        tokens = legacyTokensToMigrate;
+        try {
+          await writeAuthTokens(tokens);
+        } catch {
+          this.user = null;
+          this.accessToken = null;
+          this.refreshToken = null;
+          this.authStatus = 'idle';
+          this.persist();
+          return;
+        }
+        this.persist();
+      }
+
+      legacyTokensToMigrate = { accessToken: null, refreshToken: null };
+
+      if (!tokens.accessToken) {
+        this.user = null;
+        this.accessToken = null;
+        this.refreshToken = null;
+        this.authStatus = 'idle';
+        this.persist();
+        return;
+      }
+
+      this.accessToken = tokens.accessToken;
+      this.refreshToken = tokens.refreshToken;
     },
     syncAccessState() {
       const accessStore = useUserAccessStore();
@@ -116,10 +200,17 @@ export const useAuthStore = defineStore('auth', {
         accessStore.setAccountPlan(this.user.plan);
       }
     },
-    applySession(session: AuthSessionDto) {
+    async applySession(session: AuthSessionDto) {
+      await writeAuthTokens({
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken ?? null,
+      });
+
       this.user = mapSessionUser(session);
       this.accessToken = session.accessToken;
+      this.refreshToken = session.refreshToken ?? null;
       this.authStatus = 'authenticated';
+      this.hasHydratedSecureTokens = true;
       this.errorMessage = '';
       this.persist();
       this.syncAccessState();
@@ -134,11 +225,12 @@ export const useAuthStore = defineStore('auth', {
           password: payload.password,
         });
 
-        this.applySession(session);
+        await this.applySession(session);
         return true;
       } catch (error) {
         this.user = null;
         this.accessToken = null;
+        this.refreshToken = null;
         this.authStatus = 'error';
         this.errorMessage =
           error instanceof Error
@@ -159,11 +251,12 @@ export const useAuthStore = defineStore('auth', {
           displayName: payload.displayName.trim(),
         });
 
-        this.applySession(session);
+        await this.applySession(session);
         return true;
       } catch (error) {
         this.user = null;
         this.accessToken = null;
+        this.refreshToken = null;
         this.authStatus = 'error';
         this.errorMessage =
           error instanceof Error
@@ -173,10 +266,13 @@ export const useAuthStore = defineStore('auth', {
         return false;
       }
     },
-    continueLocalOnly() {
+    async continueLocalOnly() {
+      await clearAuthTokens();
       this.user = null;
       this.accessToken = null;
+      this.refreshToken = null;
       this.authStatus = 'localOnly';
+      this.hasHydratedSecureTokens = true;
       this.errorMessage = '';
       this.persist();
     },
@@ -213,9 +309,12 @@ export const useAuthStore = defineStore('auth', {
           await signOutRequest();
         }
       } finally {
+        await clearAuthTokens();
         this.user = null;
         this.accessToken = null;
+        this.refreshToken = null;
         this.authStatus = 'idle';
+        this.hasHydratedSecureTokens = true;
         this.errorMessage = '';
         this.persist();
       }

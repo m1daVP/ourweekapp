@@ -11,8 +11,8 @@ const { t } = useI18n();
 
 const isMockAuth = computed(() => appConfig.apiMode === 'mock');
 
-function continueLocalOnly() {
-  authStore.continueLocalOnly();
+async function continueLocalOnly() {
+  await authStore.continueLocalOnly();
   void router.push({ name: 'home' });
 }
 </script>

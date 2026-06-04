@@ -11,6 +11,7 @@ import HistoryPage from '@/pages/HistoryPage.vue';
 import LogoutConfirmationPage from '@/pages/LogoutConfirmationPage.vue';
 import MeetingDetailsPage from '@/pages/MeetingDetailsPage.vue';
 import MeetingPage from '@/pages/MeetingPage.vue';
+import MeetingSummaryPage from '@/pages/MeetingSummaryPage.vue';
 import MeetingTemplatesPage from '@/pages/MeetingTemplatesPage.vue';
 import PrivateNotesPage from '@/pages/PrivateNotesPage.vue';
 import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage.vue';
@@ -87,6 +88,12 @@ export const router = createRouter({
       meta: { requiresFeature: 'limitedHistory' },
     },
     {
+      path: '/meeting-summary/:meetingId',
+      name: 'meeting-summary',
+      component: MeetingSummaryPage,
+      meta: { hideNavigation: true, requiresFeature: 'limitedHistory' },
+    },
+    {
       path: '/tasks',
       name: 'tasks',
       component: TasksPage,
@@ -138,11 +145,12 @@ export const router = createRouter({
   ],
 });
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   const subscriptionStore = useSubscriptionStore();
   const workspaceStore = useWorkspaceStore();
 
+  await authStore.hydrateSecureTokens();
   authStore.syncAccessState();
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
