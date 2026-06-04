@@ -1,10 +1,12 @@
 import { shallowRef } from 'vue';
+import { Preferences } from '@capacitor/preferences';
 import { translate } from '@/features/localization/i18n';
 
-export const appDataVersion = 2;
+export const appDataVersion = 3;
 
 const APP_DATA_STORAGE_KEY = 'weekly-us:app-data';
 const BACKUP_STORAGE_PREFIX = 'weekly-us:app-data:backup';
+const SETTINGS_STORAGE_KEY = 'weekly-us:settings';
 
 const legacyStorageKeys = {
   auth: 'weekly-us:auth',
@@ -71,10 +73,13 @@ export const storageRecoveryState = shallowRef<StorageRecoveryState>({
 });
 
 let cachedAppData: AppDataEnvelope | null = null;
+let cachedSettingsData: AppDataSettings | null = null;
+let hasInitializedSettingsStorage = false;
 let hasReportedBlockedStorage = false;
 
 const migrations: Record<number, Migration> = {
   1: migrateAppDataFromVersion1ToVersion2,
+  2: migrateAppDataFromVersion2ToVersion3,
 };
 
 function nowIso() {
@@ -120,6 +125,15 @@ function createEmptyAppData(): AppDataEnvelope {
     },
     subscriptionMockState: null,
     updatedAt: nowIso(),
+  };
+}
+
+function createEmptySettingsData(): AppDataSettings {
+  return {
+    calendarSync: null,
+    localization: null,
+    reminders: null,
+    workspace: null,
   };
 }
 
@@ -258,6 +272,15 @@ function migrateAppDataFromVersion1ToVersion2(
   };
 }
 
+function migrateAppDataFromVersion2ToVersion3(
+  data: MigrationInput
+): MigrationInput {
+  return {
+    ...data,
+    appDataVersion: 3,
+  };
+}
+
 function migrateAppData(value: unknown): AppDataEnvelope | null {
   if (!isRecord(value)) {
     return null;
@@ -317,6 +340,59 @@ function persistAppData(data: AppDataEnvelope) {
   } catch {
     addRecoveryMessage(translate('storage.saveFailed'));
   }
+}
+
+function normalizeSettingsData(value: unknown): AppDataSettings | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  return {
+    calendarSync: value.calendarSync ?? null,
+    localization: value.localization ?? null,
+    reminders: value.reminders ?? null,
+    workspace: value.workspace ?? null,
+  };
+}
+
+async function persistSettingsData(data: AppDataSettings) {
+  cachedSettingsData = data;
+
+  try {
+    await Preferences.set({
+      key: SETTINGS_STORAGE_KEY,
+      value: JSON.stringify(data),
+    });
+  } catch {
+    addRecoveryMessage(translate('storage.saveFailed'));
+  }
+}
+
+export async function initializeStorageServices() {
+  if (hasInitializedSettingsStorage) {
+    return;
+  }
+
+  hasInitializedSettingsStorage = true;
+
+  try {
+    const { value } = await Preferences.get({ key: SETTINGS_STORAGE_KEY });
+
+    if (value) {
+      const parsedValue = JSON.parse(value) as unknown;
+      cachedSettingsData =
+        normalizeSettingsData(parsedValue) ?? createEmptySettingsData();
+      return;
+    }
+  } catch {
+    addRecoveryMessage(translate('storage.parseFailed', { label: 'settings' }));
+  }
+
+  cachedSettingsData = {
+    ...createEmptySettingsData(),
+    ...loadAppData().settings,
+  };
+  await persistSettingsData(cachedSettingsData);
 }
 
 function loadAppData(): AppDataEnvelope {
@@ -400,24 +476,20 @@ export function readSettingsStorage<T>(
   key: SettingsStorageSliceKey,
   fallback: T
 ): T {
-  const data = loadAppData();
-  return (data.settings[key] ?? fallback) as T;
+  const settings = cachedSettingsData ?? loadAppData().settings;
+  return (settings[key] ?? fallback) as T;
 }
 
 export function writeSettingsStorage(
   key: SettingsStorageSliceKey,
   value: unknown
 ) {
-  const data = loadAppData();
+  const settings = {
+    ...(cachedSettingsData ?? loadAppData().settings),
+    [key]: value,
+  };
 
-  persistAppData({
-    ...data,
-    settings: {
-      ...data.settings,
-      [key]: value,
-    },
-    updatedAt: nowIso(),
-  });
+  void persistSettingsData(settings);
 }
 
 export function readOnboardingStorage<T>(
