@@ -64,9 +64,11 @@ const activeParticipants = computed(() => participantsStore.activeParticipants);
 const firstParticipant = computed(() => activeParticipants.value[0] ?? null);
 const canEditTasks = computed(() => can('editTasks'));
 const canDeleteTasks = computed(() => can('deleteTasks'));
-const showDesignSamples = computed(
-  () => selectedFilter.value === 'todo' && tasksStore.tasks.length === 0
-);
+const taskFilterCounts = computed<Record<TaskFilter, number>>(() => ({
+  todo: openTasks.value.length,
+  done: doneTasks.value.length,
+  all: tasksStore.tasks.length,
+}));
 
 const filteredTasks = computed(() => {
   if (selectedFilter.value === 'todo') {
@@ -82,54 +84,24 @@ const filteredTasks = computed(() => {
 
 const taskCards = computed(() => filteredTasks.value.map(createTaskCard));
 const sharedTaskCards = computed(() =>
-  showDesignSamples.value
-    ? sampleTaskCards.value.filter((card) => card.group === 'shared')
-    : taskCards.value.filter((card) => card.group === 'shared')
+  taskCards.value.filter((card) => card.group === 'shared')
 );
 const myTaskCards = computed(() =>
-  showDesignSamples.value
-    ? sampleTaskCards.value.filter((card) => card.group === 'mine')
-    : taskCards.value.filter((card) => card.group === 'mine')
+  taskCards.value.filter((card) => card.group === 'mine')
 );
 const selectedTaskDraft = computed(() =>
   selectedTask.value ? editDrafts[selectedTask.value.id] : null
 );
-const sampleTaskCards = computed<TaskCardView[]>(() => {
-  const participants = getSampleParticipants();
+const emptyTaskMessage = computed(() => {
+  if (selectedFilter.value === 'done') {
+    return t('tasksPage.nothingDone');
+  }
 
-  return [
-    {
-      id: 'sample-grocery',
-      title: 'Weekly Grocery Run',
-      metadataIcon: 'calendar_today',
-      metadataText: 'Today, 4:00 PM',
-      metadataTone: 'default',
-      participants: participants.slice(0, 2),
-      accessory: 'avatars',
-      group: 'shared',
-    },
-    {
-      id: 'sample-clean',
-      title: 'Deep Clean Living Room',
-      metadataIcon: 'calendar_today',
-      metadataText: 'Tomorrow',
-      metadataTone: 'default',
-      participants: [],
-      accessory: 'badge',
-      badgeCount: 2,
-      group: 'shared',
-    },
-    {
-      id: 'sample-utilities',
-      title: 'Pay Utilities Bill',
-      metadataIcon: 'warning',
-      metadataText: 'Overdue',
-      metadataTone: 'danger',
-      participants: [participants[0]],
-      accessory: 'avatars',
-      group: 'mine',
-    },
-  ];
+  if (selectedFilter.value === 'all' && tasksStore.tasks.length === 0) {
+    return t('tasksPage.noOpenTasks');
+  }
+
+  return t('tasksPage.noOpenTasks');
 });
 
 onMounted(() => {
@@ -222,6 +194,24 @@ function getTaskParticipants(task: Task) {
   return [...participantsById.values()];
 }
 
+function getResponsibilityOptions(task?: Task) {
+  const participantsById = new Map<string, Participant>();
+
+  for (const participant of activeParticipants.value) {
+    participantsById.set(participant.id, participant);
+  }
+
+  for (const participantId of task?.responsibleParticipantIds ?? []) {
+    const participant = participantsStore.getParticipantById(participantId);
+
+    if (participant) {
+      participantsById.set(participant.id, participant);
+    }
+  }
+
+  return [...participantsById.values()];
+}
+
 function resolveDraftResponsibility(choice: string) {
   if (choice === 'shared') {
     return {
@@ -298,22 +288,32 @@ function createTaskCard(task: Task): TaskCardView {
 
 function getTaskMetadata(task: Task) {
   if (task.status === 'done') {
-    return { icon: 'check_circle', text: 'Done', tone: 'default' as const };
+    return {
+      icon: 'check_circle',
+      text: `${t('common.done')} - ${formatRelativeDay(
+        getDayDifferenceFromToday(task.updatedAt)
+      )}`,
+      tone: 'default' as const,
+    };
   }
 
   if (task.status === 'skipped') {
-    return { icon: 'remove_circle', text: 'Skipped', tone: 'default' as const };
+    return {
+      icon: 'remove_circle',
+      text: `${t('tasksPage.skip')} - ${formatRelativeDay(
+        getDayDifferenceFromToday(task.updatedAt)
+      )}`,
+      tone: 'default' as const,
+    };
   }
 
   if (task.dueDate) {
-    if (isOverdue(task.dueDate)) {
-      return { icon: 'warning', text: 'Overdue', tone: 'danger' as const };
-    }
+    const dayDifference = getDayDifferenceFromToday(task.dueDate);
 
     return {
-      icon: 'calendar_today',
-      text: formatDueDate(task.dueDate),
-      tone: 'default' as const,
+      icon: dayDifference < 0 ? 'warning' : 'calendar_today',
+      text: formatRelativeDay(dayDifference),
+      tone: dayDifference < 0 ? 'danger' : ('default' as const),
     };
   }
 
@@ -327,28 +327,19 @@ function getTaskMetadata(task: Task) {
   };
 }
 
-function isOverdue(dueDate: string) {
-  return getDateOnly(dueDate).getTime() < getToday().getTime();
+function getDayDifferenceFromToday(value: string) {
+  const date = getDateOnly(value);
+  const today = getToday();
+
+  return Math.round((date.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
 }
 
-function formatDueDate(dueDate: string) {
-  const date = getDateOnly(dueDate);
-  const today = getToday();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
+function formatRelativeDay(dayDifference: number) {
+  const formatted = new Intl.RelativeTimeFormat(locale.value, {
+    numeric: 'auto',
+  }).format(dayDifference, 'day');
 
-  if (date.getTime() === today.getTime()) {
-    return 'Today';
-  }
-
-  if (date.getTime() === tomorrow.getTime()) {
-    return 'Tomorrow';
-  }
-
-  return new Intl.DateTimeFormat(locale.value, {
-    month: 'short',
-    day: 'numeric',
-  }).format(date);
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
 function getToday() {
@@ -358,37 +349,10 @@ function getToday() {
 }
 
 function getDateOnly(value: string) {
-  const date = new Date(`${value}T00:00:00`);
+  const datePart = value.split('T')[0] || value;
+  const date = new Date(`${datePart}T00:00:00`);
   date.setHours(0, 0, 0, 0);
   return date;
-}
-
-function getSampleParticipants() {
-  if (activeParticipants.value.length) {
-    return activeParticipants.value;
-  }
-
-  return [
-    createPlaceholderParticipant('Me', 'ME', '#c78252'),
-    createPlaceholderParticipant('Partner', 'PA', '#456349'),
-  ];
-}
-
-function createPlaceholderParticipant(
-  name: string,
-  initials: string,
-  avatarColor: string
-): Participant {
-  return {
-    id: `sample-${initials.toLowerCase()}`,
-    name,
-    initials,
-    avatarColor,
-    type: 'adult',
-    isActive: true,
-    createdAt: '',
-    updatedAt: '',
-  };
 }
 
 function saveTask(task: Task) {
@@ -474,6 +438,14 @@ function toggleTaskStatus(card: TaskCardView) {
   setTaskStatus(card.task, card.task.status === 'done' ? 'open' : 'done');
 }
 
+function getTaskToggleLabel(card: TaskCardView) {
+  if (card.task?.status === 'done') {
+    return `${t('tasksPage.reopen')} ${card.title}`;
+  }
+
+  return `${t('common.done')} ${card.title}`;
+}
+
 function deleteTask(task: Task) {
   if (!canDeleteTasks.value) {
     statusMessage.value = t('tasksPage.ownerDeleteOnly');
@@ -523,25 +495,31 @@ function openAddTaskSheet() {
         ]"
         @click="selectedFilter = filter.value"
       >
-        {{ filter.label }}
+        <span>{{ filter.label }}</span>
+        <small>{{ taskFilterCounts[filter.value] }}</small>
       </button>
     </div>
 
-    <section class="task-card-section" aria-labelledby="shared-tasks-title">
+    <section
+      v-if="sharedTaskCards.length"
+      class="task-card-section"
+      aria-labelledby="shared-tasks-title"
+    >
       <h2 id="shared-tasks-title">SHARED RESPONSIBILITIES</h2>
       <ul v-if="sharedTaskCards.length" class="task-card-list">
         <li
           v-for="card in sharedTaskCards"
           :key="card.id"
           class="task-card"
-          :class="{ 'task-card--sample': !card.task }"
+          @click="openTask(card)"
         >
           <button
             type="button"
             class="task-card__checkbox"
-            :aria-label="`Mark ${card.title} done`"
-            :disabled="!card.task || !canEditTasks"
-            @click="toggleTaskStatus(card)"
+            :class="{ 'is-checked': card.task?.status === 'done' }"
+            :aria-label="getTaskToggleLabel(card)"
+            :disabled="!canEditTasks"
+            @click.stop="toggleTaskStatus(card)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">
               check
@@ -550,8 +528,7 @@ function openAddTaskSheet() {
           <button
             type="button"
             class="task-card__content"
-            :disabled="!card.task"
-            @click="openTask(card)"
+            @click.stop="openTask(card)"
           >
             <strong>{{ card.title }}</strong>
             <span
@@ -581,24 +558,28 @@ function openAddTaskSheet() {
           </div>
         </li>
       </ul>
-      <p v-else class="task-empty">{{ t('tasksPage.noOpenTasks') }}</p>
     </section>
 
-    <section class="task-card-section" aria-labelledby="my-tasks-title">
+    <section
+      v-if="myTaskCards.length"
+      class="task-card-section"
+      aria-labelledby="my-tasks-title"
+    >
       <h2 id="my-tasks-title">MY TASKS</h2>
       <ul v-if="myTaskCards.length" class="task-card-list">
         <li
           v-for="card in myTaskCards"
           :key="card.id"
           class="task-card"
-          :class="{ 'task-card--sample': !card.task }"
+          @click="openTask(card)"
         >
           <button
             type="button"
             class="task-card__checkbox"
-            :aria-label="`Mark ${card.title} done`"
-            :disabled="!card.task || !canEditTasks"
-            @click="toggleTaskStatus(card)"
+            :class="{ 'is-checked': card.task?.status === 'done' }"
+            :aria-label="getTaskToggleLabel(card)"
+            :disabled="!canEditTasks"
+            @click.stop="toggleTaskStatus(card)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">
               check
@@ -607,8 +588,7 @@ function openAddTaskSheet() {
           <button
             type="button"
             class="task-card__content"
-            :disabled="!card.task"
-            @click="openTask(card)"
+            @click.stop="openTask(card)"
           >
             <strong>{{ card.title }}</strong>
             <span
@@ -638,8 +618,8 @@ function openAddTaskSheet() {
           </div>
         </li>
       </ul>
-      <p v-else class="task-empty">{{ t('tasksPage.noOpenTasks') }}</p>
     </section>
+    <p v-if="!taskCards.length" class="task-empty">{{ emptyTaskMessage }}</p>
 
     <p v-if="statusMessage" class="meeting-status" role="status">
       {{ statusMessage }}
@@ -691,7 +671,7 @@ function openAddTaskSheet() {
             </option>
             <option value="shared">{{ t('tasksPage.shared') }}</option>
             <option
-              v-for="participant in activeParticipants"
+              v-for="participant in getResponsibilityOptions()"
               :key="participant.id"
               :value="participant.id"
             >
@@ -756,7 +736,7 @@ function openAddTaskSheet() {
             </option>
             <option value="shared">{{ t('tasksPage.shared') }}</option>
             <option
-              v-for="participant in getTaskParticipants(selectedTask)"
+              v-for="participant in getResponsibilityOptions(selectedTask)"
               :key="participant.id"
               :value="participant.id"
             >

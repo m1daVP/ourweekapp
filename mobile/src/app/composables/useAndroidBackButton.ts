@@ -12,6 +12,22 @@ interface ListenerHandle {
   remove: () => Promise<void>;
 }
 
+type AndroidBackHandler = () => boolean;
+
+const androidBackHandlers: AndroidBackHandler[] = [];
+
+export function registerAndroidBackHandler(handler: AndroidBackHandler) {
+  androidBackHandlers.push(handler);
+
+  return () => {
+    const handlerIndex = androidBackHandlers.lastIndexOf(handler);
+
+    if (handlerIndex >= 0) {
+      androidBackHandlers.splice(handlerIndex, 1);
+    }
+  };
+}
+
 export function useAndroidBackButton() {
   const route = useRoute();
   const router = useRouter();
@@ -19,6 +35,12 @@ export function useAndroidBackButton() {
   let backButtonListener: ListenerHandle | null = null;
 
   async function handleBackButton(event: BackButtonEvent) {
+    for (const handler of [...androidBackHandlers].reverse()) {
+      if (handler()) {
+        return;
+      }
+    }
+
     const activeMeeting = meetingsStore.activeMeeting;
 
     if (
