@@ -14,6 +14,7 @@ import { env } from './config/env.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { v1Routes } from './routes/v1.routes.js';
 import supabasePlugin from './plugins/supabase.js';
+import { registerErrorHandler } from './shared/errors/index.js';
 
 export async function buildApp(options: FastifyServerOptions = {}) {
   const app = Fastify({
@@ -31,6 +32,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+  registerErrorHandler(app);
 
   await app.register(sensible);
   await app.register(helmet);
@@ -47,6 +49,11 @@ export async function buildApp(options: FastifyServerOptions = {}) {
     runFirst: true,
   });
   await app.register(supabasePlugin);
+
+  app.addHook('onRequest', (request, reply, done) => {
+    reply.header('x-request-id', request.id);
+    done();
+  });
 
   await app.register(healthRoutes);
   await app.register(v1Routes, { prefix: '/v1' });
