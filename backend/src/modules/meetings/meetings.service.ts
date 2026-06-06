@@ -11,6 +11,12 @@ import {
   type MeetingDto as MeetingRepositoryDto,
   type UpsertMeetingInput,
 } from './meetings.repository.js';
+import { hasTrustedPremiumEntitlement } from '../billing/billing.service.js';
+import {
+  SubscriptionsRepository,
+  type SubscriptionDto,
+  type SubscriptionRecord,
+} from '../billing/subscriptions.repository.js';
 import {
   meetingSchema,
   type MeetingDto,
@@ -51,6 +57,11 @@ type ParticipantReferenceDto = {
 type ParticipantRepositoryPort = {
   listParticipantsForWorkspace(workspaceId: string): Promise<ParticipantReferenceDto[]>;
 };
+
+type SubscriptionEntitlementRepositoryPort = Pick<
+  SubscriptionsRepository,
+  'findCurrentSubscriptionForWorkspace'
+>;
 
 class MeetingParticipantsRepository implements ParticipantRepositoryPort {
   constructor(private readonly supabase: SupabaseRepositoryClient) {}
@@ -328,10 +339,11 @@ export class MeetingsService {
   constructor(
     private readonly meetingsRepository: MeetingRepositoryPort,
     private readonly participantsRepository: ParticipantRepositoryPort,
+    private readonly subscriptionsRepository: SubscriptionEntitlementRepositoryPort,
   ) {}
 
   async listMeetings(auth: AuthContext, now = new Date()) {
-    const meetings = await this.listVisibleMeetingRows(auth);
+    const meetings = await this.listVisibleMeetingRows(auth, now);
 
     return buildMeetingsResponse(
       meetings.map(meetingRepositoryDtoToApiDto),
@@ -389,8 +401,10 @@ export class MeetingsService {
     auth: AuthContext,
     meetingId: string,
     summary: NonNullable<MeetingDto['aiSummary']>,
+    now = new Date(),
   ) {
     requireMinimumRole(auth, 'adult_member');
+    await this.requirePremiumWorkspaceEntitlement(auth, now);
 
     if (summary.meetingId !== meetingId) {
       throw new ApiError(422, 'meeting_summary_mismatch', 'Summary does not match meeting.');
@@ -430,8 +444,8 @@ export class MeetingsService {
     return meetingRepositoryDtoToApiDto(updated);
   }
 
-  private async listVisibleMeetingRows(auth: AuthContext) {
-    if (auth.planType === 'premium') {
+  private async listVisibleMeetingRows(auth: AuthContext, now: Date) {
+    if (await this.hasPremiumWorkspaceEntitlement(auth, now)) {
       return this.meetingsRepository.listMeetingsForWorkspace(auth.workspaceId, 1000);
     }
 
@@ -447,6 +461,25 @@ export class MeetingsService {
     ]);
 
     return uniqueById([...activeMeetings, ...completedMeetings]);
+  }
+
+  private async hasPremiumWorkspaceEntitlement(auth: AuthContext, now: Date) {
+    const subscription =
+      (await this.subscriptionsRepository.findCurrentSubscriptionForWorkspace(
+        auth.workspaceId,
+      )) as SubscriptionDto | SubscriptionRecord | null;
+
+    return hasTrustedPremiumEntitlement(subscription, now);
+  }
+
+  private async requirePremiumWorkspaceEntitlement(auth: AuthContext, now: Date) {
+    if (!(await this.hasPremiumWorkspaceEntitlement(auth, now))) {
+      throw new ApiError(
+        403,
+        'premium_required',
+        'Premium is required for this feature.',
+      );
+    }
   }
 
   private async applyMeetingSync(
@@ -572,16 +605,23 @@ export class MeetingsService {
 export function createMeetingsService(
   meetingsRepository: MeetingRepositoryPort,
   participantsRepository: ParticipantRepositoryPort,
+  subscriptionsRepository: SubscriptionEntitlementRepositoryPort,
 ) {
-  return new MeetingsService(meetingsRepository, participantsRepository);
+  return new MeetingsService(
+    meetingsRepository,
+    participantsRepository,
+    subscriptionsRepository,
+  );
 }
 
 export function createDefaultMeetingsService(supabase: ConstructorParameters<typeof MeetingsRepository>[0]) {
   return new MeetingsService(
     new MeetingsRepository(supabase),
     new MeetingParticipantsRepository(supabase),
+    new SubscriptionsRepository(supabase),
   );
 }
+
 
 
 
