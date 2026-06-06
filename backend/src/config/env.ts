@@ -63,6 +63,7 @@ const envInput = z
 
     REVENUECAT_PROJECT_ID: optionalString,
     REVENUECAT_API_KEY: optionalString,
+    REVENUECAT_ENTITLEMENT_ID: optionalString,
     REVENUECAT_WEBHOOK_SHARED_SECRET: optionalString,
     GOOGLE_PLAY_PACKAGE_NAME: optionalString,
     GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64: optionalString,
@@ -141,6 +142,7 @@ const envSchema = envInput.transform((value) => {
     AI_CONFIGURED: aiProvider === 'openai' && aiApiKey.length > 0,
     REVENUECAT_PROJECT_ID: value.REVENUECAT_PROJECT_ID ?? '',
     REVENUECAT_API_KEY: value.REVENUECAT_API_KEY ?? '',
+    REVENUECAT_ENTITLEMENT_ID: value.REVENUECAT_ENTITLEMENT_ID ?? 'premium',
     REVENUECAT_WEBHOOK_SHARED_SECRET:
       value.REVENUECAT_WEBHOOK_SHARED_SECRET ?? '',
     REVENUECAT_CONFIGURED: Boolean(value.REVENUECAT_API_KEY),

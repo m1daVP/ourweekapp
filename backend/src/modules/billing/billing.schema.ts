@@ -14,6 +14,11 @@ export const subscriptionProviderSchema = z.enum([
   'revenuecat',
 ]);
 
+export const mobilePurchaseProviderSchema = z.enum([
+  'google_play',
+  'app_store',
+]);
+
 export const subscriptionFeatureSchema = z.enum([
   'basicMeetings',
   'defaultTemplate',
@@ -61,13 +66,13 @@ export const subscriptionStatusSchema = z.object({
 });
 
 export const validateSubscriptionRequestSchema = z.object({
-  provider: subscriptionProviderSchema,
+  provider: mobilePurchaseProviderSchema,
   purchaseToken: trimmedString(1, VALIDATION_LIMITS.purchaseTokenMaxLength),
   productId: trimmedString(1, VALIDATION_LIMITS.productIdMaxLength),
 });
 
 export const restoreSubscriptionRequestSchema = z.object({
-  provider: subscriptionProviderSchema,
+  provider: mobilePurchaseProviderSchema,
 });
 
 export const manageSubscriptionResponseSchema = z.object({
@@ -75,6 +80,9 @@ export const manageSubscriptionResponseSchema = z.object({
 });
 
 export type SubscriptionProviderDto = z.infer<typeof subscriptionProviderSchema>;
+export type MobilePurchaseProviderDto = z.infer<
+  typeof mobilePurchaseProviderSchema
+>;
 export type SubscriptionFeatureDto = z.infer<typeof subscriptionFeatureSchema>;
 export type SubscriptionStatusDto = z.infer<typeof subscriptionStatusSchema>;
 export type ValidateSubscriptionRequestDto = z.infer<
