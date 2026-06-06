@@ -43,6 +43,27 @@ export type UpsertParticipantInput = {
   serverRevision?: number;
 };
 
+export type CreateParticipantInput = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  initials: string;
+  avatarColor: string;
+  type: ParticipantRow['type'];
+  isActive: boolean;
+};
+
+export type UpdateParticipantIfRevisionMatchesInput = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  initials: string;
+  avatarColor: string;
+  type: ParticipantRow['type'];
+  isActive: boolean;
+  expectedServerRevision: number;
+};
+
 export function mapParticipantRowToDto(row: ParticipantRow): ParticipantDto {
   return {
     id: row.id,
@@ -122,6 +143,76 @@ export class ParticipantsRepository {
     );
   }
 
+  async createParticipant(input: CreateParticipantInput) {
+    const { data, error } = await this.supabase
+      .from('participants')
+      .insert({
+        id: input.id,
+        workspace_id: input.workspaceId,
+        name: input.name,
+        initials: input.initials,
+        avatar_color: input.avatarColor,
+        type: input.type,
+        is_active: input.isActive,
+        server_revision: 1,
+        deleted_at: null,
+      })
+      .select(PARTICIPANT_COLUMNS)
+      .single<ParticipantRow>();
+
+    return mapParticipantRowToDto(
+      requireRow(data, error, 'participant_create_failed', 'Unable to save the participant.'),
+    );
+  }
+
+  async updateParticipantIfRevisionMatches(input: UpdateParticipantIfRevisionMatchesInput) {
+    const { data, error } = await this.supabase
+      .from('participants')
+      .update({
+        name: input.name,
+        initials: input.initials,
+        avatar_color: input.avatarColor,
+        type: input.type,
+        is_active: input.isActive,
+        server_revision: input.expectedServerRevision + 1,
+      })
+      .eq('workspace_id', input.workspaceId)
+      .eq('id', input.id)
+      .eq('server_revision', input.expectedServerRevision)
+      .is('deleted_at', null)
+      .select(PARTICIPANT_COLUMNS)
+      .maybeSingle<ParticipantRow>();
+
+    throwOnSupabaseError(error, 'participant_update_failed', 'Unable to save the participant.');
+
+    return data ? mapParticipantRowToDto(data) : null;
+  }
+
+  async softDeleteParticipantIfRevisionMatches(
+    workspaceId: string,
+    participantId: string,
+    expectedServerRevision: number,
+    deletedAt: string,
+  ) {
+    const { data, error } = await this.supabase
+      .from('participants')
+      .update({
+        deleted_at: deletedAt,
+        is_active: false,
+        server_revision: expectedServerRevision + 1,
+      })
+      .eq('workspace_id', workspaceId)
+      .eq('id', participantId)
+      .eq('server_revision', expectedServerRevision)
+      .is('deleted_at', null)
+      .select(PARTICIPANT_COLUMNS)
+      .maybeSingle<ParticipantRow>();
+
+    throwOnSupabaseError(error, 'participant_delete_failed', 'Unable to delete the participant.');
+
+    return data ? mapParticipantRowToDto(data) : null;
+  }
+
   async softDeleteParticipant(workspaceId: string, participantId: string, deletedAt: string) {
     const { data, error } = await this.supabase
       .from('participants')
@@ -137,5 +228,4 @@ export class ParticipantsRepository {
     );
   }
 }
-
 

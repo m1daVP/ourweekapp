@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 import {
-  apiIdSchema,
   avatarColorSchema,
   createTypedSyncConflictSchema,
   isoDateTimeStringSchema,
@@ -9,6 +8,8 @@ import {
   trimmedString,
   VALIDATION_LIMITS,
 } from '../../shared/schemas/index.js';
+
+export const participantIdSchema = z.uuid();
 
 export const participantTypeSchema = z.enum(['adult', 'child', 'other']);
 
@@ -23,7 +24,7 @@ export const participantInitialsSchema = trimmedString(
 );
 
 export const participantSchema = z.object({
-  id: apiIdSchema,
+  id: participantIdSchema,
   name: participantNameSchema,
   initials: participantInitialsSchema,
   avatarColor: avatarColorSchema,
@@ -38,7 +39,22 @@ export const participantSchema = z.object({
 export const syncParticipantsRequestSchema = z.object({
   participants: z
     .array(participantSchema)
-    .max(VALIDATION_LIMITS.participantsPerWorkspaceMax),
+    .max(VALIDATION_LIMITS.participantsPerWorkspaceMax)
+    .superRefine((participants, ctx) => {
+      const seenIds = new Set<string>();
+
+      participants.forEach((participant, index) => {
+        if (seenIds.has(participant.id)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Participant IDs must be unique.',
+            path: [index, 'id'],
+          });
+        }
+
+        seenIds.add(participant.id);
+      });
+    }),
   clientUpdatedAt: isoDateTimeStringSchema,
   lastSyncedAt: isoDateTimeStringSchema.optional(),
 });
