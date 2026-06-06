@@ -37,6 +37,16 @@ export const workspaceMemberSchema = z.object({
   status: workspaceMemberStatusSchema,
 });
 
+export const workspaceInvitationSchema = z.object({
+  invitationId: apiIdSchema,
+  email: emailSchema,
+  displayName: optionalDisplayNameSchema,
+  role: userRoleSchema,
+  status: workspaceInvitationStatusSchema,
+  createdAt: isoDateTimeStringSchema,
+  expiresAt: isoDateTimeStringSchema,
+});
+
 export const workspaceSchema = z.object({
   id: apiIdSchema,
   name: workspaceNameSchema,
@@ -56,10 +66,16 @@ export const createWorkspaceInvitationRequestSchema = z.object({
   role: userRoleSchema,
 });
 
-export const updateWorkspaceMemberRequestSchema = z.object({
-  role: userRoleSchema.optional(),
-  status: workspaceMemberStatusSchema.optional(),
-});
+export const createWorkspaceInvitationResponseSchema = workspaceInvitationSchema;
+
+export const updateWorkspaceMemberRequestSchema = z
+  .object({
+    role: userRoleSchema.optional(),
+    status: z.literal('removed').optional(),
+  })
+  .refine((value) => value.role !== undefined || value.status !== undefined, {
+    message: 'At least one member field is required.',
+  });
 
 export const workspaceMemberParamsSchema = z.object({
   userId: apiIdSchema,
@@ -72,7 +88,17 @@ export type WorkspaceInvitationStatusDto = z.infer<
   typeof workspaceInvitationStatusSchema
 >;
 export type WorkspaceMemberDto = z.infer<typeof workspaceMemberSchema>;
+export type WorkspaceInvitationDto = z.infer<typeof workspaceInvitationSchema>;
 export type WorkspaceDto = z.infer<typeof workspaceSchema>;
 export type UpdateWorkspaceRequestDto = z.infer<
   typeof updateWorkspaceRequestSchema
+>;
+export type CreateWorkspaceInvitationRequestDto = z.infer<
+  typeof createWorkspaceInvitationRequestSchema
+>;
+export type CreateWorkspaceInvitationResponseDto = z.infer<
+  typeof createWorkspaceInvitationResponseSchema
+>;
+export type UpdateWorkspaceMemberRequestDto = z.infer<
+  typeof updateWorkspaceMemberRequestSchema
 >;
