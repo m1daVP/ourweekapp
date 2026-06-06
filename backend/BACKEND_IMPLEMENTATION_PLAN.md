@@ -4,7 +4,7 @@ This plan is based on `API_ENDPOINTS_AND_BACKEND_LOGIC.md`, `BACKEND_IMPLEMENTAT
 
 The repository already has Fastify, Zod provider setup, Supabase plugin wiring, global middleware, `/health`, `/v1`, and placeholder auth, billing, calendar, and AI modules. Most business logic, DTO schemas, database migrations, repositories, auth middleware, sync logic, OpenAPI output, and tests still need implementation.
 
-## 1. Normalize API Structure
+## 1. Normalize API Structure ✅
 
 - Keep `/v1` as the versioned base path.
 - Add shared modules:
@@ -20,7 +20,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
   - `details`
 - Add request ID handling and safe structured logging.
 
-## 2. Environment And Configuration
+## 2. Environment And Configuration ✅
 
 - Update `src/config/env.ts` so optional integrations can be disabled locally.
 - Add missing required variables from the implementation spec:
@@ -33,7 +33,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Make AI, RevenueCat, Google OAuth, and SMTP optional unless their endpoints are enabled.
 - Keep backend secrets out of Vite variables and mobile builds.
 
-## 3. Database Migrations
+## 3. Database Migrations ✅
 
 - Add Supabase migrations for:
   - `users`
@@ -59,7 +59,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Add check constraints for all enum fields listed in the specs.
 - Commit migrations and make them runnable in CI/staging before production.
 
-## 4. DTO And Zod Schema Layer
+## 4. DTO And Zod Schema Layer ✅
 
 - Define all API DTOs from the docs as Zod schemas:
   - auth user/session
@@ -76,7 +76,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Use schemas for route validation, response validation where practical, and OpenAPI generation.
 - Avoid returning raw technical validation internals to the mobile app.
 
-## 5. Repository Layer
+## 5. Repository Layer ✅
 
 - Add repository modules wrapping Supabase access:
   - `users.repository.ts`
@@ -92,7 +92,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Add mapping functions between database `snake_case` fields and API `camelCase` DTOs.
 - Keep provider tokens, password hashes, and internal metadata out of API responses.
 
-## 6. Auth Foundation
+## 6. Auth Foundation ✅
 
 - Extend `src/modules/auth/token.service.ts`:
   - include `sub`, `sessionId`, `workspaceId`, `role`, `iat`, and `exp` claims
@@ -106,7 +106,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
   - decorate Fastify request with authenticated context
 - Keep access tokens short-lived and refresh tokens revocable.
 
-## 7. Auth Endpoints
+## 7. Auth Endpoints ✅
 
 - Implement in `src/modules/auth/auth.routes.ts`:
   - `POST /auth/register`
@@ -121,7 +121,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Use Argon2id password hashing from `src/modules/auth/auth.service.ts`.
 - Use safe generic auth failure messages that do not reveal whether an email exists.
 
-## 8. Workspace And Member Endpoints
+## 8. Workspace And Member Endpoints ✅
 
 - Create `src/modules/workspace`.
 - Register routes under `/v1/workspace`.
@@ -138,7 +138,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
   - last-owner protection
 - Soft-remove members where possible and preserve historical meeting/task data.
 
-## 9. Participant Sync
+## 9. Participant Sync ✅
 
 - Create `src/modules/participants`.
 - Implement:
@@ -149,7 +149,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Never delete server participants because the client sends an empty list.
 - Return structured conflicts.
 
-## 10. Meeting Sync
+## 10. Meeting Sync ✅
 
 - Create `src/modules/meetings`.
 - Implement:
