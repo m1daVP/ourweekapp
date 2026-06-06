@@ -167,7 +167,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Add deterministic conflict handling and `serverRevision` increments.
 - Preserve user text and return conflicts instead of silently overwriting same-record concurrent edits.
 
-## 11. Tasks, Agreements, And Review Decisions
+## 11. Tasks, Agreements, And Review Decisions ✅
 
 - Create `src/modules/tasks`.
 - Implement:
@@ -181,7 +181,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Add conflict handling for tasks and agreements separately.
 - Treat `open`, `done`, and `skipped` as neutral states.
 
-## 12. Subscriptions And Entitlements
+## 12. Subscriptions And Entitlements ✅
 
 - Replace or adapt current `src/modules/billing` into `/subscriptions`.
 - Implement:
@@ -195,7 +195,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Add reusable `requirePremium` middleware.
 - Return free features when no trusted entitlement exists.
 
-## 13. Premium Enforcement
+## 13. Premium Enforcement ✅
 
 - Enforce server-side premium checks for:
   - full meeting history
