@@ -14,9 +14,16 @@ import {
 import { emailSchema, VALIDATION_LIMITS } from '../src/shared/schemas/index.js';
 
 const now = '2026-06-04T12:00:00.000Z';
+const participantId = '11111111-1111-4111-8111-111111111111';
+
+function participantIdForIndex(index: number) {
+  return `${index.toString(16).padStart(8, '0')}-0000-4000-8000-${index
+    .toString(16)
+    .padStart(12, '0')}`;
+}
 
 const participant = {
-  id: 'participant_1',
+  id: participantId,
   name: 'Rita',
   initials: 'R',
   avatarColor: '#7A8C6B',
@@ -30,7 +37,7 @@ const task = {
   id: 'task_1',
   title: 'Buy shoes',
   responsibilityType: 'participant',
-  responsibleParticipantIds: ['participant_1'],
+  responsibleParticipantIds: [participantId],
   status: 'open',
   createdAt: now,
   updatedAt: now,
@@ -39,7 +46,7 @@ const task = {
 const agreement = {
   id: 'agreement_1',
   title: 'Review the school plan',
-  participantIds: ['participant_1'],
+  participantIds: [participantId],
   sourceMeetingId: 'meeting_1',
   createdAt: now,
   updatedAt: now,
@@ -60,8 +67,17 @@ describe('DTO schema validation limits', () => {
     const request = {
       participants: Array.from(
         { length: VALIDATION_LIMITS.participantsPerWorkspaceMax + 1 },
-        (_, index) => ({ ...participant, id: `participant_${index}` }),
+        (_, index) => ({ ...participant, id: participantIdForIndex(index + 1) }),
       ),
+      clientUpdatedAt: now,
+    };
+
+    expect(syncParticipantsRequestSchema.safeParse(request).success).toBe(false);
+  });
+
+  it('rejects non-UUID participant IDs', () => {
+    const request = {
+      participants: [{ ...participant, id: 'participant_1' }],
       clientUpdatedAt: now,
     };
 
@@ -126,7 +142,7 @@ describe('DTO schema validation limits', () => {
       templateId: 'default',
       title: 'Weekly check-in',
       status: 'draft',
-      participantIds: ['participant_1'],
+      participantIds: [participantId],
       sections: [
         {
           id: 'section_1',
@@ -161,3 +177,6 @@ describe('DTO schema validation limits', () => {
     expect(parsedUser).not.toHaveProperty('refreshTokenHash');
   });
 });
+
+
+
