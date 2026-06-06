@@ -7,6 +7,7 @@ import { calendarRoutes } from '../modules/calendar/calendar.routes.js';
 import { workspaceRoutes } from '../modules/workspace/workspace.routes.js';
 import { meetingsRoutes } from '../modules/meetings/meetings.routes.js';
 import { participantRoutes } from '../modules/participants/participants.routes.js';
+import { tasksRoutes } from '../modules/tasks/tasks.routes.js';
 
 export const v1Routes: FastifyPluginAsyncZod = async (app) => {
   await app.register(authRoutes, { prefix: '/auth' });
@@ -17,4 +18,5 @@ export const v1Routes: FastifyPluginAsyncZod = async (app) => {
   await app.register(workspaceRoutes, { prefix: '/workspace' });
   await app.register(meetingsRoutes, { prefix: '/meetings' });
   await app.register(participantRoutes, { prefix: '/participants' });
+  await app.register(tasksRoutes, { prefix: '/tasks' });
 };

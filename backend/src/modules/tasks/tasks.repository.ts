@@ -92,6 +92,8 @@ export type UpsertTaskInput = {
   status: TaskRow['status'];
   sourceMeetingId?: string | null;
   serverRevision?: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type UpsertAgreementInput = {
@@ -103,6 +105,26 @@ export type UpsertAgreementInput = {
   relatedTaskIds?: string[];
   sourceMeetingId: string;
   serverRevision?: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type UpdateTaskIfRevisionMatchesInput = Omit<
+  UpsertTaskInput,
+  'id' | 'workspaceId' | 'createdAt' | 'updatedAt' | 'serverRevision'
+> & {
+  id: string;
+  workspaceId: string;
+  expectedServerRevision: number;
+};
+
+export type UpdateAgreementIfRevisionMatchesInput = Omit<
+  UpsertAgreementInput,
+  'id' | 'workspaceId' | 'createdAt' | 'updatedAt' | 'serverRevision'
+> & {
+  id: string;
+  workspaceId: string;
+  expectedServerRevision: number;
 };
 
 function stringArrayFromJson(value: JsonValue | null): string[] {
@@ -218,6 +240,58 @@ export class TasksRepository {
     );
   }
 
+  async insertTask(input: UpsertTaskInput & { id: string }) {
+    const { data, error } = await this.supabase
+      .from('tasks')
+      .insert({
+        id: input.id,
+        workspace_id: input.workspaceId,
+        title: input.title,
+        description: input.description ?? null,
+        responsibility_type: input.responsibilityType,
+        responsible_participant_ids: input.responsibleParticipantIds,
+        due_date: input.dueDate ?? null,
+        status: input.status,
+        source_meeting_id: input.sourceMeetingId ?? null,
+        server_revision: input.serverRevision ?? 1,
+        created_at: input.createdAt,
+        updated_at: input.updatedAt,
+        deleted_at: null,
+      })
+      .select(TASK_COLUMNS)
+      .single<TaskRow>();
+
+    return mapTaskRowToDto(
+      requireRow(data, error, 'task_create_failed', 'Unable to save the task.'),
+    );
+  }
+
+  async updateTaskIfRevisionMatches(input: UpdateTaskIfRevisionMatchesInput) {
+    const { data, error } = await this.supabase
+      .from('tasks')
+      .update({
+        title: input.title,
+        description: input.description ?? null,
+        responsibility_type: input.responsibilityType,
+        responsible_participant_ids: input.responsibleParticipantIds,
+        due_date: input.dueDate ?? null,
+        status: input.status,
+        source_meeting_id: input.sourceMeetingId ?? null,
+        server_revision: input.expectedServerRevision + 1,
+        deleted_at: null,
+      })
+      .eq('workspace_id', input.workspaceId)
+      .eq('id', input.id)
+      .eq('server_revision', input.expectedServerRevision)
+      .is('deleted_at', null)
+      .select(TASK_COLUMNS)
+      .maybeSingle<TaskRow>();
+
+    throwOnSupabaseError(error, 'task_update_failed', 'Unable to save the task.');
+
+    return data ? mapTaskRowToDto(data) : null;
+  }
+
   async softDeleteTask(workspaceId: string, taskId: string, deletedAt: string) {
     const { data, error } = await this.supabase
       .from('tasks')
@@ -231,6 +305,30 @@ export class TasksRepository {
     return mapTaskRowToDto(
       requireRow(data, error, 'task_delete_failed', 'Unable to delete the task.'),
     );
+  }
+
+  async softDeleteTaskIfRevisionMatches(
+    workspaceId: string,
+    taskId: string,
+    expectedServerRevision: number,
+    deletedAt: string,
+  ) {
+    const { data, error } = await this.supabase
+      .from('tasks')
+      .update({
+        deleted_at: deletedAt,
+        server_revision: expectedServerRevision + 1,
+      })
+      .eq('workspace_id', workspaceId)
+      .eq('id', taskId)
+      .eq('server_revision', expectedServerRevision)
+      .is('deleted_at', null)
+      .select(TASK_COLUMNS)
+      .maybeSingle<TaskRow>();
+
+    throwOnSupabaseError(error, 'task_delete_failed', 'Unable to delete the task.');
+
+    return data ? mapTaskRowToDto(data) : null;
   }
 
   async listAgreementsForWorkspace(workspaceId: string, includeDeleted = false) {
@@ -294,6 +392,54 @@ export class TasksRepository {
     );
   }
 
+  async insertAgreement(input: UpsertAgreementInput & { id: string }) {
+    const { data, error } = await this.supabase
+      .from('agreements')
+      .insert({
+        id: input.id,
+        workspace_id: input.workspaceId,
+        title: input.title,
+        description: input.description ?? null,
+        participant_ids: input.participantIds,
+        related_task_ids: input.relatedTaskIds ?? [],
+        source_meeting_id: input.sourceMeetingId,
+        server_revision: input.serverRevision ?? 1,
+        created_at: input.createdAt,
+        updated_at: input.updatedAt,
+        deleted_at: null,
+      })
+      .select(AGREEMENT_COLUMNS)
+      .single<AgreementRow>();
+
+    return mapAgreementRowToDto(
+      requireRow(data, error, 'agreement_create_failed', 'Unable to save the agreement.'),
+    );
+  }
+
+  async updateAgreementIfRevisionMatches(input: UpdateAgreementIfRevisionMatchesInput) {
+    const { data, error } = await this.supabase
+      .from('agreements')
+      .update({
+        title: input.title,
+        description: input.description ?? null,
+        participant_ids: input.participantIds,
+        related_task_ids: input.relatedTaskIds ?? [],
+        source_meeting_id: input.sourceMeetingId,
+        server_revision: input.expectedServerRevision + 1,
+        deleted_at: null,
+      })
+      .eq('workspace_id', input.workspaceId)
+      .eq('id', input.id)
+      .eq('server_revision', input.expectedServerRevision)
+      .is('deleted_at', null)
+      .select(AGREEMENT_COLUMNS)
+      .maybeSingle<AgreementRow>();
+
+    throwOnSupabaseError(error, 'agreement_update_failed', 'Unable to save the agreement.');
+
+    return data ? mapAgreementRowToDto(data) : null;
+  }
+
   async softDeleteAgreement(workspaceId: string, agreementId: string, deletedAt: string) {
     const { data, error } = await this.supabase
       .from('agreements')
@@ -307,6 +453,30 @@ export class TasksRepository {
     return mapAgreementRowToDto(
       requireRow(data, error, 'agreement_delete_failed', 'Unable to delete the agreement.'),
     );
+  }
+
+  async softDeleteAgreementIfRevisionMatches(
+    workspaceId: string,
+    agreementId: string,
+    expectedServerRevision: number,
+    deletedAt: string,
+  ) {
+    const { data, error } = await this.supabase
+      .from('agreements')
+      .update({
+        deleted_at: deletedAt,
+        server_revision: expectedServerRevision + 1,
+      })
+      .eq('workspace_id', workspaceId)
+      .eq('id', agreementId)
+      .eq('server_revision', expectedServerRevision)
+      .is('deleted_at', null)
+      .select(AGREEMENT_COLUMNS)
+      .maybeSingle<AgreementRow>();
+
+    throwOnSupabaseError(error, 'agreement_delete_failed', 'Unable to delete the agreement.');
+
+    return data ? mapAgreementRowToDto(data) : null;
   }
 
   async listReviewDecisionsForWorkspace(workspaceId: string) {
@@ -342,5 +512,3 @@ export class TasksRepository {
     );
   }
 }
-
-
