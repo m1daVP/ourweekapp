@@ -20,6 +20,8 @@ import {
   taskTitleSchema,
 } from '../tasks/tasks.schema.js';
 
+export const meetingIdSchema = z.uuid();
+
 export const meetingStatusSchema = z.enum([
   'draft',
   'in_progress',
@@ -42,6 +44,10 @@ export const meetingNoteTextSchema = trimmedString(
   1,
   VALIDATION_LIMITS.meetingNoteTextMaxLength,
 );
+
+const meetingSummaryForMeetingSchema = meetingSummarySchema.extend({
+  meetingId: meetingIdSchema,
+});
 
 export const meetingSectionNoteSchema = z.object({
   id: apiIdSchema.optional(),
@@ -89,7 +95,7 @@ export const meetingSectionSchema = z.object({
 });
 
 export const meetingSchema = z.object({
-  id: apiIdSchema,
+  id: meetingIdSchema,
   templateId: meetingTemplateIdSchema,
   title: meetingTitleSchema,
   status: meetingStatusSchema,
@@ -101,25 +107,25 @@ export const meetingSchema = z.object({
   createdAt: isoDateTimeStringSchema,
   updatedAt: isoDateTimeStringSchema,
   completedAt: isoDateTimeStringSchema.optional(),
-  aiSummary: meetingSummarySchema.optional(),
+  aiSummary: meetingSummaryForMeetingSchema.optional(),
   serverRevision: serverRevisionSchema.optional(),
   deletedAt: isoDateTimeStringSchema.optional(),
 });
 
 export const meetingParamsSchema = z.object({
-  id: apiIdSchema,
+  id: meetingIdSchema,
 });
 
 export const meetingsResponseSchema = z.object({
   meetings: z.array(meetingSchema),
-  activeMeetingId: apiIdSchema.nullable(),
+  activeMeetingId: meetingIdSchema.nullable(),
   draftSavedAt: isoDateTimeStringSchema.nullable(),
   syncedAt: isoDateTimeStringSchema,
 });
 
 export const syncMeetingsRequestSchema = z.object({
   meetings: z.array(meetingSchema).max(VALIDATION_LIMITS.meetingsPerSyncRequestMax),
-  activeMeetingId: apiIdSchema.nullable(),
+  activeMeetingId: meetingIdSchema.nullable(),
   draftSavedAt: isoDateTimeStringSchema.nullable(),
   clientUpdatedAt: isoDateTimeStringSchema,
   lastSyncedAt: isoDateTimeStringSchema.optional(),
@@ -135,7 +141,7 @@ export const syncMeetingsResponseSchema = meetingsResponseSchema.extend({
 });
 
 export const saveMeetingSummaryRequestSchema = z.object({
-  summary: meetingSummarySchema,
+  summary: meetingSummaryForMeetingSchema,
 });
 
 export type MeetingStatusDto = z.infer<typeof meetingStatusSchema>;
@@ -149,4 +155,3 @@ export type MeetingDto = z.infer<typeof meetingSchema>;
 export type MeetingsResponseDto = z.infer<typeof meetingsResponseSchema>;
 export type SyncMeetingsRequestDto = z.infer<typeof syncMeetingsRequestSchema>;
 export type SyncMeetingsResponseDto = z.infer<typeof syncMeetingsResponseSchema>;
-

@@ -49,11 +49,15 @@ export type UpsertMeetingInput = {
   currentSectionIndex: number;
   aiSummary?: JsonValue | null;
   serverRevision?: number;
+  createdAt?: string;
+  updatedAt?: string;
   completedAt?: string | null;
 };
 
 function stringArrayFromJson(value: JsonValue): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
 }
 
 function jsonArrayFromJson(value: JsonValue): JsonValue[] {
@@ -82,7 +86,12 @@ export function mapMeetingRowToDto(row: MeetingRow): MeetingDto {
 export class MeetingsRepository {
   constructor(private readonly supabase: SupabaseRepositoryClient) {}
 
-  async listMeetingsForWorkspace(workspaceId: string, limit = 100, offset = 0, includeDeleted = false) {
+  async listMeetingsForWorkspace(
+    workspaceId: string,
+    limit = 100,
+    offset = 0,
+    includeDeleted = false,
+  ) {
     let query = this.supabase
       .from('meetings')
       .select(MEETING_COLUMNS)
@@ -117,7 +126,29 @@ export class MeetingsRepository {
     return (data ?? []).map(mapMeetingRowToDto);
   }
 
-  async findMeetingByIdForWorkspace(workspaceId: string, meetingId: string, includeDeleted = false) {
+  async listMeetingsByStatusesForWorkspace(
+    workspaceId: string,
+    statuses: MeetingRow['status'][],
+  ) {
+    const { data, error } = await this.supabase
+      .from('meetings')
+      .select(MEETING_COLUMNS)
+      .eq('workspace_id', workspaceId)
+      .in('status', statuses)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
+      .returns<MeetingRow[]>();
+
+    throwOnSupabaseError(error, 'meeting_list_failed', 'Unable to list meetings.');
+
+    return (data ?? []).map(mapMeetingRowToDto);
+  }
+
+  async findMeetingByIdForWorkspace(
+    workspaceId: string,
+    meetingId: string,
+    includeDeleted = false,
+  ) {
     let query = this.supabase
       .from('meetings')
       .select(MEETING_COLUMNS)
@@ -162,35 +193,123 @@ export class MeetingsRepository {
     );
   }
 
-  async updateMeetingSummary(workspaceId: string, meetingId: string, aiSummary: JsonValue) {
+  async insertMeeting(input: UpsertMeetingInput) {
+    const row = {
+      ...(input.id ? { id: input.id } : {}),
+      workspace_id: input.workspaceId,
+      template_id: input.templateId,
+      title: input.title,
+      status: input.status,
+      participant_ids: input.participantIds,
+      sections: input.sections,
+      current_section_index: input.currentSectionIndex,
+      ai_summary: input.aiSummary ?? null,
+      server_revision: input.serverRevision ?? 1,
+      created_at: input.createdAt,
+      updated_at: input.updatedAt,
+      completed_at: input.completedAt ?? null,
+      deleted_at: null,
+    };
+
     const { data, error } = await this.supabase
       .from('meetings')
-      .update({ ai_summary: aiSummary })
-      .eq('workspace_id', workspaceId)
-      .eq('id', meetingId)
-      .is('deleted_at', null)
+      .insert(row)
       .select(MEETING_COLUMNS)
       .single<MeetingRow>();
 
     return mapMeetingRowToDto(
-      requireRow(data, error, 'meeting_update_failed', 'Unable to update the meeting.'),
+      requireRow(data, error, 'meeting_create_failed', 'Unable to create the meeting.'),
     );
   }
 
-  async softDeleteMeeting(workspaceId: string, meetingId: string, deletedAt: string) {
+  async updateMeeting(
+    workspaceId: string,
+    meetingId: string,
+    expectedServerRevision: number,
+    input: Omit<UpsertMeetingInput, 'id' | 'workspaceId' | 'createdAt' | 'updatedAt'>,
+  ) {
     const { data, error } = await this.supabase
       .from('meetings')
-      .update({ deleted_at: deletedAt })
+      .update({
+        template_id: input.templateId,
+        title: input.title,
+        status: input.status,
+        participant_ids: input.participantIds,
+        sections: input.sections,
+        current_section_index: input.currentSectionIndex,
+        ai_summary: input.aiSummary ?? null,
+        server_revision: expectedServerRevision + 1,
+        completed_at: input.completedAt ?? null,
+        deleted_at: null,
+      })
       .eq('workspace_id', workspaceId)
       .eq('id', meetingId)
+      .eq('server_revision', expectedServerRevision)
+      .select(MEETING_COLUMNS)
+      .maybeSingle<MeetingRow>();
+
+    throwOnSupabaseError(error, 'meeting_update_failed', 'Unable to update the meeting.');
+
+    return data ? mapMeetingRowToDto(data) : null;
+  }
+
+  async updateMeetingSummary(
+    workspaceId: string,
+    meetingId: string,
+    aiSummary: JsonValue,
+  ) {
+    const current = await this.findMeetingByIdForWorkspace(workspaceId, meetingId);
+
+    if (!current) {
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .from('meetings')
+      .update({
+        ai_summary: aiSummary,
+        server_revision: current.serverRevision + 1,
+      })
+      .eq('workspace_id', workspaceId)
+      .eq('id', meetingId)
+      .eq('server_revision', current.serverRevision)
       .is('deleted_at', null)
       .select(MEETING_COLUMNS)
-      .single<MeetingRow>();
+      .maybeSingle<MeetingRow>();
 
-    return mapMeetingRowToDto(
-      requireRow(data, error, 'meeting_delete_failed', 'Unable to delete the meeting.'),
-    );
+    throwOnSupabaseError(error, 'meeting_update_failed', 'Unable to update the meeting.');
+
+    return data ? mapMeetingRowToDto(data) : null;
+  }
+
+  async softDeleteMeeting(
+    workspaceId: string,
+    meetingId: string,
+    deletedAt: string,
+    expectedServerRevision?: number,
+  ) {
+    let query = this.supabase
+      .from('meetings')
+      .update({
+        deleted_at: deletedAt,
+        ...(expectedServerRevision
+          ? { server_revision: expectedServerRevision + 1 }
+          : {}),
+      })
+      .eq('workspace_id', workspaceId)
+      .eq('id', meetingId)
+      .is('deleted_at', null);
+
+    if (expectedServerRevision) {
+      query = query.eq('server_revision', expectedServerRevision);
+    }
+
+    const { data, error } = await query
+      .select(MEETING_COLUMNS)
+      .maybeSingle<MeetingRow>();
+
+    throwOnSupabaseError(error, 'meeting_delete_failed', 'Unable to delete the meeting.');
+
+    return data ? mapMeetingRowToDto(data) : null;
   }
 }
-
-
