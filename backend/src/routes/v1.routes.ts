@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 
+import { accountRoutes } from '../modules/account/account.routes.js';
 import { aiRoutes } from '../modules/ai/ai.routes.js';
 import { authRoutes } from '../modules/auth/auth.routes.js';
 import { billingRoutes } from '../modules/billing/billing.routes.js';
@@ -15,6 +16,7 @@ export const v1Routes: FastifyPluginAsyncZod = async (app) => {
   await app.register(billingRoutes, { prefix: '/billing' });
   await app.register(calendarRoutes, { prefix: '/calendar' });
   await app.register(aiRoutes, { prefix: '/ai' });
+  await app.register(accountRoutes, { prefix: '/account' });
   await app.register(workspaceRoutes, { prefix: '/workspace' });
   await app.register(meetingsRoutes, { prefix: '/meetings' });
   await app.register(participantRoutes, { prefix: '/participants' });
