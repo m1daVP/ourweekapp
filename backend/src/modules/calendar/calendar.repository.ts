@@ -6,11 +6,11 @@ const CONNECTION_COLUMNS =
 const PUBLIC_CONNECTION_COLUMNS =
   'id,workspace_id,user_id,provider,connected_account_email,token_expires_at,state,created_at,updated_at,disconnected_at' as const;
 const EVENT_COLUMNS =
-  'id,workspace_id,provider,source_type,source_id,provider_event_id,created_at,updated_at' as const;
+  'id,workspace_id,user_id,provider,source_type,source_id,provider_event_id,created_at,updated_at' as const;
 
 type CalendarProvider = 'google';
 type CalendarConnectionState = 'disconnected' | 'connected' | 'setup_required';
-type CalendarSourceType = 'meeting_reminder' | 'task_due_date' | 'follow_up_date';
+export type CalendarSourceType = 'meeting_reminder' | 'task_due_date' | 'follow_up_date';
 
 type CalendarConnectionRow = {
   id: string;
@@ -35,6 +35,7 @@ type PublicCalendarConnectionRow = Omit<
 type CalendarEventRow = {
   id: string;
   workspace_id: string;
+  user_id: string;
   provider: CalendarProvider;
   source_type: CalendarSourceType;
   source_id: string;
@@ -64,6 +65,7 @@ export type CalendarConnectionRecord = CalendarConnectionDto & {
 export type CalendarEventDto = {
   id: string;
   workspaceId: string;
+  userId: string;
   provider: CalendarProvider;
   sourceType: CalendarSourceType;
   sourceId: string;
@@ -84,6 +86,7 @@ export type UpsertCalendarConnectionInput = {
 
 export type UpsertCalendarEventInput = {
   workspaceId: string;
+  userId: string;
   sourceType: CalendarSourceType;
   sourceId: string;
   providerEventId: string;
@@ -116,6 +119,7 @@ export function mapCalendarEventRowToDto(row: CalendarEventRow): CalendarEventDt
   return {
     id: row.id,
     workspaceId: row.workspace_id,
+    userId: row.user_id,
     provider: row.provider,
     sourceType: row.source_type,
     sourceId: row.source_id,
@@ -202,11 +206,17 @@ export class CalendarRepository {
     );
   }
 
-  async findEventBySource(workspaceId: string, sourceType: CalendarSourceType, sourceId: string) {
+  async findEventBySource(
+    workspaceId: string,
+    userId: string,
+    sourceType: CalendarSourceType,
+    sourceId: string,
+  ) {
     const { data, error } = await this.supabase
       .from('calendar_events')
       .select(EVENT_COLUMNS)
       .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
       .eq('source_type', sourceType)
       .eq('source_id', sourceId)
       .eq('provider', 'google')
@@ -218,37 +228,24 @@ export class CalendarRepository {
   }
 
   async upsertEvent(input: UpsertCalendarEventInput) {
-    const existing = await this.findEventBySource(input.workspaceId, input.sourceType, input.sourceId);
-
-    if (existing) {
-      const { data, error } = await this.supabase
-        .from('calendar_events')
-        .update({ provider_event_id: input.providerEventId })
-        .eq('workspace_id', input.workspaceId)
-        .eq('id', existing.id)
-        .select(EVENT_COLUMNS)
-        .single<CalendarEventRow>();
-
-      return mapCalendarEventRowToDto(
-        requireRow(data, error, 'calendar_event_update_failed', 'Unable to update calendar event.'),
-      );
-    }
-
     const { data, error } = await this.supabase
       .from('calendar_events')
-      .insert({
-        workspace_id: input.workspaceId,
-        provider: 'google',
-        source_type: input.sourceType,
-        source_id: input.sourceId,
-        provider_event_id: input.providerEventId,
-      })
+      .upsert(
+        {
+          workspace_id: input.workspaceId,
+          user_id: input.userId,
+          provider: 'google',
+          source_type: input.sourceType,
+          source_id: input.sourceId,
+          provider_event_id: input.providerEventId,
+        },
+        { onConflict: 'workspace_id,user_id,provider,source_type,source_id' },
+      )
       .select(EVENT_COLUMNS)
       .single<CalendarEventRow>();
 
     return mapCalendarEventRowToDto(
-      requireRow(data, error, 'calendar_event_create_failed', 'Unable to save calendar event.'),
+      requireRow(data, error, 'calendar_event_upsert_failed', 'Unable to save calendar event.'),
     );
   }
 }
-

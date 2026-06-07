@@ -48,12 +48,19 @@ export const calendarConnectRequestSchema = z.object({
     .max(VALIDATION_LIMITS.calendarRedirectUrlMaxLength),
 });
 
+export const calendarGoogleCallbackQuerySchema = z.object({
+  code: z.string().trim().min(1).optional(),
+  state: z.string().trim().min(1),
+  error: z.string().trim().min(1).optional(),
+});
+
 export const calendarSyncResultSchema = z.object({
   provider: calendarProviderSchema,
   synced: z.boolean(),
   attemptedAt: isoDateTimeStringSchema,
   skippedReason: calendarSyncSkippedReasonSchema.optional(),
   message: calendarMessageSchema,
+  providerEventId: z.string().trim().min(1).optional(),
 });
 
 export const calendarMeetingReminderRequestSchema = z.object({
@@ -88,6 +95,9 @@ export type CalendarSyncSkippedReasonDto = z.infer<
 export type CalendarSyncResultDto = z.infer<typeof calendarSyncResultSchema>;
 export type CalendarConnectRequestDto = z.infer<
   typeof calendarConnectRequestSchema
+>;
+export type CalendarGoogleCallbackQueryDto = z.infer<
+  typeof calendarGoogleCallbackQuerySchema
 >;
 export type CalendarMeetingReminderRequestDto = z.infer<
   typeof calendarMeetingReminderRequestSchema

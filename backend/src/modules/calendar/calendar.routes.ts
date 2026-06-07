@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 
+import { requireAuthenticatedContext } from '../../shared/auth/index.js';
 import { errorResponseSchema } from '../../shared/schemas/index.js';
 import { buildAuthPreHandler } from '../auth/auth.middleware.js';
 import { requirePremiumAdultMember } from '../billing/require-premium.middleware.js';
@@ -8,12 +9,13 @@ import {
   calendarConnectRequestSchema,
   calendarConnectionStatusSchema,
   calendarFollowUpDateRequestSchema,
+  calendarGoogleCallbackQuerySchema,
   calendarMeetingReminderRequestSchema,
   calendarSyncResultSchema,
   calendarTaskDueDateRequestSchema,
-  type CalendarConnectionStatusDto,
-  type CalendarSyncResultDto,
 } from './calendar.schema.js';
+import { createDefaultCalendarService } from './calendar.service.js';
+import { googleCalendarProvider } from './google-oauth.client.js';
 
 const calendarErrorResponses = {
   401: errorResponseSchema,
@@ -22,31 +24,14 @@ const calendarErrorResponses = {
   500: errorResponseSchema,
 };
 
-function disconnectedStatus(now = new Date()): CalendarConnectionStatusDto {
-  return {
-    provider: 'google',
-    state: 'disconnected',
-    connected: false,
-    connectedAccountEmail: null,
-    lastCheckedAt: now.toISOString(),
-    message: 'Google Calendar is not connected.',
-  };
-}
-
-function notConnectedSyncResult(now = new Date()): CalendarSyncResultDto {
-  return {
-    provider: 'google',
-    synced: false,
-    attemptedAt: now.toISOString(),
-    skippedReason: 'not-connected',
-    message: 'Connect Google Calendar before syncing reminders.',
-  };
-}
-
 export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
   const requireAuth = buildAuthPreHandler(app);
   const subscriptionsRepository = new SubscriptionsRepository(app.supabase);
   const requirePremiumWorkspace = requirePremiumAdultMember(subscriptionsRepository);
+  const calendarService = createDefaultCalendarService(
+    app.supabase,
+    googleCalendarProvider,
+  );
 
   app.get('/google/status', {
     preHandler: [requireAuth, requirePremiumWorkspace],
@@ -56,7 +41,9 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
         ...calendarErrorResponses,
       },
     },
-  }, async () => disconnectedStatus());
+  }, async (request) => calendarService.getGoogleStatus(
+    requireAuthenticatedContext(request.auth),
+  ));
 
   app.post('/google/connect', {
     preHandler: [requireAuth, requirePremiumWorkspace],
@@ -67,11 +54,24 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
         ...calendarErrorResponses,
       },
     },
-  }, async () => ({
-    ...disconnectedStatus(),
-    state: 'setup_required' as const,
-    message: 'Google Calendar setup is not available yet.',
-  }));
+  }, async (request) => calendarService.connectGoogle(
+    requireAuthenticatedContext(request.auth),
+    request.body,
+  ));
+
+  app.get('/google/callback', {
+    schema: {
+      querystring: calendarGoogleCallbackQuerySchema,
+      response: {
+        422: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+  }, async (request, reply) => {
+    const redirectUrl = await calendarService.handleGoogleCallback(request.query);
+
+    return reply.redirect(redirectUrl);
+  });
 
   app.post('/google/disconnect', {
     preHandler: [requireAuth, requirePremiumWorkspace],
@@ -81,7 +81,9 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
         ...calendarErrorResponses,
       },
     },
-  }, async () => disconnectedStatus());
+  }, async (request) => calendarService.disconnectGoogle(
+    requireAuthenticatedContext(request.auth),
+  ));
 
   app.post('/google/meeting-reminders', {
     preHandler: [requireAuth, requirePremiumWorkspace],
@@ -92,7 +94,10 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
         ...calendarErrorResponses,
       },
     },
-  }, async () => notConnectedSyncResult());
+  }, async (request) => calendarService.syncMeetingReminder(
+    requireAuthenticatedContext(request.auth),
+    request.body,
+  ));
 
   app.post('/google/task-due-dates', {
     preHandler: [requireAuth, requirePremiumWorkspace],
@@ -103,7 +108,10 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
         ...calendarErrorResponses,
       },
     },
-  }, async () => notConnectedSyncResult());
+  }, async (request) => calendarService.syncTaskDueDate(
+    requireAuthenticatedContext(request.auth),
+    request.body,
+  ));
 
   app.post('/google/follow-up-dates', {
     preHandler: [requireAuth, requirePremiumWorkspace],
@@ -114,6 +122,8 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
         ...calendarErrorResponses,
       },
     },
-  }, async () => notConnectedSyncResult());
+  }, async (request) => calendarService.syncFollowUpDate(
+    requireAuthenticatedContext(request.auth),
+    request.body,
+  ));
 };
-
