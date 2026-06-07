@@ -401,7 +401,7 @@ describe('MeetingsService', () => {
       tasks: [{ title: 'Follow up', responsibleParticipantIds: ['participant_2'] }],
       suggestedNextMeetingFocus: [],
       createdAt: now,
-    })).rejects.toMatchObject({
+    }, new Date(now))).rejects.toMatchObject({
       statusCode: 422,
       code: 'meeting_invalid_reference',
     });
