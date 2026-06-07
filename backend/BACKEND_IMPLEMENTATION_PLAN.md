@@ -237,7 +237,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
   - internal logs
 - On deletion, revoke sessions, handle workspace ownership safely, and revoke Google Calendar tokens where applicable.
 
-## 16. Google Calendar P2
+## 16. Google Calendar P2 ✅
 
 - Complete `src/modules/calendar`.
 - Implement only when OAuth and secure token storage are ready:
