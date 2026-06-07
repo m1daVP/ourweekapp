@@ -205,7 +205,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Do not rely on frontend feature locks.
 - Make the effective plan workspace-based so adult members can use Premium features when the household workspace has a valid entitlement.
 
-## 14. AI Summary
+## 14. AI Summary ✅
 
 - Complete `src/modules/ai`.
 - Implement:
@@ -222,7 +222,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
   - rate limit per user/workspace
 - Keep AI output neutral, short, practical, and non-judgmental.
 
-## 15. Account Operations Before Production
+## 15. Account Operations Before Production ✅
 
 - Add `src/modules/account`.
 - Implement:
