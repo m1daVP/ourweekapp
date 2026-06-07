@@ -252,7 +252,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Store provider event IDs for updates.
 - Return `setup_required` when OAuth is not configured or consent is incomplete.
 
-## 17. Optional Export Endpoint
+## 17. Optional Export Endpoint ✅
 
 - Add only if backend export is needed beyond account export:
   - `POST /exports/meeting`
@@ -261,7 +261,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Exclude private notes by default.
 - Avoid PDF generation until explicitly approved.
 
-## 18. OpenAPI
+## 18. OpenAPI ✅
 
 - Add OpenAPI generation from Fastify and Zod schemas.
 - Generate:
@@ -271,7 +271,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 - Make CI fail on contract drift.
 - Ensure every implemented route appears in OpenAPI with explicit auth and error behavior.
 
-## 19. Testing
+## 19. Testing ✅
 
 - Add Vitest contract and integration tests for:
   - auth/session lifecycle
@@ -292,7 +292,7 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
   - backend unavailable behavior where practical
 - Add OpenAPI generation checks in CI.
 
-## 20. Deployment Readiness
+## 20. Deployment Readiness ✅
 
 - Add Docker production checks.
 - Add migration command and documentation.
