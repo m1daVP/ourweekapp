@@ -60,6 +60,19 @@ export function registerErrorHandler(app: FastifyInstance) {
       });
     }
 
+    if (error.statusCode === 429) {
+      request.log.warn(
+        { err: error, code: 'rate_limit_exceeded', requestId: request.id },
+        'Rate limit exceeded',
+      );
+
+      return reply.status(429).send({
+        message: 'Too many requests. Please try again later.',
+        code: 'rate_limit_exceeded',
+        details: {},
+      });
+    }
+
     request.log.error(
       { err: error, code: internalServerError.code, requestId: request.id },
       'Unhandled API error',
