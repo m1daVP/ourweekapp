@@ -9,4 +9,8 @@ declare module 'fastify' {
   interface FastifyRequest {
     auth?: AuthContext;
   }
+
+  interface FastifyContextConfig {
+    authRequired?: boolean;
+  }
 }

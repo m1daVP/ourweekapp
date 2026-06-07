@@ -13,15 +13,49 @@ import {
 import { env } from './config/env.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { v1Routes } from './routes/v1.routes.js';
+import { registerOpenApi } from './plugins/openapi.js';
 import supabasePlugin from './plugins/supabase.js';
 import { registerErrorHandler } from './shared/errors/index.js';
+
+const sensitiveLogPaths = [
+  'req.headers.authorization',
+  'req.headers.cookie',
+  'req.headers["x-api-key"]',
+  'req.headers["x-supabase-auth"]',
+  'req.headers["x-revenuecat-signature"]',
+  'req.headers["x-webhook-signature"]',
+  'res.headers["set-cookie"]',
+  'authorization',
+  'cookie',
+  'accessToken',
+  'refreshToken',
+  'password',
+  'passwordHash',
+  'token',
+  '*.accessToken',
+  '*.refreshToken',
+  '*.password',
+  '*.passwordHash',
+  '*.token',
+];
 
 export async function buildApp(options: FastifyServerOptions = {}) {
   const app = Fastify({
     logger:
       env.NODE_ENV === 'production'
-        ? true
+        ? {
+            level: env.LOG_LEVEL,
+            redact: {
+              paths: sensitiveLogPaths,
+              censor: '[redacted]',
+            },
+          }
         : {
+            level: env.LOG_LEVEL,
+            redact: {
+              paths: sensitiveLogPaths,
+              censor: '[redacted]',
+            },
             transport: {
               target: 'pino-pretty',
               options: { translateTime: 'SYS:standard' },
@@ -55,6 +89,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
     done();
   });
 
+  await registerOpenApi(app);
   await app.register(healthRoutes);
   await app.register(v1Routes, { prefix: '/v1' });
 

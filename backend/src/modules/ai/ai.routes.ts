@@ -47,6 +47,7 @@ export const aiRoutes: FastifyPluginAsyncZod = async (app) => {
     '/meeting-summary',
     {
       config: {
+        authRequired: true,
         rateLimit: {
           max: 10,
           timeWindow: '1 hour',

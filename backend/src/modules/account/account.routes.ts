@@ -18,6 +18,9 @@ export const accountRoutes: FastifyPluginAsyncZod = async (app) => {
   const authPreHandler = requireAuth(app);
 
   app.get('/export', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       response: {
@@ -30,6 +33,9 @@ export const accountRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.delete('/', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       response: {

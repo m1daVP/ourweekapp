@@ -28,6 +28,9 @@ export const workspaceRoutes: FastifyPluginAsyncZod = async (app) => {
   const authPreHandler = requireAuth(app);
 
   app.get('/', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       response: {
@@ -40,6 +43,9 @@ export const workspaceRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.put('/', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       body: updateWorkspaceRequestSchema,
@@ -53,6 +59,9 @@ export const workspaceRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.post('/invitations', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       body: createWorkspaceInvitationRequestSchema,
@@ -68,6 +77,9 @@ export const workspaceRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.put('/members/:userId', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       params: workspaceMemberParamsSchema,
@@ -86,6 +98,9 @@ export const workspaceRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.delete('/members/:userId', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       params: workspaceMemberParamsSchema,

@@ -34,6 +34,9 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
   );
 
   app.get('/google/status', {
+    config: {
+      authRequired: true,
+    },
     preHandler: [requireAuth, requirePremiumWorkspace],
     schema: {
       response: {
@@ -46,6 +49,9 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
   ));
 
   app.post('/google/connect', {
+    config: {
+      authRequired: true,
+    },
     preHandler: [requireAuth, requirePremiumWorkspace],
     schema: {
       body: calendarConnectRequestSchema,
@@ -74,6 +80,9 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.post('/google/disconnect', {
+    config: {
+      authRequired: true,
+    },
     preHandler: [requireAuth, requirePremiumWorkspace],
     schema: {
       response: {
@@ -86,6 +95,9 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
   ));
 
   app.post('/google/meeting-reminders', {
+    config: {
+      authRequired: true,
+    },
     preHandler: [requireAuth, requirePremiumWorkspace],
     schema: {
       body: calendarMeetingReminderRequestSchema,
@@ -100,6 +112,9 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
   ));
 
   app.post('/google/task-due-dates', {
+    config: {
+      authRequired: true,
+    },
     preHandler: [requireAuth, requirePremiumWorkspace],
     schema: {
       body: calendarTaskDueDateRequestSchema,
@@ -114,6 +129,9 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
   ));
 
   app.post('/google/follow-up-dates', {
+    config: {
+      authRequired: true,
+    },
     preHandler: [requireAuth, requirePremiumWorkspace],
     schema: {
       body: calendarFollowUpDateRequestSchema,

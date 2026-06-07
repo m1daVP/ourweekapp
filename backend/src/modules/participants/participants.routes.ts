@@ -18,6 +18,9 @@ const participantErrorResponses = {
 
 export const participantRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post('/sync', {
+    config: {
+      authRequired: true,
+    },
     preHandler: requireAuth(app),
     schema: {
       body: syncParticipantsRequestSchema,

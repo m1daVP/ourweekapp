@@ -20,6 +20,9 @@ const taskErrorResponses = {
 
 export const tasksRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/', {
+    config: {
+      authRequired: true,
+    },
     preHandler: requireAuth(app),
     schema: {
       response: {
@@ -35,6 +38,9 @@ export const tasksRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.post('/sync', {
+    config: {
+      authRequired: true,
+    },
     preHandler: requireAuth(app),
     schema: {
       body: syncTasksRequestSchema,

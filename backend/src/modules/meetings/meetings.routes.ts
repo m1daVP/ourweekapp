@@ -35,6 +35,9 @@ export const meetingsRoutes: FastifyPluginAsyncZod = async (app) => {
   const requireAuth = buildAuthPreHandler(app);
 
   app.get('/', {
+    config: {
+      authRequired: true,
+    },
     preHandler: requireAuth,
     schema: {
       response: {
@@ -49,6 +52,9 @@ export const meetingsRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.post('/sync', {
+    config: {
+      authRequired: true,
+    },
     preHandler: requireAuth,
     schema: {
       body: syncMeetingsRequestSchema,
@@ -64,6 +70,9 @@ export const meetingsRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.put('/:id/summary', {
+    config: {
+      authRequired: true,
+    },
     preHandler: requireAuth,
     schema: {
       params: meetingParamsSchema,

@@ -30,6 +30,9 @@ export const billingRoutes: FastifyPluginAsyncZod = async (app) => {
   const authPreHandler = requireAuth(app);
 
   app.get('/status', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       response: {
@@ -42,6 +45,9 @@ export const billingRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.post('/validate', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       body: validateSubscriptionRequestSchema,
@@ -55,6 +61,9 @@ export const billingRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.post('/restore', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       body: restoreSubscriptionRequestSchema,
@@ -68,6 +77,9 @@ export const billingRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.get('/manage', {
+    config: {
+      authRequired: true,
+    },
     preHandler: authPreHandler,
     schema: {
       response: {

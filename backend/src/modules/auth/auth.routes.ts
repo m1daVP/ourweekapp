@@ -30,8 +30,13 @@ const authErrorResponses = {
   500: errorResponseSchema,
 };
 
-const authRecoveryErrorResponses = {
+const authRateLimitedErrorResponses = {
   ...authErrorResponses,
+  429: errorResponseSchema,
+};
+
+const authRateLimitedRecoveryErrorResponses = {
+  ...authRateLimitedErrorResponses,
   503: errorResponseSchema,
 };
 
@@ -61,7 +66,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       body: signInRequestSchema,
       response: {
         200: authSessionResponseSchema,
-        ...authErrorResponses,
+        ...authRateLimitedErrorResponses,
       },
     },
   }, async (request) => {
@@ -81,6 +86,9 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.post('/sign-out', {
+    config: {
+      authRequired: true,
+    },
     schema: {
       body: signOutRequestSchema,
       response: {
@@ -99,6 +107,9 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.get('/me', {
+    config: {
+      authRequired: true,
+    },
     schema: {
       response: {
         200: authMeResponseSchema,
@@ -120,7 +131,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       body: passwordResetRequestSchema,
       response: {
         200: passwordResetRequestResponseSchema,
-        ...authErrorResponses,
+        ...authRateLimitedErrorResponses,
       },
     },
   }, async (request) => {
@@ -138,7 +149,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       body: passwordResetConfirmRequestSchema,
       response: {
         204: z.null(),
-        ...authRecoveryErrorResponses,
+        ...authRateLimitedRecoveryErrorResponses,
       },
     },
   }, async (request, reply) => {
