@@ -81,12 +81,27 @@ const envInput = z
   })
   .superRefine((value, context) => {
     const aiApiKey = value.AI_API_KEY ?? value.OPENAI_API_KEY;
+    const corsOrigins =
+      value.CORS_ALLOWED_ORIGINS.length > 0
+        ? value.CORS_ALLOWED_ORIGINS
+        : value.CORS_ORIGINS;
 
     if (value.AI_PROVIDER && !aiApiKey) {
       context.addIssue({
         code: 'custom',
         path: ['AI_API_KEY'],
         message: 'AI_API_KEY is required when AI_PROVIDER is configured',
+      });
+    }
+
+    if (
+      (value.NODE_ENV === 'production' || value.APP_ENV === 'production') &&
+      corsOrigins.length === 0
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['CORS_ALLOWED_ORIGINS'],
+        message: 'CORS_ALLOWED_ORIGINS must list trusted origins in production',
       });
     }
 
