@@ -51,6 +51,7 @@ export async function syncTasksApi(
   return apiRequest<SyncTasksResponseDto>('/tasks/sync', {
     method: 'POST',
     body: payload,
+    requiresAuth: true,
   });
 }
 
@@ -65,5 +66,7 @@ export async function listTasks(): Promise<SyncTasksResponseDto> {
     };
   }
 
-  return apiRequest<SyncTasksResponseDto>('/tasks');
+  return apiRequest<SyncTasksResponseDto>('/tasks', {
+    requiresAuth: true,
+  });
 }

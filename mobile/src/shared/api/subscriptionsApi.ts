@@ -17,6 +17,14 @@ export interface ValidateSubscriptionRequestDto {
   productId: string;
 }
 
+export interface RestoreSubscriptionRequestDto {
+  provider: Exclude<SubscriptionProviderDto, 'mock'>;
+}
+
+export interface ManageSubscriptionResponseDto {
+  url: string;
+}
+
 const freeFeatureKeys: FeatureKey[] = [
   'basicMeetings',
   'defaultTemplate',
@@ -39,7 +47,9 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatusDto> {
     return createMockStatus();
   }
 
-  return apiRequest<SubscriptionStatusDto>('/subscriptions/status');
+  return apiRequest<SubscriptionStatusDto>('/subscriptions/status', {
+    requiresAuth: true,
+  });
 }
 
 export async function validateSubscription(
@@ -52,5 +62,30 @@ export async function validateSubscription(
   return apiRequest<SubscriptionStatusDto>('/subscriptions/validate', {
     method: 'POST',
     body: payload,
+    requiresAuth: true,
+  });
+}
+
+export async function restoreSubscription(
+  payload: RestoreSubscriptionRequestDto
+): Promise<SubscriptionStatusDto> {
+  if (!isBackendApiConfigured()) {
+    return createMockStatus();
+  }
+
+  return apiRequest<SubscriptionStatusDto>('/subscriptions/restore', {
+    method: 'POST',
+    body: payload,
+    requiresAuth: true,
+  });
+}
+
+export async function getSubscriptionManagementUrl(): Promise<ManageSubscriptionResponseDto> {
+  if (!isBackendApiConfigured()) {
+    return { url: '' };
+  }
+
+  return apiRequest<ManageSubscriptionResponseDto>('/subscriptions/manage', {
+    requiresAuth: true,
   });
 }

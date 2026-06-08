@@ -39,6 +39,14 @@ function createDisconnectedStatus(): CalendarConnectionStatus {
   };
 }
 
+function getCalendarRedirectUrl() {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  return new URL('/settings/calendar-sync', window.location.origin).toString();
+}
+
 function createSkippedResult(
   skippedReason: CalendarSyncResult['skippedReason'],
   message: string
@@ -56,7 +64,11 @@ export async function connectCalendar(): Promise<CalendarConnectionStatus> {
   // TODO: Implement Google OAuth through a backend-supported or otherwise
   // securely recommended flow before enabling real calendar connections.
   // Do not store Google access or refresh tokens in frontend localStorage.
-  return (await startGoogleCalendarConnection()) ?? createSetupRequiredStatus();
+  return (
+    (await startGoogleCalendarConnection({
+      redirectUrl: getCalendarRedirectUrl(),
+    })) ?? createSetupRequiredStatus()
+  );
 }
 
 export async function disconnectCalendar(): Promise<CalendarConnectionStatus> {

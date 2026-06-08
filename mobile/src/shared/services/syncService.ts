@@ -134,6 +134,7 @@ export async function syncParticipants(): Promise<SyncResult> {
         participants: participantsStore.participants,
         clientUpdatedAt: nowIso(),
       } satisfies SyncParticipantsRequestDto,
+      requiresAuth: true,
     }
   );
 

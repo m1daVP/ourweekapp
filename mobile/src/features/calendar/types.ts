@@ -12,6 +12,7 @@ export interface CalendarConnectionStatus {
   connectedAccountEmail?: string;
   lastCheckedAt: string;
   message: string;
+  authorizationUrl?: string;
 }
 
 export interface CalendarSyncSettings {

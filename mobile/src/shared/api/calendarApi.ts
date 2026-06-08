@@ -7,21 +7,31 @@ import type {
 } from '@/features/calendar/types';
 import { apiRequest, isBackendApiConfigured } from './httpClient';
 
+export interface StartGoogleCalendarConnectionRequestDto {
+  redirectUrl: string;
+}
+
 export async function getGoogleCalendarConnectionStatus(): Promise<CalendarConnectionStatus | null> {
   if (!isBackendApiConfigured()) {
     return null;
   }
 
-  return apiRequest<CalendarConnectionStatus>('/calendar/google/status');
+  return apiRequest<CalendarConnectionStatus>('/calendar/google/status', {
+    requiresAuth: true,
+  });
 }
 
-export async function startGoogleCalendarConnection(): Promise<CalendarConnectionStatus | null> {
+export async function startGoogleCalendarConnection(
+  payload: StartGoogleCalendarConnectionRequestDto
+): Promise<CalendarConnectionStatus | null> {
   if (!isBackendApiConfigured()) {
     return null;
   }
 
   return apiRequest<CalendarConnectionStatus>('/calendar/google/connect', {
     method: 'POST',
+    body: payload,
+    requiresAuth: true,
   });
 }
 
@@ -32,6 +42,7 @@ export async function disconnectGoogleCalendar(): Promise<CalendarConnectionStat
 
   return apiRequest<CalendarConnectionStatus>('/calendar/google/disconnect', {
     method: 'POST',
+    requiresAuth: true,
   });
 }
 
@@ -45,6 +56,7 @@ export async function syncGoogleCalendarMeetingReminder(
   return apiRequest<CalendarSyncResult>('/calendar/google/meeting-reminders', {
     method: 'POST',
     body: payload,
+    requiresAuth: true,
   });
 }
 
@@ -58,6 +70,7 @@ export async function syncGoogleCalendarTaskDueDate(
   return apiRequest<CalendarSyncResult>('/calendar/google/task-due-dates', {
     method: 'POST',
     body: payload,
+    requiresAuth: true,
   });
 }
 
@@ -71,5 +84,6 @@ export async function syncGoogleCalendarFollowUpDate(
   return apiRequest<CalendarSyncResult>('/calendar/google/follow-up-dates', {
     method: 'POST',
     body: payload,
+    requiresAuth: true,
   });
 }

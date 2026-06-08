@@ -142,8 +142,7 @@ const localPlaceholderAiSummaryProvider: AiSummaryProvider = {
 const backendAiSummaryProvider: AiSummaryProvider = {
   async generateMeetingSummary(meeting) {
     const response = await generateAiMeetingSummary({
-      meeting,
-      promptContract: getAiSummaryPromptContract(),
+      meetingId: meeting.id,
       locale: i18n.global.locale.value,
     });
 

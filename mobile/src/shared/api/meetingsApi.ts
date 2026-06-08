@@ -49,7 +49,9 @@ export async function listMeetings(): Promise<ListMeetingsResponseDto> {
     };
   }
 
-  return apiRequest<ListMeetingsResponseDto>('/meetings');
+  return apiRequest<ListMeetingsResponseDto>('/meetings', {
+    requiresAuth: true,
+  });
 }
 
 export async function syncMeetingsApi(
@@ -68,6 +70,7 @@ export async function syncMeetingsApi(
   return apiRequest<SyncMeetingsResponseDto>('/meetings/sync', {
     method: 'POST',
     body: payload,
+    requiresAuth: true,
   });
 }
 
@@ -81,5 +84,6 @@ export async function saveMeetingSummary(
   return apiRequest<MeetingDto>(`/meetings/${payload.meetingId}/summary`, {
     method: 'PUT',
     body: { summary: payload.summary },
+    requiresAuth: true,
   });
 }

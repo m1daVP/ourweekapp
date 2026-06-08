@@ -1,6 +1,8 @@
 import { appConfig } from '@/shared/config/env';
 import { translate } from '@/features/localization/i18n';
 
+const API_VERSION_PREFIX = '/v1';
+
 export type ApiRequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface ApiRequestOptions {
@@ -8,6 +10,8 @@ export interface ApiRequestOptions {
   body?: unknown;
   headers?: Record<string, string>;
   authToken?: string;
+  requiresAuth?: boolean;
+  skipAuthRefresh?: boolean;
   signal?: AbortSignal;
 }
 
@@ -22,6 +26,14 @@ interface ApiClientErrorOptions {
   code?: string;
   details?: unknown;
 }
+
+interface ApiAuthHandlers {
+  getAccessToken: () => Promise<string | null> | string | null;
+  refreshSession?: () => Promise<string | null> | string | null;
+  onUnauthorized?: () => Promise<void> | void;
+}
+
+let authHandlers: ApiAuthHandlers | null = null;
 
 export class ApiClientError extends Error {
   status?: number;
@@ -41,6 +53,36 @@ export function isBackendApiConfigured() {
   return appConfig.isBackendApiEnabled;
 }
 
+export function setApiAuthHandlers(handlers: ApiAuthHandlers | null) {
+  authHandlers = handlers;
+}
+
+async function getRequestAuthToken(options: ApiRequestOptions) {
+  if (options.authToken) {
+    return options.authToken;
+  }
+
+  if (!options.requiresAuth) {
+    return null;
+  }
+
+  return (await authHandlers?.getAccessToken()) ?? null;
+}
+
+function createVersionedPath(path: string) {
+  const normalizedPath = `/${path.replace(/^\/+/, '')}`;
+
+  if (normalizedPath === API_VERSION_PREFIX) {
+    return normalizedPath;
+  }
+
+  if (normalizedPath.startsWith(`${API_VERSION_PREFIX}/`)) {
+    return normalizedPath;
+  }
+
+  return `${API_VERSION_PREFIX}${normalizedPath}`;
+}
+
 function createUrl(path: string) {
   if (!appConfig.apiBaseUrl) {
     throw new ApiClientError(translate('api.backendNotConfigured'), {
@@ -48,7 +90,7 @@ function createUrl(path: string) {
     });
   }
 
-  return `${appConfig.apiBaseUrl}/${path.replace(/^\/+/, '')}`;
+  return `${appConfig.apiBaseUrl}${createVersionedPath(path)}`;
 }
 
 async function readResponseBody(response: Response) {
@@ -61,16 +103,10 @@ async function readResponseBody(response: Response) {
   return (await response.json()) as unknown;
 }
 
-export async function apiRequest<TResponse>(
+async function sendApiRequest<TResponse>(
   path: string,
   options: ApiRequestOptions = {}
-): Promise<TResponse> {
-  if (!isBackendApiConfigured()) {
-    throw new ApiClientError(translate('api.backendNotConfigured'), {
-      code: 'backend_unavailable',
-    });
-  }
-
+) {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...options.headers,
@@ -82,8 +118,10 @@ export async function apiRequest<TResponse>(
     signal: options.signal,
   };
 
-  if (options.authToken) {
-    headers.Authorization = `Bearer ${options.authToken}`;
+  const authToken = await getRequestAuthToken(options);
+
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
   }
 
   if (options.body !== undefined) {
@@ -112,4 +150,43 @@ export async function apiRequest<TResponse>(
   }
 
   return responseBody as TResponse;
+}
+
+export async function apiRequest<TResponse>(
+  path: string,
+  options: ApiRequestOptions = {}
+): Promise<TResponse> {
+  if (!isBackendApiConfigured()) {
+    throw new ApiClientError(translate('api.backendNotConfigured'), {
+      code: 'backend_unavailable',
+    });
+  }
+
+  try {
+    return await sendApiRequest<TResponse>(path, options);
+  } catch (error) {
+    const shouldRefresh =
+      options.requiresAuth &&
+      !options.skipAuthRefresh &&
+      error instanceof ApiClientError &&
+      error.status === 401 &&
+      authHandlers?.refreshSession;
+
+    if (!shouldRefresh) {
+      throw error;
+    }
+
+    const refreshedToken = await authHandlers.refreshSession?.();
+
+    if (!refreshedToken) {
+      await authHandlers.onUnauthorized?.();
+      throw error;
+    }
+
+    return sendApiRequest<TResponse>(path, {
+      ...options,
+      authToken: refreshedToken,
+      skipAuthRefresh: true,
+    });
+  }
 }
