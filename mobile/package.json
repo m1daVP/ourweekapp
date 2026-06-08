@@ -3,6 +3,9 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vue-tsc --noEmit && vite build",
@@ -16,33 +19,33 @@
     "cap:open:android": "cap open android"
   },
   "dependencies": {
-    "@aparajita/capacitor-secure-storage": "^8.0.0",
-    "@capacitor/android": "8.3.4",
+    "@aparajita/capacitor-secure-storage": "8.0.0",
+    "@capacitor/android": "8.4.0",
     "@capacitor/app": "8.1.0",
-    "@capacitor/core": "8.3.4",
+    "@capacitor/core": "8.4.0",
     "@capacitor/local-notifications": "8.2.0",
-    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/preferences": "8.0.1",
     "@capacitor/splash-screen": "8.0.1",
     "pinia": "3.0.4",
-    "vue": "3.5.34",
+    "vue": "3.5.35",
     "vue-i18n": "11.4.4",
-    "vue-router": "5.0.7"
+    "vue-router": "5.1.0"
   },
   "devDependencies": {
     "@capacitor/assets": "3.0.5",
-    "@capacitor/cli": "8.3.4",
+    "@capacitor/cli": "8.4.0",
     "@eslint/js": "10.0.1",
     "@types/node": "25.9.1",
     "@vitejs/plugin-vue": "6.0.7",
     "@vue/eslint-config-prettier": "10.2.0",
-    "@vue/eslint-config-typescript": "14.7.0",
+    "@vue/eslint-config-typescript": "14.8.0",
     "@vue/tsconfig": "0.9.1",
-    "eslint": "10.4.0",
-    "eslint-plugin-vue": "10.9.1",
+    "eslint": "10.4.1",
+    "eslint-plugin-vue": "10.9.2",
     "prettier": "3.8.3",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.59.4",
-    "vite": "8.0.13",
-    "vue-tsc": "3.3.1"
+    "typescript-eslint": "8.60.1",
+    "vite": "8.0.16",
+    "vue-tsc": "3.3.3"
   }
 }
