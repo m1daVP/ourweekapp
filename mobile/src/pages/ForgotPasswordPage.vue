@@ -1,22 +1,35 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { requestPasswordReset } from '@/shared/api/authApi';
 
 const { t } = useI18n();
 const email = ref('');
 const statusMessage = ref('');
 const formError = ref('');
+const isSubmitting = ref(false);
 
-function handleSubmit() {
+async function handleSubmit() {
   statusMessage.value = '';
   formError.value = '';
+  const normalizedEmail = email.value.trim().toLowerCase();
 
-  if (!email.value.trim()) {
+  if (!normalizedEmail) {
     formError.value = t('auth.addAccountEmail');
     return;
   }
 
-  statusMessage.value = t('auth.resetPlaceholder');
+  isSubmitting.value = true;
+
+  try {
+    await requestPasswordReset({ email: normalizedEmail });
+    statusMessage.value = t('auth.resetRequested');
+  } catch (error) {
+    formError.value =
+      error instanceof Error ? error.message : t('auth.resetFailed');
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 </script>
 
@@ -45,8 +58,8 @@ function handleSubmit() {
       <p v-if="statusMessage" class="meeting-status" role="status">
         {{ statusMessage }}
       </p>
-      <button class="meeting-primary" type="submit">
-        {{ t('auth.continue') }}
+      <button class="meeting-primary" type="submit" :disabled="isSubmitting">
+        {{ isSubmitting ? t('auth.sendingReset') : t('auth.continue') }}
       </button>
     </form>
 

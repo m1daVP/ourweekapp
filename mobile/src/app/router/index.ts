@@ -3,6 +3,7 @@ import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
+import { appConfig } from '@/shared/config/env';
 import AccountPage from '@/pages/AccountPage.vue';
 import CalendarSyncPage from '@/pages/CalendarSyncPage.vue';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
@@ -151,7 +152,20 @@ router.beforeEach(async (to) => {
   const workspaceStore = useWorkspaceStore();
 
   await authStore.hydrateSecureTokens();
+
+  if (authStore.authStatus === 'authenticated') {
+    await authStore.verifyCurrentUser();
+  }
+
   authStore.syncAccessState();
+
+  if (
+    appConfig.isBackendApiEnabled &&
+    authStore.isLocalOnly &&
+    !to.meta.isPublicEntry
+  ) {
+    return { name: 'welcome' };
+  }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return {

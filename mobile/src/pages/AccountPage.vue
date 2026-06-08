@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import PremiumBadge from '@/shared/components/PremiumBadge.vue';
-import { appConfig } from '@/shared/config/env';
 
 const authStore = useAuthStore();
 const subscriptionStore = useSubscriptionStore();
@@ -14,7 +13,6 @@ const statusMessage = ref('');
 const formError = ref('');
 
 const user = computed(() => authStore.user);
-const isMockAuth = computed(() => appConfig.apiMode === 'mock');
 const currentPlanLabel = computed(() =>
   subscriptionStore.currentPlan === 'premium'
     ? t('premium.badge')
@@ -151,8 +149,7 @@ function saveProfile() {
 
     <section class="content-panel settings-panel">
       <h2>{{ t('account.session') }}</h2>
-      <p v-if="isMockAuth">{{ t('account.mockSession') }}</p>
-      <p v-else>{{ t('account.apiSession') }}</p>
+      <p>{{ t('account.apiSession') }}</p>
       <RouterLink class="secondary-button link-button" :to="{ name: 'logout' }">
         {{ t('account.logOut') }}
       </RouterLink>

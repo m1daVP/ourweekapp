@@ -3,7 +3,6 @@ import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
-import { appConfig } from '@/shared/config/env';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -16,7 +15,6 @@ const form = reactive({
 });
 
 const isSubmitting = computed(() => authStore.authStatus === 'loading');
-const isMockAuth = computed(() => appConfig.apiMode === 'mock');
 
 async function handleSubmit() {
   formError.value = '';
@@ -89,9 +87,6 @@ async function handleSubmit() {
         />
       </label>
 
-      <p v-if="isMockAuth" class="auth-note">
-        {{ t('auth.mockSignUp') }}
-      </p>
       <p v-if="formError" class="meeting-error" role="alert">
         {{ formError }}
       </p>

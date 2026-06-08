@@ -81,7 +81,7 @@ export const messages = {
       kicker: 'Account',
       title: 'Account settings',
       intro:
-        'Manage the frontend account model used for sync, premium access, and future family workspace features.',
+        'Manage the account used for sync, premium access, and future family workspace features.',
       signedInAs: 'Signed in as',
       plan: 'Plan',
       created: 'Created',
@@ -102,7 +102,7 @@ export const messages = {
       mockSession:
         'Mock auth is active. The access token is a placeholder and no real password is stored locally.',
       apiSession:
-        'Signed-in requests should use the stored access token through the API layer.',
+        'Signed-in requests use the stored secure session through the API layer.',
       logOut: 'Log out',
       addDisplayName: 'Add a display name.',
       updateFailed: 'Could not update the account.',
@@ -129,11 +129,13 @@ export const messages = {
       creating: 'Creating...',
       alreadyHaveAccount: 'Already have an account?',
       passwordHelpKicker: 'Password help',
-      resetPasswordTitle: 'Reset password placeholder.',
+      resetPasswordTitle: 'Скидання пароля',
       resetPasswordIntro:
-        'Backend email is not connected yet. This screen keeps the account flow ready without pretending a reset was sent.',
-      resetPlaceholder:
-        'Password reset is a placeholder until backend email is connected.',
+        'Введіть електронну пошту вашого акаунта. Якщо вона відповідає акаунту, інструкції для скидання буде надіслано.',
+      resetRequested:
+        'Якщо ця електронна пошта відповідає акаунту, інструкції для скидання буде надіслано.',
+      resetFailed: 'Не вдалося запросити скидання пароля зараз.',
+      sendingReset: 'Надсилання...',
       remembered: 'Remembered it?',
       addAccountEmail: 'Add the email for your account.',
       addEmail: 'Add an email address.',
@@ -141,6 +143,8 @@ export const messages = {
       passwordLength: 'Use at least 8 characters for the password.',
       signInFailed: 'Could not sign in.',
       signUpFailed: 'Could not create the account.',
+      accountRequired:
+        'Створіть акаунт або увійдіть, щоб користуватися цією збіркою.',
       continue: 'Continue',
       emailPlaceholder: "you{'@'}example.com",
     },
@@ -1261,11 +1265,14 @@ export const messages = {
       creating: 'Створення...',
       alreadyHaveAccount: 'Вже маєте акаунт?',
       passwordHelpKicker: 'Допомога з паролем',
-      resetPasswordTitle: 'Заглушка скидання пароля.',
+      resetPasswordTitle: 'Restablecer contraseña',
       resetPasswordIntro:
-        'Backend-пошта ще не підключена. Цей екран готує потік акаунта, не вдаючи, що лист скидання надіслано.',
-      resetPlaceholder:
-        'Скидання пароля є заглушкою, доки не буде підключена backend-пошта.',
+        'Ingresa el correo de tu cuenta. Si coincide con una cuenta, se enviarán instrucciones para restablecerla.',
+      resetRequested:
+        'Si ese correo coincide con una cuenta, se enviarán instrucciones para restablecerla.',
+      resetFailed:
+        'No se pudo solicitar el restablecimiento de contraseña ahora.',
+      sendingReset: 'Enviando...',
       remembered: 'Згадали?',
       addAccountEmail: 'Додайте електронну пошту вашого акаунта.',
       addEmail: 'Додайте адресу електронної пошти.',
@@ -1273,6 +1280,7 @@ export const messages = {
       passwordLength: 'Використайте щонайменше 8 символів для пароля.',
       signInFailed: 'Не вдалося увійти.',
       signUpFailed: 'Не вдалося створити акаунт.',
+      accountRequired: 'Crea una cuenta o inicia sesión para usar esta build.',
       continue: 'Продовжити',
       emailPlaceholder: "you{'@'}example.com",
     },
@@ -2396,11 +2404,13 @@ export const messages = {
       creating: 'Creando...',
       alreadyHaveAccount: '¿Ya tienes una cuenta?',
       passwordHelpKicker: 'Ayuda con la contraseña',
-      resetPasswordTitle: 'Marcador de posición para restablecer contraseña.',
+      resetPasswordTitle: 'Reset password',
       resetPasswordIntro:
-        'El correo del backend aún no está conectado. Esta pantalla mantiene listo el flujo de cuenta sin fingir que se envió un restablecimiento.',
-      resetPlaceholder:
-        'El restablecimiento de contraseña es un marcador de posición hasta que se conecte el correo del backend.',
+        'Enter the email for your account. If it matches an account, reset instructions will be sent.',
+      resetRequested:
+        'If that email matches an account, reset instructions will be sent.',
+      resetFailed: 'Could not request a password reset right now.',
+      sendingReset: 'Sending...',
       remembered: '¿La recordaste?',
       addAccountEmail: 'Agrega el correo electrónico de tu cuenta.',
       addEmail: 'Agrega una dirección de correo electrónico.',
@@ -2408,6 +2418,7 @@ export const messages = {
       passwordLength: 'Usa al menos 8 caracteres para la contraseña.',
       signInFailed: 'No se pudo iniciar sesión.',
       signUpFailed: 'No se pudo crear la cuenta.',
+      accountRequired: 'Create an account or sign in to use this build.',
       continue: 'Continuar',
       emailPlaceholder: "tu{'@'}ejemplo.com",
     },

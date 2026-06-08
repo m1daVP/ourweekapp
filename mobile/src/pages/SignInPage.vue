@@ -3,7 +3,6 @@ import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
-import { appConfig } from '@/shared/config/env';
 
 const route = useRoute();
 const router = useRouter();
@@ -16,7 +15,6 @@ const form = reactive({
 });
 
 const isSubmitting = computed(() => authStore.authStatus === 'loading');
-const isMockAuth = computed(() => appConfig.apiMode === 'mock');
 
 function getRedirectPath() {
   const redirect = route.query.redirect;
@@ -86,9 +84,6 @@ async function handleSubmit() {
         {{ t('auth.forgotPassword') }}
       </RouterLink>
 
-      <p v-if="isMockAuth" class="auth-note">
-        {{ t('auth.mockSignIn') }}
-      </p>
       <p v-if="formError" class="meeting-error" role="alert">
         {{ formError }}
       </p>

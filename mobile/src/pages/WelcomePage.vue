@@ -10,10 +10,14 @@ const authStore = useAuthStore();
 const { t } = useI18n();
 
 const isMockAuth = computed(() => appConfig.apiMode === 'mock');
+const canContinueLocalOnly = computed(() => !appConfig.isBackendApiEnabled);
 
 async function continueLocalOnly() {
-  await authStore.continueLocalOnly();
-  void router.push({ name: 'home' });
+  const didContinue = await authStore.continueLocalOnly();
+
+  if (didContinue) {
+    void router.push({ name: 'home' });
+  }
 }
 </script>
 
@@ -55,7 +59,12 @@ async function continueLocalOnly() {
       >
         {{ t('auth.signIn') }}
       </RouterLink>
-      <button type="button" class="text-button" @click="continueLocalOnly">
+      <button
+        v-if="canContinueLocalOnly"
+        type="button"
+        class="text-button"
+        @click="continueLocalOnly"
+      >
         {{ t('welcome.continueLocal') }}
       </button>
     </div>
