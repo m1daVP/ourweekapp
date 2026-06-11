@@ -15,6 +15,7 @@ This document outlines all code, configuration, and asset changes required to re
 ## Discovery Summary
 
 ### Configuration Files
+
 - `capacitor.config.ts` — appId and appName
 - `package.json` — npm package name
 - `index.html` — page title
@@ -23,6 +24,7 @@ This document outlines all code, configuration, and asset changes required to re
 - `android/app/src/main/res/values/strings.xml` — package_name and custom_url_scheme
 
 ### Source Code (Hardcoded Strings)
+
 - `src/shared/services/storageService.ts` — storage key prefixes (8 storage keys with "weekly-us")
 - `src/shared/services/authTokenStorageService.ts` — AUTH_TOKEN_STORAGE_PREFIX
 - `src/features/reminders/reminderService.ts` — ANDROID_CHANNEL_ID
@@ -30,18 +32,22 @@ This document outlines all code, configuration, and asset changes required to re
 - `src/app/stores/auth.ts` — i18n reference for weeklyUsUser
 
 ### Localization/i18n (User-Facing)
+
 - `src/features/localization/messages.ts` — app name, home title, welcome text, user display name
 
 ### Documentation
+
 - `AGENTS.md` — app identity description
 - `README.md` — project identity, setup instructions
 - `DESIGN.md` — design system name
 - `docs/android-mvp-release-readiness.md` — release notes and app references
 
 ### Android Java
+
 - `android/app/src/main/java/com/weeklyus/app/MainActivity.java` — package declaration
 
 ### Assets
+
 - App icons and launcher icons (in `android/app/src/main/res/mipmap-*`)
 - Splash screen assets
 - Landing page content (if applicable)
@@ -55,6 +61,7 @@ This document outlines all code, configuration, and asset changes required to re
 Update app-level config that affects Capacitor, Android, and bundling.
 
 **Files to modify:**
+
 1. `capacitor.config.ts` (lines 6–7)
    - Change: `appId: 'com.weeklyus.app'` → `appId: 'com.ourweek.app'`
    - Change: `appName: 'Weekly Us'` → `appName: 'OurWeek'`
@@ -80,6 +87,7 @@ Update app-level config that affects Capacitor, Android, and bundling.
 Update all storage keys from `weekly-us:*` to `ourweek:*`.
 
 **Files to modify:**
+
 1. `src/shared/services/storageService.ts` (lines 7–20)
    - Update all storage key constants:
      - `'weekly-us:app-data'` → `'ourweek:app-data'`
@@ -114,6 +122,7 @@ Update all storage keys from `weekly-us:*` to `ourweek:*`.
 Update localized strings that users see.
 
 **File to modify:**
+
 - `src/features/localization/messages.ts`
   - Update app name in meta object
   - Update home title from "Weekly Us" to "OurWeek"
@@ -128,6 +137,7 @@ Update localized strings that users see.
 Update project docs to reflect new branding.
 
 **Files to modify:**
+
 1. `AGENTS.md`
    - Update project identity section (line 3 and following lines)
    - Update all product references from "Weekly Us" to "OurWeek"
@@ -154,6 +164,7 @@ Update project docs to reflect new branding.
 Move Java package to match new app ID.
 
 **Action:**
+
 1. Move folder: `android/app/src/main/java/com/weeklyus/` → `android/app/src/main/java/com/ourweek/`
    - This moves MainActivity.java and any other Java files into the new package structure
    - Verify gradle build recognizes new structure after Phase 1 completes
@@ -165,6 +176,7 @@ Move Java package to match new app ID.
 Update app branding assets (separate task, requires design work).
 
 **Items to update:**
+
 1. App launcher icons (all densities):
    - `android/app/src/main/res/mipmap-hdpi/ic_launcher.png` and variants
    - `android/app/src/main/res/mipmap-mdpi/ic_launcher.png` and variants
@@ -195,24 +207,30 @@ Update app branding assets (separate task, requires design work).
 After implementation:
 
 ### 1. Build Verification
+
 ```bash
 npm run build
 npm run check
 ```
+
 Both commands must complete without errors.
 
 ### 2. Android Build
+
 ```bash
 npm run cap:sync
 npm run cap:open:android
 ```
+
 Verify gradle recognizes new package structure without build errors.
 
 ### 3. Visual Verification (Browser)
+
 - Check page title in dev tools (should show "OurWeek")
 - Check localStorage keys in browser dev tools (should show `ourweek:*` prefix, not `weekly-us:*`)
 
 ### 4. Android Runtime Testing
+
 - Test on emulator or real device
 - Verify app ID is correct in APK (`com.ourweek.app`)
 - Confirm storage keys are fresh (no legacy data loaded)
@@ -222,13 +240,13 @@ Verify gradle recognizes new package structure without build errors.
 
 ## Decision Log
 
-| Decision | Rationale |
-|----------|-----------|
-| Android Package: `com.weeklyus.app` → `com.ourweek.app` | Standard naming convention for app IDs |
-| Storage Strategy: Fresh start | Simpler than migration logic for MVP-only test data |
-| User-Facing Terms: "Weekly Us" → "OurWeek" everywhere | Consistent branding throughout UI |
-| Assets: Separate task | Requires design/artwork creation, not code |
-| Phase 5 Dependency: After Phase 1 | Must verify gradle recognizes new package before running android commands |
+| Decision                                                | Rationale                                                                 |
+| ------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Android Package: `com.weeklyus.app` → `com.ourweek.app` | Standard naming convention for app IDs                                    |
+| Storage Strategy: Fresh start                           | Simpler than migration logic for MVP-only test data                       |
+| User-Facing Terms: "Weekly Us" → "OurWeek" everywhere   | Consistent branding throughout UI                                         |
+| Assets: Separate task                                   | Requires design/artwork creation, not code                                |
+| Phase 5 Dependency: After Phase 1                       | Must verify gradle recognizes new package before running android commands |
 
 ---
 
@@ -236,13 +254,13 @@ Verify gradle recognizes new package structure without build errors.
 
 **Total: 16 files + 1 folder restructure**
 
-| Category | Files | Count |
-|----------|-------|-------|
-| Configuration | capacitor.config.ts, package.json, index.html, android/app/build.gradle, android/app/src/main/res/values/strings.xml | 5 |
-| Storage Keys | src/shared/services/storageService.ts, authTokenStorageService.ts, reminderService.ts, exportService.ts, MainActivity.java | 5 |
-| Localization | src/features/localization/messages.ts | 1 |
-| Documentation | AGENTS.md, README.md, DESIGN.md, docs/android-mvp-release-readiness.md | 4 |
-| Folder Restructure | android/app/src/main/java/com/weeklyus/ → android/app/src/main/java/com/ourweek/ | 1 |
+| Category           | Files                                                                                                                      | Count |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ----- |
+| Configuration      | capacitor.config.ts, package.json, index.html, android/app/build.gradle, android/app/src/main/res/values/strings.xml       | 5     |
+| Storage Keys       | src/shared/services/storageService.ts, authTokenStorageService.ts, reminderService.ts, exportService.ts, MainActivity.java | 5     |
+| Localization       | src/features/localization/messages.ts                                                                                      | 1     |
+| Documentation      | AGENTS.md, README.md, DESIGN.md, docs/android-mvp-release-readiness.md                                                     | 4     |
+| Folder Restructure | android/app/src/main/java/com/weeklyus/ → android/app/src/main/java/com/ourweek/                                           | 1     |
 
 ---
 

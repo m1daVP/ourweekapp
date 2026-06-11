@@ -3,8 +3,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.weeklyus.app',
-  appName: 'Weekly Us',
+  appId: 'com.ourweek.app',
+  appName: 'OurWeek',
   webDir: 'dist',
   plugins: {
     SplashScreen: {

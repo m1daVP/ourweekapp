@@ -3,7 +3,7 @@ import {
   SecureStorage,
 } from '@aparajita/capacitor-secure-storage';
 
-const AUTH_TOKEN_STORAGE_PREFIX = 'weekly-us:auth:';
+const AUTH_TOKEN_STORAGE_PREFIX = 'ourweek:auth:';
 const ACCESS_TOKEN_KEY = 'access-token';
 const REFRESH_TOKEN_KEY = 'refresh-token';
 

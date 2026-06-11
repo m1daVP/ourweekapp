@@ -18,7 +18,7 @@ export interface ReminderScheduleResult {
   reason?: 'disabled' | 'unavailable' | 'permission-denied';
 }
 
-const ANDROID_CHANNEL_ID = 'weekly-us-reminders';
+const ANDROID_CHANNEL_ID = 'ourweek-reminders';
 const WEEKLY_MEETING_NOTIFICATION_ID = 840_100;
 const UNFINISHED_TASKS_NOTIFICATION_ID = 840_101;
 const REMINDER_NOTIFICATION_IDS = [

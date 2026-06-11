@@ -1,14 +1,14 @@
 export const messages = {
   en: {
     app: {
-      name: 'Weekly Us',
+      name: 'OurWeek',
       navigationLabel: 'Primary navigation',
       openSettings: 'Open settings',
       householdMembers: 'Household members',
       storageAttention: 'Some saved data needs attention',
       dismiss: 'Dismiss',
       routeTitles: {
-        home: 'Weekly Us',
+        home: 'OurWeek',
         meeting: 'Weekly Ritual',
         meetingTemplates: 'Choose a Template',
         tasks: 'Household Tasks',
@@ -69,7 +69,7 @@ export const messages = {
       manageSubscription: 'Manage subscription',
       goBack: 'Go back',
       localUser: 'Local user',
-      weeklyUsUser: 'Weekly Us user',
+      weeklyUsUser: 'OurWeek user',
     },
     localization: {
       title: 'Language',
@@ -118,7 +118,7 @@ export const messages = {
         'Mock auth is active. Any email and password will create a temporary frontend session.',
       signingIn: 'Signing in...',
       signIn: 'Sign in',
-      newHere: 'New to Weekly Us?',
+      newHere: 'New to OurWeek?',
       createAccount: 'Create account',
       createAccountIntro:
         'Set up a calm shared place for weekly check-ins, agreements, and household follow-up.',
@@ -169,7 +169,7 @@ export const messages = {
     },
     logout: {
       kicker: 'Log out',
-      title: 'Log out of Weekly Us?',
+      title: 'Log out of OurWeek?',
       accountFallback: 'this account',
       intro:
         'You will leave {email} on this device. Local meeting data already saved on this phone is not deleted.',
@@ -185,7 +185,7 @@ export const messages = {
       heroText:
         'Take a moment to align on the week ahead, celebrate wins, and connect.',
       startMeeting: 'Start Meeting',
-      shortcutsLabel: 'Weekly Us shortcuts',
+      shortcutsLabel: 'OurWeek shortcuts',
       tasksToReview: '{count} tasks to review',
       fromCheckIns: 'From weekly check-ins',
       meetingsSaved: '{count} meetings saved',
@@ -210,7 +210,7 @@ export const messages = {
       noDrafts: 'No meeting in progress.',
       unlockFullHistory: 'Unlock full history',
       unlockFullHistoryMessage:
-        "Looking back helps you see how far you've come together. Upgrade to Weekly Us Premium to view all past check-ins.",
+        "Looking back helps you see how far you've come together. Upgrade to OurWeek Premium to view all past check-ins.",
       upgradePremium: 'Upgrade Premium',
       privateNotes: 'Private notes',
       privateNotesText:
@@ -350,7 +350,7 @@ export const messages = {
         'Google OAuth and token handling should be backend-supported or use a secure recommended flow before real sync is enabled.',
       premiumTitle: 'Google Calendar sync is premium',
       premiumMessage:
-        'Upgrade to prepare Weekly Us meetings, task due dates, and follow-ups for Google Calendar.',
+        'Upgrade to prepare OurWeek meetings, task due dates, and follow-ups for Google Calendar.',
       connectionTitle: 'Google Calendar connection',
       checkingConnection: 'Checking Google Calendar connection.',
       notConnected: 'Google Calendar is not connected.',
@@ -360,7 +360,7 @@ export const messages = {
       noTokens: 'No Google tokens are stored in this mobile app.',
       optionsTitle: 'Sync options',
       optionsText:
-        'Choose what Weekly Us should sync once Google Calendar is ready.',
+        'Choose what OurWeek should sync once Google Calendar is ready.',
       options: {
         weeklyMeeting: {
           label: 'Add weekly meeting reminder to calendar',
@@ -391,12 +391,12 @@ export const messages = {
     },
     upgrade: {
       kicker: 'Premium',
-      title: 'Upgrade Weekly Us',
+      title: 'Upgrade OurWeek',
       intro:
         'Premium is for households that want a longer memory, gentle follow-up, and clean summaries after each weekly check-in.',
       heroTitle: 'Keep the weekly ritual easier to revisit',
       heroText:
-        'Unlock practical additions without changing Weekly Us into a task tracker or a budgeting app.',
+        'Unlock practical additions without changing OurWeek into a task tracker or a budgeting app.',
       placeholdersTitle: 'Choose a Premium plan',
       placeholdersText:
         'Premium access is checked through your account and app store subscription.',
@@ -449,7 +449,7 @@ export const messages = {
           name: 'Yearly',
           priceLabel: 'Price pending',
           description:
-            'A yearly Premium option for households using Weekly Us often.',
+            'A yearly Premium option for households using OurWeek often.',
         },
       },
     },
@@ -461,7 +461,7 @@ export const messages = {
       account: 'Account',
       signedInAs: 'Signed in as {email}.',
       signedInFallback: 'your account',
-      localOnly: 'Using Weekly Us on this device only.',
+      localOnly: 'Using OurWeek on this device only.',
       noAccount: 'No account connected yet.',
       accountSettings: 'Account settings',
       accountOptions: 'Account options',
@@ -477,7 +477,7 @@ export const messages = {
       reminderPremiumMessage:
         'Upgrade to schedule gentle local reminders for weekly meetings and unfinished household follow-ups.',
       reminderIntro:
-        'Weekly Us can use local device notifications for your meeting and unfinished follow-ups. No push notifications or account setup are used.',
+        'OurWeek can use local device notifications for your meeting and unfinished follow-ups. No push notifications or account setup are used.',
       enableReminders: 'Enable reminders',
       weeklyMeetingReminder: 'Weekly meeting reminder',
       unfinishedTaskReminder: 'Unfinished task reminder',
@@ -572,12 +572,12 @@ export const messages = {
       backToSettings: 'Back to settings',
       privacy: {
         kicker: 'Privacy Policy',
-        title: 'Weekly Us privacy',
+        title: 'OurWeek privacy',
         intro:
           'Placeholder for internal testing. Replace this with a reviewed policy before any public Google Play release.',
         dataTitle: 'Current MVP data model',
         dataText:
-          'Weekly Us stores meeting notes, tasks, agreements, participants, private notes, settings, and mock Premium state locally on this device. No backend sync is connected in the current MVP.',
+          'OurWeek stores meeting notes, tasks, agreements, participants, private notes, settings, and mock Premium state locally on this device. No backend sync is connected in the current MVP.',
         privateNotesTitle: 'Private notes',
         privateNotesText:
           'Private notes are stored on this device in the current MVP. They are not included in meeting exports by default.',
@@ -589,7 +589,7 @@ export const messages = {
       },
       terms: {
         kicker: 'Terms',
-        title: 'Weekly Us terms',
+        title: 'OurWeek terms',
         intro:
           'Placeholder for internal testing. Replace this with reviewed terms before any public Google Play release.',
         testingTitle: 'Internal testing only',
@@ -597,7 +597,7 @@ export const messages = {
           'This build is prepared for internal testing. It is not ready for public distribution, paid subscriptions, backend sync, or production support.',
         adviceTitle: 'Not professional advice',
         adviceText:
-          'Weekly Us is a practical household check-in tool. It is not therapy, legal advice, financial advice, or emergency support.',
+          'OurWeek is a practical household check-in tool. It is not therapy, legal advice, financial advice, or emergency support.',
         localDataTitle: 'Local data responsibility',
         localDataText:
           'Data is stored locally on this device in the current MVP. Users should review important agreements before relying on them and understand that uninstalling the app or clearing app storage may remove local data.',
@@ -966,7 +966,7 @@ export const messages = {
       },
       defaultTemplate: {
         label: 'Default meeting template',
-        description: 'Use the standard Weekly Us meeting agenda.',
+        description: 'Use the standard OurWeek meeting agenda.',
       },
       tasksAndAgreements: {
         label: 'Tasks and agreements',
@@ -1016,7 +1016,7 @@ export const messages = {
       googleCalendarSync: {
         label: 'Google Calendar sync',
         description: 'Sync meetings and follow-ups with Google Calendar.',
-        lockedReason: 'Upgrade to connect Weekly Us with Google Calendar.',
+        lockedReason: 'Upgrade to connect OurWeek with Google Calendar.',
       },
       export: {
         label: 'Export',
@@ -1031,8 +1031,8 @@ export const messages = {
       },
     },
     reminders: {
-      title: 'Weekly Us',
-      channelName: 'Weekly Us reminders',
+      title: 'OurWeek',
+      channelName: 'OurWeek reminders',
       channelDescription: 'Gentle reminders for meetings and unfinished items.',
       weeklyMeetingBody: 'A gentle reminder for your weekly meeting.',
       unfinishedBoth:
@@ -1042,7 +1042,7 @@ export const messages = {
         'A gentle reminder to review unfinished agreements.',
     },
     export: {
-      meetingTitle: 'Weekly Us meeting',
+      meetingTitle: 'OurWeek meeting',
       date: 'Date',
       status: 'Status',
       finished: 'finished',
@@ -1104,25 +1104,25 @@ export const messages = {
     },
     storage: {
       blocked:
-        'Weekly Us cannot access local device storage. You can keep using this session, but changes may not persist.',
+        'OurWeek cannot access local device storage. You can keep using this session, but changes may not persist.',
       parseFailed:
         'Some saved {label} data could not be read. The app kept the original local copy for recovery and started that part with safe defaults.',
       accessFailed:
         'Some saved {label} data could not be accessed. The app started that part with safe defaults.',
       newerVersion:
-        'Saved data was created by a newer version of Weekly Us. The app kept a backup and started with safe local defaults.',
+        'Saved data was created by a newer version of OurWeek. The app kept a backup and started with safe local defaults.',
       missingMigration:
         'Saved data needs a migration this app version does not know yet. The app kept a backup and started with safe local defaults.',
       saveFailed:
-        'Weekly Us could not save local changes on this device. Storage may be full or blocked. Your current session can continue, but changes may not persist.',
+        'OurWeek could not save local changes on this device. Storage may be full or blocked. Your current session can continue, but changes may not persist.',
       appDataAccessFailed:
-        'Saved Weekly Us data could not be accessed. The app started with safe defaults so you can keep using it.',
+        'Saved OurWeek data could not be accessed. The app started with safe defaults so you can keep using it.',
       invalidData:
-        'Saved Weekly Us data did not match the expected format. A local backup was kept, and the app started with safe defaults so you can keep using it.',
+        'Saved OurWeek data did not match the expected format. A local backup was kept, and the app started with safe defaults so you can keep using it.',
       corruptData:
-        'Saved Weekly Us data could not be read. A local backup was kept, and the app started with safe defaults so you can keep using it.',
+        'Saved OurWeek data could not be read. A local backup was kept, and the app started with safe defaults so you can keep using it.',
       backupFailed:
-        'Weekly Us could not create a local data backup because device storage may be full or blocked.',
+        'OurWeek could not create a local data backup because device storage may be full or blocked.',
     },
     notifications: {
       unavailable: 'Notifications are not available in this environment.',
@@ -1145,14 +1145,14 @@ export const messages = {
   },
   uk: {
     app: {
-      name: 'Weekly Us',
+      name: 'OurWeek',
       navigationLabel: 'Основна навігація',
       openSettings: 'Відкрити налаштування',
       householdMembers: 'Учасники домогосподарства',
       storageAttention: 'Деякі збережені дані потребують уваги',
       dismiss: 'Закрити',
       routeTitles: {
-        home: 'Weekly Us',
+        home: 'OurWeek',
         meeting: 'Щотижневий ритуал',
         meetingTemplates: 'Виберіть шаблон',
         tasks: 'Побутові завдання',
@@ -1213,7 +1213,7 @@ export const messages = {
       manageSubscription: 'Керувати підпискою',
       goBack: 'Повернутися',
       localUser: 'Локальний користувач',
-      weeklyUsUser: 'Користувач Weekly Us',
+      weeklyUsUser: 'Користувач OurWeek',
     },
     localization: {
       title: 'Мова',
@@ -1263,7 +1263,7 @@ export const messages = {
         'Увімкнено mock-авторизацію. Будь-яка електронна пошта й пароль створять тимчасовий frontend-сеанс.',
       signingIn: 'Вхід...',
       signIn: 'Увійти',
-      newHere: 'Вперше у Weekly Us?',
+      newHere: 'Вперше у OurWeek?',
       createAccount: 'Створити акаунт',
       createAccountIntro:
         'Створіть спокійне спільне місце для щотижневих зустрічей, домовленостей і домашніх справ.',
@@ -1314,7 +1314,7 @@ export const messages = {
     },
     logout: {
       kicker: 'Вийти',
-      title: 'Вийти з Weekly Us?',
+      title: 'Вийти з OurWeek?',
       accountFallback: 'цього акаунта',
       intro:
         'Ви вийдете з {email} на цьому пристрої. Локальні дані зустрічей, уже збережені на цьому телефоні, не буде видалено.',
@@ -1330,7 +1330,7 @@ export const messages = {
       heroText:
         'Знайдіть хвилину, щоб узгодити наступний тиждень, помітити хороше й відновити контакт.',
       startMeeting: 'Почати зустріч',
-      shortcutsLabel: 'Швидкі дії Weekly Us',
+      shortcutsLabel: 'Швидкі дії OurWeek',
       tasksToReview: '{count} завдань для перегляду',
       fromCheckIns: 'Зі щотижневих зустрічей',
       meetingsSaved: '{count} зустрічей збережено',
@@ -1355,7 +1355,7 @@ export const messages = {
       noDrafts: 'Немає зустрічі в процесі.',
       unlockFullHistory: 'Відкрити повну історію',
       unlockFullHistoryMessage:
-        'Огляд минулого допомагає побачити, як далеко ви просунулися разом. Оновіться до Weekly Us Premium, щоб переглядати всі минулі зустрічі.',
+        'Огляд минулого допомагає побачити, як далеко ви просунулися разом. Оновіться до OurWeek Premium, щоб переглядати всі минулі зустрічі.',
       upgradePremium: 'Оновити Premium',
       privateNotes: 'Приватні нотатки',
       privateNotesText:
@@ -1484,7 +1484,7 @@ export const messages = {
         'Google OAuth і обробка токенів мають підтримуватися backend або безпечним рекомендованим потоком перед увімкненням справжньої синхронізації.',
       premiumTitle: 'Синхронізація Google Calendar доступна в Premium',
       premiumMessage:
-        'Оновіться, щоб підготувати зустрічі Weekly Us, дати завдань і повернення до тем для Google Calendar.',
+        'Оновіться, щоб підготувати зустрічі OurWeek, дати завдань і повернення до тем для Google Calendar.',
       connectionTitle: 'Підключення Google Calendar',
       checkingConnection: 'Перевірка підключення Google Calendar.',
       notConnected: 'Google Calendar не підключено.',
@@ -1494,7 +1494,7 @@ export const messages = {
       noTokens: 'У цьому мобільному додатку токени Google не зберігаються.',
       optionsTitle: 'Параметри синхронізації',
       optionsText:
-        'Виберіть, що Weekly Us має синхронізувати, коли Google Calendar буде готовий.',
+        'Виберіть, що OurWeek має синхронізувати, коли Google Calendar буде готовий.',
       options: {
         weeklyMeeting: {
           label: 'Додати нагадування про щотижневу зустріч до календаря',
@@ -1529,12 +1529,12 @@ export const messages = {
     },
     upgrade: {
       kicker: 'Premium',
-      title: 'Оновити Weekly Us',
+      title: 'Оновити OurWeek',
       intro:
         'Premium для домів, яким потрібна довша пам’ять, м’яке нагадування і чисті підсумки після кожної щотижневої зустрічі.',
       heroTitle: 'Зробіть щотижневий ритуал легшим для перегляду',
       heroText:
-        'Відкрийте практичні доповнення, не перетворюючи Weekly Us на трекер завдань або бюджетний додаток.',
+        'Відкрийте практичні доповнення, не перетворюючи OurWeek на трекер завдань або бюджетний додаток.',
       placeholdersTitle: 'Оберіть Premium-план',
       placeholdersText:
         'Premium-доступ перевіряється через ваш акаунт і підписку в магазині застосунків.',
@@ -1586,7 +1586,7 @@ export const messages = {
           name: 'Річний',
           priceLabel: 'Ціна очікується',
           description:
-            'Річний Premium-варіант для домів, які часто користуються Weekly Us.',
+            'Річний Premium-варіант для домів, які часто користуються OurWeek.',
         },
       },
     },
@@ -1598,7 +1598,7 @@ export const messages = {
       account: 'Акаунт',
       signedInAs: 'Ви увійшли як {email}.',
       signedInFallback: 'ваш акаунт',
-      localOnly: 'Weekly Us використовується лише на цьому пристрої.',
+      localOnly: 'OurWeek використовується лише на цьому пристрої.',
       noAccount: 'Акаунт ще не підключено.',
       accountSettings: 'Налаштування акаунта',
       accountOptions: 'Опції акаунта',
@@ -1614,7 +1614,7 @@ export const messages = {
       reminderPremiumMessage:
         'Оновіться, щоб планувати м’які локальні нагадування про щотижневі зустрічі та незавершені домашні справи.',
       reminderIntro:
-        'Weekly Us може використовувати локальні сповіщення пристрою для зустрічі та незавершених справ. Push-сповіщення та акаунт не потрібні.',
+        'OurWeek може використовувати локальні сповіщення пристрою для зустрічі та незавершених справ. Push-сповіщення та акаунт не потрібні.',
       enableReminders: 'Увімкнути нагадування',
       weeklyMeetingReminder: 'Нагадування про щотижневу зустріч',
       unfinishedTaskReminder: 'Нагадування про незавершені справи',
@@ -1709,12 +1709,12 @@ export const messages = {
       backToSettings: 'Назад до налаштувань',
       privacy: {
         kicker: 'Політика конфіденційності',
-        title: 'Конфіденційність Weekly Us',
+        title: 'Конфіденційність OurWeek',
         intro:
           'Заглушка для внутрішнього тестування. Замініть її на перевірену політику перед будь-яким публічним релізом у Google Play.',
         dataTitle: 'Поточна модель даних MVP',
         dataText:
-          'Weekly Us зберігає нотатки зустрічей, завдання, домовленості, учасників, приватні нотатки, налаштування та mock-стан Premium локально на цьому пристрої. Backend-синхронізацію в поточному MVP не підключено.',
+          'OurWeek зберігає нотатки зустрічей, завдання, домовленості, учасників, приватні нотатки, налаштування та mock-стан Premium локально на цьому пристрої. Backend-синхронізацію в поточному MVP не підключено.',
         privateNotesTitle: 'Приватні нотатки',
         privateNotesText:
           'Приватні нотатки зберігаються на цьому пристрої в поточному MVP. За замовчуванням вони не включаються в експорт зустрічей.',
@@ -1726,7 +1726,7 @@ export const messages = {
       },
       terms: {
         kicker: 'Умови',
-        title: 'Умови Weekly Us',
+        title: 'Умови OurWeek',
         intro:
           'Заглушка для внутрішнього тестування. Замініть її на перевірені умови перед будь-яким публічним релізом у Google Play.',
         testingTitle: 'Лише внутрішнє тестування',
@@ -1734,7 +1734,7 @@ export const messages = {
           'Ця збірка підготовлена для внутрішнього тестування. Вона не готова для публічного поширення, платних підписок, backend-синхронізації або production-підтримки.',
         adviceTitle: 'Не професійна порада',
         adviceText:
-          'Weekly Us є практичним інструментом домашніх зустрічей. Це не терапія, юридична порада, фінансова порада або екстрена підтримка.',
+          'OurWeek є практичним інструментом домашніх зустрічей. Це не терапія, юридична порада, фінансова порада або екстрена підтримка.',
         localDataTitle: 'Відповідальність за локальні дані',
         localDataText:
           'Дані зберігаються локально на цьому пристрої в поточному MVP. Користувачам варто перевіряти важливі домовленості перед тим, як покладатися на них, і розуміти, що видалення додатка або очищення сховища може видалити локальні дані.',
@@ -2106,7 +2106,7 @@ export const messages = {
       },
       defaultTemplate: {
         label: 'Стандартний шаблон зустрічі',
-        description: 'Використовуйте стандартний порядок денний Weekly Us.',
+        description: 'Використовуйте стандартний порядок денний OurWeek.',
       },
       tasksAndAgreements: {
         label: 'Завдання і домовленості',
@@ -2162,7 +2162,7 @@ export const messages = {
         label: 'Синхронізація Google Calendar',
         description:
           'Синхронізуйте зустрічі й наступні кроки з Google Calendar.',
-        lockedReason: 'Оновіться, щоб підключити Weekly Us до Google Calendar.',
+        lockedReason: 'Оновіться, щоб підключити OurWeek до Google Calendar.',
       },
       export: {
         label: 'Експорт',
@@ -2178,8 +2178,8 @@ export const messages = {
       },
     },
     reminders: {
-      title: 'Weekly Us',
-      channelName: 'Нагадування Weekly Us',
+      title: 'OurWeek',
+      channelName: 'Нагадування OurWeek',
       channelDescription:
         'М’які нагадування про зустрічі та незавершені справи.',
       weeklyMeetingBody: 'М’яке нагадування про вашу щотижневу зустріч.',
@@ -2190,7 +2190,7 @@ export const messages = {
         'М’яке нагадування переглянути незавершені домовленості.',
     },
     export: {
-      meetingTitle: 'Зустріч Weekly Us',
+      meetingTitle: 'Зустріч OurWeek',
       date: 'Дата',
       status: 'Статус',
       finished: 'завершено',
@@ -2252,25 +2252,25 @@ export const messages = {
     },
     storage: {
       blocked:
-        'Weekly Us не може отримати доступ до локального сховища пристрою. Ви можете продовжити цей сеанс, але зміни можуть не зберегтися.',
+        'OurWeek не може отримати доступ до локального сховища пристрою. Ви можете продовжити цей сеанс, але зміни можуть не зберегтися.',
       parseFailed:
         'Деякі збережені дані {label} не вдалося прочитати. Додаток зберіг оригінальну локальну копію для відновлення і запустив цю частину з безпечними типовими значеннями.',
       accessFailed:
         'Не вдалося отримати доступ до деяких збережених даних {label}. Додаток запустив цю частину з безпечними типовими значеннями.',
       newerVersion:
-        'Збережені дані створені новішою версією Weekly Us. Додаток зберіг резервну копію і запустився з безпечними локальними типовими значеннями.',
+        'Збережені дані створені новішою версією OurWeek. Додаток зберіг резервну копію і запустився з безпечними локальними типовими значеннями.',
       missingMigration:
         'Збережені дані потребують міграції, якої ця версія додатка ще не знає. Додаток зберіг резервну копію і запустився з безпечними локальними типовими значеннями.',
       saveFailed:
-        'Weekly Us не зміг зберегти локальні зміни на цьому пристрої. Сховище може бути переповнене або заблоковане. Поточний сеанс може тривати, але зміни можуть не зберегтися.',
+        'OurWeek не зміг зберегти локальні зміни на цьому пристрої. Сховище може бути переповнене або заблоковане. Поточний сеанс може тривати, але зміни можуть не зберегтися.',
       appDataAccessFailed:
-        'Не вдалося отримати доступ до збережених даних Weekly Us. Додаток запустився з безпечними типовими значеннями, щоб ви могли продовжити користування.',
+        'Не вдалося отримати доступ до збережених даних OurWeek. Додаток запустився з безпечними типовими значеннями, щоб ви могли продовжити користування.',
       invalidData:
-        'Збережені дані Weekly Us не відповідають очікуваному формату. Локальну резервну копію збережено, а додаток запустився з безпечними типовими значеннями.',
+        'Збережені дані OurWeek не відповідають очікуваному формату. Локальну резервну копію збережено, а додаток запустився з безпечними типовими значеннями.',
       corruptData:
-        'Збережені дані Weekly Us не вдалося прочитати. Локальну резервну копію збережено, а додаток запустився з безпечними типовими значеннями.',
+        'Збережені дані OurWeek не вдалося прочитати. Локальну резервну копію збережено, а додаток запустився з безпечними типовими значеннями.',
       backupFailed:
-        'Weekly Us не зміг створити локальну резервну копію даних, бо сховище пристрою може бути переповнене або заблоковане.',
+        'OurWeek не зміг створити локальну резервну копію даних, бо сховище пристрою може бути переповнене або заблоковане.',
     },
     notifications: {
       unavailable: 'Сповіщення недоступні в цьому середовищі.',
@@ -2292,14 +2292,14 @@ export const messages = {
   },
   es: {
     app: {
-      name: 'Weekly Us',
+      name: 'OurWeek',
       navigationLabel: 'Navegación principal',
       openSettings: 'Abrir ajustes',
       householdMembers: 'Miembros del hogar',
       storageAttention: 'Algunos datos guardados necesitan atención',
       dismiss: 'Cerrar',
       routeTitles: {
-        home: 'Weekly Us',
+        home: 'OurWeek',
         meeting: 'Ritual semanal',
         meetingTemplates: 'Elegir una plantilla',
         tasks: 'Tareas del hogar',
@@ -2360,7 +2360,7 @@ export const messages = {
       manageSubscription: 'Administrar suscripción',
       goBack: 'Volver',
       localUser: 'Usuario local',
-      weeklyUsUser: 'Usuario de Weekly Us',
+      weeklyUsUser: 'Usuario de OurWeek',
     },
     localization: {
       title: 'Idioma',
@@ -2411,7 +2411,7 @@ export const messages = {
         'La autenticación simulada está activa. Cualquier correo y contraseña crearán una sesión temporal en el frontend.',
       signingIn: 'Iniciando sesión...',
       signIn: 'Iniciar sesión',
-      newHere: '¿Nuevo en Weekly Us?',
+      newHere: '¿Nuevo en OurWeek?',
       createAccount: 'Crear cuenta',
       createAccountIntro:
         'Configura un lugar compartido y tranquilo para revisiones semanales, acuerdos y seguimiento del hogar.',
@@ -2461,7 +2461,7 @@ export const messages = {
     },
     logout: {
       kicker: 'Cerrar sesión',
-      title: '¿Cerrar sesión en Weekly Us?',
+      title: '¿Cerrar sesión en OurWeek?',
       accountFallback: 'esta cuenta',
       intro:
         'Saldrás de {email} en este dispositivo. Los datos locales de reuniones ya guardados en este teléfono no se eliminan.',
@@ -2477,7 +2477,7 @@ export const messages = {
       heroText:
         'Tómense un momento para alinearse sobre la semana que viene, celebrar avances y conectarse.',
       startMeeting: 'Iniciar reunión',
-      shortcutsLabel: 'Accesos rápidos de Weekly Us',
+      shortcutsLabel: 'Accesos rápidos de OurWeek',
       tasksToReview: '{count} tareas para revisar',
       fromCheckIns: 'De revisiones semanales',
       meetingsSaved: '{count} reuniones guardadas',
@@ -2502,7 +2502,7 @@ export const messages = {
       noDrafts: 'No hay reunión en progreso.',
       unlockFullHistory: 'Desbloquear historial completo',
       unlockFullHistoryMessage:
-        'Mirar atrás les ayuda a ver cuánto han avanzado juntos. Actualiza a Weekly Us Premium para ver todas las revisiones anteriores.',
+        'Mirar atrás les ayuda a ver cuánto han avanzado juntos. Actualiza a OurWeek Premium para ver todas las revisiones anteriores.',
       upgradePremium: 'Actualizar Premium',
       privateNotes: 'Notas privadas',
       privateNotesText:
@@ -2632,7 +2632,7 @@ export const messages = {
         'Google OAuth y el manejo de tokens deben estar respaldados por backend o usar un flujo seguro recomendado antes de habilitar la sincronización real.',
       premiumTitle: 'La sincronización con Google Calendar es Premium',
       premiumMessage:
-        'Mejora para preparar reuniones de Weekly Us, fechas de tareas y seguimientos para Google Calendar.',
+        'Mejora para preparar reuniones de OurWeek, fechas de tareas y seguimientos para Google Calendar.',
       connectionTitle: 'Conexión de Google Calendar',
       checkingConnection: 'Revisando la conexión de Google Calendar.',
       notConnected: 'Google Calendar no está conectado.',
@@ -2642,7 +2642,7 @@ export const messages = {
       noTokens: 'No se guardan tokens de Google en esta app móvil.',
       optionsTitle: 'Opciones de sincronización',
       optionsText:
-        'Elige qué debe sincronizar Weekly Us cuando Google Calendar esté listo.',
+        'Elige qué debe sincronizar OurWeek cuando Google Calendar esté listo.',
       options: {
         weeklyMeeting: {
           label: 'Agregar recordatorio de reunión semanal al calendario',
@@ -2677,12 +2677,12 @@ export const messages = {
     },
     upgrade: {
       kicker: 'Premium',
-      title: 'Mejorar Weekly Us',
+      title: 'Mejorar OurWeek',
       intro:
         'Premium es para hogares que quieren una memoria más larga, seguimiento suave y resúmenes claros después de cada revisión semanal.',
       heroTitle: 'Haz que el ritual semanal sea más fácil de revisar',
       heroText:
-        'Desbloquea agregados prácticos sin convertir Weekly Us en un gestor de tareas o una app de presupuesto.',
+        'Desbloquea agregados prácticos sin convertir OurWeek en un gestor de tareas o una app de presupuesto.',
       placeholdersTitle: 'Elige un plan Premium',
       placeholdersText:
         'El acceso Premium se revisa con tu cuenta y la suscripción de la tienda.',
@@ -2738,7 +2738,7 @@ export const messages = {
           name: 'Anual',
           priceLabel: 'Precio pendiente',
           description:
-            'Una opción Premium anual para hogares que usan Weekly Us a menudo.',
+            'Una opción Premium anual para hogares que usan OurWeek a menudo.',
         },
       },
     },
@@ -2750,7 +2750,7 @@ export const messages = {
       account: 'Cuenta',
       signedInAs: 'Sesión iniciada como {email}.',
       signedInFallback: 'tu cuenta',
-      localOnly: 'Usando Weekly Us solo en este dispositivo.',
+      localOnly: 'Usando OurWeek solo en este dispositivo.',
       noAccount: 'Todavía no hay una cuenta conectada.',
       accountSettings: 'Ajustes de la cuenta',
       accountOptions: 'Opciones de cuenta',
@@ -2766,7 +2766,7 @@ export const messages = {
       reminderPremiumMessage:
         'Mejora para programar recordatorios locales suaves de reuniones semanales y seguimientos pendientes del hogar.',
       reminderIntro:
-        'Weekly Us puede usar notificaciones locales del dispositivo para tu reunión y seguimientos pendientes. No se usan notificaciones push ni configuración de cuenta.',
+        'OurWeek puede usar notificaciones locales del dispositivo para tu reunión y seguimientos pendientes. No se usan notificaciones push ni configuración de cuenta.',
       enableReminders: 'Activar recordatorios',
       weeklyMeetingReminder: 'Recordatorio de reunión semanal',
       unfinishedTaskReminder: 'Recordatorio de tarea pendiente',
@@ -2865,12 +2865,12 @@ export const messages = {
       backToSettings: 'Volver a ajustes',
       privacy: {
         kicker: 'Política de privacidad',
-        title: 'Privacidad de Weekly Us',
+        title: 'Privacidad de OurWeek',
         intro:
           'Marcador de posición para pruebas internas. Reemplázalo con una política revisada antes de cualquier lanzamiento público en Google Play.',
         dataTitle: 'Modelo de datos actual del MVP',
         dataText:
-          'Weekly Us guarda notas de reuniones, tareas, acuerdos, participantes, notas privadas, ajustes y estado Premium simulado localmente en este dispositivo. No hay sincronización con backend conectada en el MVP actual.',
+          'OurWeek guarda notas de reuniones, tareas, acuerdos, participantes, notas privadas, ajustes y estado Premium simulado localmente en este dispositivo. No hay sincronización con backend conectada en el MVP actual.',
         privateNotesTitle: 'Notas privadas',
         privateNotesText:
           'Las notas privadas se guardan en este dispositivo en el MVP actual. No se incluyen en las exportaciones de reuniones de forma predeterminada.',
@@ -2882,7 +2882,7 @@ export const messages = {
       },
       terms: {
         kicker: 'Términos',
-        title: 'Términos de Weekly Us',
+        title: 'Términos de OurWeek',
         intro:
           'Marcador de posición para pruebas internas. Reemplázalo con términos revisados antes de cualquier lanzamiento público en Google Play.',
         testingTitle: 'Solo para pruebas internas',
@@ -2890,7 +2890,7 @@ export const messages = {
           'Esta versión está preparada para pruebas internas. No está lista para distribución pública, suscripciones pagas, sincronización backend ni soporte de producción.',
         adviceTitle: 'No es asesoría profesional',
         adviceText:
-          'Weekly Us es una herramienta práctica de revisión del hogar. No es terapia, asesoría legal, asesoría financiera ni soporte de emergencia.',
+          'OurWeek es una herramienta práctica de revisión del hogar. No es terapia, asesoría legal, asesoría financiera ni soporte de emergencia.',
         localDataTitle: 'Responsabilidad sobre datos locales',
         localDataText:
           'Los datos se guardan localmente en este dispositivo en el MVP actual. Las personas usuarias deben revisar acuerdos importantes antes de confiar en ellos y entender que desinstalar la app o borrar el almacenamiento puede eliminar datos locales.',
@@ -3264,7 +3264,7 @@ export const messages = {
       },
       defaultTemplate: {
         label: 'Plantilla de reunión predeterminada',
-        description: 'Usa la agenda estándar de reunión de Weekly Us.',
+        description: 'Usa la agenda estándar de reunión de OurWeek.',
       },
       tasksAndAgreements: {
         label: 'Tareas y acuerdos',
@@ -3322,7 +3322,7 @@ export const messages = {
       googleCalendarSync: {
         label: 'Sincronización con Google Calendar',
         description: 'Sincroniza reuniones y seguimientos con Google Calendar.',
-        lockedReason: 'Mejora para conectar Weekly Us con Google Calendar.',
+        lockedReason: 'Mejora para conectar OurWeek con Google Calendar.',
       },
       export: {
         label: 'Exportar',
@@ -3337,8 +3337,8 @@ export const messages = {
       },
     },
     reminders: {
-      title: 'Weekly Us',
-      channelName: 'Recordatorios de Weekly Us',
+      title: 'OurWeek',
+      channelName: 'Recordatorios de OurWeek',
       channelDescription:
         'Recordatorios amables para reuniones y elementos pendientes.',
       weeklyMeetingBody: 'Un recordatorio amable para tu reunión semanal.',
@@ -3349,7 +3349,7 @@ export const messages = {
         'Un recordatorio amable para revisar acuerdos pendientes.',
     },
     export: {
-      meetingTitle: 'Reunión de Weekly Us',
+      meetingTitle: 'Reunión de OurWeek',
       date: 'Fecha',
       status: 'Estado',
       finished: 'finalizada',
@@ -3413,25 +3413,25 @@ export const messages = {
     },
     storage: {
       blocked:
-        'Weekly Us no puede acceder al almacenamiento local del dispositivo. Puedes seguir usando esta sesión, pero es posible que los cambios no se conserven.',
+        'OurWeek no puede acceder al almacenamiento local del dispositivo. Puedes seguir usando esta sesión, pero es posible que los cambios no se conserven.',
       parseFailed:
         'No se pudieron leer algunos datos guardados de {label}. La app conservó la copia local original para recuperación e inició esa parte con valores seguros.',
       accessFailed:
         'No se pudo acceder a algunos datos guardados de {label}. La app inició esa parte con valores seguros.',
       newerVersion:
-        'Los datos guardados fueron creados por una versión más nueva de Weekly Us. La app conservó una copia de respaldo e inició con valores locales seguros.',
+        'Los datos guardados fueron creados por una versión más nueva de OurWeek. La app conservó una copia de respaldo e inició con valores locales seguros.',
       missingMigration:
         'Los datos guardados necesitan una migración que esta versión de la app aún no conoce. La app conservó una copia de respaldo e inició con valores locales seguros.',
       saveFailed:
-        'Weekly Us no pudo guardar cambios locales en este dispositivo. El almacenamiento puede estar lleno o bloqueado. Tu sesión actual puede continuar, pero es posible que los cambios no se conserven.',
+        'OurWeek no pudo guardar cambios locales en este dispositivo. El almacenamiento puede estar lleno o bloqueado. Tu sesión actual puede continuar, pero es posible que los cambios no se conserven.',
       appDataAccessFailed:
-        'No se pudo acceder a los datos guardados de Weekly Us. La app inició con valores seguros para que puedas seguir usándola.',
+        'No se pudo acceder a los datos guardados de OurWeek. La app inició con valores seguros para que puedas seguir usándola.',
       invalidData:
-        'Los datos guardados de Weekly Us no tenían el formato esperado. Se conservó una copia local de respaldo y la app inició con valores seguros para que puedas seguir usándola.',
+        'Los datos guardados de OurWeek no tenían el formato esperado. Se conservó una copia local de respaldo y la app inició con valores seguros para que puedas seguir usándola.',
       corruptData:
-        'No se pudieron leer los datos guardados de Weekly Us. Se conservó una copia local de respaldo y la app inició con valores seguros para que puedas seguir usándola.',
+        'No se pudieron leer los datos guardados de OurWeek. Se conservó una copia local de respaldo y la app inició con valores seguros para que puedas seguir usándola.',
       backupFailed:
-        'Weekly Us no pudo crear una copia local de respaldo porque el almacenamiento del dispositivo puede estar lleno o bloqueado.',
+        'OurWeek no pudo crear una copia local de respaldo porque el almacenamiento del dispositivo puede estar lleno o bloqueado.',
     },
     notifications: {
       unavailable: 'Las notificaciones no están disponibles en este entorno.',

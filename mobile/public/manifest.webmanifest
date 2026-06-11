@@ -1,4 +1,6 @@
 {
+  "name": "OurWeek",
+  "short_name": "OurWeek",
   "icons": [
     {
       "src": "../icons/icon-48.webp",

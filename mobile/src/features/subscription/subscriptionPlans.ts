@@ -10,22 +10,21 @@ export const premiumPlanOptions: SubscriptionPlanOption[] = [
     planType: 'premium',
     entitlementKey: 'premium',
     productIds: {
-      android: 'weekly_us_premium_monthly',
-      ios: 'weekly_us_premium_monthly',
+      android: 'ourweek_premium_monthly',
+      ios: 'ourweek_premium_monthly',
     },
   },
   {
     id: 'premium_yearly',
     name: 'Yearly',
     priceLabel: 'Price pending',
-    description:
-      'A yearly Premium option for households using Weekly Us often.',
+    description: 'A yearly Premium option for households using OurWeek often.',
     cadence: 'yearly',
     planType: 'premium',
     entitlementKey: 'premium',
     productIds: {
-      android: 'weekly_us_premium_yearly',
-      ios: 'weekly_us_premium_yearly',
+      android: 'ourweek_premium_yearly',
+      ios: 'ourweek_premium_yearly',
     },
   },
 ];

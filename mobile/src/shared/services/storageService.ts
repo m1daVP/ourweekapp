@@ -4,20 +4,20 @@ import { translate } from '@/features/localization/i18n';
 
 export const appDataVersion = 3;
 
-const APP_DATA_STORAGE_KEY = 'weekly-us:app-data';
-const BACKUP_STORAGE_PREFIX = 'weekly-us:app-data:backup';
-const SETTINGS_STORAGE_KEY = 'weekly-us:settings';
+const APP_DATA_STORAGE_KEY = 'ourweek:app-data';
+const BACKUP_STORAGE_PREFIX = 'ourweek:app-data:backup';
+const SETTINGS_STORAGE_KEY = 'ourweek:settings';
 
 const legacyStorageKeys = {
-  auth: 'weekly-us:auth',
-  calendarSyncSettings: 'weekly-us:calendar-sync-settings',
-  meetings: 'weekly-us:meetings',
-  participants: 'weekly-us:participants',
-  privateNotes: 'weekly-us:private-notes',
-  reminderSettings: 'weekly-us:reminder-settings',
-  subscriptionMock: 'weekly-us:subscription:mock',
-  tasks: 'weekly-us:tasks-agreements',
-  workspace: 'weekly-us:workspace',
+  auth: 'ourweek:auth',
+  calendarSyncSettings: 'ourweek:calendar-sync-settings',
+  meetings: 'ourweek:meetings',
+  participants: 'ourweek:participants',
+  privateNotes: 'ourweek:private-notes',
+  reminderSettings: 'ourweek:reminder-settings',
+  subscriptionMock: 'ourweek:subscription:mock',
+  tasks: 'ourweek:tasks-agreements',
+  workspace: 'ourweek:workspace',
 } as const;
 
 type TopLevelStorageSliceKey =

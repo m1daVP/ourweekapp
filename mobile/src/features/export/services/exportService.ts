@@ -115,7 +115,7 @@ function createSlug(value: string) {
 
 function getExportBaseName(meeting: Meeting) {
   const date = getMeetingDate(meeting).toISOString().slice(0, 10);
-  return `weekly-us-${date}-${createSlug(meeting.title)}`;
+  return `ourweek-${date}-${createSlug(meeting.title)}`;
 }
 
 function escapeHtml(value: string) {

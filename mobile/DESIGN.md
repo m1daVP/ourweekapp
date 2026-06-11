@@ -1,5 +1,5 @@
 ---
-name: Weekly Us Design System
+name: OurWeek Design System
 colors:
   surface: '#faf9f5'
   surface-dim: '#dadad6'

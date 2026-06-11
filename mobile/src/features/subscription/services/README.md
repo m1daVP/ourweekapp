@@ -1,6 +1,6 @@
 # Subscription Billing Notes
 
-Weekly Us currently uses `mockSubscriptionProvider` only. The mock provider is
+OurWeek currently uses `mockSubscriptionProvider` only. The mock provider is
 for browser and local development paywall behavior; it is disabled from granting
 Premium in production builds.
 
@@ -21,8 +21,8 @@ transactions to a backend before unlocking Premium.
 ## Production TODOs
 
 - Add a native provider, likely `@revenuecat/purchases-capacitor`.
-- Configure RevenueCat products for `weekly_us_premium_monthly` and
-  `weekly_us_premium_yearly`.
+- Configure RevenueCat products for `ourweek_premium_monthly` and
+  `ourweek_premium_yearly`.
 - Attach both products to a `premium` entitlement.
 - Validate entitlements through RevenueCat trusted status and/or the backend.
 - Add store subscription management redirects when native billing is configured.

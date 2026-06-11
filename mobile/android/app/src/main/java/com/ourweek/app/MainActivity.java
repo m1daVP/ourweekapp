@@ -1,4 +1,4 @@
-package com.weeklyus.app;
+package com.ourweek.app;
 
 import com.getcapacitor.BridgeActivity;
 

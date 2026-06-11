@@ -50,7 +50,7 @@ Production billing TODOs:
 - Validate real premium access through RevenueCat trusted entitlements and/or a
   backend subscription status endpoint. Do not persist permanent Premium access
   from this frontend store in production.
-- If Weekly Us later chooses direct store billing instead, keep it behind this
+- If OurWeek later chooses direct store billing instead, keep it behind this
   same SubscriptionProvider contract and send Google Play purchase tokens or
   Apple signed transactions to the backend before unlocking Premium.
 */

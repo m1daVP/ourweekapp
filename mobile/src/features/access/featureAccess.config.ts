@@ -10,7 +10,7 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
   defaultTemplate: {
     key: 'defaultTemplate',
     label: 'Default meeting template',
-    description: 'Use the standard Weekly Us meeting agenda.',
+    description: 'Use the standard OurWeek meeting agenda.',
     plans: ['free', 'premium'],
   },
   tasksAndAgreements: {
@@ -81,7 +81,7 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     description: 'Sync meetings and follow-ups with Google Calendar.',
     plans: ['premium'],
     roles: ['owner', 'adult_member'],
-    lockedReason: 'Upgrade to connect Weekly Us with Google Calendar.',
+    lockedReason: 'Upgrade to connect OurWeek with Google Calendar.',
   },
   export: {
     key: 'export',
