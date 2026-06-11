@@ -1141,6 +1141,8 @@ export const messages = {
     sync: {
       backendUnavailable:
         'Backend API is not configured. Local data remains stored on this device.',
+      failed: 'Sync could not finish right now. Local changes are still saved.',
+      offline: 'You are offline. Local changes will sync later.',
     },
   },
   uk: {
@@ -2288,6 +2290,8 @@ export const messages = {
     sync: {
       backendUnavailable:
         'Backend API не налаштовано. Локальні дані залишаються збереженими на цьому пристрої.',
+      failed: 'Sync could not finish right now. Local changes are still saved.',
+      offline: 'You are offline. Local changes will sync later.',
     },
   },
   es: {
@@ -3449,6 +3453,10 @@ export const messages = {
     sync: {
       backendUnavailable:
         'La API del backend no está configurada. Los datos locales permanecen guardados en este dispositivo.',
+      failed:
+        'La sincronizaciГіn no pudo terminar ahora. Los cambios locales siguen guardados.',
+      offline:
+        'EstГЎs sin conexiГіn. Los cambios locales se sincronizarГЎn mГЎs tarde.',
     },
   },
 } as const;

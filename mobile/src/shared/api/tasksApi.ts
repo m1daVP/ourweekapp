@@ -35,6 +35,20 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function normalizeSyncTasksResponse(
+  response: SyncTasksResponseDto
+): SyncTasksResponseDto {
+  return {
+    tasks: Array.isArray(response.tasks) ? response.tasks : [],
+    agreements: Array.isArray(response.agreements) ? response.agreements : [],
+    reviewDecisions: Array.isArray(response.reviewDecisions)
+      ? response.reviewDecisions
+      : [],
+    conflicts: Array.isArray(response.conflicts) ? response.conflicts : [],
+    syncedAt: response.syncedAt ?? nowIso(),
+  };
+}
+
 export async function syncTasksApi(
   payload: SyncTasksRequestDto
 ): Promise<SyncTasksResponseDto> {
@@ -48,11 +62,13 @@ export async function syncTasksApi(
     };
   }
 
-  return apiRequest<SyncTasksResponseDto>('/tasks/sync', {
+  const response = await apiRequest<SyncTasksResponseDto>('/tasks/sync', {
     method: 'POST',
     body: payload,
     requiresAuth: true,
   });
+
+  return normalizeSyncTasksResponse(response);
 }
 
 export async function listTasks(): Promise<SyncTasksResponseDto> {
@@ -66,7 +82,9 @@ export async function listTasks(): Promise<SyncTasksResponseDto> {
     };
   }
 
-  return apiRequest<SyncTasksResponseDto>('/tasks', {
+  const response = await apiRequest<SyncTasksResponseDto>('/tasks/', {
     requiresAuth: true,
   });
+
+  return normalizeSyncTasksResponse(response);
 }

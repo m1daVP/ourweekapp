@@ -39,6 +39,29 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function normalizeListMeetingsResponse(
+  response: ListMeetingsResponseDto
+): ListMeetingsResponseDto {
+  return {
+    meetings: Array.isArray(response.meetings) ? response.meetings : [],
+    activeMeetingId: response.activeMeetingId ?? null,
+    draftSavedAt: response.draftSavedAt ?? null,
+    syncedAt: response.syncedAt ?? nowIso(),
+  };
+}
+
+function normalizeSyncMeetingsResponse(
+  response: SyncMeetingsResponseDto
+): SyncMeetingsResponseDto {
+  return {
+    meetings: Array.isArray(response.meetings) ? response.meetings : [],
+    activeMeetingId: response.activeMeetingId ?? null,
+    draftSavedAt: response.draftSavedAt ?? null,
+    conflicts: Array.isArray(response.conflicts) ? response.conflicts : [],
+    syncedAt: response.syncedAt ?? nowIso(),
+  };
+}
+
 export async function listMeetings(): Promise<ListMeetingsResponseDto> {
   if (!isBackendApiConfigured()) {
     return {
@@ -49,9 +72,11 @@ export async function listMeetings(): Promise<ListMeetingsResponseDto> {
     };
   }
 
-  return apiRequest<ListMeetingsResponseDto>('/meetings', {
+  const response = await apiRequest<ListMeetingsResponseDto>('/meetings/', {
     requiresAuth: true,
   });
+
+  return normalizeListMeetingsResponse(response);
 }
 
 export async function syncMeetingsApi(
@@ -67,11 +92,13 @@ export async function syncMeetingsApi(
     };
   }
 
-  return apiRequest<SyncMeetingsResponseDto>('/meetings/sync', {
+  const response = await apiRequest<SyncMeetingsResponseDto>('/meetings/sync', {
     method: 'POST',
     body: payload,
     requiresAuth: true,
   });
+
+  return normalizeSyncMeetingsResponse(response);
 }
 
 export async function saveMeetingSummary(

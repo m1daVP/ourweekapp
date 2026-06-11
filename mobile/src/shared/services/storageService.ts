@@ -2,7 +2,7 @@ import { shallowRef } from 'vue';
 import { Preferences } from '@capacitor/preferences';
 import { translate } from '@/features/localization/i18n';
 
-export const appDataVersion = 3;
+export const appDataVersion = 4;
 
 const APP_DATA_STORAGE_KEY = 'ourweek:app-data';
 const BACKUP_STORAGE_PREFIX = 'ourweek:app-data:backup';
@@ -25,7 +25,25 @@ type TopLevelStorageSliceKey =
   | 'meetings'
   | 'tasks'
   | 'privateNotes'
+  | 'syncMetadata'
   | 'subscriptionMockState';
+
+export type SyncStorageResource = 'meetings' | 'tasks' | 'participants';
+
+interface SyncResourceMetadata {
+  lastSyncedAt?: string;
+  lastAttemptedAt?: string;
+  lastSuccessfulAt?: string;
+  lastFailedAt?: string;
+  conflictCount?: number;
+}
+
+interface SyncStorageMetadata {
+  version: 1;
+  resources: Partial<Record<SyncStorageResource, SyncResourceMetadata>>;
+  firstBackupKey?: string;
+  migratedAt?: string;
+}
 
 type SettingsStorageSliceKey =
   | 'calendarSync'
@@ -51,6 +69,7 @@ export interface AppDataEnvelope {
   meetings: unknown;
   tasks: unknown;
   privateNotes: unknown;
+  syncMetadata: unknown;
   settings: AppDataSettings;
   onboarding: AppDataOnboarding;
   subscriptionMockState: unknown;
@@ -80,6 +99,7 @@ let hasReportedBlockedStorage = false;
 const migrations: Record<number, Migration> = {
   1: migrateAppDataFromVersion1ToVersion2,
   2: migrateAppDataFromVersion2ToVersion3,
+  3: migrateAppDataFromVersion3ToVersion4,
 };
 
 function nowIso() {
@@ -114,6 +134,7 @@ function createEmptyAppData(): AppDataEnvelope {
     meetings: null,
     tasks: null,
     privateNotes: null,
+    syncMetadata: null,
     settings: {
       calendarSync: null,
       localization: null,
@@ -232,6 +253,7 @@ function validateAppDataEnvelope(value: unknown): AppDataEnvelope | null {
     meetings: value.meetings ?? null,
     tasks: value.tasks ?? null,
     privateNotes: value.privateNotes ?? null,
+    syncMetadata: value.syncMetadata ?? null,
     settings: {
       calendarSync: settings.calendarSync ?? null,
       localization: settings.localization ?? null,
@@ -278,6 +300,276 @@ function migrateAppDataFromVersion2ToVersion3(
   return {
     ...data,
     appDataVersion: 3,
+  };
+}
+
+function createUuid() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (token) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = token === 'x' ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+function isUuid(value: unknown) {
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value
+    )
+  );
+}
+
+function remapId(value: unknown, idMap: Map<string, string>) {
+  if (typeof value !== 'string' || isUuid(value)) {
+    return typeof value === 'string' ? value : '';
+  }
+
+  const existingId = idMap.get(value);
+
+  if (existingId) {
+    return existingId;
+  }
+
+  const nextId = createUuid();
+  idMap.set(value, nextId);
+  return nextId;
+}
+
+function remapIdList(value: unknown, idMap: Map<string, string>) {
+  return Array.isArray(value)
+    ? value
+        .map((item) => remapId(item, idMap))
+        .filter((item) => Boolean(item.trim()))
+    : [];
+}
+
+function remapParticipants(value: unknown, idMap: Map<string, string>) {
+  const state = getRecord(value);
+  const participants = Array.isArray(state.participants)
+    ? state.participants.map((participant) => {
+        const item = getRecord(participant);
+
+        return {
+          ...item,
+          id: remapId(item.id, idMap),
+        };
+      })
+    : state.participants;
+
+  return {
+    ...state,
+    participants,
+  };
+}
+
+function remapMeetingSections(
+  value: unknown,
+  idMap: Map<string, string>
+): unknown {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.map((section) => {
+    const item = getRecord(section);
+
+    return {
+      ...item,
+      notes: Array.isArray(item.notes)
+        ? item.notes.map((note) => {
+            const noteItem = getRecord(note);
+
+            return {
+              ...noteItem,
+              id: remapId(noteItem.id, idMap),
+              participantId: remapId(noteItem.participantId, idMap),
+            };
+          })
+        : item.notes,
+      tasks: Array.isArray(item.tasks)
+        ? item.tasks.map((task) => {
+            const taskItem = getRecord(task);
+
+            return {
+              ...taskItem,
+              id: remapId(taskItem.id, idMap),
+              responsibleParticipantIds: remapIdList(
+                taskItem.responsibleParticipantIds,
+                idMap
+              ),
+              responsiblePersonId:
+                typeof taskItem.responsiblePersonId === 'string'
+                  ? remapId(taskItem.responsiblePersonId, idMap)
+                  : taskItem.responsiblePersonId,
+            };
+          })
+        : item.tasks,
+      agreements: Array.isArray(item.agreements)
+        ? item.agreements.map((agreement) => {
+            const agreementItem = getRecord(agreement);
+
+            return {
+              ...agreementItem,
+              id: remapId(agreementItem.id, idMap),
+              participantIds: remapIdList(agreementItem.participantIds, idMap),
+            };
+          })
+        : item.agreements,
+    };
+  });
+}
+
+function remapMeetings(value: unknown, idMap: Map<string, string>) {
+  const state = getRecord(value);
+  const meetings = Array.isArray(state.meetings)
+    ? state.meetings.map((meeting) => {
+        const item = getRecord(meeting);
+        const meetingId = remapId(item.id, idMap);
+        const summary = getRecord(item.aiSummary);
+
+        return {
+          ...item,
+          id: meetingId,
+          participantIds: remapIdList(item.participantIds, idMap),
+          participants: Array.isArray(item.participants)
+            ? item.participants.map((participant) => {
+                const participantItem = getRecord(participant);
+
+                return {
+                  ...participantItem,
+                  id: remapId(participantItem.id, idMap),
+                };
+              })
+            : item.participants,
+          sections: remapMeetingSections(item.sections, idMap),
+          aiSummary: item.aiSummary
+            ? {
+                ...summary,
+                id: remapId(summary.id, idMap),
+                meetingId,
+              }
+            : item.aiSummary,
+        };
+      })
+    : state.meetings;
+
+  return {
+    ...state,
+    meetings,
+    activeMeetingId:
+      typeof state.activeMeetingId === 'string'
+        ? remapId(state.activeMeetingId, idMap)
+        : state.activeMeetingId,
+  };
+}
+
+function remapTasks(value: unknown, idMap: Map<string, string>) {
+  const state = getRecord(value);
+
+  return {
+    ...state,
+    tasks: Array.isArray(state.tasks)
+      ? state.tasks.map((task) => {
+          const item = getRecord(task);
+
+          return {
+            ...item,
+            id: remapId(item.id, idMap),
+            responsibleParticipantIds: remapIdList(
+              item.responsibleParticipantIds,
+              idMap
+            ),
+            responsiblePersonId:
+              typeof item.responsiblePersonId === 'string'
+                ? remapId(item.responsiblePersonId, idMap)
+                : item.responsiblePersonId,
+            sourceMeetingId:
+              typeof item.sourceMeetingId === 'string'
+                ? remapId(item.sourceMeetingId, idMap)
+                : item.sourceMeetingId,
+          };
+        })
+      : state.tasks,
+    agreements: Array.isArray(state.agreements)
+      ? state.agreements.map((agreement) => {
+          const item = getRecord(agreement);
+
+          return {
+            ...item,
+            id: remapId(item.id, idMap),
+            participantIds: remapIdList(item.participantIds, idMap),
+            participants: remapIdList(item.participants, idMap),
+            relatedTaskIds: remapIdList(item.relatedTaskIds, idMap),
+            sourceMeetingId:
+              typeof item.sourceMeetingId === 'string'
+                ? remapId(item.sourceMeetingId, idMap)
+                : item.sourceMeetingId,
+          };
+        })
+      : state.agreements,
+    reviewDecisions: Array.isArray(state.reviewDecisions)
+      ? state.reviewDecisions.map((decision) => {
+          const item = getRecord(decision);
+
+          return {
+            ...item,
+            meetingId:
+              typeof item.meetingId === 'string'
+                ? remapId(item.meetingId, idMap)
+                : item.meetingId,
+            sourceMeetingId:
+              typeof item.sourceMeetingId === 'string'
+                ? remapId(item.sourceMeetingId, idMap)
+                : item.sourceMeetingId,
+          };
+        })
+      : state.reviewDecisions,
+  };
+}
+
+function remapPrivateNotes(value: unknown, idMap: Map<string, string>) {
+  const state = getRecord(value);
+
+  return {
+    ...state,
+    notes: Array.isArray(state.notes)
+      ? state.notes.map((note) => {
+          const item = getRecord(note);
+
+          return {
+            ...item,
+            relatedMeetingId:
+              typeof item.relatedMeetingId === 'string'
+                ? remapId(item.relatedMeetingId, idMap)
+                : item.relatedMeetingId,
+          };
+        })
+      : state.notes,
+  };
+}
+
+function migrateAppDataFromVersion3ToVersion4(
+  data: MigrationInput
+): MigrationInput {
+  const idMap = new Map<string, string>();
+
+  return {
+    ...data,
+    appDataVersion: 4,
+    participants: remapParticipants(data.participants, idMap),
+    meetings: remapMeetings(data.meetings, idMap),
+    tasks: remapTasks(data.tasks, idMap),
+    privateNotes: remapPrivateNotes(data.privateNotes, idMap),
+    syncMetadata: {
+      version: 1,
+      resources: {},
+      migratedAt: nowIso(),
+    },
   };
 }
 
@@ -470,6 +762,76 @@ export function writeStorageSlice(
   };
 
   persistAppData(data);
+}
+
+function normalizeSyncMetadata(value: unknown): SyncStorageMetadata {
+  if (!isRecord(value)) {
+    return { version: 1, resources: {} };
+  }
+
+  const resources = getRecord(value.resources);
+
+  return {
+    version: 1,
+    resources: {
+      meetings: getRecord(resources.meetings),
+      tasks: getRecord(resources.tasks),
+      participants: getRecord(resources.participants),
+    },
+    firstBackupKey:
+      typeof value.firstBackupKey === 'string'
+        ? value.firstBackupKey
+        : undefined,
+    migratedAt:
+      typeof value.migratedAt === 'string' ? value.migratedAt : undefined,
+  };
+}
+
+export function readSyncMetadata() {
+  return normalizeSyncMetadata(readStorageSlice('syncMetadata', null));
+}
+
+export function readSyncResourceMetadata(resource: SyncStorageResource) {
+  return readSyncMetadata().resources[resource] ?? {};
+}
+
+export function writeSyncResourceMetadata(
+  resource: SyncStorageResource,
+  metadata: SyncResourceMetadata
+) {
+  const currentMetadata = readSyncMetadata();
+
+  writeStorageSlice('syncMetadata', {
+    ...currentMetadata,
+    resources: {
+      ...currentMetadata.resources,
+      [resource]: {
+        ...currentMetadata.resources[resource],
+        ...metadata,
+      },
+    },
+  });
+}
+
+export function ensureFirstSyncBackup() {
+  const currentMetadata = readSyncMetadata();
+
+  if (currentMetadata.firstBackupKey) {
+    return currentMetadata.firstBackupKey;
+  }
+
+  const backupKey = createInternalAppDataBackup('before-first-cloud-sync');
+
+  if (!backupKey) {
+    return null;
+  }
+
+  writeStorageSlice('syncMetadata', {
+    ...currentMetadata,
+    firstBackupKey: backupKey,
+  });
+
+  return backupKey;
 }
 
 export function readSettingsStorage<T>(
