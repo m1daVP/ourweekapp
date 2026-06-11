@@ -239,4 +239,3 @@ Can stay if clearly gated or internal-only:
 - Real subscription entitlement validation.
 - Real backend AI summary provider.
 - Real Google OAuth/token storage.
-

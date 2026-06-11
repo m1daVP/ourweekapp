@@ -15,7 +15,6 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
 ## P0 - Must Fix Before API-Backed MVP Start
 
 1. **Create backend API foundation** ✅
-
    - Define and deploy the MVP backend base URL used by `VITE_API_BASE_URL`.
    - Set production/staging builds to `VITE_API_MODE=backend`.
    - Implement a typed HTTP contract matching existing frontend API clients in `src/shared/api`.
@@ -32,7 +31,6 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
    - Add API versioning or compatibility strategy before real users create data.
 
 2. **Replace mock auth with real auth** ✅
-
    - Current affected areas:
      - `src/shared/api/authApi.ts`
      - `src/app/stores/auth.ts`
@@ -54,8 +52,7 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
      - Handle expired access tokens, refresh failure, logout, and account deletion path if required by store policy.
      - Decide whether local-only mode still exists and how it migrates to an account later.
 
-3. **Implement real subscription entitlement validation**
-
+3. **Implement real subscription entitlement validation** ✅
    - Current affected areas:
      - `src/features/subscription/services/subscriptionService.ts`
      - `src/features/subscription/services/mockSubscriptionProvider.ts`
@@ -78,7 +75,6 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
    - Confirm Google Play subscription policy and Data Safety implications before selling Premium.
 
 4. **Implement backend AI meeting summaries**
-
    - Current affected areas:
      - `src/features/meeting/aiSummaryService.ts`
      - `src/shared/api/aiApi.ts`
@@ -101,7 +97,6 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
      - Handle generation timeout/failure while still showing tasks and agreements.
 
 5. **Implement cloud sync for core local data**
-
    - Current affected areas:
      - `src/shared/services/syncService.ts`
      - `src/shared/api/meetingsApi.ts`
@@ -132,7 +127,6 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
    - Decide whether private notes stay local-only. If they stay local-only, exclude them from sync and say so clearly.
 
 6. **Implement workspace/member API basics**
-
    - Current affected areas:
      - `src/app/stores/workspace.ts`
      - `src/features/workspace/types.ts`
@@ -145,8 +139,7 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
      - Viewer/Child profile only if still in MVP scope.
    - Avoid enterprise RBAC. Keep the existing simple roles unless product scope changes.
 
-7. **Implement Google Calendar integration or remove it from MVP**
-
+7. **Implement Google Calendar integration**
    - Current affected areas:
      - `src/pages/CalendarSyncPage.vue`
      - `src/features/calendar/services/calendarService.ts`
@@ -162,7 +155,6 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
    - If this cannot be completed safely, hide Calendar sync from MVP start.
 
 8. **Replace placeholder legal, privacy, and store disclosures**
-
    - Update Privacy Policy and Terms for real backend behavior.
    - Cover:
      - account data;
@@ -179,14 +171,12 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
 ## P1 - Should Fix Before Wider API MVP Testing
 
 9. **Secure token and sensitive data handling**
-
    - Do not store real auth tokens in plain localStorage for production.
    - Add a Capacitor secure-storage strategy or backend session approach appropriate for Android-first MVP.
    - Ensure logs do not expose meeting notes, private notes, tokens, subscription receipts, or AI prompts.
    - Add account deletion and logout cleanup behavior.
 
 10. **Improve sync UX**
-
     - Add visible but quiet sync states:
       - saved locally;
       - syncing;
@@ -197,14 +187,12 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
     - Make offline behavior explicit without alarming users.
 
 11. **Add API integration tests or contract checks**
-
     - Add focused tests for API DTO mapping and sync conflict handling.
     - Add backend contract examples for each endpoint.
     - Validate `VITE_API_MODE=backend` with missing/invalid `VITE_API_BASE_URL`.
     - Test backend unavailable, 401, 403, 409, 422, and 500 responses.
 
 12. **Replace browser confirms with mobile dialogs**
-
     - Current `window.confirm` usage:
       - `src/pages/MeetingPage.vue`
       - `src/pages/PrivateNotesPage.vue`
@@ -212,7 +200,6 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
     - Use app-native accessible dialogs/bottom sheets with Android back handling.
 
 13. **Clean up all user-facing mock/debug UI**
-
     - Remove or dev-gate:
       - mock auth notices;
       - mock Premium controls;
@@ -224,13 +211,11 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
 ## P2 - Production Readiness After API MVP Works
 
 14. **Add observability and support**
-
     - Add privacy-conscious error reporting.
     - Add backend health checks for API, AI provider, subscription provider, and Calendar integration.
     - Add support diagnostics that do not expose sensitive family content.
 
 15. **Complete release operations**
-
     - Configure Android signing.
     - Replace launcher and splash artwork.
     - Run real Android QA.
@@ -238,7 +223,6 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
     - Verify Data Safety, subscription setup, OAuth consent, and AI disclosures.
 
 16. **Review performance and route splitting**
-
     - The build currently reports a large main chunk warning.
     - Consider lazy-loading settings, auth, history details, private notes, Calendar, and Upgrade routes.
 
