@@ -134,8 +134,8 @@ function mapAuthUser(
     displayName: user.display_name ?? member.display_name,
     role,
     planType,
-    createdAt: user.created_at,
-    updatedAt: user.updated_at,
+    createdAt: new Date(user.created_at).toISOString(),
+    updatedAt: new Date(user.updated_at).toISOString(),
   };
 }
 
@@ -556,9 +556,10 @@ export async function signOutUser(
 export async function getCurrentUser(
   supabase: SupabaseClient,
   authorizationHeader?: string,
-  repository: Pick<AuthRepository, 'getAuthenticatedContext'> = new AuthRepository(
-    supabase,
-  ),
+  repository: Pick<
+    AuthRepository,
+    'getAuthenticatedContext'
+  > = new AuthRepository(supabase),
 ): Promise<AuthUserDto> {
   const token = authorizationHeader?.replace(/^Bearer\s+/i, '');
 
