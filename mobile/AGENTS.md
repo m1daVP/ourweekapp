@@ -1,6 +1,6 @@
 ## Project Identity
 
-**Weekly Us** is a mobile-only application for guided 15-minute weekly check-ins for couples and families.
+**OurWeek** is a mobile-only application for guided 15-minute weekly check-ins for couples and families.
 
 The app helps a household review the week, talk through practical tensions, assign tasks, record agreements, and carry unfinished follow-ups into the next weekly meeting.
 
@@ -135,27 +135,32 @@ Do not add unless requested:
 - children’s profiles with complex tracking;
 - enterprise-style workspace management.
 
-Weekly Us should focus on guided conversations, agreements, tasks, and follow-up.
+OurWeek should focus on guided conversations, agreements, tasks, and follow-up.
 
-## Current MVP Scope
+## Current Product / v1 Scope
 
-The current MVP includes or is expected to support:
+The current product supports or is being prepared to support for public v1:
 
 - guided weekly meeting flow;
-- default meeting template;
+- default and additional meeting templates;
 - participant setup;
 - notes, tasks, and agreements;
 - responsible person assignment;
 - meeting history;
 - local persistence with basic data versioning;
 - Free and Premium feature locks;
-- mock Premium subscription provider;
-- mock AI meeting summaries behind a Premium lock;
+- development-only mock Premium subscription provider;
+- paid Premium purchase and entitlement validation behind trusted backend or store validation;
+- development-only mock AI summaries behind a Premium lock;
+- production AI summaries only through a backend provider;
 - private notes with a local-only storage notice;
-- placeholder Privacy Policy and Terms screens;
-- Android Capacitor project for internal testing.
+- local reminders;
+- export;
+- Google Calendar sync UI/service preparation, with production OAuth/sync gated by backend support;
+- Privacy Policy and Terms screens that must be replaced with reviewed legal documents before public release;
+- Android Capacitor project prepared for release builds.
 
-The MVP intentionally avoids generic family-organizer features such as chat, meal planning, grocery lists, complex budgeting, or full calendar management.
+Public v1 intentionally avoids generic family-organizer features such as chat, meal planning, grocery lists, complex budgeting, or full calendar management.
 
 ## Current Project Structure
 
@@ -203,7 +208,7 @@ Rules:
 
 ## Product Tone and Copywriting
 
-Weekly Us should sound calm, practical, neutral, and non-judgmental.
+OurWeek should sound calm, practical, neutral, and non-judgmental.
 
 Use wording like:
 
@@ -229,7 +234,9 @@ Do not shame users. Do not decide who is right or wrong. Do not present the app 
 
 ## Access Model
 
-Prepare the architecture for Free and Premium plans, but do not implement real payments unless explicitly requested.
+Free and Premium remain the product tiers. Paid Premium v1 requires trusted backend or store entitlement checks before unlocking paid features.
+
+Development builds may use mock Premium state for testing. Production builds must not expose paid features through mock state or frontend-only entitlement checks.
 
 ### Free plan
 
@@ -260,7 +267,7 @@ Prepare simple role support for future family workspaces:
 - Owner;
 - Adult member / Partner;
 - Viewer, optional later;
-- Child profile, optional later and not as a real login in the MVP.
+- Child profile, optional later and not as a real login in public v1.
 
 Avoid complex enterprise RBAC.
 
@@ -429,7 +436,7 @@ Rules:
 
 - Never put secrets in Vite environment variables.
 - Never place AI provider API keys in the mobile app.
-- If no API base URL is configured, the app should use local/mock behavior where available.
+- If no API base URL is configured, the app should use local development behavior where available.
 - Keep Vite config simple.
 - Use path aliases if already configured; do not introduce alias churn without benefit.
 
@@ -439,8 +446,8 @@ Treat Capacitor as a bridge between the Vue app and native platforms.
 
 Current Android configuration from README:
 
-- App name: `Weekly Us`
-- App id: `com.weeklyus.app`
+- App name: `OurWeek`
+- App id: `com.ourweek.app`
 - Web output directory: `dist`
 
 Rules:
@@ -756,17 +763,17 @@ Rules:
 
 Use this notice where appropriate:
 
-> Private notes are stored on this device in the current MVP.
+> Private notes are stored on this device unless a reviewed sync design is implemented.
 
 ## Local Persistence Rules
 
-Current MVP stores app data locally on the device through a shared storage service.
+The current product stores app data locally on the device through a shared storage service unless a feature is explicitly connected to backend sync.
 
 Storage is split by sensitivity:
 
 - Sensitive auth tokens, including access tokens and refresh tokens, must use `src/shared/services/authTokenStorageService.ts`, backed by `@aparajita/capacitor-secure-storage` on native platforms.
 - Non-sensitive app settings should use `@capacitor/preferences` through the shared storage service. Preferences are suitable for lightweight settings such as localization, reminder settings, calendar sync preferences without OAuth tokens, and workspace UI/member settings.
-- Meeting data, tasks, agreements, participants, private notes, and mock subscription state remain in the versioned local app data store until a more specific persistence layer is introduced.
+- Meeting data, tasks, agreements, participants, private notes, and development-only mock subscription state remain in the versioned local app data store until a more specific persistence layer is introduced.
 - Do not store access tokens, refresh tokens, OAuth tokens, API keys, payment data, or other secrets in `localStorage`, Capacitor Preferences, Pinia persistence, exports, logs, or user-visible error messages.
 - Capacitor Preferences is not secure storage. Use it only for non-sensitive settings.
 
@@ -779,7 +786,7 @@ Stored data may include:
 - settings;
 - private notes;
 - onboarding state;
-- mock subscription state.
+- development-only mock subscription state.
 
 Rules:
 
@@ -802,21 +809,23 @@ storageService.remove();
 
 ## Premium and Subscription Rules
 
-Premium access currently uses a mock subscription provider for development and internal testing.
+Premium access may use a mock subscription provider only for development and local testing.
 
 Rules:
 
-- Do not implement real payments unless explicitly requested.
 - Do not collect payment details manually.
 - Do not hardcode billing logic in UI components.
 - Keep subscription logic behind a provider/service abstraction.
+- Production paid Premium requires trusted backend or store entitlement validation before paid features are unlocked.
 - In production, frontend state must not be the source of truth for paid access.
-- Consider RevenueCat or direct Google Play Billing later, but only after platform rules are reviewed.
+- Mock Premium state must never grant production paid access.
+- Purchase, restore, and manage-subscription flows must fail safely if entitlement validation is unavailable.
+- Consider RevenueCat or direct Google Play Billing only after platform rules are reviewed.
 - Do not use Stripe Checkout for mobile app subscriptions unless store policy implications are reviewed.
 
 ## AI Summary Rules
 
-AI summaries are Premium-gated and currently use a local mock provider unless backend API mode is explicitly enabled.
+AI summaries are Premium-gated. Local mock AI is development-only; production AI summaries require a backend provider.
 
 Rules:
 
@@ -824,7 +833,7 @@ Rules:
 - Real AI calls must go through a backend.
 - API keys must not be placed in the mobile app.
 - Keep AI behind a clean provider/service abstraction.
-- Mock AI should be clearly separated from real backend AI.
+- Mock AI must be clearly separated from real backend AI and must not be presented as production AI.
 - AI summaries must be neutral, short, practical, and non-judgmental.
 - AI summaries should focus on agreements, tasks, and next steps.
 
@@ -877,7 +886,7 @@ Rules:
 - Do not implement OAuth casually inside the mobile app.
 - Do not store Google tokens insecurely.
 - Prefer backend-supported OAuth for production.
-- Prepare only UI placeholder, service abstraction, connection status, and TODO notes unless implementation is explicitly requested.
+- Prepare only UI draft states, service abstraction, connection status, and TODO notes unless implementation is explicitly requested.
 
 ## Export Feature Rules
 
@@ -898,16 +907,17 @@ Rules:
 
 ## API Layer Rules
 
-There is no production backend sync in the current MVP.
+Backend API access is available behind `src/shared/api`. Use it only for features that are explicitly backend-backed.
 
 Rules:
 
-- Do not add backend integration unless requested.
-- If backend integration is prepared, keep it behind `src/shared/api` and feature services.
+- Keep backend integration behind `src/shared/api` and feature services.
+- Keep meeting, task, agreement, participant, and private-note data local-first unless sync is explicitly implemented.
 - Do not rewrite the app around backend assumptions too early.
-- Backend-dependent features include auth, workspace sync, AI summaries, subscription validation, Google Calendar OAuth, and cross-device sync.
+- Auth, subscription validation, AI summaries, Google Calendar OAuth, workspace sync, and future cross-device sync must stay behind services/API modules.
+- Do not claim cloud sync or backend-backed behavior unless the feature is actually connected and tested.
 
-Suggested future structure:
+Current API structure:
 
 ```txt
 src/shared/api/
@@ -1079,19 +1089,22 @@ Avoid dependencies that:
 - require complex native setup without strong benefit;
 - duplicate existing Vue/Capacitor/browser functionality.
 
-## Android Internal Testing Rules
+## Android Release Testing Rules
 
-This project is prepared for internal testing only.
+This project is being prepared for a public Android v1 release with paid Premium.
 
-Do not publish to Google Play production until production blockers are resolved.
+Do not publish a public paid release until public release gates are resolved.
 
-Before Android internal testing:
+Before Android release testing:
 
 - Run `npm run build`.
 - Run `npm run check`.
 - Run `npm run cap:sync`.
 - Open with `npm run cap:open:android`.
-- Test on a real Android device.
+- Create and verify a signed release build or AAB.
+- Prepare Play Console app setup, internal/closed testing track, and release notes.
+- Confirm Google Play Data Safety answers against final app behavior.
+- Test on real Android devices.
 - Check app restart behavior.
 - Check offline behavior.
 - Check local storage persistence.
@@ -1099,6 +1112,8 @@ Before Android internal testing:
 - Check Android back behavior.
 - Check splash screen and launcher icon.
 - Check layouts on small and large Android screens.
+- Check subscription purchase, restore, manage-subscription, and entitlement refresh flows before selling Premium.
+- Check backend AI summary behavior before offering production AI summaries.
 
 Release readiness notes are tracked in:
 
@@ -1106,15 +1121,16 @@ Release readiness notes are tracked in:
 docs/android-mvp-release-readiness.md
 ```
 
-## Production Blockers
+## Public Release Gates
 
-Do not treat the app as production-ready until these are resolved:
+Do not treat the app as ready for public paid release until these are resolved:
 
-- Replace placeholder Privacy Policy and Terms with reviewed legal documents.
-- Replace placeholder launcher icon and splash assets with production artwork.
+- Replace draft Privacy Policy and Terms with reviewed legal documents.
+- Replace temporary launcher icon and splash assets with production artwork.
 - Configure Android Studio, JDK, signing, and Play Console release setup.
+- Produce and verify a signed release build or AAB.
 - Run real-device Android QA for restart, offline use, storage, and layout.
-- Connect real subscription entitlement validation before selling Premium.
+- Connect real subscription purchase, restore, management, and entitlement validation before selling Premium.
 - Add backend-supported AI summaries before offering production AI features.
 - Confirm Google Play Data Safety answers against final app behavior.
 
@@ -1254,7 +1270,7 @@ Before submitting changes, verify:
 - Premium locks do not break the free flow.
 - Local data persists after refresh/restart where expected.
 - The implementation does not introduce unnecessary dependencies.
-- The result matches Weekly Us product positioning.
+- The result matches OurWeek product positioning.
 
 ## What Not To Do
 
@@ -1274,7 +1290,7 @@ Do not:
 - claim cloud sync if it is not implemented;
 - make the UI desktop-first;
 - add heavy UI frameworks without approval;
-- overcomplicate the MVP;
+- overcomplicate public v1;
 - ignore Android back button behavior;
 - rely only on browser testing for native behavior.
 
@@ -1293,5 +1309,5 @@ A task is done when:
 - Android back behavior is handled for overlays/navigation;
 - edge cases are not ignored;
 - the implementation does not introduce unnecessary complexity;
-- the result matches the product positioning of Weekly Us;
+- the result matches the product positioning of OurWeek;
 - the solution does not block future iOS support.

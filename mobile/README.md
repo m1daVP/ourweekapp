@@ -1,6 +1,6 @@
-# Weekly Us
+# OurWeek
 
-Weekly Us is an Android-first mobile app for guided 15-minute weekly check-ins
+OurWeek is an Android-first mobile app for guided 15-minute weekly check-ins
 for couples and families.
 
 The app helps a household review the week, talk through practical tensions,
@@ -10,7 +10,7 @@ software and not like a corporate task tracker.
 
 ## Product Focus
 
-Weekly Us supports one core ritual:
+OurWeek supports one core ritual:
 
 1. Start a weekly meeting.
 2. Review last week.
@@ -19,24 +19,34 @@ Weekly Us supports one core ritual:
 5. Finish with a clear summary.
 6. Review unfinished items next week.
 
-The MVP intentionally avoids generic family-organizer features such as chat,
+Public v1 intentionally avoids generic family-organizer features such as chat,
 meal planning, grocery lists, complex budgeting, or calendar management.
 
-## Current MVP Features
+## Current Product Capabilities
+
+Available in the app:
 
 - Guided weekly meeting flow
-- Default meeting template
+- Default and additional meeting templates
 - Participant setup
 - Notes, tasks, and agreements
 - Responsible person assignment
-- Meeting history
+- Meeting history with Free and Premium access rules
 - Local persistence with basic data versioning
-- Free and Premium feature locks
-- Mock Premium subscription provider
-- Mock AI meeting summaries behind a Premium lock
 - Private notes with a local-only storage notice
-- Placeholder Privacy Policy and Terms screens
-- Android Capacitor project for internal testing
+- Local reminders
+- Meeting export
+- Free and Premium feature locks
+- Android-first Capacitor app prepared for release builds
+
+Production-gated capabilities:
+
+- Paid Premium purchase and entitlement validation
+- Real AI meeting summaries
+- Google Calendar OAuth and sync
+
+These production-gated capabilities must use trusted backend or store-backed
+validation before they are offered in a public paid release.
 
 ## Tech Stack
 
@@ -119,8 +129,8 @@ npm run format
 
 The Capacitor app is configured with:
 
-- App name: `Weekly Us`
-- App id: `com.weeklyus.app`
+- App name: `OurWeek`
+- App id: `com.ourweek.app`
 - Web output directory: `dist`
 
 Build and sync web assets into Android:
@@ -139,24 +149,35 @@ Android Studio and a configured JDK are required for native builds.
 
 ## Data and Privacy Notes
 
-The current MVP stores app data locally on the device through a shared storage
-service. Meetings, tasks, agreements, participants, settings, private notes,
-onboarding state, and mock subscription state are stored in local device
-storage.
+OurWeek stores meeting data locally on the device unless a feature is explicitly
+connected to backend sync. Meetings, tasks, agreements, participants, settings,
+private notes, and onboarding state are stored through the shared local storage
+service.
 
-There is no production backend sync in the current MVP. Do not claim cloud sync
-or encryption unless those features are actually implemented.
+Sensitive auth tokens must use secure token storage when auth or backend API
+mode is enabled. Do not store access tokens, refresh tokens, OAuth tokens, API
+keys, payment data, or other secrets in local storage, Capacitor Preferences,
+logs, exports, or user-visible errors.
 
-Private notes are stored on this device in the current MVP.
+Do not claim cloud sync or encryption unless those features are actually
+implemented.
+
+Private notes are stored on this device unless a reviewed sync design is
+implemented.
 
 ## Premium and AI Notes
 
-Premium access currently uses a mock subscription provider for development and
-internal testing. Real payments are not connected.
+Paid Premium must not rely on mock state in production. Production Premium
+entitlement must come from trusted backend or store validation before paid
+features are unlocked.
 
-AI summaries are Premium-gated and use a local mock provider unless backend API
-mode is explicitly enabled. Real AI calls must go through a backend. API keys
-must not be placed in the mobile app.
+The mock subscription provider is development-only. Do not sell Premium until
+purchase, restore, manage-subscription, and entitlement validation behavior are
+connected to the production billing path.
+
+AI summaries are Premium-gated. Development can use the local mock provider, but
+production AI summaries must go through a backend. API keys must not be placed
+in the mobile app.
 
 AI summaries may be inaccurate. Review before relying on them.
 
@@ -170,8 +191,14 @@ VITE_API_MODE=mock
 VITE_APP_ENV=local
 ```
 
-If no API base URL is configured, the app uses local/mock behavior where
-available.
+Use `VITE_API_MODE=mock` for local development and design/testing flows that do
+not require the backend.
+
+Production builds that use backend-backed auth, subscription validation, AI, or
+Calendar features must configure `VITE_API_BASE_URL`.
+
+Never put secrets in Vite environment variables. Values exposed through Vite are
+bundled into the mobile/web app.
 
 ## Useful Scripts
 
@@ -188,30 +215,32 @@ npm run cap:sync
 npm run cap:open:android
 ```
 
-## Internal Test Readiness
+## Release Readiness
 
-Android MVP release preparation notes are tracked in:
+Android release preparation notes are tracked in:
 
 ```txt
 docs/android-mvp-release-readiness.md
 ```
 
-This project is prepared for internal testing only. Do not publish to Google
-Play production until the remaining production blockers are resolved.
+The app is being prepared for a public v1 release with paid Premium. Do not
+publish a paid release until the release gates below are resolved.
 
-## Production Blockers
+## Before Public Release
 
-- Replace placeholder Privacy Policy and Terms with reviewed legal documents.
-- Replace placeholder launcher icon and splash assets with production artwork.
+- Replace draft Privacy Policy and Terms with reviewed legal documents.
+- Replace temporary launcher icon and splash assets with production artwork.
 - Configure Android Studio, JDK, signing, and Play Console release setup.
+- Produce and verify a signed Android release build or AAB.
 - Run real-device Android QA for restart, offline use, storage, and layout.
-- Connect real subscription entitlement validation before selling Premium.
+- Connect real subscription purchase, restore, management, and entitlement
+  validation before selling Premium.
 - Add backend-supported AI summaries before offering production AI features.
 - Confirm Google Play Data Safety answers against final app behavior.
 
 ## Product Tone
 
-Weekly Us should stay calm, practical, and neutral.
+OurWeek should stay calm, practical, and neutral.
 
 Use wording such as:
 
