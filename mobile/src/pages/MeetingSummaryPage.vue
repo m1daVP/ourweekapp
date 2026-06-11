@@ -69,6 +69,11 @@ const meetingSummaryFallbackText = {
     'No AI insight is saved for this meeting yet. The saved decisions and action items are still shown below.',
   noDecisions: 'No decisions were recorded in this meeting.',
   noActions: 'No action items were recorded in this meeting.',
+  unavailableTitle: 'Summary unavailable',
+  unavailableText:
+    'This meeting summary is not available on this device right now.',
+  historyLockedText:
+    'This meeting is outside the free history limit. Upgrade to review the saved summary.',
   viewFullNotes: 'View full notes',
 } as const;
 
@@ -78,69 +83,6 @@ function meetingSummaryText(key: MeetingSummaryFallbackKey) {
   const path = `meetingSummary.${key}`;
   return te(path) ? t(path) : meetingSummaryFallbackText[key];
 }
-
-const mockParticipants: SummaryParticipant[] = [
-  {
-    id: '1',
-    name: 'Sarah',
-    initials: 'SA',
-    avatarColor: '#c46f39',
-  },
-  {
-    id: '2',
-    name: 'David',
-    initials: 'DA',
-    avatarColor: '#456349',
-  },
-  {
-    id: '3',
-    name: 'Alex',
-    initials: 'AL',
-    avatarColor: '#7c5059',
-  },
-  {
-    id: '4',
-    name: 'Mom',
-    initials: 'MO',
-    avatarColor: '#7e5622',
-  },
-];
-
-const mockMeetingSummary = computed<SummaryViewModel>(() => ({
-  id: 'mock-summary-1',
-  title: t('meetingSummary.mockTitle'),
-  date: t('meetingSummary.mockDate'),
-  participants: mockParticipants,
-  aiInsight: t('meetingSummary.mockAiInsight'),
-  keyDecisions: [
-    t('meetingSummary.mockDecisionScreenTime'),
-    t('meetingSummary.mockDecisionGroceries'),
-    t('meetingSummary.mockDecisionHiking'),
-  ],
-  actionItems: [
-    {
-      id: '1',
-      title: t('meetingSummary.mockActionFaucet'),
-      assigneeName: 'David',
-      assigneeInitials: 'DA',
-      assigneeAvatarColor: '#7e5622',
-      completed: false,
-    },
-    {
-      id: '2',
-      title: t('meetingSummary.mockActionSoccer'),
-      assigneeName: 'Sarah',
-      assigneeInitials: 'SA',
-      assigneeAvatarColor: '#c46f39',
-      completed: false,
-    },
-  ],
-  sentiment: {
-    label: t('meetingSummary.overallMood'),
-    value: t('meetingSummary.positiveAligned'),
-    score: 4,
-  },
-}));
 
 const meetingId = computed(() => String(route.params.meetingId ?? ''));
 
@@ -175,15 +117,15 @@ const accessibleMeeting = computed(() =>
 const meetingSummary = computed(() =>
   accessibleMeeting.value
     ? createSummaryViewModel(accessibleMeeting.value)
-    : mockMeetingSummary.value
+    : null
 );
 
-const visibleParticipants = computed(() =>
-  meetingSummary.value.participants.slice(0, 2)
+const visibleParticipants = computed(
+  () => meetingSummary.value?.participants.slice(0, 2) ?? []
 );
 
 const hiddenParticipantCount = computed(() =>
-  Math.max(0, meetingSummary.value.participants.length - 2)
+  Math.max(0, (meetingSummary.value?.participants.length ?? 0) - 2)
 );
 
 const canUseAiSummary = computed(() => canUseFeature('aiSummary'));
@@ -193,8 +135,8 @@ const aiSummaryRouteStatus = computed(() =>
 );
 
 const aiInsightState = computed<AiInsightState>(() => {
-  if (!accessibleMeeting.value) {
-    return 'available';
+  if (!accessibleMeeting.value || !meetingSummary.value) {
+    return 'empty';
   }
 
   if (!canUseAiSummary.value) {
@@ -219,9 +161,16 @@ const aiInsightState = computed<AiInsightState>(() => {
 const sentimentBars = computed(() =>
   Array.from({ length: 5 }, (_, index) => ({
     id: index,
-    isActive: index < meetingSummary.value.sentiment.score,
-    isStrong: index >= 3 && index < meetingSummary.value.sentiment.score,
+    isActive: index < (meetingSummary.value?.sentiment.score ?? 0),
+    isStrong:
+      index >= 3 && index < (meetingSummary.value?.sentiment.score ?? 0),
   }))
+);
+
+const unavailableText = computed(() =>
+  meeting.value && !canAccessMeeting.value
+    ? meetingSummaryText('historyLockedText')
+    : meetingSummaryText('unavailableText')
 );
 
 function compareMeetingsByDate(first: Meeting, second: Meeting) {
@@ -408,6 +357,10 @@ function getShareText(summary: SummaryViewModel) {
 }
 
 async function shareVisibleSummary() {
+  if (!meetingSummary.value) {
+    throw new Error('Summary sharing is not available for this meeting.');
+  }
+
   const text = getShareText(meetingSummary.value);
 
   // TODO: Use Capacitor native share integration when the mobile provider is added.
@@ -472,7 +425,7 @@ function goBack() {
       <span aria-hidden="true"></span>
     </header>
 
-    <main class="meeting-summary-content">
+    <main v-if="meetingSummary" class="meeting-summary-content">
       <section class="meeting-summary-hero" aria-labelledby="summary-title">
         <span class="meeting-summary-hero__badge" aria-hidden="true">
           <span class="material-symbols-outlined">groups</span>
@@ -622,7 +575,21 @@ function goBack() {
       </section>
     </main>
 
-    <footer class="meeting-summary-bottom-action">
+    <main v-else class="meeting-summary-content">
+      <section class="meeting-summary-hero" aria-labelledby="summary-title">
+        <span class="meeting-summary-hero__badge" aria-hidden="true">
+          <span class="material-symbols-outlined">summarize</span>
+        </span>
+        <div>
+          <h2 id="summary-title">
+            {{ meetingSummaryText('unavailableTitle') }}
+          </h2>
+          <p>{{ unavailableText }}</p>
+        </div>
+      </section>
+    </main>
+
+    <footer v-if="meetingSummary" class="meeting-summary-bottom-action">
       <p v-if="shareStatus" class="meeting-summary-share-status">
         {{ shareStatus }}
       </p>
