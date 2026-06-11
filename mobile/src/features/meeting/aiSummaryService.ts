@@ -5,9 +5,12 @@ import type {
   MeetingSummaryTask,
 } from './types';
 import { generateAiMeetingSummary } from '@/shared/api/aiApi';
+import type { AiMeetingSummaryDto } from '@/shared/api/aiApi';
 import { appConfig } from '@/shared/config/env';
 import { i18n, translate } from '@/features/localization/i18n';
 import { getMeetingSectionTitle } from '@/features/meeting/meetingTemplates';
+
+const backendAiSummaryTimeoutMs = 20000;
 
 export interface AiSummaryProvider {
   generateMeetingSummary(meeting: Meeting): Promise<MeetingSummary>;
@@ -118,6 +121,75 @@ function createShortSummary(
   });
 }
 
+function normalizeBackendSummaryTask(
+  task: AiMeetingSummaryDto['tasks'][number]
+): MeetingSummaryTask {
+  return {
+    title: task.title,
+    responsibilityType: 'needsDiscussion',
+    responsibleParticipantIds: task.responsibleParticipantIds ?? [],
+    ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+    status: 'open',
+  };
+}
+
+function isBackendSummaryTask(
+  value: unknown
+): value is AiMeetingSummaryDto['tasks'][number] {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const task = value as Partial<AiMeetingSummaryDto['tasks'][number]>;
+
+  return (
+    typeof task.title === 'string' &&
+    (!task.responsibleParticipantIds ||
+      task.responsibleParticipantIds.every(
+        (participantId) => typeof participantId === 'string'
+      )) &&
+    (!task.dueDate || typeof task.dueDate === 'string')
+  );
+}
+
+function normalizeBackendSummary(
+  summary: AiMeetingSummaryDto,
+  meetingId: string
+): MeetingSummary {
+  if (summary.meetingId !== meetingId) {
+    throw new Error('AI summary did not match the completed meeting.');
+  }
+
+  const tasks = Array.isArray(summary.tasks)
+    ? summary.tasks.filter(isBackendSummaryTask)
+    : [];
+
+  return {
+    ...summary,
+    tasks: tasks.map(normalizeBackendSummaryTask),
+  };
+}
+
+async function generateBackendAiSummary(meetingId: string) {
+  const abortController = new AbortController();
+  const timeoutId = window.setTimeout(
+    () => abortController.abort(),
+    backendAiSummaryTimeoutMs
+  );
+
+  try {
+    return await generateAiMeetingSummary(
+      {
+        meetingId,
+        locale: i18n.global.locale.value,
+      },
+      { signal: abortController.signal }
+    );
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 const localPlaceholderAiSummaryProvider: AiSummaryProvider = {
   async generateMeetingSummary(meeting) {
     const mainTopics = getMainTopics(meeting);
@@ -141,12 +213,9 @@ const localPlaceholderAiSummaryProvider: AiSummaryProvider = {
 
 const backendAiSummaryProvider: AiSummaryProvider = {
   async generateMeetingSummary(meeting) {
-    const response = await generateAiMeetingSummary({
-      meetingId: meeting.id,
-      locale: i18n.global.locale.value,
-    });
+    const response = await generateBackendAiSummary(meeting.id);
 
-    return response.summary;
+    return normalizeBackendSummary(response.summary, meeting.id);
   },
 };
 
