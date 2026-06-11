@@ -241,7 +241,7 @@ input[type='radio'] {
   margin: 0 auto;
   overflow: hidden;
   background: var(--color-background);
-  box-shadow: 0 0 40px rgba(47, 42, 38, 0.05);
+  box-shadow: 0 0 40px rgba(47, 42, 38, 0.25);
 }
 
 .app-top-bar {
