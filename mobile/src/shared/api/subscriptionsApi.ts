@@ -1,24 +1,28 @@
 import type { FeatureKey, PlanType } from '@/features/access/types';
 import { apiRequest, isBackendApiConfigured } from './httpClient';
 
-export type SubscriptionProviderDto = 'mock' | 'google_play' | 'app_store';
+export type SubscriptionProviderDto =
+  | 'google_play'
+  | 'app_store'
+  | 'revenuecat'
+  | null;
 
 export interface SubscriptionStatusDto {
   planType: PlanType;
   provider: SubscriptionProviderDto;
   enabledFeatures: FeatureKey[];
-  expiresAt?: string;
+  expiresAt: string | null;
   checkedAt: string;
 }
 
 export interface ValidateSubscriptionRequestDto {
-  provider: Exclude<SubscriptionProviderDto, 'mock'>;
+  provider: Exclude<SubscriptionProviderDto, 'revenuecat' | null>;
   purchaseToken: string;
   productId: string;
 }
 
 export interface RestoreSubscriptionRequestDto {
-  provider: Exclude<SubscriptionProviderDto, 'mock'>;
+  provider: Exclude<SubscriptionProviderDto, 'revenuecat' | null>;
 }
 
 export interface ManageSubscriptionResponseDto {
@@ -36,8 +40,9 @@ const freeFeatureKeys: FeatureKey[] = [
 function createMockStatus(): SubscriptionStatusDto {
   return {
     planType: 'free',
-    provider: 'mock',
+    provider: null,
     enabledFeatures: freeFeatureKeys,
+    expiresAt: null,
     checkedAt: new Date().toISOString(),
   };
 }

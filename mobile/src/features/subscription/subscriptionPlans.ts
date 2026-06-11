@@ -5,7 +5,7 @@ export const premiumPlanOptions: SubscriptionPlanOption[] = [
     id: 'premium_monthly',
     name: 'Monthly',
     priceLabel: 'Price pending',
-    description: 'A flexible Premium option for the mock paywall.',
+    description: 'A flexible Premium option for households trying Premium.',
     cadence: 'monthly',
     planType: 'premium',
     entitlementKey: 'premium',
@@ -18,7 +18,8 @@ export const premiumPlanOptions: SubscriptionPlanOption[] = [
     id: 'premium_yearly',
     name: 'Yearly',
     priceLabel: 'Price pending',
-    description: 'A yearly Premium option for the mock paywall.',
+    description:
+      'A yearly Premium option for households using Weekly Us often.',
     cadence: 'yearly',
     planType: 'premium',
     entitlementKey: 'premium',

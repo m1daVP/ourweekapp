@@ -8,6 +8,7 @@ import FeatureList from '@/features/subscription/components/FeatureList.vue';
 import PlanCard from '@/features/subscription/components/PlanCard.vue';
 import { planComparisonItems } from '@/features/subscription/subscriptionPlans';
 import type { SubscriptionPlanId } from '@/features/subscription/types';
+import { appConfig } from '@/shared/config/env';
 import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 
 const router = useRouter();
@@ -27,6 +28,16 @@ const selectedPlan = computed(() =>
   )
 );
 const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
+const isPurchaseUnavailable = computed(() => appConfig.isBackendApiEnabled);
+const purchaseButtonLabel = computed(() => {
+  if (hasPremium.value) {
+    return t('upgrade.premiumActive');
+  }
+
+  return isPurchaseUnavailable.value
+    ? t('upgrade.billingUnavailableAction')
+    : t('upgrade.startPremium');
+});
 
 function selectPlan(planId: SubscriptionPlanId) {
   selectedPlanId.value = planId;
@@ -75,15 +86,14 @@ function purchaseSelectedPlan() {
         class="meeting-primary"
         type="button"
         :disabled="
-          subscriptionStore.isPurchasing || !selectedPlan || hasPremium
+          subscriptionStore.isPurchasing ||
+          !selectedPlan ||
+          hasPremium ||
+          isPurchaseUnavailable
         "
         @click="purchaseSelectedPlan"
       >
-        {{
-          hasPremium
-            ? t('upgrade.premiumActive')
-            : t('upgrade.startMockPremium')
-        }}
+        {{ purchaseButtonLabel }}
       </button>
       <p class="subscription-note">
         {{ t('upgrade.billingNote') }}

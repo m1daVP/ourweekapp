@@ -1,3 +1,5 @@
+import { appConfig } from '@/shared/config/env';
+import { createBackendSubscriptionProvider } from './backendSubscriptionProvider';
 import { createMockSubscriptionProvider } from './mockSubscriptionProvider';
 import type {
   ManageSubscriptionResult,
@@ -12,7 +14,9 @@ let activeProvider: SubscriptionProvider | null = null;
 
 function getActiveProvider() {
   if (!activeProvider) {
-    activeProvider = createMockSubscriptionProvider();
+    activeProvider = appConfig.isBackendApiEnabled
+      ? createBackendSubscriptionProvider()
+      : createMockSubscriptionProvider();
   }
 
   return activeProvider;

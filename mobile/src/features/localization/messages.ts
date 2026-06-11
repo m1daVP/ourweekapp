@@ -397,14 +397,14 @@ export const messages = {
       heroTitle: 'Keep the weekly ritual easier to revisit',
       heroText:
         'Unlock practical additions without changing Weekly Us into a task tracker or a budgeting app.',
-      placeholdersTitle: 'Plan placeholders',
+      placeholdersTitle: 'Choose a Premium plan',
       placeholdersText:
-        'Prices and billing will be connected later through the proper mobile subscription flow.',
+        'Premium access is checked through your account and app store subscription.',
       planOptionsLabel: 'Premium plan options',
       premiumActive: 'Premium active',
-      startMockPremium: 'Start mock Premium',
+      startPremium: 'Start Premium',
       billingNote:
-        'This paywall uses a mock billing provider only. Real mobile billing must validate entitlements through a trusted provider or backend before unlocking Premium in production.',
+        'Premium is unlocked only after your subscription is validated by the backend.',
       comparisonTitle: 'Plan comparison',
       comparisonText:
         'No pressure. Free keeps the core weekly meeting flow available.',
@@ -415,17 +415,24 @@ export const messages = {
       account: 'Account',
       renewalUnavailable: 'Not available until real billing is connected.',
       manageAvailable: 'Available through the store.',
-      manageUnavailable: 'Mobile billing management will be added later.',
+      manageUnavailable: 'No active store subscription to manage yet.',
       localDeviceMode: 'Local device mode',
       storeBillingNotConnected: 'Store billing is not connected in this build.',
+      billingUnavailableAction: 'Store billing unavailable',
+      billingUnavailable:
+        'Store billing is not available in this build yet. Premium access stays locked.',
       mockPurchasesDisabled:
         'Mock purchases are disabled in production builds.',
       planUnavailable: 'This Premium plan is not available.',
+      premiumEnabled: 'Premium is active for this account.',
+      premiumRestored: 'Premium was restored for this account.',
+      noPremiumFound: 'No active Premium subscription was found.',
       mockPremiumEnabled: 'Mock Premium is enabled on this device.',
       mockPremiumRestored: 'Mock Premium was restored on this device.',
       noMockPremium: 'No mock Premium purchase was found on this device.',
       managementLater:
         'Subscription management will open Google Play or App Store settings after real billing is configured.',
+      managementOpened: 'Opening subscription management.',
       checkFailed: 'Something went wrong while checking Premium access.',
       startFailed: 'Something went wrong while starting Premium.',
       restoreFailed: 'Something went wrong while restoring purchases.',
@@ -435,12 +442,14 @@ export const messages = {
         premiumMonthly: {
           name: 'Monthly',
           priceLabel: 'Price pending',
-          description: 'A flexible Premium option for the mock paywall.',
+          description:
+            'A flexible Premium option for households trying Premium.',
         },
         premiumYearly: {
           name: 'Yearly',
           priceLabel: 'Price pending',
-          description: 'A yearly Premium option for the mock paywall.',
+          description:
+            'A yearly Premium option for households using Weekly Us often.',
         },
       },
     },
@@ -1526,14 +1535,14 @@ export const messages = {
       heroTitle: 'Зробіть щотижневий ритуал легшим для перегляду',
       heroText:
         'Відкрийте практичні доповнення, не перетворюючи Weekly Us на трекер завдань або бюджетний додаток.',
-      placeholdersTitle: 'Заглушки планів',
+      placeholdersTitle: 'Оберіть Premium-план',
       placeholdersText:
-        'Ціни й білінг будуть підключені пізніше через правильний мобільний потік підписок.',
+        'Premium-доступ перевіряється через ваш акаунт і підписку в магазині застосунків.',
       planOptionsLabel: 'Варіанти Premium-плану',
       premiumActive: 'Premium активний',
-      startMockPremium: 'Запустити mock Premium',
+      startPremium: 'Запустити Premium',
       billingNote:
-        'Цей paywall використовує лише mock-провайдера білінгу. У production справжній мобільний білінг має перевіряти права через довіреного провайдера або backend перед відкриттям Premium.',
+        'Premium відкривається лише після перевірки підписки backend-сервером.',
       comparisonTitle: 'Порівняння планів',
       comparisonText:
         'Без тиску. Безкоштовний план залишає доступним основний потік щотижневої зустрічі.',
@@ -1545,16 +1554,23 @@ export const messages = {
       renewalUnavailable:
         'Недоступно, доки не буде підключено справжній білінг.',
       manageAvailable: 'Доступно через магазин.',
-      manageUnavailable: 'Керування мобільним білінгом буде додано пізніше.',
+      manageUnavailable: 'Поки немає активної підписки магазину для керування.',
       localDeviceMode: 'Локальний режим пристрою',
       storeBillingNotConnected: 'Білінг магазину не підключено в цій збірці.',
+      billingUnavailableAction: 'Білінг магазину недоступний',
+      billingUnavailable:
+        'Білінг магазину ще недоступний у цій збірці. Premium залишається закритим.',
       mockPurchasesDisabled: 'Mock-покупки вимкнені у production-збірках.',
       planUnavailable: 'Цей Premium-план недоступний.',
+      premiumEnabled: 'Premium активний для цього акаунта.',
+      premiumRestored: 'Premium відновлено для цього акаунта.',
+      noPremiumFound: 'Активну Premium-підписку не знайдено.',
       mockPremiumEnabled: 'Mock Premium увімкнено на цьому пристрої.',
       mockPremiumRestored: 'Mock Premium відновлено на цьому пристрої.',
       noMockPremium: 'Mock-покупку Premium на цьому пристрої не знайдено.',
       managementLater:
         'Керування підпискою відкриватиме налаштування Google Play або App Store після налаштування справжнього білінгу.',
+      managementOpened: 'Відкриваємо керування підпискою.',
       checkFailed: 'Щось пішло не так під час перевірки Premium-доступу.',
       startFailed: 'Щось пішло не так під час запуску Premium.',
       restoreFailed: 'Щось пішло не так під час відновлення покупок.',
@@ -1563,12 +1579,14 @@ export const messages = {
         premiumMonthly: {
           name: 'Щомісячний',
           priceLabel: 'Ціна очікується',
-          description: 'Гнучкий Premium-варіант для mock paywall.',
+          description:
+            'Гнучкий Premium-варіант для домів, які пробують Premium.',
         },
         premiumYearly: {
           name: 'Річний',
           priceLabel: 'Ціна очікується',
-          description: 'Річний Premium-варіант для mock paywall.',
+          description:
+            'Річний Premium-варіант для домів, які часто користуються Weekly Us.',
         },
       },
     },
@@ -2665,12 +2683,12 @@ export const messages = {
       heroTitle: 'Haz que el ritual semanal sea más fácil de revisar',
       heroText:
         'Desbloquea agregados prácticos sin convertir Weekly Us en un gestor de tareas o una app de presupuesto.',
-      placeholdersTitle: 'Marcadores de posición de planes',
+      placeholdersTitle: 'Elige un plan Premium',
       placeholdersText:
-        'Los precios y la facturación se conectarán más adelante mediante el flujo correcto de suscripciones móviles.',
+        'El acceso Premium se revisa con tu cuenta y la suscripción de la tienda.',
       planOptionsLabel: 'Opciones de plan Premium',
       premiumActive: 'Premium activo',
-      startMockPremium: 'Iniciar Premium simulado',
+      startPremium: 'Iniciar Premium',
       comparisonTitle: 'Comparación de planes',
       comparisonText:
         'Sin presión. Gratis mantiene disponible el flujo principal de reunión semanal.',
@@ -2683,21 +2701,28 @@ export const messages = {
         'No disponible hasta que se conecte la facturación real.',
       manageAvailable: 'Disponible a través de la tienda.',
       manageUnavailable:
-        'La administración de facturación móvil se agregará más adelante.',
+        'Todavía no hay una suscripción activa de la tienda para administrar.',
       billingNote:
-        'Este muro de pago usa solo un proveedor de facturación simulado. La facturación móvil real debe validar derechos mediante un proveedor confiable o backend antes de desbloquear Premium en producción.',
+        'Premium se desbloquea solo después de que el backend valide tu suscripción.',
       localDeviceMode: 'Modo local del dispositivo',
       storeBillingNotConnected:
         'La facturación de la tienda no está conectada en esta versión.',
+      billingUnavailableAction: 'Facturación no disponible',
+      billingUnavailable:
+        'La facturación de la tienda aún no está disponible en esta versión. Premium permanece bloqueado.',
       mockPurchasesDisabled:
         'Las compras simuladas están desactivadas en versiones de producción.',
       planUnavailable: 'Este plan Premium no está disponible.',
+      premiumEnabled: 'Premium está activo para esta cuenta.',
+      premiumRestored: 'Premium se restauró para esta cuenta.',
+      noPremiumFound: 'No se encontró ninguna suscripción Premium activa.',
       mockPremiumEnabled: 'Premium simulado está activado en este dispositivo.',
       mockPremiumRestored: 'Premium simulado se restauró en este dispositivo.',
       noMockPremium:
         'No se encontró ninguna compra Premium simulada en este dispositivo.',
       managementLater:
         'La administración de suscripción abrirá Google Play o los ajustes de App Store después de configurar la facturación real.',
+      managementOpened: 'Abriendo la administración de suscripción.',
       checkFailed: 'Algo salió mal al revisar el acceso Premium.',
       startFailed: 'Algo salió mal al iniciar Premium.',
       restoreFailed: 'Algo salió mal al restaurar compras.',
@@ -2707,13 +2732,13 @@ export const messages = {
           name: 'Mensual',
           priceLabel: 'Precio pendiente',
           description:
-            'Una opción Premium flexible para el muro de pago simulado.',
+            'Una opción Premium flexible para hogares que prueban Premium.',
         },
         premiumYearly: {
           name: 'Anual',
           priceLabel: 'Precio pendiente',
           description:
-            'Una opción Premium anual para el muro de pago simulado.',
+            'Una opción Premium anual para hogares que usan Weekly Us a menudo.',
         },
       },
     },
