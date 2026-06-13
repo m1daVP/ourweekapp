@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import type { UserRole } from '@/features/access/types';
@@ -28,6 +28,9 @@ const activeMembers = computed(() =>
 );
 const pendingInvites = computed(() =>
   workspaceStore.visibleMembers.filter((member) => member.status === 'invited')
+);
+const visibleErrorMessage = computed(
+  () => errorMessage.value || workspaceStore.errorMessage
 );
 
 function clearMessages() {
@@ -73,7 +76,11 @@ function getInviteName(contact: string) {
   );
 }
 
-function inviteMember() {
+function isEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+async function inviteMember() {
   clearMessages();
 
   if (!can('inviteMembers')) {
@@ -88,14 +95,20 @@ function inviteMember() {
     return;
   }
 
-  const member = workspaceStore.inviteMember({
+  if (!isEmail(contact)) {
+    errorMessage.value = t('workspace.addEmailFirst');
+    return;
+  }
+
+  const member = await workspaceStore.inviteWorkspaceMember({
     displayName: getInviteName(contact),
-    email: contact.includes('@') ? contact : undefined,
+    email: contact,
     role: inviteDraft.role,
   });
 
   if (!member) {
-    errorMessage.value = t('workspace.saveInviteFailed');
+    errorMessage.value =
+      workspaceStore.errorMessage || t('workspace.saveInviteFailed');
     return;
   }
 
@@ -105,7 +118,7 @@ function inviteMember() {
   closeInviteSheet();
 }
 
-function removeMember(userId: string) {
+async function removeMember(userId: string) {
   clearMessages();
 
   if (!can('removeMembers')) {
@@ -113,9 +126,20 @@ function removeMember(userId: string) {
     return;
   }
 
-  workspaceStore.removeMember(userId);
+  const removed = await workspaceStore.removeWorkspaceMember(userId);
+
+  if (!removed) {
+    errorMessage.value =
+      workspaceStore.errorMessage || t('workspace.removeMemberFailed');
+    return;
+  }
+
   statusMessage.value = t('workspace.memberRemoved');
 }
+
+onMounted(() => {
+  void workspaceStore.loadWorkspace();
+});
 </script>
 
 <template>
@@ -126,6 +150,15 @@ function removeMember(userId: string) {
     </header>
 
     <section
+      v-if="workspaceStore.isLoading"
+      class="workspace-loading"
+      role="status"
+    >
+      {{ t('workspace.loading') }}
+    </section>
+
+    <section
+      v-else
       class="workspace-member-cards"
       :aria-label="t('workspace.currentMembersLabel')"
     >
@@ -157,6 +190,7 @@ function removeMember(userId: string) {
           v-if="member.userId !== workspaceStore.workspace.ownerId"
           class="workspace-member-card__remove material-symbols-outlined"
           type="button"
+          :disabled="workspaceStore.isSaving"
           :aria-label="t('workspace.removeMember')"
           @click="removeMember(member.userId)"
         >
@@ -181,11 +215,12 @@ function removeMember(userId: string) {
         </span>
         <span class="workspace-invite-card__body">
           <strong>{{ invite.email ?? invite.displayName }}</strong>
-          <small>{{ t('workspace.savedLocally') }}</small>
+          <small>{{ t('workspace.invitationPending') }}</small>
         </span>
         <button
           type="button"
-          @click="statusMessage = t('workspace.inviteKept')"
+          :disabled="workspaceStore.isSaving"
+          @click="statusMessage = t('workspace.inviteReady')"
         >
           {{ t('workspace.resend') }}
         </button>
@@ -195,15 +230,15 @@ function removeMember(userId: string) {
     <p v-if="statusMessage" class="meeting-status" role="status">
       {{ statusMessage }}
     </p>
-    <p v-if="errorMessage" class="meeting-error" role="alert">
-      {{ errorMessage }}
+    <p v-if="visibleErrorMessage" class="meeting-error" role="alert">
+      {{ visibleErrorMessage }}
     </p>
 
     <div class="workspace-invite-dock">
       <button
         class="meeting-primary"
         type="button"
-        :disabled="!can('inviteMembers')"
+        :disabled="!can('inviteMembers') || workspaceStore.isSaving"
         @click="openInviteSheet"
       >
         <span class="material-symbols-outlined" aria-hidden="true">
@@ -248,7 +283,7 @@ function removeMember(userId: string) {
             v-model="inviteDraft.contact"
             autocomplete="email"
             inputmode="email"
-            type="text"
+            type="email"
             :placeholder="t('workspace.contactPlaceholder')"
           />
         </label>
@@ -270,12 +305,20 @@ function removeMember(userId: string) {
           {{ t('workspace.inviteHelp') }}
         </p>
 
-        <p v-if="errorMessage" class="meeting-error" role="alert">
-          {{ errorMessage }}
+        <p v-if="visibleErrorMessage" class="meeting-error" role="alert">
+          {{ visibleErrorMessage }}
         </p>
 
-        <button class="meeting-primary" type="submit">
-          {{ t('workspace.sendInvitation') }}
+        <button
+          class="meeting-primary"
+          type="submit"
+          :disabled="workspaceStore.isSaving"
+        >
+          {{
+            workspaceStore.isSaving
+              ? t('workspace.sendingInvitation')
+              : t('workspace.sendInvitation')
+          }}
         </button>
       </form>
     </div>

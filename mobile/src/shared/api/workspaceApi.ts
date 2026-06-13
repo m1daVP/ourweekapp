@@ -1,8 +1,9 @@
 import type { UserRole } from '@/features/access/types';
-import type { Workspace } from '@/features/workspace/types';
+import type { Workspace, WorkspaceMember } from '@/features/workspace/types';
 import { apiRequest } from './httpClient';
 
 export type WorkspaceDto = Workspace;
+export type WorkspaceMemberDto = WorkspaceMember;
 
 export interface UpdateWorkspaceRequestDto {
   name: string;
@@ -25,7 +26,8 @@ export interface WorkspaceInvitationDto {
 }
 
 export interface UpdateWorkspaceMemberRequestDto {
-  role: Exclude<UserRole, 'owner'>;
+  role?: Exclude<UserRole, 'owner'>;
+  status?: 'removed';
 }
 
 export async function getWorkspace(): Promise<WorkspaceDto> {
@@ -57,8 +59,8 @@ export async function createWorkspaceInvitation(
 export async function updateWorkspaceMember(
   userId: string,
   payload: UpdateWorkspaceMemberRequestDto
-): Promise<WorkspaceDto> {
-  return apiRequest<WorkspaceDto>(`/workspace/members/${userId}`, {
+): Promise<WorkspaceMemberDto> {
+  return apiRequest<WorkspaceMemberDto>(`/workspace/members/${userId}`, {
     method: 'PUT',
     body: payload,
     requiresAuth: true,

@@ -1,5 +1,14 @@
 import { defineStore } from 'pinia';
+import { useAuthStore } from '@/app/stores/auth';
 import { translate } from '@/features/localization/i18n';
+import { appConfig } from '@/shared/config/env';
+import {
+  createWorkspaceInvitation,
+  getWorkspace,
+  removeWorkspaceMember as removeWorkspaceMemberRequest,
+  updateWorkspace,
+  updateWorkspaceMember,
+} from '@/shared/api/workspaceApi';
 import {
   readSettingsStorage,
   writeSettingsStorage,
@@ -18,6 +27,10 @@ interface WorkspaceState {
   version: number;
   currentUserId: string;
   workspace: Workspace;
+  isLoading: boolean;
+  isSaving: boolean;
+  errorMessage: string;
+  lastSyncedAt: string | null;
 }
 
 interface StoredWorkspaceState {
@@ -44,6 +57,10 @@ function createId(prefix: string) {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function isBackendWorkspaceEnabled() {
+  return appConfig.isBackendApiEnabled;
 }
 
 function normalizeRole(role: unknown): UserRole {
@@ -157,6 +174,10 @@ function getStoredState(): WorkspaceState {
       version: STORAGE_VERSION,
       currentUserId: LOCAL_OWNER_ID,
       workspace: fallbackWorkspace,
+      isLoading: false,
+      isSaving: false,
+      errorMessage: '',
+      lastSyncedAt: null,
     };
   }
 
@@ -173,7 +194,15 @@ function getStoredState(): WorkspaceState {
     version: STORAGE_VERSION,
     currentUserId,
     workspace,
+    isLoading: false,
+    isSaving: false,
+    errorMessage: '',
+    lastSyncedAt: null,
   };
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export const useWorkspaceStore = defineStore('workspace', {
@@ -198,6 +227,202 @@ export const useWorkspaceStore = defineStore('workspace', {
         currentUserId: this.currentUserId,
         workspace: this.workspace,
       });
+    },
+    applyWorkspace(workspace: Workspace) {
+      this.workspace = normalizeWorkspace(workspace);
+
+      const authStore = useAuthStore();
+      const authenticatedUserId = authStore.user?.id;
+
+      if (
+        authenticatedUserId &&
+        this.workspace.members.some(
+          (member) => member.userId === authenticatedUserId
+        )
+      ) {
+        this.currentUserId = authenticatedUserId;
+      } else if (
+        !this.workspace.members.some(
+          (member) => member.userId === this.currentUserId
+        )
+      ) {
+        this.currentUserId = this.workspace.ownerId;
+      }
+
+      this.lastSyncedAt = nowIso();
+      this.persist();
+    },
+    applyMember(nextMember: WorkspaceMember) {
+      const normalizedMember = normalizeMember(nextMember);
+
+      if (!normalizedMember) {
+        return;
+      }
+
+      const memberIndex = this.workspace.members.findIndex(
+        (member) => member.userId === normalizedMember.userId
+      );
+
+      if (memberIndex >= 0) {
+        this.workspace.members[memberIndex] = normalizedMember;
+      } else {
+        this.workspace.members.push(normalizedMember);
+      }
+
+      this.workspace.updatedAt = nowIso();
+      this.lastSyncedAt = nowIso();
+      this.persist();
+    },
+    async loadWorkspace() {
+      if (!isBackendWorkspaceEnabled()) {
+        return true;
+      }
+
+      this.isLoading = true;
+      this.errorMessage = '';
+
+      try {
+        const workspace = await getWorkspace();
+        this.applyWorkspace(workspace);
+        return true;
+      } catch (error) {
+        this.errorMessage = getErrorMessage(
+          error,
+          translate('workspace.loadFailed')
+        );
+        return false;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async saveWorkspaceName(name: string) {
+      const nextName = name.trim();
+
+      if (!nextName) {
+        return false;
+      }
+
+      if (!isBackendWorkspaceEnabled()) {
+        return this.updateWorkspaceName(nextName);
+      }
+
+      this.isSaving = true;
+      this.errorMessage = '';
+
+      try {
+        const workspace = await updateWorkspace({ name: nextName });
+        this.applyWorkspace(workspace);
+        return true;
+      } catch (error) {
+        this.errorMessage = getErrorMessage(
+          error,
+          translate('workspace.saveWorkspaceFailed')
+        );
+        return false;
+      } finally {
+        this.isSaving = false;
+      }
+    },
+    async inviteWorkspaceMember(payload: InviteMemberPayload) {
+      const displayName = payload.displayName.trim();
+      const email = payload.email?.trim();
+
+      if (!displayName || !email) {
+        return null;
+      }
+
+      if (!isBackendWorkspaceEnabled()) {
+        return this.inviteMember(payload);
+      }
+
+      this.isSaving = true;
+      this.errorMessage = '';
+
+      try {
+        const invitation = await createWorkspaceInvitation({
+          displayName,
+          email,
+          role: payload.role,
+        });
+
+        const member: WorkspaceMember = {
+          userId: invitation.invitationId,
+          displayName: invitation.displayName?.trim() || displayName,
+          email: invitation.email,
+          role: invitation.role,
+          status: 'invited',
+        };
+
+        this.applyMember(member);
+        return member;
+      } catch (error) {
+        this.errorMessage = getErrorMessage(
+          error,
+          translate('workspace.saveInviteFailed')
+        );
+        return null;
+      } finally {
+        this.isSaving = false;
+      }
+    },
+    async saveMemberRole(userId: string, role: Exclude<UserRole, 'owner'>) {
+      if (!isBackendWorkspaceEnabled()) {
+        return this.updateMemberRole(userId, role);
+      }
+
+      this.isSaving = true;
+      this.errorMessage = '';
+
+      try {
+        const member = await updateWorkspaceMember(userId, { role });
+        this.applyMember(member);
+        return true;
+      } catch (error) {
+        this.errorMessage = getErrorMessage(
+          error,
+          translate('workspace.saveMemberFailed')
+        );
+        return false;
+      } finally {
+        this.isSaving = false;
+      }
+    },
+    async removeWorkspaceMember(userId: string) {
+      if (!isBackendWorkspaceEnabled()) {
+        return this.removeMember(userId);
+      }
+
+      this.isSaving = true;
+      this.errorMessage = '';
+
+      try {
+        await removeWorkspaceMemberRequest(userId);
+
+        const member = this.workspace.members.find(
+          (item) => item.userId === userId
+        );
+
+        if (member) {
+          member.status = 'removed';
+          this.workspace.updatedAt = nowIso();
+        }
+
+        if (this.currentUserId === userId) {
+          this.currentUserId = this.workspace.ownerId;
+        }
+
+        this.lastSyncedAt = nowIso();
+        this.persist();
+        return true;
+      } catch (error) {
+        this.errorMessage = getErrorMessage(
+          error,
+          translate('workspace.removeMemberFailed')
+        );
+        return false;
+      } finally {
+        this.isSaving = false;
+      }
     },
     updateWorkspaceName(name: string) {
       const nextName = name.trim();
