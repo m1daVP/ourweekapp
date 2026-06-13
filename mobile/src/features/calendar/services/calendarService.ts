@@ -6,6 +6,7 @@ import type {
   CalendarTaskDueDatePayload,
 } from '@/features/calendar/types';
 import { translate } from '@/features/localization/i18n';
+import { appConfig } from '@/shared/config/env';
 import {
   disconnectGoogleCalendar,
   getGoogleCalendarConnectionStatus,
@@ -14,6 +15,7 @@ import {
   syncGoogleCalendarMeetingReminder,
   syncGoogleCalendarTaskDueDate,
 } from '@/shared/api/calendarApi';
+import { openExternalAuthUrl } from '@/shared/services/externalAuthService';
 
 function nowIso() {
   return new Date().toISOString();
@@ -39,6 +41,16 @@ function createDisconnectedStatus(): CalendarConnectionStatus {
   };
 }
 
+function createUnavailableStatus(): CalendarConnectionStatus {
+  return {
+    provider: 'google',
+    state: 'unavailable',
+    connected: false,
+    lastCheckedAt: nowIso(),
+    message: translate('calendar.unavailable'),
+  };
+}
+
 function getCalendarRedirectUrl() {
   if (typeof window === 'undefined') {
     return '';
@@ -61,25 +73,35 @@ function createSkippedResult(
 }
 
 export async function connectCalendar(): Promise<CalendarConnectionStatus> {
-  // TODO: Implement Google OAuth through a backend-supported or otherwise
-  // securely recommended flow before enabling real calendar connections.
-  // Do not store Google access or refresh tokens in frontend localStorage.
-  return (
+  if (!appConfig.isGoogleCalendarSyncEnabled) {
+    return createUnavailableStatus();
+  }
+
+  const connectionStatus =
     (await startGoogleCalendarConnection({
       redirectUrl: getCalendarRedirectUrl(),
-    })) ?? createSetupRequiredStatus()
-  );
+    })) ?? createSetupRequiredStatus();
+
+  if (connectionStatus.authorizationUrl) {
+    openExternalAuthUrl(connectionStatus.authorizationUrl);
+  }
+
+  return connectionStatus;
 }
 
 export async function disconnectCalendar(): Promise<CalendarConnectionStatus> {
-  // TODO: Revoke backend-held Google tokens when the backend calendar
-  // connection flow exists. The mobile app should not manage raw tokens.
+  if (!appConfig.isGoogleCalendarSyncEnabled) {
+    return createUnavailableStatus();
+  }
+
   return (await disconnectGoogleCalendar()) ?? createDisconnectedStatus();
 }
 
 export async function getCalendarConnectionStatus(): Promise<CalendarConnectionStatus> {
-  // TODO: Read this from the backend once OAuth and token storage are handled
-  // securely outside the mobile app.
+  if (!appConfig.isGoogleCalendarSyncEnabled) {
+    return createUnavailableStatus();
+  }
+
   return (
     (await getGoogleCalendarConnectionStatus()) ?? createDisconnectedStatus()
   );
@@ -88,6 +110,13 @@ export async function getCalendarConnectionStatus(): Promise<CalendarConnectionS
 export async function syncMeetingReminder(
   payload: CalendarMeetingReminderPayload
 ): Promise<CalendarSyncResult> {
+  if (!appConfig.isGoogleCalendarSyncEnabled) {
+    return createSkippedResult(
+      'oauth-not-configured',
+      translate('calendar.unavailable')
+    );
+  }
+
   if (!payload.startsAt) {
     return createSkippedResult(
       'missing-calendar-date',
@@ -107,6 +136,13 @@ export async function syncMeetingReminder(
 export async function syncTaskDueDate(
   payload: CalendarTaskDueDatePayload
 ): Promise<CalendarSyncResult> {
+  if (!appConfig.isGoogleCalendarSyncEnabled) {
+    return createSkippedResult(
+      'oauth-not-configured',
+      translate('calendar.unavailable')
+    );
+  }
+
   if (!payload.dueDate) {
     return createSkippedResult(
       'missing-calendar-date',
@@ -126,6 +162,13 @@ export async function syncTaskDueDate(
 export async function syncFollowUpDate(
   payload: CalendarFollowUpDatePayload
 ): Promise<CalendarSyncResult> {
+  if (!appConfig.isGoogleCalendarSyncEnabled) {
+    return createSkippedResult(
+      'oauth-not-configured',
+      translate('calendar.unavailable')
+    );
+  }
+
   if (!payload.followUpDate) {
     return createSkippedResult(
       'missing-calendar-date',

@@ -60,11 +60,6 @@ function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
       <p class="page-copy">{{ t('calendar.intro') }}</p>
     </header>
 
-    <section class="content-panel calendar-sync-note">
-      <strong>{{ t('calendar.placeholderTitle') }}</strong>
-      <p>{{ t('calendar.placeholderText') }}</p>
-    </section>
-
     <PremiumLock
       feature="googleCalendarSync"
       :title="t('calendar.premiumTitle')"

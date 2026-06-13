@@ -189,6 +189,7 @@ Backend API behavior is controlled by Vite environment variables:
 VITE_API_BASE_URL=
 VITE_API_MODE=mock
 VITE_APP_ENV=local
+VITE_ENABLE_GOOGLE_CALENDAR=false
 ```
 
 Use `VITE_API_MODE=mock` for local development and design/testing flows that do
@@ -196,6 +197,10 @@ not require the backend.
 
 Production builds that use backend-backed auth, subscription validation, AI, or
 Calendar features must configure `VITE_API_BASE_URL`.
+
+Google Calendar sync is hidden in production unless
+`VITE_ENABLE_GOOGLE_CALENDAR=true` is set for a backend build with secure
+server-side Google OAuth and token storage.
 
 Never put secrets in Vite environment variables. Values exposed through Vite are
 bundled into the mobile/web app.

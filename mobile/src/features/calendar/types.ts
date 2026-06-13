@@ -3,7 +3,8 @@ export type CalendarProvider = 'google';
 export type CalendarConnectionState =
   | 'disconnected'
   | 'connected'
-  | 'setup_required';
+  | 'setup_required'
+  | 'unavailable';
 
 export interface CalendarConnectionStatus {
   provider: CalendarProvider;

@@ -27,6 +27,7 @@ import PremiumLock from '@/shared/components/PremiumLock.vue';
 import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useNotifications } from '@/shared/composables/useNotifications';
+import { appConfig } from '@/shared/config/env';
 
 const route = useRoute();
 const { t } = useI18n();
@@ -105,6 +106,9 @@ const participantMessage = reactive({
 });
 
 const canUseReminders = computed(() => canUseFeature('agreementReminders'));
+const canShowCalendarSync = computed(
+  () => appConfig.isGoogleCalendarSyncEnabled
+);
 const accountStatusText = computed(() => {
   if (authStore.isAuthenticated) {
     return t('settings.signedInAs', {
@@ -386,6 +390,7 @@ function enableParticipant(participantId: string) {
         {{ t('settings.workspaceSettings') }}
       </RouterLink>
       <RouterLink
+        v-if="canShowCalendarSync"
         class="secondary-button link-button"
         :to="{ name: 'calendar-sync' }"
       >

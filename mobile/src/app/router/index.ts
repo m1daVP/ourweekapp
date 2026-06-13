@@ -182,6 +182,10 @@ router.beforeEach(async (to) => {
     return { name: 'welcome' };
   }
 
+  if (to.name === 'calendar-sync' && !appConfig.isGoogleCalendarSyncEnabled) {
+    return { name: 'settings' };
+  }
+
   const requiredFeature = to.meta.requiresFeature;
   const requiresPremium = to.meta.requiresPremium;
 
