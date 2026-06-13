@@ -10,6 +10,8 @@ import type {
   TaskResponsibilityType,
   TaskStatus,
 } from '@/features/tasks/types';
+import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
+import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 type TaskFilter = 'todo' | 'done' | 'all';
@@ -54,6 +56,7 @@ const newTaskDraft = reactive({
 });
 const selectedFilter = ref<TaskFilter>('todo');
 const selectedTask = ref<Task | null>(null);
+const taskPendingDelete = ref<Task | null>(null);
 const isAddTaskSheetOpen = ref(false);
 const statusMessage = ref('');
 
@@ -452,11 +455,17 @@ function deleteTask(task: Task) {
     return;
   }
 
-  const confirmed = window.confirm(t('tasksPage.confirmDeleteTask'));
+  taskPendingDelete.value = task;
+}
 
-  if (!confirmed) {
+function confirmDeleteTask() {
+  const task = taskPendingDelete.value;
+
+  if (!task) {
     return;
   }
+
+  taskPendingDelete.value = null;
 
   tasksStore.deleteTask(task.id);
   meetingsStore.deleteTask(task.id);
@@ -634,31 +643,12 @@ function openAddTaskSheet() {
       <span class="material-symbols-outlined" aria-hidden="true">add</span>
     </button>
 
-    <div
-      v-if="isAddTaskSheetOpen"
-      class="task-editor-sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="add-task-title"
+    <BaseBottomSheet
+      :open="isAddTaskSheetOpen"
+      :title="t('tasksPage.task')"
+      @close="isAddTaskSheetOpen = false"
     >
-      <button
-        type="button"
-        class="task-editor-sheet__scrim"
-        aria-label="Close"
-        @click="isAddTaskSheetOpen = false"
-      ></button>
-      <form class="task-editor-sheet__panel" @submit.prevent="addTask">
-        <header>
-          <h2 id="add-task-title">{{ t('tasksPage.task') }}</h2>
-          <button
-            type="button"
-            class="material-symbols-outlined"
-            aria-label="Close"
-            @click="isAddTaskSheetOpen = false"
-          >
-            close
-          </button>
-        </header>
+      <form class="task-editor-form" @submit.prevent="addTask">
         <label>
           <span>{{ t('tasksPage.task') }}</span>
           <input v-model="newTaskDraft.title" type="text" />
@@ -687,36 +677,18 @@ function openAddTaskSheet() {
           {{ t('common.save') }}
         </button>
       </form>
-    </div>
+    </BaseBottomSheet>
 
-    <div
-      v-if="selectedTask && selectedTaskDraft"
-      class="task-editor-sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="edit-task-title"
+    <BaseBottomSheet
+      :open="Boolean(selectedTask && selectedTaskDraft)"
+      :title="t('tasksPage.task')"
+      @close="selectedTask = null"
     >
-      <button
-        type="button"
-        class="task-editor-sheet__scrim"
-        aria-label="Close"
-        @click="selectedTask = null"
-      ></button>
       <form
-        class="task-editor-sheet__panel"
+        v-if="selectedTask && selectedTaskDraft"
+        class="task-editor-form"
         @submit.prevent="saveTask(selectedTask)"
       >
-        <header>
-          <h2 id="edit-task-title">{{ t('tasksPage.task') }}</h2>
-          <button
-            type="button"
-            class="material-symbols-outlined"
-            aria-label="Close"
-            @click="selectedTask = null"
-          >
-            close
-          </button>
-        </header>
         <label>
           <span>{{ t('tasksPage.task') }}</span>
           <input
@@ -755,17 +727,17 @@ function openAddTaskSheet() {
             :disabled="!canEditTasks"
           />
         </label>
-        <p v-if="selectedTask.description" class="task-editor-sheet__note">
+        <p v-if="selectedTask.description" class="task-editor-form__note">
           {{ selectedTask.description }}
         </p>
-        <p v-if="selectedTask.sourceMeetingId" class="task-editor-sheet__note">
+        <p v-if="selectedTask.sourceMeetingId" class="task-editor-form__note">
           {{
             t('tasksPage.fromMeeting', {
               meeting: getMeetingLabel(selectedTask.sourceMeetingId),
             })
           }}
         </p>
-        <div class="task-editor-sheet__actions">
+        <div class="task-editor-form__actions">
           <button v-if="canEditTasks" type="submit" class="meeting-primary">
             {{ t('common.save') }}
           </button>
@@ -793,13 +765,22 @@ function openAddTaskSheet() {
           <button
             v-if="canDeleteTasks"
             type="button"
-            class="task-editor-sheet__danger"
+            class="task-editor-form__danger"
             @click="deleteTask(selectedTask)"
           >
             {{ t('common.delete') }}
           </button>
         </div>
       </form>
-    </div>
+    </BaseBottomSheet>
+    <ConfirmationDialog
+      :open="Boolean(taskPendingDelete)"
+      :title="t('tasksPage.confirmDeleteTask')"
+      :message="t('common.cannotUndo')"
+      :confirm-label="t('common.delete')"
+      destructive
+      @close="taskPendingDelete = null"
+      @confirm="confirmDeleteTask"
+    />
   </section>
 </template>

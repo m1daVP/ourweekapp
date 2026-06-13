@@ -5,6 +5,7 @@ import { useMeetingsStore } from '@/app/stores/meetings';
 import { usePrivateNotesStore } from '@/app/stores/privateNotes';
 import type { Meeting } from '@/features/meeting/types';
 import type { PrivateNote } from '@/features/private-notes/types';
+import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
 
 const meetingsStore = useMeetingsStore();
@@ -12,6 +13,7 @@ const privateNotesStore = usePrivateNotesStore();
 const { t, locale } = useI18n();
 
 const editingNoteId = ref<string | null>(null);
+const notePendingDelete = ref<PrivateNote | null>(null);
 const statusMessage = ref('');
 const formError = ref('');
 const noteDraft = reactive({
@@ -105,11 +107,17 @@ function editNote(note: PrivateNote) {
 }
 
 function deleteNote(note: PrivateNote) {
-  const confirmed = window.confirm(t('privateNotes.confirmDelete'));
+  notePendingDelete.value = note;
+}
 
-  if (!confirmed) {
+function confirmDeleteNote() {
+  const note = notePendingDelete.value;
+
+  if (!note) {
     return;
   }
+
+  notePendingDelete.value = null;
 
   clearMessages();
   privateNotesStore.deleteNote(note.id);
@@ -261,5 +269,14 @@ function deleteNote(note: PrivateNote) {
         {{ statusMessage }}
       </p>
     </PremiumLock>
+    <ConfirmationDialog
+      :open="Boolean(notePendingDelete)"
+      :title="t('privateNotes.confirmDelete')"
+      :message="t('common.cannotUndo')"
+      :confirm-label="t('common.delete')"
+      destructive
+      @close="notePendingDelete = null"
+      @confirm="confirmDeleteNote"
+    />
   </section>
 </template>

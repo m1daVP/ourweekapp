@@ -20,6 +20,7 @@ import type { TaskResponsibilityType } from '@/features/tasks/types';
 import ActionMenuPopup from '@/shared/components/ActionMenuPopup.vue';
 import type { ActionMenuItem } from '@/shared/components/ActionMenuPopup.vue';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
+import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
@@ -42,6 +43,8 @@ const hasStartedRitual = ref(false);
 const isFinishingMeeting = ref(false);
 const isGuestDrawerOpen = ref(false);
 const isRitualMenuOpen = ref(false);
+const isEndSessionDialogOpen = ref(false);
+const isDeleteRitualDialogOpen = ref(false);
 const drawerSelectedParticipantId = ref('');
 const guestName = ref('');
 const maxCheckInParticipants = 10;
@@ -952,15 +955,12 @@ function endSessionIncomplete() {
     return;
   }
 
-  const confirmed = window.confirm(
-    `${t('meeting.confirmEndSessionTitle')}\n\n${t(
-      'meeting.confirmEndSessionText'
-    )}`
-  );
+  isRitualMenuOpen.value = false;
+  isEndSessionDialogOpen.value = true;
+}
 
-  if (!confirmed) {
-    return;
-  }
+function confirmEndSessionIncomplete() {
+  isEndSessionDialogOpen.value = false;
 
   if (!meetingsStore.endMeetingIncomplete()) {
     formError.value = t('meeting.endSessionFailed');
@@ -984,15 +984,19 @@ function deleteRitual() {
     return;
   }
 
-  const confirmed = window.confirm(
-    `${t('meeting.confirmDeleteRitualTitle')}\n\n${t(
-      'meeting.confirmDeleteRitualText'
-    )}`
-  );
+  isRitualMenuOpen.value = false;
+  isDeleteRitualDialogOpen.value = true;
+}
 
-  if (!confirmed) {
+function confirmDeleteRitual() {
+  const meeting = activeMeeting.value;
+
+  if (!meeting) {
+    isDeleteRitualDialogOpen.value = false;
     return;
   }
+
+  isDeleteRitualDialogOpen.value = false;
 
   const wasDeleted = meetingsStore.deleteDraftMeeting(meeting.id);
 
@@ -1875,4 +1879,21 @@ function startNewMeeting() {
       {{ t('meeting.viewHistory') }}
     </RouterLink>
   </section>
+  <ConfirmationDialog
+    :open="isEndSessionDialogOpen"
+    :title="t('meeting.confirmEndSessionTitle')"
+    :message="t('meeting.confirmEndSessionText')"
+    :confirm-label="t('common.finish')"
+    @close="isEndSessionDialogOpen = false"
+    @confirm="confirmEndSessionIncomplete"
+  />
+  <ConfirmationDialog
+    :open="isDeleteRitualDialogOpen"
+    :title="t('meeting.confirmDeleteRitualTitle')"
+    :message="t('meeting.confirmDeleteRitualText')"
+    :confirm-label="t('common.delete')"
+    destructive
+    @close="isDeleteRitualDialogOpen = false"
+    @confirm="confirmDeleteRitual"
+  />
 </template>
