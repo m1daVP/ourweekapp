@@ -10,6 +10,10 @@ import {
   getMeetingTemplateName,
 } from '@/features/meeting/meetingTemplates';
 import type { SupportedLocale } from '@/features/localization/types';
+import {
+  downloadFileInBrowser,
+  shareExportFile as shareDeliveredExportFile,
+} from '@/shared/services/exportFileDeliveryService';
 
 export type MeetingExportFormat = 'text' | 'markdown';
 
@@ -24,10 +28,6 @@ export interface MeetingExportFile {
   content: string;
   fileName: string;
   mimeType: string;
-}
-
-interface WebNavigatorWithShare extends Navigator {
-  canShare?: (data: ShareData) => boolean;
 }
 
 const lineBreak = '\n';
@@ -439,35 +439,11 @@ export async function copyExportToClipboard(content: string) {
 }
 
 export async function shareExportFile(file: MeetingExportFile) {
-  const exportedFile = new File([file.content], file.fileName, {
-    type: file.mimeType,
-  });
-  const shareData: ShareData = {
-    title: file.fileName,
-    files: [exportedFile],
-  };
-  const webNavigator = navigator as WebNavigatorWithShare;
-
-  if (!navigator.share || !webNavigator.canShare?.(shareData)) {
-    return false;
-  }
-
-  await navigator.share(shareData);
-  return true;
+  return shareDeliveredExportFile(file);
 }
 
 export function downloadExportFile(file: MeetingExportFile) {
-  const blob = new Blob([file.content], { type: file.mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-
-  link.href = url;
-  link.download = file.fileName;
-  link.rel = 'noopener';
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  downloadFileInBrowser(file);
 }
 
 export function exportMeetingAsPdf(
