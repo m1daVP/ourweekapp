@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import BottomNavigation from '@/shared/components/BottomNavigation.vue';
+import SyncStatusNotice from '@/shared/components/SyncStatusNotice.vue';
 import { useParticipantsStore } from '@/app/stores/participants';
 import {
   clearStorageRecoveryMessages,
@@ -106,6 +107,7 @@ watch(
           {{ t('app.dismiss') }}
         </button>
       </aside>
+      <SyncStatusNotice />
       <slot />
     </main>
     <BottomNavigation v-if="showNavigation" />

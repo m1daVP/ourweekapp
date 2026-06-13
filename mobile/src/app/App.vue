@@ -5,6 +5,7 @@ import { useAndroidBackButton } from '@/app/composables/useAndroidBackButton';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import AppShell from '@/shared/components/AppShell.vue';
 import { useNotifications } from '@/shared/composables/useNotifications';
+import { useCoreDataSync } from '@/shared/composables/useCoreDataSync';
 
 const route = useRoute();
 const subscriptionStore = useSubscriptionStore();
@@ -13,6 +14,7 @@ const showNavigation = computed(() => !route.meta.hideNavigation);
 
 subscriptionStore.initializeSubscriptions();
 initializeReminderSync();
+useCoreDataSync();
 useAndroidBackButton();
 </script>
 

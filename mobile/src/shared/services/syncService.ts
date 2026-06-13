@@ -3,11 +3,7 @@ import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
 import { translate } from '@/features/localization/i18n';
 import type { Participant } from '@/features/participants/types';
-import type {
-  Agreement,
-  Task,
-  TaskReviewDecision,
-} from '@/features/tasks/types';
+import type { Agreement, Task } from '@/features/tasks/types';
 import { apiRequest } from '@/shared/api/httpClient';
 import { syncMeetingsApi } from '@/shared/api/meetingsApi';
 import { syncTasksApi } from '@/shared/api/tasksApi';
@@ -18,10 +14,20 @@ import {
   readSyncResourceMetadata,
   writeSyncResourceMetadata,
 } from '@/shared/services/storageService';
+import {
+  mergeReviewDecisions,
+  mergeSyncItems,
+} from '@/shared/services/syncMergeService';
 import type { Meeting } from '@/features/meeting/types';
 
 export type SyncResource = 'meetings' | 'tasks' | 'participants';
-export type SyncState = 'idle' | 'syncing' | 'synced' | 'failed' | 'offline';
+export type SyncState =
+  | 'idle'
+  | 'savedLocally'
+  | 'syncing'
+  | 'synced'
+  | 'failed'
+  | 'offline';
 
 export interface SyncResult {
   resource: SyncResource;
@@ -31,13 +37,6 @@ export interface SyncResult {
   conflictCount: number;
   syncedAt: string;
   skippedReason?: string;
-}
-
-interface SyncableItem {
-  id: string;
-  createdAt?: string;
-  updatedAt?: string;
-  deletedAt?: string;
 }
 
 interface ParticipantDto extends Participant {
@@ -65,112 +64,50 @@ interface ResourceSyncStatus {
   errorMessage?: string;
 }
 
+export interface AggregateSyncStatus {
+  state: SyncState;
+  resources: SyncResource[];
+  conflictCount: number;
+  lastSyncedAt?: string;
+  lastAttemptedAt?: string;
+  errorMessage?: string;
+}
+
 export const syncStatus = shallowRef<Record<SyncResource, ResourceSyncStatus>>({
   meetings: { state: 'idle', conflictCount: 0 },
   tasks: { state: 'idle', conflictCount: 0 },
   participants: { state: 'idle', conflictCount: 0 },
 });
+export const isApplyingRemoteSync = shallowRef(false);
+let remoteSyncDepth = 0;
+let remoteSyncClearTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function nowIso() {
   return new Date().toISOString();
 }
 
+function beginRemoteSync() {
+  if (remoteSyncClearTimeout) {
+    clearTimeout(remoteSyncClearTimeout);
+    remoteSyncClearTimeout = null;
+  }
+
+  remoteSyncDepth += 1;
+  isApplyingRemoteSync.value = true;
+}
+
+function endRemoteSyncSoon() {
+  remoteSyncClearTimeout = setTimeout(() => {
+    remoteSyncDepth = Math.max(0, remoteSyncDepth - 1);
+
+    if (remoteSyncDepth === 0) {
+      isApplyingRemoteSync.value = false;
+    }
+  }, 0);
+}
+
 function isOffline() {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
-}
-
-function getItemTimestamp(item: SyncableItem) {
-  return item.deletedAt ?? item.updatedAt ?? item.createdAt ?? '';
-}
-
-function isRemoteNewer<TItem extends SyncableItem>(
-  localItem: TItem,
-  remoteItem: TItem
-) {
-  return (
-    new Date(getItemTimestamp(remoteItem)).getTime() >=
-    new Date(getItemTimestamp(localItem)).getTime()
-  );
-}
-
-function isDeletedNewer<TItem extends SyncableItem>(
-  deletedItem: TItem,
-  existingItem?: TItem
-) {
-  if (!deletedItem.deletedAt) {
-    return false;
-  }
-
-  if (!existingItem) {
-    return true;
-  }
-
-  return (
-    new Date(deletedItem.deletedAt).getTime() >=
-    new Date(getItemTimestamp(existingItem)).getTime()
-  );
-}
-
-function mergeSyncItems<TItem extends SyncableItem>(
-  localItems: TItem[],
-  remoteItems: TItem[]
-) {
-  const localById = new Map(localItems.map((item) => [item.id, item]));
-  const remoteById = new Map(remoteItems.map((item) => [item.id, item]));
-  const mergedItems: TItem[] = [];
-
-  for (const id of new Set([...localById.keys(), ...remoteById.keys()])) {
-    const localItem = localById.get(id);
-    const remoteItem = remoteById.get(id);
-
-    if (remoteItem && isDeletedNewer(remoteItem, localItem)) {
-      continue;
-    }
-
-    if (localItem?.deletedAt && isDeletedNewer(localItem, remoteItem)) {
-      continue;
-    }
-
-    if (localItem && remoteItem) {
-      mergedItems.push(
-        isRemoteNewer(localItem, remoteItem) ? remoteItem : localItem
-      );
-      continue;
-    }
-
-    if (remoteItem) {
-      mergedItems.push(remoteItem);
-      continue;
-    }
-
-    if (localItem) {
-      mergedItems.push(localItem);
-    }
-  }
-
-  return mergedItems.filter((item) => !item.deletedAt);
-}
-
-function mergeReviewDecisions(
-  localItems: TaskReviewDecision[],
-  remoteItems: TaskReviewDecision[]
-) {
-  const decisionsByKey = new Map<string, TaskReviewDecision>();
-
-  for (const decision of [...localItems, ...remoteItems]) {
-    const key = `${decision.meetingId}:${decision.sourceMeetingId}`;
-    const existingDecision = decisionsByKey.get(key);
-
-    if (
-      !existingDecision ||
-      new Date(decision.decidedAt).getTime() >=
-        new Date(existingDecision.decidedAt).getTime()
-    ) {
-      decisionsByKey.set(key, decision);
-    }
-  }
-
-  return [...decisionsByKey.values()];
 }
 
 function latestNullableDate(first: string | null, second: string | null) {
@@ -198,6 +135,20 @@ function setResourceStatus(
       ...status,
     },
   };
+}
+
+export function markLocalChange(resource: SyncResource) {
+  if (!appConfig.isBackendApiEnabled) {
+    return;
+  }
+
+  const changedAt = nowIso();
+
+  setResourceStatus(resource, {
+    state: 'savedLocally',
+    lastAttemptedAt: changedAt,
+    errorMessage: undefined,
+  });
 }
 
 function markSyncAttempt(resource: SyncResource, attemptedAt: string) {
@@ -273,6 +224,75 @@ function createMockResult(
     conflictCount: 0,
     syncedAt: nowIso(),
     skippedReason: translate('sync.backendUnavailable'),
+  };
+}
+
+export async function retrySync(
+  resource?: SyncResource
+): Promise<SyncResult[]> {
+  beginRemoteSync();
+
+  try {
+    if (resource === 'meetings') {
+      return [await syncMeetings()];
+    }
+
+    if (resource === 'tasks') {
+      return [await syncTasks()];
+    }
+
+    if (resource === 'participants') {
+      return [await syncParticipants()];
+    }
+
+    return await syncCoreData();
+  } finally {
+    endRemoteSyncSoon();
+  }
+}
+
+function getMostRecentTimestamp(
+  statuses: ResourceSyncStatus[],
+  key: 'lastSyncedAt' | 'lastAttemptedAt'
+) {
+  return statuses
+    .map((status) => status[key])
+    .filter((value): value is string => Boolean(value))
+    .sort((first, second) => second.localeCompare(first))[0];
+}
+
+export function getAggregateSyncStatus(): AggregateSyncStatus {
+  const entries = Object.entries(syncStatus.value) as Array<
+    [SyncResource, ResourceSyncStatus]
+  >;
+  const statuses = entries.map(([, status]) => status);
+  const statePriority: SyncState[] = [
+    'failed',
+    'offline',
+    'syncing',
+    'savedLocally',
+    'synced',
+    'idle',
+  ];
+  const state =
+    statePriority.find((candidate) =>
+      statuses.some((status) => status.state === candidate)
+    ) ?? 'idle';
+  const matchingEntries = entries.filter(
+    ([, status]) => status.state === state
+  );
+
+  return {
+    state,
+    resources: matchingEntries.map(([resource]) => resource),
+    conflictCount: statuses.reduce(
+      (total, status) => total + status.conflictCount,
+      0
+    ),
+    lastSyncedAt: getMostRecentTimestamp(statuses, 'lastSyncedAt'),
+    lastAttemptedAt: getMostRecentTimestamp(statuses, 'lastAttemptedAt'),
+    errorMessage: matchingEntries.find(([, status]) => status.errorMessage)?.[1]
+      .errorMessage,
   };
 }
 
