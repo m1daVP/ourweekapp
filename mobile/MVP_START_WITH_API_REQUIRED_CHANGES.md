@@ -74,7 +74,7 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
      - mock entitlement persistence.
    - Confirm Google Play subscription policy and Data Safety implications before selling Premium.
 
-4. **Implement backend AI meeting summaries**
+4. **Implement backend AI meeting summaries** ✅
    - Current affected areas:
      - `src/features/meeting/aiSummaryService.ts`
      - `src/shared/api/aiApi.ts`
@@ -96,7 +96,7 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
      - Remove placeholder/mock wording from user-facing AI states.
      - Handle generation timeout/failure while still showing tasks and agreements.
 
-5. **Implement cloud sync for core local data**
+5. **Implement cloud sync for core local data** ✅
    - Current affected areas:
      - `src/shared/services/syncService.ts`
      - `src/shared/api/meetingsApi.ts`
@@ -126,7 +126,7 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
      - Migration path exists for current local-only users.
    - Decide whether private notes stay local-only. If they stay local-only, exclude them from sync and say so clearly.
 
-6. **Implement workspace/member API basics**
+6. **Implement workspace/member API basics** ✅
    - Current affected areas:
      - `src/app/stores/workspace.ts`
      - `src/features/workspace/types.ts`
@@ -154,8 +154,13 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
    - Mobile app must not store Google access or refresh tokens.
    - If this cannot be completed safely, hide Calendar sync from MVP start.
 
-8. **Replace placeholder legal, privacy, and store disclosures**
+8. **Replace placeholder legal, privacy, and store disclosures** ✅
    - Update Privacy Policy and Terms for real backend behavior.
+   - Implementation support added:
+     - `docs/privacy-data-map.md`
+     - `docs/google-play-data-safety.md`
+     - expanded in-app Privacy Policy and Terms screens
+     - Account settings export/delete actions backed by API endpoints
    - Cover:
      - account data;
      - synced meeting/task/agreement data;
@@ -170,13 +175,13 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
 
 ## P1 - Should Fix Before Wider API MVP Testing
 
-9. **Secure token and sensitive data handling**
+9. **Secure token and sensitive data handling** ✅
    - Do not store real auth tokens in plain localStorage for production.
    - Add a Capacitor secure-storage strategy or backend session approach appropriate for Android-first MVP.
    - Ensure logs do not expose meeting notes, private notes, tokens, subscription receipts, or AI prompts.
    - Add account deletion and logout cleanup behavior.
 
-10. **Improve sync UX**
+10. **Improve sync UX** ✅
     - Add visible but quiet sync states:
       - saved locally;
       - syncing;
@@ -186,13 +191,13 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
     - Add retry paths for failed backend operations.
     - Make offline behavior explicit without alarming users.
 
-11. **Add API integration tests or contract checks**
+11. **Add API integration tests or contract checks** ✅
     - Add focused tests for API DTO mapping and sync conflict handling.
     - Add backend contract examples for each endpoint.
     - Validate `VITE_API_MODE=backend` with missing/invalid `VITE_API_BASE_URL`.
     - Test backend unavailable, 401, 403, 409, 422, and 500 responses.
 
-12. **Replace browser confirms with mobile dialogs**
+12. **Replace browser confirms with mobile dialogs** ✅
     - Current `window.confirm` usage:
       - `src/pages/MeetingPage.vue`
       - `src/pages/PrivateNotesPage.vue`
@@ -208,21 +213,29 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
       - Calendar placeholder text;
       - demo summary fallback on real routes.
 
+14. **Consolidate duplicated local helper methods**
+    - Audit the project for repeated helper methods with the same behavior, for example UUID/id creation, date helpers, DTO normalization, sorting, and storage-safe parsing.
+    - Replace copy-pasted implementations with small shared utilities under `src/shared` when the behavior is truly common.
+    - Keep feature-specific helpers local when the behavior is intentionally different.
+    - Add focused tests for shared utilities that affect persistence, sync, auth, or backend DTO contracts.
+    - Current known candidate:
+      - repeated `createId` / UUID fallback helpers in stores, AI summary code, and storage migration code.
+
 ## P2 - Production Readiness After API MVP Works
 
-14. **Add observability and support**
+15. **Add observability and support**
     - Add privacy-conscious error reporting.
     - Add backend health checks for API, AI provider, subscription provider, and Calendar integration.
     - Add support diagnostics that do not expose sensitive family content.
 
-15. **Complete release operations**
+16. **Complete release operations**
     - Configure Android signing.
     - Replace launcher and splash artwork.
     - Run real Android QA.
     - Prepare Play Console internal testing track.
     - Verify Data Safety, subscription setup, OAuth consent, and AI disclosures.
 
-16. **Review performance and route splitting**
+17. **Review performance and route splitting**
     - The build currently reports a large main chunk warning.
     - Consider lazy-loading settings, auth, history details, private notes, Calendar, and Upgrade routes.
 
@@ -303,6 +316,7 @@ Can remain only for local development:
 3. Implement meetings/tasks/participants sync with migration from local-only data.
 4. Implement subscription entitlement validation and remove mock purchase UI.
 5. Implement backend AI summaries with server-side Premium enforcement.
-6. Decide whether Calendar sync is in or out. If in, implement backend OAuth safely.
-7. Replace legal/store disclosures and Android artwork.
-8. Run full Android QA and backend failure-mode testing.
+6. Consolidate duplicated helpers into shared utilities where behavior is common.
+7. Decide whether Calendar sync is in or out. If in, implement backend OAuth safely.
+8. Replace legal/store disclosures and Android artwork.
+9. Run full Android QA and backend failure-mode testing.

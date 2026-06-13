@@ -49,6 +49,11 @@ The Android project must use final branded launcher icons in
 - `npm run lint:fix`: passed.
 - `npm run build`: passed, including `vue-tsc --noEmit`.
 - `npm run check`: passed.
+- `npm audit --audit-level=moderate`: reports transitive dev-tooling
+  vulnerabilities through `@capacitor/assets`/Capacitor asset generation
+  dependencies (`tar`, `minimatch`, `uuid`). `uuid` may be fixable by npm when
+  registry access is available; the high-severity `@capacitor/assets`
+  transitive findings reported no available fix during review.
 - `npx cap sync android`: passed and copied `dist` into the Android project.
 - `npx cap open android`: blocked locally because Android Studio was not found.
 - `android/gradlew.bat assembleDebug`: blocked locally because `JAVA_HOME` is
@@ -56,7 +61,10 @@ The Android project must use final branded launcher icons in
 
 ## Public Release Gates
 
-- Replace Privacy Policy and Terms with reviewed legal documents.
+- Replace Privacy Policy and Terms with reviewed legal documents. Draft
+  API-backed disclosure copy is now in the app, with supporting data maps in
+  `docs/privacy-data-map.md` and `docs/google-play-data-safety.md`; final legal
+  review is still required before public release.
 - Replace app icon and splash assets with production artwork.
 - Install/configure Android Studio and JDK on the release machine, then rerun
   `npx cap open android` and `android/gradlew.bat assembleDebug`.
@@ -64,6 +72,9 @@ The Android project must use final branded launcher icons in
 - Connect real subscription purchase, restore, management, and entitlement
   validation before selling Premium.
 - Add backend-supported AI summaries before offering production AI summaries.
+- Enable Google Calendar sync only after backend-supported Google OAuth,
+  backend token storage, disconnect/revoke handling, and Data Safety disclosures
+  are verified.
 - Confirm Google Play Data Safety answers against final backend, billing, AI,
   analytics, and notification behavior.
 - Run manual QA on real Android devices, including app restart, offline use,

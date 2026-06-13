@@ -2,6 +2,49 @@
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+
+const privacySections = [
+  {
+    title: 'legal.privacy.accountTitle',
+    text: 'legal.privacy.accountText',
+  },
+  {
+    title: 'legal.privacy.syncTitle',
+    text: 'legal.privacy.syncText',
+  },
+  {
+    title: 'legal.privacy.localStorageTitle',
+    text: 'legal.privacy.localStorageText',
+  },
+  {
+    title: 'legal.privacy.privateNotesTitle',
+    text: 'legal.privacy.privateNotesText',
+  },
+  {
+    title: 'legal.privacy.aiTitle',
+    text: 'legal.privacy.aiText',
+  },
+  {
+    title: 'legal.privacy.subscriptionTitle',
+    text: 'legal.privacy.subscriptionText',
+  },
+  {
+    title: 'legal.privacy.calendarTitle',
+    text: 'legal.privacy.calendarText',
+  },
+  {
+    title: 'legal.privacy.notificationsTitle',
+    text: 'legal.privacy.notificationsText',
+  },
+  {
+    title: 'legal.privacy.exportTitle',
+    text: 'legal.privacy.exportText',
+  },
+  {
+    title: 'legal.privacy.rightsTitle',
+    text: 'legal.privacy.rightsText',
+  },
+];
 </script>
 
 <template>
@@ -12,20 +55,13 @@ const { t } = useI18n();
       <p class="page-copy">{{ t('legal.privacy.intro') }}</p>
     </header>
 
-    <section class="content-panel">
-      <h2>{{ t('legal.privacy.dataTitle') }}</h2>
-      <p>{{ t('legal.privacy.dataText') }}</p>
-    </section>
-
-    <section class="content-panel">
-      <h2>{{ t('legal.privacy.privateNotesTitle') }}</h2>
-      <p>{{ t('legal.privacy.privateNotesText') }}</p>
-    </section>
-
-    <section class="content-panel">
-      <h2>{{ t('legal.privacy.aiTitle') }}</h2>
-      <p>{{ t('legal.privacy.aiText') }}</p>
-      <p>{{ t('legal.privacy.premiumText') }}</p>
+    <section
+      v-for="section in privacySections"
+      :key="section.title"
+      class="content-panel"
+    >
+      <h2>{{ t(section.title) }}</h2>
+      <p>{{ t(section.text) }}</p>
     </section>
 
     <RouterLink class="secondary-button link-button" :to="{ name: 'settings' }">
