@@ -10,6 +10,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run src tests/contract",
+    "test:api:live": "vitest run tests/api-live.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -48,6 +50,7 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.60.1",
     "vite": "8.0.16",
+    "vitest": "^4.1.8",
     "vue-tsc": "3.3.3"
   }
 }
