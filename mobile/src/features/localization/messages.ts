@@ -59,6 +59,8 @@ export const messages = {
       status: 'Status',
       cancel: 'Cancel',
       delete: 'Delete',
+      retry: 'Retry',
+      cannotUndo: 'This action cannot be undone.',
       edit: 'Edit',
       email: 'Email',
       password: 'Password',
@@ -104,6 +106,19 @@ export const messages = {
       apiSession:
         'Signed-in requests use the stored secure session through the API layer.',
       logOut: 'Log out',
+      dataRights: 'Account data',
+      dataRightsHelp:
+        'Export your backend account data or delete the account from the OurWeek backend. Local data already saved on this device is not removed by this action.',
+      exportAccount: 'Export account data',
+      exportingAccount: 'Preparing export...',
+      exportReady: 'Account export downloaded.',
+      exportFailed: 'Could not export account data right now.',
+      deleteAccount: 'Delete account',
+      deletingAccount: 'Deleting account...',
+      deleteAccountTitle: 'Delete account?',
+      deleteAccountConfirm:
+        'This asks the backend to delete your account data. Local data already saved on this device is not removed by this action.',
+      deleteFailed: 'Could not delete the account right now.',
       addDisplayName: 'Add a display name.',
       updateFailed: 'Could not update the account.',
       updated: 'Account updated on this device.',
@@ -275,25 +290,31 @@ export const messages = {
       admin: 'Admin',
       removeMember: 'Remove member',
       pendingInvites: 'Pending Invites',
-      savedLocally: 'Saved locally',
+      loading: 'Loading household members...',
+      invitationPending: 'Invitation pending',
       resend: 'Resend',
-      inviteKept: 'Invite kept locally.',
+      inviteReady: 'Invitation is already pending.',
       inviteNewMember: 'Invite New Member',
       closeInviteForm: 'Close invite form',
       goBack: 'Go back',
       addMember: 'Add Member',
-      contact: 'Email or Phone Number',
-      contactPlaceholder: 'Enter email or phone number',
+      contact: 'Email',
+      contactPlaceholder: 'Enter email address',
       role: 'Role',
       inviteHelp:
-        "Invited members will receive a link to join your household's weekly ritual once backend invitations are connected.",
+        "Invited members receive a link to join your household's weekly ritual.",
       sendInvitation: 'Send Invitation',
+      sendingInvitation: 'Sending invitation...',
       ownerInviteOnly: 'Only the owner can invite members.',
-      addContactFirst: 'Add an email or phone number first.',
+      addContactFirst: 'Add an email address first.',
+      addEmailFirst: 'Add a valid email address first.',
+      loadFailed: 'Could not load household members right now.',
+      saveWorkspaceFailed: 'Could not update the household name right now.',
       saveInviteFailed: 'Could not save this invite.',
-      invitationSaved:
-        'Invitation saved locally. No email has been sent in this MVP.',
+      invitationSaved: 'Invitation sent.',
       ownerRemoveOnly: 'Only the owner can remove members.',
+      saveMemberFailed: 'Could not update this member right now.',
+      removeMemberFailed: 'Could not remove this member right now.',
       memberRemoved: 'Member removed from the workspace.',
     },
     privateNotes: {
@@ -344,13 +365,10 @@ export const messages = {
       kicker: 'Calendar sync',
       title: 'Google Calendar',
       intro:
-        'Prepare weekly meetings, task due dates, and follow-ups for calendar sync.',
-      placeholderTitle: 'Connection placeholder',
-      placeholderText:
-        'Google OAuth and token handling should be backend-supported or use a secure recommended flow before real sync is enabled.',
+        'Sync weekly meetings, task due dates, and follow-ups with Google Calendar.',
       premiumTitle: 'Google Calendar sync is premium',
       premiumMessage:
-        'Upgrade to prepare OurWeek meetings, task due dates, and follow-ups for Google Calendar.',
+        'Upgrade to sync OurWeek meetings, task due dates, and follow-ups with Google Calendar.',
       connectionTitle: 'Google Calendar connection',
       checkingConnection: 'Checking Google Calendar connection.',
       notConnected: 'Google Calendar is not connected.',
@@ -359,8 +377,7 @@ export const messages = {
       disconnect: 'Disconnect',
       noTokens: 'No Google tokens are stored in this mobile app.',
       optionsTitle: 'Sync options',
-      optionsText:
-        'Choose what OurWeek should sync once Google Calendar is ready.',
+      optionsText: 'Choose what OurWeek should sync with Google Calendar.',
       options: {
         weeklyMeeting: {
           label: 'Add weekly meeting reminder to calendar',
@@ -377,6 +394,8 @@ export const messages = {
       },
       setupRequired:
         'Google Calendar connection is prepared, but secure OAuth is not configured yet.',
+      unavailable:
+        'Google Calendar sync is not available in this build. Your OurWeek data remains saved without Calendar access.',
       addMeetingDate: 'Add a meeting date before syncing a calendar reminder.',
       addTaskDueDate:
         'Add a task due date before syncing it to Google Calendar.',
@@ -469,7 +488,7 @@ export const messages = {
       calendarSync: 'Calendar sync',
       legal: 'Legal',
       legalText:
-        'Placeholder documents for internal testing. Review before public release.',
+        'Review how OurWeek handles account data, synced household records, local storage, Premium features, AI summaries, Calendar sync, exports, and account rights.',
       privacyPolicy: 'Privacy Policy',
       terms: 'Terms',
       reminders: 'Reminders',
@@ -574,33 +593,67 @@ export const messages = {
         kicker: 'Privacy Policy',
         title: 'OurWeek privacy',
         intro:
-          'Placeholder for internal testing. Replace this with a reviewed policy before any public Google Play release.',
-        dataTitle: 'Current MVP data model',
-        dataText:
-          'OurWeek stores meeting notes, tasks, agreements, participants, private notes, settings, and mock Premium state locally on this device. No backend sync is connected in the current MVP.',
+          'This policy describes the production API-backed MVP behavior prepared for OurWeek. Replace ownership, provider, retention, and support details with reviewed legal text before public release.',
+        accountTitle: 'Account data',
+        accountText:
+          'When you create or use an account, OurWeek processes your email address, display name, user id, role, plan type, authentication session, password reset requests, and basic timestamps needed to run the account.',
+        syncTitle: 'Synced household records',
+        syncText:
+          'When backend sync is enabled, meetings, meeting notes, participants, tasks, agreements, review decisions, workspace details, invitations, and member roles can be sent to the OurWeek backend so they can be restored and shared within the household workspace.',
+        localStorageTitle: 'Local storage and offline cache',
+        localStorageText:
+          'OurWeek keeps app data on this device so the app can work between sessions and tolerate offline use. Secure auth tokens use native secure storage where available. Non-sensitive settings use device preferences or the versioned local app data store.',
         privateNotesTitle: 'Private notes',
         privateNotesText:
-          'Private notes are stored on this device in the current MVP. They are not included in meeting exports by default.',
-        aiTitle: 'AI and Premium placeholders',
+          'Private notes are stored on this device unless a reviewed sync design is implemented. They are not included in meeting exports or AI summaries by default.',
+        aiTitle: 'AI summaries',
         aiText:
-          'AI summaries use a local mock provider unless a backend API is explicitly enabled. AI summaries may be inaccurate. Review before relying on them.',
-        premiumText:
-          'Premium and billing screens use mock subscription state for internal testing only. Real payments are not connected.',
+          'Premium AI summaries are generated through the backend, not by placing provider API keys in the mobile app. Meeting content needed for a summary is processed to produce a short practical summary. AI summaries may be inaccurate. Review before relying on them.',
+        subscriptionTitle: 'Subscriptions and billing',
+        subscriptionText:
+          'Premium access is based on backend or app-store entitlement validation. The mobile app does not collect payment card details directly. Subscription status, validation, restore, and management requests may be processed by the backend and the applicable store provider.',
+        calendarTitle: 'Google Calendar sync',
+        calendarText:
+          'If Google Calendar sync is enabled, OurWeek uses a backend-supported OAuth flow to connect or disconnect Google Calendar and sync selected meeting reminders, task due dates, and follow-up dates. Google access or refresh tokens must not be stored in the mobile app.',
+        notificationsTitle: 'Notifications',
+        notificationsText:
+          'Reminder settings can use local device notifications for weekly meetings and unfinished follow-ups. OurWeek should ask permission before scheduling notifications and should handle denied permission without repeated prompts.',
+        exportTitle: 'Export and sharing',
+        exportText:
+          'Exports can include meeting notes, tasks, agreements, and saved summaries in readable formats. Private notes are excluded by default. When you share or save an export outside OurWeek, that destination controls the copied file or text.',
+        rightsTitle: 'Export and deletion rights',
+        rightsText:
+          'The backend provides account export and account deletion endpoints. Account deletion should remove backend account data according to the final retention policy, while local device data cleanup must be explained clearly before release.',
       },
       terms: {
         kicker: 'Terms',
         title: 'OurWeek terms',
         intro:
-          'Placeholder for internal testing. Replace this with reviewed terms before any public Google Play release.',
-        testingTitle: 'Internal testing only',
-        testingText:
-          'This build is prepared for internal testing. It is not ready for public distribution, paid subscriptions, backend sync, or production support.',
+          'These draft terms describe the intended production MVP behavior. Replace entity, jurisdiction, billing, retention, and support details with reviewed legal text before public release.',
+        serviceTitle: 'What OurWeek provides',
+        serviceText:
+          'OurWeek is a practical guided weekly check-in app for couples and families. It helps households record notes, tasks, agreements, follow-ups, reminders, summaries, and exports.',
         adviceTitle: 'Not professional advice',
         adviceText:
           'OurWeek is a practical household check-in tool. It is not therapy, legal advice, financial advice, or emergency support.',
-        localDataTitle: 'Local data responsibility',
-        localDataText:
-          'Data is stored locally on this device in the current MVP. Users should review important agreements before relying on them and understand that uninstalling the app or clearing app storage may remove local data.',
+        accountTitle: 'Accounts and household workspaces',
+        accountText:
+          'Users are responsible for the content they add and for inviting the right household members. Workspace roles are simple household roles, not enterprise permissions.',
+        subscriptionTitle: 'Premium and subscriptions',
+        subscriptionText:
+          'Premium features are unlocked only after entitlement validation through the backend or app store provider. Purchase, restore, and manage-subscription flows must fail safely if validation is unavailable.',
+        aiTitle: 'AI summary limits',
+        aiText:
+          'AI summaries are optional Premium aids. They may be incomplete or inaccurate, must be reviewed before use, and must not be treated as professional advice or a decision about who is right or wrong.',
+        calendarTitle: 'Calendar integrations',
+        calendarText:
+          'Google Calendar sync, when enabled, is limited to selected reminders, due dates, and follow-up dates. Users remain responsible for checking synced calendar items.',
+        dataTitle: 'Local and synced data',
+        dataText:
+          'OurWeek may store data locally on the device and sync selected account, workspace, meeting, task, agreement, and participant data through the backend. Private notes remain local-only unless a reviewed sync design changes that behavior.',
+        availabilityTitle: 'Availability and data review',
+        availabilityText:
+          'Backend services, billing validation, AI summaries, Calendar sync, export, and notifications may be unavailable at times. Users should review important agreements before relying on them.',
       },
     },
     days: {
@@ -1143,6 +1196,11 @@ export const messages = {
         'Backend API is not configured. Local data remains stored on this device.',
       failed: 'Sync could not finish right now. Local changes are still saved.',
       offline: 'You are offline. Local changes will sync later.',
+      retry: 'Retry',
+      retrying: 'Retrying...',
+      savedLocally: 'Saved locally',
+      syncing: 'Syncing...',
+      synced: 'Synced',
     },
   },
   uk: {
@@ -1205,6 +1263,8 @@ export const messages = {
       status: 'Статус',
       cancel: 'Скасувати',
       delete: 'Видалити',
+      retry: 'Retry',
+      cannotUndo: 'This action cannot be undone.',
       edit: 'Редагувати',
       email: 'Електронна пошта',
       password: 'Пароль',
@@ -1409,25 +1469,31 @@ export const messages = {
       admin: 'Адмін',
       removeMember: 'Видалити учасника',
       pendingInvites: 'Очікувані запрошення',
-      savedLocally: 'Збережено локально',
+      loading: 'Завантаження учасників дому...',
+      invitationPending: 'Запрошення очікує',
       resend: 'Надіслати ще раз',
-      inviteKept: 'Запрошення залишено локально.',
+      inviteReady: 'Запрошення вже очікує.',
       inviteNewMember: 'Запросити нового учасника',
       closeInviteForm: 'Закрити форму запрошення',
       goBack: 'Повернутися',
       addMember: 'Додати учасника',
-      contact: 'Електронна пошта або номер телефону',
-      contactPlaceholder: 'Введіть електронну пошту або номер телефону',
+      contact: 'Електронна пошта',
+      contactPlaceholder: 'Введіть електронну пошту',
       role: 'Роль',
       inviteHelp:
-        'Запрошені учасники отримають посилання для приєднання до щотижневого ритуалу вашого дому, коли backend-запрошення буде підключено.',
+        'Запрошені учасники отримають посилання для приєднання до щотижневого ритуалу вашого дому.',
       sendInvitation: 'Надіслати запрошення',
+      sendingInvitation: 'Надсилання запрошення...',
       ownerInviteOnly: 'Лише власник може запрошувати учасників.',
-      addContactFirst: 'Спочатку додайте електронну пошту або номер телефону.',
+      addContactFirst: 'Спочатку додайте електронну пошту.',
+      addEmailFirst: 'Спочатку додайте дійсну електронну пошту.',
+      loadFailed: 'Не вдалося завантажити учасників дому зараз.',
+      saveWorkspaceFailed: 'Не вдалося оновити назву дому зараз.',
       saveInviteFailed: 'Не вдалося зберегти це запрошення.',
-      invitationSaved:
-        'Запрошення збережено локально. У цьому MVP лист не надсилається.',
+      invitationSaved: 'Запрошення надіслано.',
       ownerRemoveOnly: 'Лише власник може видаляти учасників.',
+      saveMemberFailed: 'Не вдалося оновити цього учасника зараз.',
+      removeMemberFailed: 'Не вдалося видалити цього учасника зараз.',
       memberRemoved: 'Учасника видалено з простору.',
     },
     privateNotes: {
@@ -2292,6 +2358,11 @@ export const messages = {
         'Backend API не налаштовано. Локальні дані залишаються збереженими на цьому пристрої.',
       failed: 'Sync could not finish right now. Local changes are still saved.',
       offline: 'You are offline. Local changes will sync later.',
+      retry: 'Retry',
+      retrying: 'Retrying...',
+      savedLocally: 'Saved locally',
+      syncing: 'Syncing...',
+      synced: 'Synced',
     },
   },
   es: {
@@ -2354,6 +2425,8 @@ export const messages = {
       status: 'Estado',
       cancel: 'Cancelar',
       delete: 'Eliminar',
+      retry: 'Reintentar',
+      cannotUndo: 'Esta accion no se puede deshacer.',
       edit: 'Editar',
       email: 'Correo electrónico',
       password: 'Contraseña',
@@ -2558,26 +2631,31 @@ export const messages = {
       admin: 'Administrador',
       removeMember: 'Quitar miembro',
       pendingInvites: 'Invitaciones pendientes',
-      savedLocally: 'Guardado localmente',
+      loading: 'Cargando miembros del hogar...',
+      invitationPending: 'Invitación pendiente',
       resend: 'Reenviar',
-      inviteKept: 'La invitación se mantuvo localmente.',
+      inviteReady: 'La invitación ya está pendiente.',
       inviteNewMember: 'Invitar nuevo miembro',
       closeInviteForm: 'Cerrar formulario de invitación',
       goBack: 'Volver',
       addMember: 'Agregar miembro',
-      contact: 'Correo electrónico o número de teléfono',
-      contactPlaceholder: 'Ingresa correo electrónico o número de teléfono',
+      contact: 'Correo electrónico',
+      contactPlaceholder: 'Ingresa correo electrónico',
       role: 'Rol',
       inviteHelp:
-        'Los miembros invitados recibirán un enlace para unirse al ritual semanal de tu hogar cuando se conecten las invitaciones del backend.',
+        'Los miembros invitados recibirán un enlace para unirse al ritual semanal de tu hogar.',
       sendInvitation: 'Enviar invitación',
+      sendingInvitation: 'Enviando invitación...',
       ownerInviteOnly: 'Solo el propietario puede invitar miembros.',
-      addContactFirst:
-        'Primero agrega un correo electrónico o número de teléfono.',
+      addContactFirst: 'Primero agrega un correo electrónico.',
+      addEmailFirst: 'Primero agrega un correo electrónico válido.',
+      loadFailed: 'No se pudieron cargar los miembros del hogar ahora.',
+      saveWorkspaceFailed: 'No se pudo actualizar el nombre del hogar ahora.',
       saveInviteFailed: 'No se pudo guardar esta invitación.',
-      invitationSaved:
-        'Invitación guardada localmente. No se ha enviado ningún correo en este MVP.',
+      invitationSaved: 'Invitación enviada.',
       ownerRemoveOnly: 'Solo el propietario puede quitar miembros.',
+      saveMemberFailed: 'No se pudo actualizar este miembro ahora.',
+      removeMemberFailed: 'No se pudo quitar este miembro ahora.',
       memberRemoved: 'Miembro eliminado del espacio de trabajo.',
     },
     privateNotes: {
@@ -3457,6 +3535,11 @@ export const messages = {
         'La sincronizaciГіn no pudo terminar ahora. Los cambios locales siguen guardados.',
       offline:
         'EstГЎs sin conexiГіn. Los cambios locales se sincronizarГЎn mГЎs tarde.',
+      retry: 'Reintentar',
+      retrying: 'Reintentando...',
+      savedLocally: 'Guardado localmente',
+      syncing: 'Sincronizando...',
+      synced: 'Sincronizado',
     },
   },
 } as const;
