@@ -1,16 +1,28 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
+import {
+  deleteAccount as deleteAccountRequest,
+  exportAccountData,
+} from '@/shared/api/accountApi';
+import { saveOrShareExportFile } from '@/shared/services/exportFileDeliveryService';
+import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 
 const authStore = useAuthStore();
 const subscriptionStore = useSubscriptionStore();
+const router = useRouter();
 const { t, locale } = useI18n();
 const displayName = ref(authStore.user?.displayName ?? '');
 const statusMessage = ref('');
 const formError = ref('');
+const dataActionError = ref('');
+const isExportingAccount = ref(false);
+const isDeletingAccount = ref(false);
+const isDeleteAccountDialogOpen = ref(false);
 
 const user = computed(() => authStore.user);
 const currentPlanLabel = computed(() =>
@@ -46,6 +58,59 @@ function saveProfile() {
   }
 
   statusMessage.value = t('account.updated');
+}
+
+async function saveAccountExport(data: unknown) {
+  const exportedAt = new Date().toISOString().slice(0, 10);
+
+  return saveOrShareExportFile({
+    content: JSON.stringify(data, null, 2),
+    fileName: `ourweek-account-export-${exportedAt}.json`,
+    mimeType: 'application/json;charset=utf-8',
+    title: t('account.exportAccount'),
+  });
+}
+
+async function exportAccount() {
+  dataActionError.value = '';
+  statusMessage.value = '';
+  isExportingAccount.value = true;
+
+  try {
+    const data = await exportAccountData();
+    await saveAccountExport(data);
+    statusMessage.value = t('account.exportReady');
+  } catch (error) {
+    dataActionError.value =
+      error instanceof Error ? error.message : t('account.exportFailed');
+  } finally {
+    isExportingAccount.value = false;
+  }
+}
+
+async function deleteAccount() {
+  dataActionError.value = '';
+  statusMessage.value = '';
+  isDeleteAccountDialogOpen.value = true;
+}
+
+async function confirmDeleteAccount() {
+  dataActionError.value = '';
+  statusMessage.value = '';
+  isDeleteAccountDialogOpen.value = false;
+
+  isDeletingAccount.value = true;
+
+  try {
+    await deleteAccountRequest();
+    await authStore.clearSessionAfterUnauthorized();
+    await router.replace({ name: 'welcome' });
+  } catch (error) {
+    dataActionError.value =
+      error instanceof Error ? error.message : t('account.deleteFailed');
+  } finally {
+    isDeletingAccount.value = false;
+  }
 }
 </script>
 
@@ -154,5 +219,49 @@ function saveProfile() {
         {{ t('account.logOut') }}
       </RouterLink>
     </section>
+
+    <section class="content-panel settings-panel">
+      <div>
+        <h2>{{ t('account.dataRights') }}</h2>
+        <p>{{ t('account.dataRightsHelp') }}</p>
+      </div>
+      <button
+        class="secondary-button"
+        type="button"
+        :disabled="isExportingAccount || isDeletingAccount"
+        @click="exportAccount"
+      >
+        {{
+          isExportingAccount
+            ? t('account.exportingAccount')
+            : t('account.exportAccount')
+        }}
+      </button>
+      <button
+        class="history-item__delete"
+        type="button"
+        :disabled="isDeletingAccount || isExportingAccount"
+        @click="deleteAccount"
+      >
+        {{
+          isDeletingAccount
+            ? t('account.deletingAccount')
+            : t('account.deleteAccount')
+        }}
+      </button>
+      <p v-if="dataActionError" class="meeting-error" role="alert">
+        {{ dataActionError }}
+      </p>
+    </section>
+    <ConfirmationDialog
+      :open="isDeleteAccountDialogOpen"
+      :title="t('account.deleteAccountTitle')"
+      :message="t('account.deleteAccountConfirm')"
+      :confirm-label="t('account.deleteAccount')"
+      :loading="isDeletingAccount"
+      destructive
+      @close="isDeleteAccountDialogOpen = false"
+      @confirm="confirmDeleteAccount"
+    />
   </section>
 </template>
