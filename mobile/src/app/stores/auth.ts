@@ -22,6 +22,7 @@ import {
   readOnboardingStorage,
   writeOnboardingStorage,
 } from '@/shared/services/storageService';
+import { warnSafely } from '@/shared/services/safeLogService';
 import type { PlanType } from '@/features/access/types';
 import type {
   AuthStatus,
@@ -31,6 +32,7 @@ import type {
 } from '@/features/auth/types';
 
 const STORAGE_VERSION = 2;
+const LEGACY_AUTH_STORAGE_KEY = 'ourweek:auth';
 
 interface StoredAuthState {
   version: number;
@@ -42,8 +44,6 @@ interface StoredAuthState {
 
 interface AuthState {
   user: AuthUser | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   authStatus: AuthStatus;
   errorMessage: string;
   hasHydratedSecureTokens: boolean;
@@ -54,6 +54,58 @@ let legacyTokensToMigrate: AuthTokens = {
   accessToken: null,
   refreshToken: null,
 };
+
+function readLegacyAuthTokensFromLocalStorage(): AuthTokens {
+  if (typeof window === 'undefined') {
+    return { accessToken: null, refreshToken: null };
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(LEGACY_AUTH_STORAGE_KEY);
+
+    if (!rawValue) {
+      return { accessToken: null, refreshToken: null };
+    }
+
+    const parsedValue = JSON.parse(rawValue) as unknown;
+
+    if (!parsedValue || typeof parsedValue !== 'object') {
+      return { accessToken: null, refreshToken: null };
+    }
+
+    const authState = parsedValue as Partial<StoredAuthState>;
+
+    return {
+      accessToken: authState.accessToken ?? null,
+      refreshToken: authState.refreshToken ?? null,
+    };
+  } catch (error) {
+    warnSafely('Unable to read legacy auth token storage.', error);
+    return { accessToken: null, refreshToken: null };
+  }
+}
+
+function clearLegacyAuthTokensFromLocalStorage() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+  } catch (error) {
+    warnSafely('Unable to clear legacy auth token storage.', error);
+  }
+}
+
+async function clearStoredAuthTokensSafely() {
+  try {
+    await clearAuthTokens();
+  } catch (error) {
+    warnSafely('Unable to clear secure auth token storage.', error);
+  }
+
+  clearLegacyAuthTokensFromLocalStorage();
+}
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -87,31 +139,28 @@ function isStoredAuthState(value: unknown): value is StoredAuthState {
   );
 }
 
-function getStoredState(): Pick<
-  AuthState,
-  'user' | 'accessToken' | 'refreshToken' | 'authStatus'
-> {
+function getStoredState(): Pick<AuthState, 'user' | 'authStatus'> {
   const storedState = readOnboardingStorage<unknown | null>('auth', null);
 
   if (!isStoredAuthState(storedState)) {
     return {
       user: null,
-      accessToken: null,
-      refreshToken: null,
       authStatus: 'idle',
     };
   }
 
+  const legacyLocalStorageTokens = readLegacyAuthTokensFromLocalStorage();
+
   legacyTokensToMigrate = {
-    accessToken: storedState.accessToken ?? null,
-    refreshToken: storedState.refreshToken ?? null,
+    accessToken:
+      storedState.accessToken ?? legacyLocalStorageTokens.accessToken,
+    refreshToken:
+      storedState.refreshToken ?? legacyLocalStorageTokens.refreshToken,
   };
 
   if (storedState.authStatus === 'authenticated' && !storedState.user) {
     return {
       user: null,
-      accessToken: null,
-      refreshToken: null,
       authStatus: 'idle',
     };
   }
@@ -119,16 +168,12 @@ function getStoredState(): Pick<
   if (appConfig.isBackendApiEnabled && storedState.authStatus === 'localOnly') {
     return {
       user: null,
-      accessToken: null,
-      refreshToken: null,
       authStatus: 'idle',
     };
   }
 
   return {
     user: storedState.user,
-    accessToken: null,
-    refreshToken: null,
     authStatus: storedState.authStatus,
   };
 }
@@ -141,7 +186,8 @@ export const useAuthStore = defineStore('auth', {
     hasVerifiedCurrentUser: false,
   }),
   getters: {
-    isAuthenticated: (state) => Boolean(state.user && state.accessToken),
+    isAuthenticated: (state) =>
+      Boolean(state.user && state.authStatus === 'authenticated'),
     isLocalOnly: (state) => state.authStatus === 'localOnly',
   },
   actions: {
@@ -176,8 +222,6 @@ export const useAuthStore = defineStore('auth', {
         tokens = await readAuthTokens();
       } catch {
         this.user = null;
-        this.accessToken = null;
-        this.refreshToken = null;
         this.authStatus = 'idle';
         this.hasVerifiedCurrentUser = false;
         this.persist();
@@ -188,10 +232,9 @@ export const useAuthStore = defineStore('auth', {
         tokens = legacyTokensToMigrate;
         try {
           await writeAuthTokens(tokens);
+          clearLegacyAuthTokensFromLocalStorage();
         } catch {
           this.user = null;
-          this.accessToken = null;
-          this.refreshToken = null;
           this.authStatus = 'idle';
           this.hasVerifiedCurrentUser = false;
           this.persist();
@@ -204,16 +247,13 @@ export const useAuthStore = defineStore('auth', {
 
       if (!tokens.accessToken) {
         this.user = null;
-        this.accessToken = null;
-        this.refreshToken = null;
         this.authStatus = 'idle';
         this.hasVerifiedCurrentUser = false;
         this.persist();
         return;
       }
 
-      this.accessToken = tokens.accessToken;
-      this.refreshToken = tokens.refreshToken;
+      clearLegacyAuthTokensFromLocalStorage();
     },
     syncAccessState() {
       const accessStore = useUserAccessStore();
@@ -229,8 +269,6 @@ export const useAuthStore = defineStore('auth', {
       });
 
       this.user = mapSessionUser(session);
-      this.accessToken = session.accessToken;
-      this.refreshToken = session.refreshToken ?? null;
       this.authStatus = 'authenticated';
       this.hasHydratedSecureTokens = true;
       this.hasVerifiedCurrentUser = true;
@@ -239,10 +277,8 @@ export const useAuthStore = defineStore('auth', {
       this.syncAccessState();
     },
     async clearSessionAfterUnauthorized() {
-      await clearAuthTokens();
+      await clearStoredAuthTokensSafely();
       this.user = null;
-      this.accessToken = null;
-      this.refreshToken = null;
       this.authStatus = 'idle';
       this.hasHydratedSecureTokens = true;
       this.hasVerifiedCurrentUser = true;
@@ -252,7 +288,7 @@ export const useAuthStore = defineStore('auth', {
     async verifyCurrentUser() {
       await this.hydrateSecureTokens();
 
-      if (this.authStatus !== 'authenticated' || !this.accessToken) {
+      if (this.authStatus !== 'authenticated') {
         return false;
       }
 
@@ -286,20 +322,21 @@ export const useAuthStore = defineStore('auth', {
             ? error.message
             : translate('api.backendContactFailed');
 
-        return Boolean(this.user && this.accessToken);
+        return this.isAuthenticated;
       }
     },
     async refreshAuthenticatedSession() {
       await this.hydrateSecureTokens();
+      const tokens = await readAuthTokens();
 
-      if (!this.refreshToken) {
+      if (!tokens.refreshToken) {
         await this.clearSessionAfterUnauthorized();
         return null;
       }
 
       try {
         const session = await refreshSessionRequest({
-          refreshToken: this.refreshToken,
+          refreshToken: tokens.refreshToken,
         });
         await this.applySession(session);
         return session.accessToken;
@@ -321,9 +358,8 @@ export const useAuthStore = defineStore('auth', {
         await this.applySession(session);
         return true;
       } catch (error) {
+        await clearStoredAuthTokensSafely();
         this.user = null;
-        this.accessToken = null;
-        this.refreshToken = null;
         this.authStatus = 'error';
         this.errorMessage =
           error instanceof Error
@@ -347,9 +383,8 @@ export const useAuthStore = defineStore('auth', {
         await this.applySession(session);
         return true;
       } catch (error) {
+        await clearStoredAuthTokensSafely();
         this.user = null;
-        this.accessToken = null;
-        this.refreshToken = null;
         this.authStatus = 'error';
         this.errorMessage =
           error instanceof Error
@@ -365,10 +400,8 @@ export const useAuthStore = defineStore('auth', {
         return false;
       }
 
-      await clearAuthTokens();
+      await clearStoredAuthTokensSafely();
       this.user = null;
-      this.accessToken = null;
-      this.refreshToken = null;
       this.authStatus = 'localOnly';
       this.hasHydratedSecureTokens = true;
       this.hasVerifiedCurrentUser = true;
@@ -406,7 +439,8 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       try {
         if (this.isAuthenticated) {
-          await signOutRequest(this.refreshToken);
+          const { refreshToken } = await readAuthTokens();
+          await signOutRequest(refreshToken);
         }
       } finally {
         await this.clearSessionAfterUnauthorized();
@@ -419,7 +453,8 @@ setApiAuthHandlers({
   getAccessToken: async () => {
     const authStore = useAuthStore();
     await authStore.hydrateSecureTokens();
-    return authStore.accessToken;
+    const { accessToken } = await readAuthTokens();
+    return accessToken;
   },
   refreshSession: async () => {
     const authStore = useAuthStore();

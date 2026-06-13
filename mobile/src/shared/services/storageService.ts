@@ -166,6 +166,44 @@ function getRecord(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
 }
 
+function removeAuthTokenFields(value: unknown): unknown {
+  if (!isRecord(value)) {
+    return value;
+  }
+
+  const { accessToken, refreshToken, ...safeState } = value;
+
+  void accessToken;
+  void refreshToken;
+
+  return safeState;
+}
+
+function removeStoredAuthTokenFields(data: AppDataEnvelope): AppDataEnvelope {
+  return {
+    ...data,
+    onboarding: {
+      ...data.onboarding,
+      auth: removeAuthTokenFields(data.onboarding.auth),
+    },
+  };
+}
+
+function sanitizeRawAppDataBackup(rawValue: string) {
+  try {
+    const parsedValue = JSON.parse(rawValue) as unknown;
+    const migratedData = migrateAppData(parsedValue);
+
+    if (!migratedData) {
+      return null;
+    }
+
+    return JSON.stringify(removeStoredAuthTokenFields(migratedData));
+  } catch {
+    return null;
+  }
+}
+
 function parseJsonValue(value: string, label: string) {
   try {
     return JSON.parse(value) as unknown;
@@ -221,6 +259,12 @@ function backupRawAppData(rawValue: string, reason: string) {
     return undefined;
   }
 
+  const safeRawValue = sanitizeRawAppDataBackup(rawValue);
+
+  if (!safeRawValue) {
+    return undefined;
+  }
+
   const backupKey = createBackupKey(reason);
 
   try {
@@ -230,7 +274,7 @@ function backupRawAppData(rawValue: string, reason: string) {
         reason,
         backedUpAt: nowIso(),
         storageKey: APP_DATA_STORAGE_KEY,
-        rawValue,
+        rawValue: safeRawValue,
       })
     );
     return backupKey;
@@ -621,14 +665,16 @@ function createAppDataFromLegacyStorage(): AppDataEnvelope {
 }
 
 function persistAppData(data: AppDataEnvelope) {
-  cachedAppData = data;
+  const safeData = removeStoredAuthTokenFields(data);
+
+  cachedAppData = safeData;
 
   if (!canUseLocalStorage()) {
     return;
   }
 
   try {
-    getLocalStorage()?.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(data));
+    getLocalStorage()?.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(safeData));
   } catch {
     addRecoveryMessage(translate('storage.saveFailed'));
   }
