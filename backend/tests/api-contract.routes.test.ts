@@ -476,6 +476,35 @@ describe('API route contracts', () => {
     await app.close();
   });
 
+  it('returns 422 before workspace member update service code for invalid member IDs', async () => {
+    const app = await buildRouteApp('workspace');
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/v1/workspace/members/not-a-uuid',
+      headers: { authorization: 'Bearer valid-token' },
+      payload: { role: 'viewer' },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({ code: 'validation_failed' });
+    expect(workspaceService.updateMember).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('returns 422 before workspace member delete service code for invalid member IDs', async () => {
+    const app = await buildRouteApp('workspace');
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/v1/workspace/members/not-a-uuid',
+      headers: { authorization: 'Bearer valid-token' },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({ code: 'validation_failed' });
+    expect(workspaceService.removeMember).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it('rate-limits repeated sign-in attempts with 429', async () => {
     signInUser.mockResolvedValue(authSessionResponse());
     const app = await buildRouteApp('auth');
