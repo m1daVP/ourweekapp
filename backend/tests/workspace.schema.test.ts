@@ -28,7 +28,7 @@ describe('workspace schemas', () => {
     ).toBe(false);
   });
 
-  it('keeps workspace DTOs camelCase and member-only', () => {
+  it('keeps workspace DTOs camelCase and strips private member and invitation fields', () => {
     const parsed = workspaceSchema.parse({
       id: 'workspace-1',
       name: 'Our home',
@@ -43,14 +43,30 @@ describe('workspace schemas', () => {
           passwordHash: 'secret',
         },
       ],
+      invitations: [
+        {
+          invitationId: 'invitation-1',
+          displayName: 'Alex',
+          email: 'ALEX@example.com',
+          role: 'adult_member',
+          status: 'pending',
+          createdAt: now,
+          expiresAt: '2026-06-13T12:00:00.000Z',
+          tokenHash: 'sha256:secret',
+          userId: 'not-a-real-user',
+        },
+      ],
       createdAt: now,
       updatedAt: now,
       deletedAt: now,
     });
 
     expect(parsed.members[0]?.email).toBe('rita@example.com');
+    expect(parsed.invitations[0]?.email).toBe('alex@example.com');
     expect(parsed).not.toHaveProperty('deletedAt');
     expect(parsed.members[0]).not.toHaveProperty('passwordHash');
+    expect(parsed.invitations[0]).not.toHaveProperty('tokenHash');
+    expect(parsed.invitations[0]).not.toHaveProperty('userId');
   });
 
   it('returns invitation IDs distinctly from user IDs and hides token hashes', () => {

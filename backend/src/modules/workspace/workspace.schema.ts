@@ -52,6 +52,7 @@ export const workspaceSchema = z.object({
   name: workspaceNameSchema,
   ownerId: apiIdSchema,
   members: z.array(workspaceMemberSchema),
+  invitations: z.array(workspaceInvitationSchema),
   createdAt: isoDateTimeStringSchema,
   updatedAt: isoDateTimeStringSchema,
 });
@@ -78,7 +79,7 @@ export const updateWorkspaceMemberRequestSchema = z
   });
 
 export const workspaceMemberParamsSchema = z.object({
-  userId: apiIdSchema,
+  userId: z.uuid(),
 });
 
 export type WorkspaceMemberStatusDto = z.infer<

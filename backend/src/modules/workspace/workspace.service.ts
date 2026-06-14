@@ -10,10 +10,12 @@ import type {
   UpdateWorkspaceMemberRequestDto,
   UpdateWorkspaceRequestDto,
   WorkspaceDto,
+  WorkspaceInvitationDto,
   WorkspaceMemberDto,
 } from './workspace.schema.js';
 import {
   WorkspacesRepository,
+  type WorkspaceInvitationDto as RepositoryWorkspaceInvitationDto,
   type WorkspaceDto as RepositoryWorkspaceDto,
   type WorkspaceMemberDto as RepositoryWorkspaceMemberDto,
 } from './workspaces.repository.js';
@@ -33,18 +35,38 @@ function toWorkspaceMemberDto(
   };
 }
 
+function toWorkspaceInvitationDto(
+  invitation: RepositoryWorkspaceInvitationDto,
+): WorkspaceInvitationDto {
+  return {
+    invitationId: invitation.id,
+    email: invitation.email,
+    displayName: invitation.displayName ?? undefined,
+    role: invitation.role,
+    status: invitation.status,
+    createdAt: invitation.createdAt,
+    expiresAt: invitation.expiresAt,
+  };
+}
+
 function toWorkspaceDto(
   workspace: RepositoryWorkspaceDto,
   members: RepositoryWorkspaceMemberDto[],
+  invitations: RepositoryWorkspaceInvitationDto[],
 ): WorkspaceDto {
   return {
     id: workspace.id,
     name: workspace.name,
     ownerId: workspace.ownerId,
     members: members.map(toWorkspaceMemberDto),
+    invitations: invitations.map(toWorkspaceInvitationDto),
     createdAt: workspace.createdAt,
     updatedAt: workspace.updatedAt,
   };
+}
+
+function canViewWorkspaceInvitations(context: AuthContext) {
+  return context.role === 'owner' || context.role === 'adult_member';
 }
 
 function hashInvitationToken(token: string) {
@@ -104,7 +126,7 @@ export class WorkspaceService {
   async getWorkspace(auth: AuthContext | undefined) {
     const context = requireAuthenticatedContext(auth);
 
-    return this.loadWorkspace(context.workspaceId);
+    return this.loadWorkspace(context);
   }
 
   async updateWorkspace(
@@ -115,7 +137,7 @@ export class WorkspaceService {
 
     await this.repository.updateWorkspaceName(context.workspaceId, input.name);
 
-    return this.loadWorkspace(context.workspaceId);
+    return this.loadWorkspace(context);
   }
 
   async createInvitation(
@@ -192,17 +214,22 @@ export class WorkspaceService {
     });
   }
 
-  private async loadWorkspace(workspaceId: string) {
+  private async loadWorkspace(context: AuthContext) {
+    const { workspaceId } = context;
     const workspace = await this.repository.findWorkspaceById(workspaceId);
 
     if (!workspace) {
       throw new ApiError(404, 'workspace_not_found', 'Workspace not found.');
     }
 
-    const members =
-      await this.repository.listActiveMembersForWorkspace(workspaceId);
+    const [members, invitations] = await Promise.all([
+      this.repository.listActiveMembersForWorkspace(workspaceId),
+      canViewWorkspaceInvitations(context)
+        ? this.repository.listPendingInvitationsForWorkspace(workspaceId)
+        : Promise.resolve([]),
+    ]);
 
-    return toWorkspaceDto(workspace, members);
+    return toWorkspaceDto(workspace, members, invitations);
   }
 
   private async requireActiveMember(workspaceId: string, userId: string) {
