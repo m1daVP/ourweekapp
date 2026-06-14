@@ -5,6 +5,7 @@ import {
   readSettingsStorage,
   writeSettingsStorage,
 } from '@/shared/services/storageService';
+import { nowIso } from '@/shared/utils/dates';
 import type {
   CalendarConnectionStatus,
   CalendarSyncSettings,
@@ -23,10 +24,6 @@ interface CalendarSyncState {
   isDisconnecting: boolean;
   statusMessage: string;
   errorMessage: string;
-}
-
-function nowIso() {
-  return new Date().toISOString();
 }
 
 function defaultSettings(): CalendarSyncSettings {

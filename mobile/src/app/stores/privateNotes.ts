@@ -3,6 +3,8 @@ import {
   readStorageSlice,
   writeStorageSlice,
 } from '@/shared/services/storageService';
+import { compareIsoDesc, nowIso } from '@/shared/utils/dates';
+import { createPrefixedId } from '@/shared/utils/ids';
 import type { PrivateNote } from '@/features/private-notes/types';
 
 interface PrivateNotesState {
@@ -24,18 +26,6 @@ interface LegacyPrivateNote {
   updatedAt?: string;
 }
 
-function createId(prefix: string) {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
 function normalizeNote(note: LegacyPrivateNote): PrivateNote | null {
   const title = note.title?.trim();
   const content = note.content?.trim();
@@ -47,7 +37,7 @@ function normalizeNote(note: LegacyPrivateNote): PrivateNote | null {
   const createdAt = note.createdAt ?? nowIso();
 
   return {
-    id: note.id ?? createId('private-note'),
+    id: note.id ?? createPrefixedId('private-note'),
     title,
     content,
     relatedMeetingId: note.relatedMeetingId?.trim() || undefined,
@@ -75,9 +65,8 @@ function getStoredState(): PrivateNotesState {
 }
 
 function sortByUpdatedDesc(notes: PrivateNote[]) {
-  return [...notes].sort(
-    (first, second) =>
-      new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime()
+  return [...notes].sort((first, second) =>
+    compareIsoDesc(first.updatedAt, second.updatedAt)
   );
 }
 
@@ -100,7 +89,7 @@ export const usePrivateNotesStore = defineStore('privateNotes', {
 
       const createdAt = nowIso();
       const note: PrivateNote = {
-        id: createId('private-note'),
+        id: createPrefixedId('private-note'),
         title,
         content,
         relatedMeetingId: payload.relatedMeetingId?.trim() || undefined,

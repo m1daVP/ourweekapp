@@ -3,6 +3,7 @@ import {
   readSettingsStorage,
   writeSettingsStorage,
 } from '@/shared/services/storageService';
+import { nowIso } from '@/shared/utils/dates';
 import type {
   ReminderDay,
   ReminderSettings,
@@ -21,10 +22,6 @@ export const reminderDayOptions: Array<{ label: string; value: ReminderDay }> =
   ];
 
 const reminderDays = new Set(reminderDayOptions.map((option) => option.value));
-
-function nowIso() {
-  return new Date().toISOString();
-}
 
 function defaultSettings(): ReminderSettings {
   return {

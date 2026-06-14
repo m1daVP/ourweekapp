@@ -9,6 +9,8 @@ import type { AiMeetingSummaryDto } from '@/shared/api/aiApi';
 import { appConfig } from '@/shared/config/env';
 import { i18n, translate } from '@/features/localization/i18n';
 import { getMeetingSectionTitle } from '@/features/meeting/meetingTemplates';
+import { nowIso } from '@/shared/utils/dates';
+import { createId } from '@/shared/utils/ids';
 
 const backendAiSummaryTimeoutMs = 20000;
 
@@ -18,19 +20,6 @@ export interface AiSummaryProvider {
 
 export function getAiSummaryPromptContract() {
   return i18n.global.tm('ai.promptContract') as string[];
-}
-
-function createId(prefix: string) {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-
-  void prefix;
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (token) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = token === 'x' ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
 }
 
 function sectionHasContent(section: MeetingSection) {
@@ -203,7 +192,7 @@ const localPlaceholderAiSummaryProvider: AiSummaryProvider = {
     const tasks = getTasks(meeting);
 
     return {
-      id: createId('meeting-summary'),
+      id: createId(),
       meetingId: meeting.id,
       shortSummary: createShortSummary(mainTopics, agreements, tasks),
       mainTopics,
@@ -211,7 +200,7 @@ const localPlaceholderAiSummaryProvider: AiSummaryProvider = {
       agreements,
       tasks,
       suggestedNextMeetingFocus: getSuggestedNextMeetingFocus(meeting, tasks),
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso(),
     };
   },
 };

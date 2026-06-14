@@ -12,6 +12,7 @@ import {
   readSettingsStorage,
   writeSettingsStorage,
 } from '@/shared/services/storageService';
+import { nowIso } from '@/shared/utils/dates';
 
 function normalizeStoredSettings(
   value: Partial<LocalizationSettings> | null
@@ -21,7 +22,7 @@ function normalizeStoredSettings(
       locale: value.locale,
       source: value.source === 'settings' ? 'settings' : 'device',
       detectedLanguage: value.detectedLanguage,
-      updatedAt: value.updatedAt ?? new Date().toISOString(),
+      updatedAt: value.updatedAt ?? nowIso(),
     };
   }
 
@@ -60,7 +61,7 @@ export const useLocalizationStore = defineStore('localization', {
         ...this.settings,
         locale,
         source: 'settings',
-        updatedAt: new Date().toISOString(),
+        updatedAt: nowIso(),
       };
       writeSettingsStorage('localization', this.settings);
       this.applyLocale();

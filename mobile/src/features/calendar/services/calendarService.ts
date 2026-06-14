@@ -16,20 +16,7 @@ import {
   syncGoogleCalendarTaskDueDate,
 } from '@/shared/api/calendarApi';
 import { openExternalAuthUrl } from '@/shared/services/externalAuthService';
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function createSetupRequiredStatus(): CalendarConnectionStatus {
-  return {
-    provider: 'google',
-    state: 'setup_required',
-    connected: false,
-    lastCheckedAt: nowIso(),
-    message: translate('calendar.setupRequired'),
-  };
-}
+import { nowIso } from '@/shared/utils/dates';
 
 function createDisconnectedStatus(): CalendarConnectionStatus {
   return {
@@ -80,7 +67,7 @@ export async function connectCalendar(): Promise<CalendarConnectionStatus> {
   const connectionStatus =
     (await startGoogleCalendarConnection({
       redirectUrl: getCalendarRedirectUrl(),
-    })) ?? createSetupRequiredStatus();
+    })) ?? createDisconnectedStatus();
 
   if (connectionStatus.authorizationUrl) {
     openExternalAuthUrl(connectionStatus.authorizationUrl);
@@ -128,7 +115,7 @@ export async function syncMeetingReminder(
     (await syncGoogleCalendarMeetingReminder(payload)) ??
     createSkippedResult(
       'oauth-not-configured',
-      translate('calendar.oauthWaiting')
+      translate('calendar.unavailable')
     )
   );
 }
@@ -154,7 +141,7 @@ export async function syncTaskDueDate(
     (await syncGoogleCalendarTaskDueDate(payload)) ??
     createSkippedResult(
       'oauth-not-configured',
-      translate('calendar.oauthWaiting')
+      translate('calendar.unavailable')
     )
   );
 }
@@ -180,7 +167,7 @@ export async function syncFollowUpDate(
     (await syncGoogleCalendarFollowUpDate(payload)) ??
     createSkippedResult(
       'oauth-not-configured',
-      translate('calendar.oauthWaiting')
+      translate('calendar.unavailable')
     )
   );
 }

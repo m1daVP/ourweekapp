@@ -1,4 +1,5 @@
 import type { LocalizationSettings, SupportedLocale } from './types';
+import { nowIso } from '@/shared/utils/dates';
 
 export const supportedLocales: SupportedLocale[] = ['en', 'uk', 'es'];
 
@@ -49,6 +50,6 @@ export function createDetectedLocalizationSettings(): LocalizationSettings {
     locale: resolveInitialLocale(detectedLanguage),
     source: 'device',
     detectedLanguage,
-    updatedAt: new Date().toISOString(),
+    updatedAt: nowIso(),
   };
 }
