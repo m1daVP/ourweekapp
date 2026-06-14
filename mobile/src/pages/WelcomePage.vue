@@ -9,7 +9,9 @@ const router = useRouter();
 const authStore = useAuthStore();
 const { t } = useI18n();
 
-const isMockAuth = computed(() => appConfig.apiMode === 'mock');
+const canShowDevelopmentMockUi = computed(
+  () => appConfig.isDevelopmentMockUiEnabled
+);
 const canContinueLocalOnly = computed(() => !appConfig.isBackendApiEnabled);
 
 async function continueLocalOnly() {
@@ -45,7 +47,7 @@ async function continueLocalOnly() {
       </div>
     </div>
 
-    <p v-if="isMockAuth" class="auth-note">
+    <p v-if="canShowDevelopmentMockUi" class="auth-note">
       {{ t('welcome.mockAuth') }}
     </p>
 

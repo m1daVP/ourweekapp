@@ -39,11 +39,6 @@ interface SummaryViewModel {
   aiInsight: string | null;
   keyDecisions: string[];
   actionItems: SummaryActionItem[];
-  sentiment: {
-    label: string;
-    value: string;
-    score: number;
-  };
 }
 
 const route = useRoute();
@@ -157,15 +152,6 @@ const aiInsightState = computed<AiInsightState>(() => {
 
   return 'empty';
 });
-
-const sentimentBars = computed(() =>
-  Array.from({ length: 5 }, (_, index) => ({
-    id: index,
-    isActive: index < (meetingSummary.value?.sentiment.score ?? 0),
-    isStrong:
-      index >= 3 && index < (meetingSummary.value?.sentiment.score ?? 0),
-  }))
-);
 
 const unavailableText = computed(() =>
   meeting.value && !canAccessMeeting.value
@@ -311,11 +297,6 @@ function createSummaryViewModel(item: Meeting): SummaryViewModel {
           createActionItem(task, participants, index)
         )
       : [],
-    sentiment: {
-      label: t('meetingSummary.overallMood'),
-      value: t('meetingSummary.positiveAligned'),
-      score: 4,
-    },
   };
 }
 
@@ -338,8 +319,6 @@ function getShareText(summary: SummaryViewModel) {
     '',
     t('meetingSummary.actionItems'),
     actions || meetingSummaryText('noActions'),
-    '',
-    `${summary.sentiment.label}: ${summary.sentiment.value}`,
   ];
 
   if (visibleAiInsight) {
@@ -542,35 +521,6 @@ function goBack() {
         </ul>
         <div v-else class="meeting-summary-decision-card">
           <p>{{ meetingSummaryText('noActions') }}</p>
-        </div>
-      </section>
-
-      <section class="meeting-summary-section">
-        <div class="meeting-summary-section__title">
-          <span
-            class="meeting-summary-section__title-icon--secondary material-symbols-outlined"
-            aria-hidden="true"
-          >
-            mood
-          </span>
-          <h2>{{ t('meetingSummary.sentiment') }}</h2>
-        </div>
-        <div class="meeting-summary-sentiment-card">
-          <div>
-            <p>{{ meetingSummary.sentiment.label }}</p>
-            <strong>{{ meetingSummary.sentiment.value }}</strong>
-          </div>
-          <div
-            class="meeting-summary-sentiment-bars"
-            :aria-label="t('meetingSummary.sentimentStrength')"
-            role="img"
-          >
-            <span
-              v-for="bar in sentimentBars"
-              :key="bar.id"
-              :class="{ 'is-active': bar.isActive, 'is-strong': bar.isStrong }"
-            ></span>
-          </div>
         </div>
       </section>
     </main>

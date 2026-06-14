@@ -1,5 +1,6 @@
 import type { FeatureKey, PlanType } from '@/features/access/types';
 import { apiRequest, isBackendApiConfigured } from './httpClient';
+import { nowIso } from '@/shared/utils/dates';
 
 export type SubscriptionProviderDto =
   | 'google_play'
@@ -43,7 +44,7 @@ function createMockStatus(): SubscriptionStatusDto {
     provider: null,
     enabledFeatures: freeFeatureKeys,
     expiresAt: null,
-    checkedAt: new Date().toISOString(),
+    checkedAt: nowIso(),
   };
 }
 

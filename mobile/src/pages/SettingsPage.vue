@@ -82,6 +82,9 @@ const premiumFeatures = computed(() =>
     access: getFeatureAccess(featureKey),
   }))
 );
+const canShowDevelopmentMockUi = computed(
+  () => appConfig.isDevelopmentMockUiEnabled
+);
 
 const participantDraft = reactive({
   name: '',
@@ -400,6 +403,19 @@ function enableParticipant(participantId: string) {
 
     <section class="content-panel settings-panel">
       <div>
+        <h2>{{ t('settings.support') }}</h2>
+        <p>{{ t('settings.supportText') }}</p>
+      </div>
+      <RouterLink
+        class="secondary-button link-button"
+        :to="{ name: 'support-diagnostics' }"
+      >
+        {{ t('settings.supportDiagnostics') }}
+      </RouterLink>
+    </section>
+
+    <section class="content-panel settings-panel">
+      <div>
         <h2>{{ t('settings.legal') }}</h2>
         <p>{{ t('settings.legalText') }}</p>
       </div>
@@ -646,7 +662,7 @@ function enableParticipant(participantId: string) {
 
     <UpgradePrompt v-if="lockedFeature" :feature="lockedFeature" />
 
-    <div class="content-panel settings-panel">
+    <div v-if="canShowDevelopmentMockUi" class="content-panel settings-panel">
       <h2>{{ t('settings.mockWorkspaceRole') }}</h2>
       <div class="role-grid">
         <button
@@ -661,7 +677,7 @@ function enableParticipant(participantId: string) {
       </div>
     </div>
 
-    <div class="content-panel settings-panel">
+    <div v-if="canShowDevelopmentMockUi" class="content-panel settings-panel">
       <h2>{{ t('settings.premiumFeatureChecks') }}</h2>
       <ul class="feature-list">
         <li v-for="feature in premiumFeatures" :key="feature.key">

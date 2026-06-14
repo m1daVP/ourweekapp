@@ -28,7 +28,8 @@ const selectedPlan = computed(() =>
   )
 );
 const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
-const isPurchaseUnavailable = computed(() => appConfig.isBackendApiEnabled);
+const isPurchaseUnavailable = computed(() => !appConfig.isBackendApiEnabled);
+const canRestorePurchases = computed(() => appConfig.isBackendApiEnabled);
 const purchaseButtonLabel = computed(() => {
   if (hasPremium.value) {
     return t('upgrade.premiumActive');
@@ -67,8 +68,8 @@ function purchaseSelectedPlan() {
 
     <section class="content-panel subscription-plans">
       <div>
-        <h2>{{ t('upgrade.placeholdersTitle') }}</h2>
-        <p>{{ t('upgrade.placeholdersText') }}</p>
+        <h2>{{ t('upgrade.plansTitle') }}</h2>
+        <p>{{ t('upgrade.plansText') }}</p>
       </div>
 
       <div class="plan-card-grid" :aria-label="t('upgrade.planOptionsLabel')">
@@ -101,7 +102,7 @@ function purchaseSelectedPlan() {
       <button
         class="secondary-button"
         type="button"
-        :disabled="subscriptionStore.isRestoring"
+        :disabled="subscriptionStore.isRestoring || !canRestorePurchases"
         @click="subscriptionStore.restorePurchases()"
       >
         {{ t('common.restorePurchases') }}

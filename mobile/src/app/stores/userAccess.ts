@@ -15,9 +15,6 @@ export const useUserAccessStore = defineStore('userAccess', {
     isPremium: (state) => state.planType === 'premium',
   },
   actions: {
-    setMockPlan(planType: PlanType) {
-      this.planType = planType;
-    },
     setAccountPlan(planType: PlanType) {
       this.planType = planType;
     },

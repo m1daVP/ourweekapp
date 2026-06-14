@@ -8,7 +8,9 @@ import {
   deleteAccount as deleteAccountRequest,
   exportAccountData,
 } from '@/shared/api/accountApi';
+import { appConfig } from '@/shared/config/env';
 import { saveOrShareExportFile } from '@/shared/services/exportFileDeliveryService';
+import { nowIso } from '@/shared/utils/dates';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 
@@ -30,6 +32,7 @@ const currentPlanLabel = computed(() =>
     ? t('premium.badge')
     : t('common.free')
 );
+const canRestorePurchases = computed(() => appConfig.isBackendApiEnabled);
 
 function formatDate(value?: string) {
   if (!value) {
@@ -61,7 +64,7 @@ function saveProfile() {
 }
 
 async function saveAccountExport(data: unknown) {
-  const exportedAt = new Date().toISOString().slice(0, 10);
+  const exportedAt = nowIso().slice(0, 10);
 
   return saveOrShareExportFile({
     content: JSON.stringify(data, null, 2),
@@ -176,7 +179,7 @@ async function confirmDeleteAccount() {
       <button
         class="secondary-button"
         type="button"
-        :disabled="subscriptionStore.isRestoring"
+        :disabled="subscriptionStore.isRestoring || !canRestorePurchases"
         @click="subscriptionStore.restorePurchases()"
       >
         {{ t('account.restorePurchases') }}

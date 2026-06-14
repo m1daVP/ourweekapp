@@ -6,7 +6,6 @@ export type SubscriptionProviderKind = 'mock' | 'revenuecat' | 'direct_store';
 export type SubscriptionPlatform = 'web' | 'android' | 'ios';
 export type SubscriptionEntitlementKey = 'premium';
 export type EntitlementVerificationSource =
-  | 'mock'
   | 'trusted_provider'
   | 'backend'
   | 'none';
