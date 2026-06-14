@@ -1,3 +1,4 @@
+import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
@@ -53,8 +54,8 @@ export function mapUserRowToPublicUserDto(row: Pick<UserRow, 'id' | 'email' | 'e
     email: row.email,
     emailNormalized: row.email_normalized,
     displayName: row.display_name,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
   };
 }
 
@@ -62,7 +63,7 @@ export function mapUserRowToAuthUserRecord(row: UserRow): AuthUserRecord {
   return {
     ...mapUserRowToPublicUserDto(row),
     passwordHash: row.password_hash,
-    deletedAt: row.deleted_at,
+    deletedAt: formatNullableApiDateTime(row.deleted_at),
   };
 }
 

@@ -1,5 +1,6 @@
 import { ApiError } from '../../shared/errors/index.js';
 import type { UserRole } from '../../shared/auth/index.js';
+import { formatApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
@@ -112,8 +113,8 @@ export function mapWorkspaceRowToDto(row: WorkspaceRow): WorkspaceDto {
     id: row.id,
     name: row.name,
     ownerId: row.owner_id,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
   };
 }
 
@@ -125,8 +126,8 @@ export function mapWorkspaceMemberRowToDto(row: WorkspaceMemberRow): WorkspaceMe
     email: row.email,
     role: row.role,
     status: row.status,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
   };
 }
 
@@ -139,8 +140,8 @@ export function mapWorkspaceInvitationRowToDto(row: WorkspaceInvitationRow): Wor
     displayName: row.display_name,
     role: row.role,
     status: row.status,
-    createdAt: row.created_at,
-    expiresAt: row.expires_at,
+    createdAt: formatApiDateTime(row.created_at),
+    expiresAt: formatApiDateTime(row.expires_at),
   };
 }
 
@@ -162,6 +163,14 @@ function mapWorkspaceMemberRpcError(error: { code?: string; message?: string } |
       422,
       'workspace_member_status_transition_invalid',
       'This workspace member status transition is not supported.',
+    );
+  }
+
+  if (error.message === 'workspace_member_role_invalid') {
+    throw new ApiError(
+      422,
+      'workspace_member_role_invalid',
+      'This workspace member role is not supported.',
     );
   }
 }
@@ -311,6 +320,24 @@ export class WorkspacesRepository {
     throwOnSupabaseError(error, 'membership_list_failed', 'Unable to list workspace members.');
 
     return (data ?? []).map(mapWorkspaceMemberRowToDto);
+  }
+
+  async listPendingInvitationsForWorkspace(workspaceId: string) {
+    const { data, error } = await this.supabase
+      .from('workspace_invitations')
+      .select(INVITATION_COLUMNS)
+      .eq('workspace_id', workspaceId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .returns<WorkspaceInvitationRow[]>();
+
+    throwOnSupabaseError(
+      error,
+      'workspace_invitation_list_failed',
+      'Unable to list workspace invitations.',
+    );
+
+    return (data ?? []).map(mapWorkspaceInvitationRowToDto);
   }
 
   async listActiveOwnersForWorkspace(workspaceId: string) {

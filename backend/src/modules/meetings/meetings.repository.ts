@@ -1,3 +1,4 @@
+import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
@@ -76,10 +77,10 @@ export function mapMeetingRowToDto(row: MeetingRow): MeetingDto {
     currentSectionIndex: row.current_section_index,
     aiSummary: row.ai_summary,
     serverRevision: row.server_revision,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    completedAt: row.completed_at,
-    deletedAt: row.deleted_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    completedAt: formatNullableApiDateTime(row.completed_at),
+    deletedAt: formatNullableApiDateTime(row.deleted_at),
   };
 }
 

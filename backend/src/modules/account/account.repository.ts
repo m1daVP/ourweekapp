@@ -1,4 +1,5 @@
 import type { PlanType, UserRole } from '../../shared/auth/index.js';
+import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { throwOnSupabaseError } from '../../shared/repositories/index.js';
 
@@ -275,8 +276,8 @@ function mapUser(row: UserRow): AccountUserRecord {
     id: row.id,
     email: row.email,
     displayName: row.display_name,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
   };
 }
 
@@ -285,8 +286,8 @@ function mapWorkspace(row: WorkspaceRow): AccountWorkspaceRecord {
     id: row.id,
     name: row.name,
     ownerId: row.owner_id,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
   };
 }
 
@@ -298,8 +299,8 @@ function mapMember(row: WorkspaceMemberRow): AccountWorkspaceMemberRecord {
     email: row.email,
     role: row.role,
     status: row.status,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
   };
 }
 
@@ -313,9 +314,9 @@ function mapParticipant(row: ParticipantRow): AccountParticipantRecord {
     type: row.type,
     isActive: row.is_active,
     serverRevision: row.server_revision,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    deletedAt: row.deleted_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    deletedAt: formatNullableApiDateTime(row.deleted_at),
   };
 }
 
@@ -331,10 +332,10 @@ function mapMeeting(row: MeetingRow): AccountMeetingRecord {
     currentSectionIndex: row.current_section_index,
     aiSummary: row.ai_summary,
     serverRevision: row.server_revision,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    completedAt: row.completed_at,
-    deletedAt: row.deleted_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    completedAt: formatNullableApiDateTime(row.completed_at),
+    deletedAt: formatNullableApiDateTime(row.deleted_at),
   };
 }
 
@@ -350,9 +351,9 @@ function mapTask(row: TaskRow): AccountTaskRecord {
     status: row.status,
     sourceMeetingId: row.source_meeting_id,
     serverRevision: row.server_revision,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    deletedAt: row.deleted_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    deletedAt: formatNullableApiDateTime(row.deleted_at),
   };
 }
 
@@ -366,9 +367,9 @@ function mapAgreement(row: AgreementRow): AccountAgreementRecord {
     relatedTaskIds: stringArrayFromJson(row.related_task_ids),
     sourceMeetingId: row.source_meeting_id,
     serverRevision: row.server_revision,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    deletedAt: row.deleted_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    deletedAt: formatNullableApiDateTime(row.deleted_at),
   };
 }
 
@@ -377,7 +378,7 @@ function mapReviewDecision(row: TaskReviewDecisionRow): AccountTaskReviewDecisio
     workspaceId: row.workspace_id,
     meetingId: row.meeting_id,
     sourceMeetingId: row.source_meeting_id,
-    decidedAt: row.decided_at,
+    decidedAt: formatApiDateTime(row.decided_at),
   };
 }
 
@@ -388,10 +389,10 @@ function mapSubscription(row: SubscriptionRow): AccountSubscriptionRecord {
     provider: row.provider,
     planType: row.plan_type,
     status: row.status,
-    expiresAt: row.expires_at,
-    lastCheckedAt: row.last_checked_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    expiresAt: formatNullableApiDateTime(row.expires_at),
+    lastCheckedAt: formatApiDateTime(row.last_checked_at),
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
   };
 }
 
@@ -402,11 +403,11 @@ function mapCalendarConnection(row: CalendarConnectionRow): AccountCalendarConne
     userId: row.user_id,
     provider: row.provider,
     connectedAccountEmail: row.connected_account_email,
-    tokenExpiresAt: row.token_expires_at,
+    tokenExpiresAt: formatNullableApiDateTime(row.token_expires_at),
     state: row.state,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    disconnectedAt: row.disconnected_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    disconnectedAt: formatNullableApiDateTime(row.disconnected_at),
   };
 }
 

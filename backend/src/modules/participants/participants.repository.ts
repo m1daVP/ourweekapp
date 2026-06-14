@@ -1,3 +1,4 @@
+import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
@@ -74,9 +75,9 @@ export function mapParticipantRowToDto(row: ParticipantRow): ParticipantDto {
     type: row.type,
     isActive: row.is_active,
     serverRevision: row.server_revision,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    deletedAt: row.deleted_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    deletedAt: formatNullableApiDateTime(row.deleted_at),
   };
 }
 

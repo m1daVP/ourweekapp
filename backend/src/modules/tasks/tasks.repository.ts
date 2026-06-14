@@ -1,3 +1,4 @@
+import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
@@ -143,9 +144,9 @@ export function mapTaskRowToDto(row: TaskRow): TaskDto {
     status: row.status,
     sourceMeetingId: row.source_meeting_id,
     serverRevision: row.server_revision,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    deletedAt: row.deleted_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    deletedAt: formatNullableApiDateTime(row.deleted_at),
   };
 }
 
@@ -159,9 +160,9 @@ export function mapAgreementRowToDto(row: AgreementRow): AgreementDto {
     relatedTaskIds: stringArrayFromJson(row.related_task_ids),
     sourceMeetingId: row.source_meeting_id,
     serverRevision: row.server_revision,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    deletedAt: row.deleted_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    deletedAt: formatNullableApiDateTime(row.deleted_at),
   };
 }
 
@@ -170,7 +171,7 @@ export function mapTaskReviewDecisionRowToDto(row: TaskReviewDecisionRow): TaskR
     workspaceId: row.workspace_id,
     meetingId: row.meeting_id,
     sourceMeetingId: row.source_meeting_id,
-    decidedAt: row.decided_at,
+    decidedAt: formatApiDateTime(row.decided_at),
   };
 }
 

@@ -1,3 +1,4 @@
+import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
@@ -99,11 +100,11 @@ export function mapCalendarConnectionRowToDto(row: PublicCalendarConnectionRow):
     userId: row.user_id,
     provider: row.provider,
     connectedAccountEmail: row.connected_account_email,
-    tokenExpiresAt: row.token_expires_at,
+    tokenExpiresAt: formatNullableApiDateTime(row.token_expires_at),
     state: row.state,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    disconnectedAt: row.disconnected_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
+    disconnectedAt: formatNullableApiDateTime(row.disconnected_at),
   };
 }
 
@@ -124,8 +125,8 @@ export function mapCalendarEventRowToDto(row: CalendarEventRow): CalendarEventDt
     sourceType: row.source_type,
     sourceId: row.source_id,
     providerEventId: row.provider_event_id,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
   };
 }
 

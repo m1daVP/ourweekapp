@@ -11,6 +11,7 @@ import {
   syncTasksRequestSchema,
   taskSyncConflictSchema,
 } from '../src/modules/tasks/tasks.schema.js';
+import { formatApiDateTime, formatNullableApiDateTime } from '../src/shared/dates.js';
 import { emailSchema, VALIDATION_LIMITS } from '../src/shared/schemas/index.js';
 
 const now = '2026-06-04T12:00:00.000Z';
@@ -59,6 +60,17 @@ const conflictBase = {
 } as const;
 
 describe('DTO schema validation limits', () => {
+  it('normalizes API datetimes to canonical UTC strings', () => {
+    expect(formatApiDateTime('2026-06-11T17:16:13.351+02:00'))
+      .toBe('2026-06-11T15:16:13.351Z');
+    expect(formatApiDateTime('2026-06-11T15:16:13.351Z'))
+      .toBe('2026-06-11T15:16:13.351Z');
+    expect(formatNullableApiDateTime(null)).toBeNull();
+    expect(() => formatApiDateTime('not-a-date')).toThrow(
+      'Invalid API datetime value.',
+    );
+  });
+
   it('trims and normalizes email before validating it', () => {
     expect(emailSchema.parse(' RITA@EXAMPLE.COM ')).toBe('rita@example.com');
   });

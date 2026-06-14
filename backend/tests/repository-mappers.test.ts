@@ -5,6 +5,7 @@ import { mapUserRowToPublicUserDto } from '../src/modules/auth/users.repository.
 import { mapCalendarConnectionRowToDto } from '../src/modules/calendar/calendar.repository.js';
 import { mapMeetingRowToDto } from '../src/modules/meetings/meetings.repository.js';
 import { mapTaskRowToDto } from '../src/modules/tasks/tasks.repository.js';
+import { mapWorkspaceRowToDto } from '../src/modules/workspace/workspaces.repository.js';
 
 describe('repository mappers', () => {
   it('maps users to public DTOs without password hashes or soft-delete metadata', () => {
@@ -14,8 +15,8 @@ describe('repository mappers', () => {
       email_normalized: 'ada@example.com',
       display_name: 'Ada',
       password_hash: 'secret-hash',
-      created_at: '2026-06-05T10:00:00.000Z',
-      updated_at: '2026-06-05T11:00:00.000Z',
+      created_at: '2026-06-05T12:00:00.000+02:00',
+      updated_at: '2026-06-05T13:00:00.000+02:00',
       deleted_at: null,
     };
 
@@ -43,10 +44,10 @@ describe('repository mappers', () => {
       connected_account_email: 'ada@example.com',
       access_token_encrypted: 'encrypted-access-token',
       refresh_token_encrypted: 'encrypted-refresh-token',
-      token_expires_at: '2026-06-05T12:00:00.000Z',
+      token_expires_at: '2026-06-05T14:00:00.000+02:00',
       state: 'connected' as const,
-      created_at: '2026-06-05T10:00:00.000Z',
-      updated_at: '2026-06-05T11:00:00.000Z',
+      created_at: '2026-06-05T12:00:00.000+02:00',
+      updated_at: '2026-06-05T13:00:00.000+02:00',
       disconnected_at: null,
     };
 
@@ -75,8 +76,8 @@ describe('repository mappers', () => {
       provider: 'openai',
       status: 'completed',
       input_hash: 'private-input-hash',
-      created_at: '2026-06-05T10:00:00.000Z',
-      completed_at: '2026-06-05T10:01:00.000Z',
+      created_at: '2026-06-05T12:00:00.000+02:00',
+      completed_at: '2026-06-05T12:01:00.000+02:00',
       error_code: null,
     };
 
@@ -109,9 +110,9 @@ describe('repository mappers', () => {
       current_section_index: 1,
       ai_summary: { summary: 'Done' },
       server_revision: 3,
-      created_at: '2026-06-05T10:00:00.000Z',
-      updated_at: '2026-06-05T11:00:00.000Z',
-      completed_at: '2026-06-05T11:00:00.000Z',
+      created_at: '2026-06-05T12:00:00.000+02:00',
+      updated_at: '2026-06-05T13:00:00.000+02:00',
+      completed_at: '2026-06-05T13:00:00.000+02:00',
       deleted_at: null,
     });
 
@@ -126,8 +127,8 @@ describe('repository mappers', () => {
       status: 'open',
       source_meeting_id: 'meeting-1',
       server_revision: 2,
-      created_at: '2026-06-05T10:00:00.000Z',
-      updated_at: '2026-06-05T11:00:00.000Z',
+      created_at: '2026-06-05T12:00:00.000+02:00',
+      updated_at: '2026-06-05T13:00:00.000+02:00',
       deleted_at: null,
     });
 
@@ -137,5 +138,23 @@ describe('repository mappers', () => {
     expect(task.responsibilityType).toBe('participant');
     expect(task.responsibleParticipantIds).toEqual(['participant-1']);
     expect(task.sourceMeetingId).toBe('meeting-1');
+    expect(meeting.createdAt).toBe('2026-06-05T10:00:00.000Z');
+    expect(meeting.updatedAt).toBe('2026-06-05T11:00:00.000Z');
+    expect(meeting.completedAt).toBe('2026-06-05T11:00:00.000Z');
+    expect(task.createdAt).toBe('2026-06-05T10:00:00.000Z');
+    expect(task.updatedAt).toBe('2026-06-05T11:00:00.000Z');
+  });
+
+  it('normalizes workspace offset timestamps to API datetimes', () => {
+    const dto = mapWorkspaceRowToDto({
+      id: 'workspace-1',
+      name: 'Family',
+      owner_id: 'user-1',
+      created_at: '2026-06-11T17:16:13.351+02:00',
+      updated_at: '2026-06-11T17:17:13.351+02:00',
+    });
+
+    expect(dto.createdAt).toBe('2026-06-11T15:16:13.351Z');
+    expect(dto.updatedAt).toBe('2026-06-11T15:17:13.351Z');
   });
 });

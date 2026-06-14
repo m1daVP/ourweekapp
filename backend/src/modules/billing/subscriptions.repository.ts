@@ -1,4 +1,5 @@
 import type { PlanType } from '../../shared/auth/index.js';
+import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 import { resolveEffectivePlan } from '../../shared/repositories/index.js';
@@ -62,10 +63,10 @@ export function mapSubscriptionRowToDto(row: PublicSubscriptionRow): Subscriptio
     provider: row.provider,
     planType: row.plan_type,
     status: row.status,
-    expiresAt: row.expires_at,
-    lastCheckedAt: row.last_checked_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    expiresAt: formatNullableApiDateTime(row.expires_at),
+    lastCheckedAt: formatApiDateTime(row.last_checked_at),
+    createdAt: formatApiDateTime(row.created_at),
+    updatedAt: formatApiDateTime(row.updated_at),
   };
 }
 

@@ -1,3 +1,4 @@
+import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
@@ -54,8 +55,8 @@ export function mapAiSummaryRequestRowToDto(row: PublicAiSummaryRequestRow): AiS
     meetingId: row.meeting_id,
     provider: row.provider,
     status: row.status,
-    createdAt: row.created_at,
-    completedAt: row.completed_at,
+    createdAt: formatApiDateTime(row.created_at),
+    completedAt: formatNullableApiDateTime(row.completed_at),
     errorCode: row.error_code,
   };
 }

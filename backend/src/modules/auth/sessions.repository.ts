@@ -1,4 +1,5 @@
 import { ApiError } from '../../shared/errors/index.js';
+import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
@@ -55,10 +56,10 @@ export function mapSessionRowToDto(row: PublicSessionRow): SessionDto {
     id: row.id,
     userId: row.user_id,
     deviceLabel: row.device_label,
-    createdAt: row.created_at,
-    expiresAt: row.expires_at,
-    revokedAt: row.revoked_at,
-    lastUsedAt: row.last_used_at,
+    createdAt: formatApiDateTime(row.created_at),
+    expiresAt: formatApiDateTime(row.expires_at),
+    revokedAt: formatNullableApiDateTime(row.revoked_at),
+    lastUsedAt: formatNullableApiDateTime(row.last_used_at),
   };
 }
 
