@@ -42,6 +42,7 @@ const pageTitle = computed(() => {
     'calendar-sync': t('app.routeTitles.calendarSync'),
     'workspace-settings': t('app.routeTitles.workspaceSettings'),
     account: t('app.routeTitles.account'),
+    'support-diagnostics': t('app.routeTitles.supportDiagnostics'),
     'meeting-details': t('app.routeTitles.meetingDetails'),
     'meeting-summary': t('app.routeTitles.meetingSummary'),
   };

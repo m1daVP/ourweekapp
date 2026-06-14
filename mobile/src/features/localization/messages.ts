@@ -19,6 +19,7 @@ export const messages = {
         calendarSync: 'Calendar Sync',
         workspaceSettings: 'Household',
         account: 'Account',
+        supportDiagnostics: 'Support Diagnostics',
         meetingDetails: 'Meeting Summary',
         meetingSummary: 'Meeting Summary',
       },
@@ -91,10 +92,10 @@ export const messages = {
       currentPlan:
         'Current plan: {plan}. Premium access is based on the subscription entitlement, not account state alone.',
       renewal: 'Renewal',
-      renewalUnavailable: 'Not available until real mobile billing is added.',
+      renewalUnavailable: 'No renewal date is available for this account.',
       manageSubscription: 'Manage subscription',
       manageAvailable: 'Available through the store.',
-      manageUnavailable: 'Placeholder only. No payment provider is connected.',
+      manageUnavailable: 'No active store subscription is available to manage.',
       viewPremium: 'View Premium',
       restorePurchases: 'Restore purchases',
       profile: 'Profile',
@@ -243,18 +244,6 @@ export const messages = {
     },
     meetingSummary: {
       title: 'Meeting Summary',
-      mockTitle: 'Weekly family check-in',
-      mockDate: 'Oct 15, 2023',
-      mockAiInsight:
-        'A productive session focused on balancing the upcoming busy school week. Mood was collaborative and supportive, with everyone agreeing on a solid plan for shared responsibilities.',
-      mockDecisionScreenTime:
-        'Agreed to limit screen time to 1 hour on weeknights for everyone.',
-      mockDecisionGroceries:
-        'Sarah will handle grocery shopping this Wednesday evening.',
-      mockDecisionHiking:
-        'Next weekend is dedicated to family hiking at the state park.',
-      mockActionFaucet: 'Fix the leaky faucet in guest bathroom',
-      mockActionSoccer: 'Register for fall soccer league',
       aiInsight: 'AI Insight',
       aiDisclaimer:
         'AI summaries may be inaccurate. Review before relying on them.',
@@ -271,10 +260,6 @@ export const messages = {
       actionItems: 'Action Items',
       noActions: 'No action items were recorded in this meeting.',
       viewFullNotes: 'View full notes',
-      sentiment: 'Sentiment',
-      overallMood: 'Overall Mood',
-      positiveAligned: 'Positive & Aligned',
-      sentimentStrength: 'Mood strength',
       shareSummary: 'Share Summary',
       copied: 'Summary copied.',
       shared: 'Summary shared.',
@@ -392,17 +377,13 @@ export const messages = {
           description: 'Keep agreed revisit dates visible between meetings.',
         },
       },
-      setupRequired:
-        'Google Calendar connection is prepared, but secure OAuth is not configured yet.',
       unavailable:
-        'Google Calendar sync is not available in this build. Your OurWeek data remains saved without Calendar access.',
+        'Google Calendar sync is not available right now. Your OurWeek data remains saved without Calendar access.',
       addMeetingDate: 'Add a meeting date before syncing a calendar reminder.',
       addTaskDueDate:
         'Add a task due date before syncing it to Google Calendar.',
       addFollowUpDate:
         'Add a follow-up date before syncing it to Google Calendar.',
-      oauthWaiting:
-        'Calendar sync is waiting for a secure Google connection flow.',
       checkFailed: 'Something went wrong while checking Calendar sync.',
       startFailed: 'Something went wrong while starting Calendar sync.',
       disconnectFailed:
@@ -416,8 +397,8 @@ export const messages = {
       heroTitle: 'Keep the weekly ritual easier to revisit',
       heroText:
         'Unlock practical additions without changing OurWeek into a task tracker or a budgeting app.',
-      placeholdersTitle: 'Choose a Premium plan',
-      placeholdersText:
+      plansTitle: 'Choose a Premium plan',
+      plansText:
         'Premium access is checked through your account and app store subscription.',
       planOptionsLabel: 'Premium plan options',
       premiumActive: 'Premium active',
@@ -432,23 +413,18 @@ export const messages = {
       renewal: 'Renewal',
       manageSubscription: 'Manage subscription',
       account: 'Account',
-      renewalUnavailable: 'Not available until real billing is connected.',
+      renewalUnavailable: 'No renewal date is available for this account.',
       manageAvailable: 'Available through the store.',
       manageUnavailable: 'No active store subscription to manage yet.',
       localDeviceMode: 'Local device mode',
-      storeBillingNotConnected: 'Store billing is not connected in this build.',
+      storeBillingNotConnected: 'Store billing is not available right now.',
       billingUnavailableAction: 'Store billing unavailable',
       billingUnavailable:
-        'Store billing is not available in this build yet. Premium access stays locked.',
-      mockPurchasesDisabled:
-        'Mock purchases are disabled in production builds.',
+        'Store billing is not available right now. Premium access stays locked.',
       planUnavailable: 'This Premium plan is not available.',
       premiumEnabled: 'Premium is active for this account.',
       premiumRestored: 'Premium was restored for this account.',
       noPremiumFound: 'No active Premium subscription was found.',
-      mockPremiumEnabled: 'Mock Premium is enabled on this device.',
-      mockPremiumRestored: 'Mock Premium was restored on this device.',
-      noMockPremium: 'No mock Premium purchase was found on this device.',
       managementLater:
         'Subscription management will open Google Play or App Store settings after real billing is configured.',
       managementOpened: 'Opening subscription management.',
@@ -486,6 +462,10 @@ export const messages = {
       accountOptions: 'Account options',
       workspaceSettings: 'Workspace settings',
       calendarSync: 'Calendar sync',
+      support: 'Support',
+      supportText:
+        'Check app status and copy diagnostics that avoid family content.',
+      supportDiagnostics: 'Support diagnostics',
       legal: 'Legal',
       legalText:
         'Review how OurWeek handles account data, synced household records, local storage, Premium features, AI summaries, Calendar sync, exports, and account rights.',
@@ -546,6 +526,67 @@ export const messages = {
         adult: 'Adult',
         child: 'Child',
         other: 'Other',
+      },
+    },
+    supportDiagnostics: {
+      kicker: 'Support',
+      title: 'Support diagnostics',
+      intro:
+        'Check app health and copy a redacted status report if support asks for it.',
+      appStatus: 'App status',
+      privacyNote:
+        'Diagnostics include technical status only. Meeting notes, private notes, tasks, agreements, tokens, receipts, and AI prompts are not included.',
+      environment: 'Environment',
+      apiMode: 'API mode',
+      backendOrigin: 'Backend',
+      platform: 'Platform',
+      online: 'Online',
+      accountState: 'Account',
+      plan: 'Plan',
+      syncStatus: 'Sync status',
+      syncHelp: 'Local changes remain saved if sync cannot finish.',
+      conflicts: 'Conflicts',
+      lastAttempted: 'Last attempted',
+      lastSynced: 'Last synced',
+      backendStatus: 'Backend status',
+      backendHelp:
+        'Readiness currently reflects the API and database checks exposed by the backend.',
+      health: 'Health',
+      liveness: 'Liveness',
+      readiness: 'Readiness',
+      database: 'Database',
+      storageStatus: 'Storage status',
+      storageHelp:
+        'Storage diagnostics show whether local recovery messages are active.',
+      storageIssue: 'Needs attention',
+      storageMessages: 'Messages',
+      storageBackups: 'Backups',
+      generatedAt: 'Generated',
+      shareTitle: 'Share diagnostics',
+      shareHelp:
+        'Copy only when you choose to share it. Nothing is sent automatically.',
+      refresh: 'Refresh status',
+      refreshing: 'Refreshing...',
+      copy: 'Copy diagnostics',
+      copied: 'Diagnostics copied.',
+      copyFallback:
+        'Clipboard is not available. Select and copy the diagnostics below.',
+      fallbackLabel: 'Diagnostics JSON',
+      refreshFailed: 'Diagnostics could not be refreshed right now.',
+      yes: 'Yes',
+      no: 'No',
+      accountStates: {
+        signed_in: 'Signed in',
+        local_only: 'Local only',
+        guest: 'No account',
+        loading: 'Checking account',
+        error: 'Account needs attention',
+      },
+      backendStates: {
+        not_configured: 'Not configured',
+        reachable: 'Reachable',
+        not_ready: 'Reachable, not ready',
+        unreachable: 'Unavailable',
       },
     },
     tasksPage: {
@@ -1186,6 +1227,10 @@ export const messages = {
       backendNotConfigured: 'Backend API is not configured.',
       backendContactFailed:
         'Something went wrong while contacting the backend.',
+      health: {
+        unavailable: 'Backend status is unavailable right now.',
+        notConfigured: 'Backend status is not configured.',
+      },
       saveSummaryNotConfigured:
         'Saving meeting summaries to the backend is not configured.',
       signInFailed: 'Something went wrong while signing in.',
@@ -1223,6 +1268,7 @@ export const messages = {
         calendarSync: 'Синхронізація календаря',
         workspaceSettings: 'Дім',
         account: 'Акаунт',
+        supportDiagnostics: 'Support Diagnostics',
         meetingDetails: 'Підсумок зустрічі',
         meetingSummary: 'Підсумок зустрічі',
       },
@@ -1295,11 +1341,10 @@ export const messages = {
       currentPlan:
         'Поточний план: {plan}. Premium-доступ залежить від права підписки, а не лише від стану акаунта.',
       renewal: 'Поновлення',
-      renewalUnavailable:
-        'Недоступно, доки не буде додано справжній мобільний білінг.',
+      renewalUnavailable: 'Дата поновлення для цього акаунта недоступна.',
       manageSubscription: 'Керувати підпискою',
       manageAvailable: 'Доступно через магазин.',
-      manageUnavailable: 'Лише заглушка. Платіжний провайдер не підключений.',
+      manageUnavailable: 'Немає активної підписки магазину для керування.',
       viewPremium: 'Переглянути Premium',
       restorePurchases: 'Відновити покупки',
       profile: 'Профіль',
@@ -1435,25 +1480,9 @@ export const messages = {
     },
     meetingSummary: {
       title: 'Підсумок зустрічі',
-      mockTitle: 'Щотижнева сімейна зустріч',
-      mockDate: '15 жовт. 2023',
-      mockAiInsight:
-        'Продуктивна зустріч була зосереджена на балансі майбутнього насиченого шкільного тижня. Настрій був співпрацею і підтримкою, усі погодили чіткий план спільних обов’язків.',
-      mockDecisionScreenTime:
-        'Домовилися обмежити екранний час до 1 години у будні вечори для всіх.',
-      mockDecisionGroceries:
-        'Sarah подбає про покупки продуктів у середу ввечері.',
-      mockDecisionHiking:
-        'Наступні вихідні присвячені сімейному походу в державному парку.',
-      mockActionFaucet: 'Полагодити кран у гостьовій ванній',
-      mockActionSoccer: 'Зареєструватися до осінньої футбольної ліги',
       aiInsight: 'AI-висновок',
       keyDecisions: 'Ключові рішення',
       actionItems: 'Дії',
-      sentiment: 'Настрій',
-      overallMood: 'Загальний настрій',
-      positiveAligned: 'Позитивний і узгоджений',
-      sentimentStrength: 'Сила настрою',
       shareSummary: 'Поділитися підсумком',
       copied: 'Підсумок скопійовано.',
       shared: 'Підсумком поділилися.',
@@ -1547,9 +1576,6 @@ export const messages = {
       title: 'Google Calendar',
       intro:
         'Підготуйте щотижневі зустрічі, дати завдань і повернення до тем для синхронізації з календарем.',
-      placeholderTitle: 'Заглушка підключення',
-      placeholderText:
-        'Google OAuth і обробка токенів мають підтримуватися backend або безпечним рекомендованим потоком перед увімкненням справжньої синхронізації.',
       premiumTitle: 'Синхронізація Google Calendar доступна в Premium',
       premiumMessage:
         'Оновіться, щоб підготувати зустрічі OurWeek, дати завдань і повернення до тем для Google Calendar.',
@@ -1560,6 +1586,8 @@ export const messages = {
       connect: 'Підключити Google Calendar',
       disconnect: 'Відключити',
       noTokens: 'У цьому мобільному додатку токени Google не зберігаються.',
+      unavailable:
+        'Синхронізація Google Calendar зараз недоступна. Дані OurWeek залишаються збереженими без доступу до календаря.',
       optionsTitle: 'Параметри синхронізації',
       optionsText:
         'Виберіть, що OurWeek має синхронізувати, коли Google Calendar буде готовий.',
@@ -1579,16 +1607,12 @@ export const messages = {
             'Тримати узгоджені дати перегляду видимими між зустрічами.',
         },
       },
-      setupRequired:
-        'Підключення Google Calendar підготовлено, але безпечний OAuth ще не налаштовано.',
       addMeetingDate:
         'Додайте дату зустрічі перед синхронізацією нагадування календаря.',
       addTaskDueDate:
         'Додайте дату виконання завдання перед синхронізацією з Google Calendar.',
       addFollowUpDate:
         'Додайте дату повернення до теми перед синхронізацією з Google Calendar.',
-      oauthWaiting:
-        'Синхронізація календаря очікує безпечного потоку підключення Google.',
       checkFailed:
         'Щось пішло не так під час перевірки синхронізації календаря.',
       startFailed: 'Щось пішло не так під час запуску синхронізації календаря.',
@@ -1603,8 +1627,8 @@ export const messages = {
       heroTitle: 'Зробіть щотижневий ритуал легшим для перегляду',
       heroText:
         'Відкрийте практичні доповнення, не перетворюючи OurWeek на трекер завдань або бюджетний додаток.',
-      placeholdersTitle: 'Оберіть Premium-план',
-      placeholdersText:
+      plansTitle: 'Оберіть Premium-план',
+      plansText:
         'Premium-доступ перевіряється через ваш акаунт і підписку в магазині застосунків.',
       planOptionsLabel: 'Варіанти Premium-плану',
       premiumActive: 'Premium активний',
@@ -1619,23 +1643,18 @@ export const messages = {
       renewal: 'Поновлення',
       manageSubscription: 'Керувати підпискою',
       account: 'Акаунт',
-      renewalUnavailable:
-        'Недоступно, доки не буде підключено справжній білінг.',
+      renewalUnavailable: 'Дата поновлення для цього акаунта недоступна.',
       manageAvailable: 'Доступно через магазин.',
       manageUnavailable: 'Поки немає активної підписки магазину для керування.',
       localDeviceMode: 'Локальний режим пристрою',
-      storeBillingNotConnected: 'Білінг магазину не підключено в цій збірці.',
+      storeBillingNotConnected: 'Білінг магазину зараз недоступний.',
       billingUnavailableAction: 'Білінг магазину недоступний',
       billingUnavailable:
-        'Білінг магазину ще недоступний у цій збірці. Premium залишається закритим.',
-      mockPurchasesDisabled: 'Mock-покупки вимкнені у production-збірках.',
+        'Білінг магазину зараз недоступний. Premium залишається закритим.',
       planUnavailable: 'Цей Premium-план недоступний.',
       premiumEnabled: 'Premium активний для цього акаунта.',
       premiumRestored: 'Premium відновлено для цього акаунта.',
       noPremiumFound: 'Активну Premium-підписку не знайдено.',
-      mockPremiumEnabled: 'Mock Premium увімкнено на цьому пристрої.',
-      mockPremiumRestored: 'Mock Premium відновлено на цьому пристрої.',
-      noMockPremium: 'Mock-покупку Premium на цьому пристрої не знайдено.',
       managementLater:
         'Керування підпискою відкриватиме налаштування Google Play або App Store після налаштування справжнього білінгу.',
       managementOpened: 'Відкриваємо керування підпискою.',
@@ -1672,6 +1691,10 @@ export const messages = {
       accountOptions: 'Опції акаунта',
       workspaceSettings: 'Налаштування дому',
       calendarSync: 'Синхронізація календаря',
+      support: 'Support',
+      supportText:
+        'Check app status and copy diagnostics that avoid family content.',
+      supportDiagnostics: 'Support diagnostics',
       legal: 'Юридичне',
       legalText:
         'Тимчасові документи для внутрішнього тестування. Перевірте перед публічним запуском.',
@@ -1734,6 +1757,68 @@ export const messages = {
         other: 'Інше',
       },
     },
+    supportDiagnostics: {
+      kicker: 'Support',
+      title: 'Support diagnostics',
+      intro:
+        'Check app health and copy a redacted status report if support asks for it.',
+      appStatus: 'App status',
+      privacyNote:
+        'Diagnostics include technical status only. Meeting notes, private notes, tasks, agreements, tokens, receipts, and AI prompts are not included.',
+      environment: 'Environment',
+      apiMode: 'API mode',
+      backendOrigin: 'Backend',
+      platform: 'Platform',
+      online: 'Online',
+      accountState: 'Account',
+      plan: 'Plan',
+      syncStatus: 'Sync status',
+      syncHelp: 'Local changes remain saved if sync cannot finish.',
+      conflicts: 'Conflicts',
+      lastAttempted: 'Last attempted',
+      lastSynced: 'Last synced',
+      backendStatus: 'Backend status',
+      backendHelp:
+        'Readiness currently reflects the API and database checks exposed by the backend.',
+      health: 'Health',
+      liveness: 'Liveness',
+      readiness: 'Readiness',
+      database: 'Database',
+      storageStatus: 'Storage status',
+      storageHelp:
+        'Storage diagnostics show whether local recovery messages are active.',
+      storageIssue: 'Needs attention',
+      storageMessages: 'Messages',
+      storageBackups: 'Backups',
+      generatedAt: 'Generated',
+      shareTitle: 'Share diagnostics',
+      shareHelp:
+        'Copy only when you choose to share it. Nothing is sent automatically.',
+      refresh: 'Refresh status',
+      refreshing: 'Refreshing...',
+      copy: 'Copy diagnostics',
+      copied: 'Diagnostics copied.',
+      copyFallback:
+        'Clipboard is not available. Select and copy the diagnostics below.',
+      fallbackLabel: 'Diagnostics JSON',
+      refreshFailed: 'Diagnostics could not be refreshed right now.',
+      yes: 'Yes',
+      no: 'No',
+      accountStates: {
+        signed_in: 'Signed in',
+        local_only: 'Local only',
+        guest: 'No account',
+        loading: 'Checking account',
+        error: 'Account needs attention',
+      },
+      backendStates: {
+        not_configured: 'Not configured',
+        reachable: 'Reachable',
+        not_ready: 'Reachable, not ready',
+        unreachable: 'Unavailable',
+      },
+    },
+
     tasksPage: {
       kicker: 'Завдання',
       title: 'Що ми домовилися зробити',
@@ -2348,6 +2433,10 @@ export const messages = {
     api: {
       backendNotConfigured: 'Backend API не налаштовано.',
       backendContactFailed: 'Щось пішло не так під час зв’язку з backend.',
+      health: {
+        unavailable: 'Backend status is unavailable right now.',
+        notConfigured: 'Backend status is not configured.',
+      },
       saveSummaryNotConfigured:
         'Збереження підсумків зустрічей у backend не налаштовано.',
       signInFailed: 'Щось пішло не так під час входу.',
@@ -2385,6 +2474,7 @@ export const messages = {
         calendarSync: 'Sincronización de calendario',
         workspaceSettings: 'Hogar',
         account: 'Cuenta',
+        supportDiagnostics: 'Support Diagnostics',
         meetingDetails: 'Resumen de la reunión',
         meetingSummary: 'Resumen de la reunión',
       },
@@ -2458,11 +2548,11 @@ export const messages = {
         'Plan actual: {plan}. El acceso Premium se basa en el derecho de suscripción, no solo en el estado de la cuenta.',
       renewal: 'Renovación',
       renewalUnavailable:
-        'No disponible hasta que se agregue la facturación móvil real.',
+        'No hay fecha de renovación disponible para esta cuenta.',
       manageSubscription: 'Administrar suscripción',
       manageAvailable: 'Disponible a través de la tienda.',
       manageUnavailable:
-        'Solo marcador de posición. No hay proveedor de pagos conectado.',
+        'No hay una suscripción activa de la tienda para administrar.',
       viewPremium: 'Ver Premium',
       restorePurchases: 'Restaurar compras',
       profile: 'Perfil',
@@ -2513,7 +2603,7 @@ export const messages = {
       passwordLength: 'Usa al menos 8 caracteres para la contraseña.',
       signInFailed: 'No se pudo iniciar sesión.',
       signUpFailed: 'No se pudo crear la cuenta.',
-      accountRequired: 'Create an account or sign in to use this build.',
+      accountRequired: 'Crea una cuenta o inicia sesión para continuar.',
       continue: 'Continuar',
       emailPlaceholder: "tu{'@'}ejemplo.com",
     },
@@ -2597,25 +2687,9 @@ export const messages = {
     },
     meetingSummary: {
       title: 'Resumen de la reunión',
-      mockTitle: 'Revisión familiar semanal',
-      mockDate: '15 oct, 2023',
-      mockAiInsight:
-        'Una sesión productiva centrada en equilibrar la próxima semana escolar ocupada. El ánimo fue colaborativo y de apoyo, con todos de acuerdo en un plan claro de responsabilidades compartidas.',
-      mockDecisionScreenTime:
-        'Acordaron limitar el tiempo de pantalla a 1 hora en las noches entre semana para todos.',
-      mockDecisionGroceries:
-        'Sarah se encargará de comprar víveres este miércoles por la noche.',
-      mockDecisionHiking:
-        'El próximo fin de semana estará dedicado a una caminata familiar en el parque estatal.',
-      mockActionFaucet: 'Arreglar la llave con fuga del baño de invitados',
-      mockActionSoccer: 'Inscribirse en la liga de fútbol de otoño',
       aiInsight: 'Insight de AI',
       keyDecisions: 'Decisiones clave',
       actionItems: 'Acciones',
-      sentiment: 'Sentimiento',
-      overallMood: 'Ánimo general',
-      positiveAligned: 'Positivo y alineado',
-      sentimentStrength: 'Fuerza del ánimo',
       shareSummary: 'Compartir resumen',
       copied: 'Resumen copiado.',
       shared: 'Resumen compartido.',
@@ -2709,9 +2783,6 @@ export const messages = {
       title: 'Google Calendar',
       intro:
         'Prepara reuniones semanales, fechas de tareas y seguimientos para sincronizarlos con el calendario.',
-      placeholderTitle: 'Marcador de posición de conexión',
-      placeholderText:
-        'Google OAuth y el manejo de tokens deben estar respaldados por backend o usar un flujo seguro recomendado antes de habilitar la sincronización real.',
       premiumTitle: 'La sincronización con Google Calendar es Premium',
       premiumMessage:
         'Mejora para preparar reuniones de OurWeek, fechas de tareas y seguimientos para Google Calendar.',
@@ -2722,6 +2793,8 @@ export const messages = {
       connect: 'Conectar Google Calendar',
       disconnect: 'Desconectar',
       noTokens: 'No se guardan tokens de Google en esta app móvil.',
+      unavailable:
+        'La sincronización con Google Calendar no está disponible ahora. Tus datos de OurWeek permanecen guardados sin acceso al calendario.',
       optionsTitle: 'Opciones de sincronización',
       optionsText:
         'Elige qué debe sincronizar OurWeek cuando Google Calendar esté listo.',
@@ -2742,16 +2815,12 @@ export const messages = {
             'Mantén visibles las fechas acordadas de revisión entre reuniones.',
         },
       },
-      setupRequired:
-        'La conexión con Google Calendar está preparada, pero OAuth seguro aún no está configurado.',
       addMeetingDate:
         'Agrega una fecha de reunión antes de sincronizar un recordatorio del calendario.',
       addTaskDueDate:
         'Agrega una fecha de vencimiento de la tarea antes de sincronizarla con Google Calendar.',
       addFollowUpDate:
         'Agrega una fecha de seguimiento antes de sincronizarla con Google Calendar.',
-      oauthWaiting:
-        'La sincronización de calendario está esperando un flujo seguro de conexión con Google.',
       checkFailed: 'Algo salió mal al revisar la sincronización de calendario.',
       startFailed: 'Algo salió mal al iniciar la sincronización de calendario.',
       disconnectFailed:
@@ -2765,8 +2834,8 @@ export const messages = {
       heroTitle: 'Haz que el ritual semanal sea más fácil de revisar',
       heroText:
         'Desbloquea agregados prácticos sin convertir OurWeek en un gestor de tareas o una app de presupuesto.',
-      placeholdersTitle: 'Elige un plan Premium',
-      placeholdersText:
+      plansTitle: 'Elige un plan Premium',
+      plansText:
         'El acceso Premium se revisa con tu cuenta y la suscripción de la tienda.',
       planOptionsLabel: 'Opciones de plan Premium',
       premiumActive: 'Premium activo',
@@ -2780,7 +2849,7 @@ export const messages = {
       manageSubscription: 'Administrar suscripción',
       account: 'Cuenta',
       renewalUnavailable:
-        'No disponible hasta que se conecte la facturación real.',
+        'No hay fecha de renovación disponible para esta cuenta.',
       manageAvailable: 'Disponible a través de la tienda.',
       manageUnavailable:
         'Todavía no hay una suscripción activa de la tienda para administrar.',
@@ -2788,20 +2857,14 @@ export const messages = {
         'Premium se desbloquea solo después de que el backend valide tu suscripción.',
       localDeviceMode: 'Modo local del dispositivo',
       storeBillingNotConnected:
-        'La facturación de la tienda no está conectada en esta versión.',
+        'La facturación de la tienda no está disponible ahora.',
       billingUnavailableAction: 'Facturación no disponible',
       billingUnavailable:
-        'La facturación de la tienda aún no está disponible en esta versión. Premium permanece bloqueado.',
-      mockPurchasesDisabled:
-        'Las compras simuladas están desactivadas en versiones de producción.',
+        'La facturación de la tienda no está disponible ahora. Premium permanece bloqueado.',
       planUnavailable: 'Este plan Premium no está disponible.',
       premiumEnabled: 'Premium está activo para esta cuenta.',
       premiumRestored: 'Premium se restauró para esta cuenta.',
       noPremiumFound: 'No se encontró ninguna suscripción Premium activa.',
-      mockPremiumEnabled: 'Premium simulado está activado en este dispositivo.',
-      mockPremiumRestored: 'Premium simulado se restauró en este dispositivo.',
-      noMockPremium:
-        'No se encontró ninguna compra Premium simulada en este dispositivo.',
       managementLater:
         'La administración de suscripción abrirá Google Play o los ajustes de App Store después de configurar la facturación real.',
       managementOpened: 'Abriendo la administración de suscripción.',
@@ -2838,9 +2901,13 @@ export const messages = {
       accountOptions: 'Opciones de cuenta',
       workspaceSettings: 'Ajustes del espacio de trabajo',
       calendarSync: 'Sincronización de calendario',
+      support: 'Support',
+      supportText:
+        'Check app status and copy diagnostics that avoid family content.',
+      supportDiagnostics: 'Support diagnostics',
       legal: 'Legal',
       legalText:
-        'Documentos de marcador de posición para pruebas internas. Revísalos antes del lanzamiento público.',
+        'Revisa cómo OurWeek maneja privacidad, datos y términos para el MVP conectado por API.',
       privacyPolicy: 'Política de privacidad',
       terms: 'Términos',
       reminders: 'Recordatorios',
@@ -2903,6 +2970,68 @@ export const messages = {
       mockWorkspaceRole: 'Rol simulado del espacio',
       premiumFeatureChecks: 'Comprobaciones de funciones Premium',
     },
+    supportDiagnostics: {
+      kicker: 'Support',
+      title: 'Support diagnostics',
+      intro:
+        'Check app health and copy a redacted status report if support asks for it.',
+      appStatus: 'App status',
+      privacyNote:
+        'Diagnostics include technical status only. Meeting notes, private notes, tasks, agreements, tokens, receipts, and AI prompts are not included.',
+      environment: 'Environment',
+      apiMode: 'API mode',
+      backendOrigin: 'Backend',
+      platform: 'Platform',
+      online: 'Online',
+      accountState: 'Account',
+      plan: 'Plan',
+      syncStatus: 'Sync status',
+      syncHelp: 'Local changes remain saved if sync cannot finish.',
+      conflicts: 'Conflicts',
+      lastAttempted: 'Last attempted',
+      lastSynced: 'Last synced',
+      backendStatus: 'Backend status',
+      backendHelp:
+        'Readiness currently reflects the API and database checks exposed by the backend.',
+      health: 'Health',
+      liveness: 'Liveness',
+      readiness: 'Readiness',
+      database: 'Database',
+      storageStatus: 'Storage status',
+      storageHelp:
+        'Storage diagnostics show whether local recovery messages are active.',
+      storageIssue: 'Needs attention',
+      storageMessages: 'Messages',
+      storageBackups: 'Backups',
+      generatedAt: 'Generated',
+      shareTitle: 'Share diagnostics',
+      shareHelp:
+        'Copy only when you choose to share it. Nothing is sent automatically.',
+      refresh: 'Refresh status',
+      refreshing: 'Refreshing...',
+      copy: 'Copy diagnostics',
+      copied: 'Diagnostics copied.',
+      copyFallback:
+        'Clipboard is not available. Select and copy the diagnostics below.',
+      fallbackLabel: 'Diagnostics JSON',
+      refreshFailed: 'Diagnostics could not be refreshed right now.',
+      yes: 'Yes',
+      no: 'No',
+      accountStates: {
+        signed_in: 'Signed in',
+        local_only: 'Local only',
+        guest: 'No account',
+        loading: 'Checking account',
+        error: 'Account needs attention',
+      },
+      backendStates: {
+        not_configured: 'Not configured',
+        reachable: 'Reachable',
+        not_ready: 'Reachable, not ready',
+        unreachable: 'Unavailable',
+      },
+    },
+
     tasksPage: {
       kicker: 'Tareas',
       title: 'Lo que acordamos hacer',
@@ -2949,27 +3078,27 @@ export const messages = {
         kicker: 'Política de privacidad',
         title: 'Privacidad de OurWeek',
         intro:
-          'Marcador de posición para pruebas internas. Reemplázalo con una política revisada antes de cualquier lanzamiento público en Google Play.',
+          'Esta política describe el comportamiento del MVP conectado por API preparado para OurWeek. Reemplaza los detalles de titularidad, proveedores, retención y soporte con texto legal revisado antes del lanzamiento público.',
         dataTitle: 'Modelo de datos actual del MVP',
         dataText:
-          'OurWeek guarda notas de reuniones, tareas, acuerdos, participantes, notas privadas, ajustes y estado Premium simulado localmente en este dispositivo. No hay sincronización con backend conectada en el MVP actual.',
+          'OurWeek puede guardar datos localmente en este dispositivo y sincronizar datos seleccionados de cuenta, espacio, reuniones, tareas, acuerdos y participantes mediante el backend.',
         privateNotesTitle: 'Notas privadas',
         privateNotesText:
           'Las notas privadas se guardan en este dispositivo en el MVP actual. No se incluyen en las exportaciones de reuniones de forma predeterminada.',
-        aiTitle: 'Marcadores de posición de AI y Premium',
+        aiTitle: 'AI y Premium',
         aiText:
-          'Los resúmenes de AI usan un proveedor simulado local a menos que se active explícitamente una API backend. Los resúmenes de AI pueden ser inexactos. Revísalos antes de confiar en ellos.',
+          'Los resúmenes de AI se solicitan mediante el backend y pueden ser inexactos. Revísalos antes de confiar en ellos.',
         premiumText:
-          'Las pantallas Premium y de facturación usan estado de suscripción simulado solo para pruebas internas. Los pagos reales no están conectados.',
+          'El acceso Premium depende de una suscripción validada por backend o tienda, no solo del estado local del dispositivo.',
       },
       terms: {
         kicker: 'Términos',
         title: 'Términos de OurWeek',
         intro:
-          'Marcador de posición para pruebas internas. Reemplázalo con términos revisados antes de cualquier lanzamiento público en Google Play.',
-        testingTitle: 'Solo para pruebas internas',
+          'Estos términos describen el comportamiento previsto del MVP de producción. Reemplaza entidad, jurisdicción, facturación, retención y soporte con texto legal revisado antes del lanzamiento público.',
+        testingTitle: 'Disponibilidad del servicio',
         testingText:
-          'Esta versión está preparada para pruebas internas. No está lista para distribución pública, suscripciones pagas, sincronización backend ni soporte de producción.',
+          'Las funciones disponibles pueden depender de tu cuenta, suscripción, dispositivo, conexión de red y servicios backend.',
         adviceTitle: 'No es asesoría profesional',
         adviceText:
           'OurWeek es una herramienta práctica de revisión del hogar. No es terapia, asesoría legal, asesoría financiera ni soporte de emergencia.',
@@ -3523,6 +3652,10 @@ export const messages = {
     api: {
       backendNotConfigured: 'La API del backend no está configurada.',
       backendContactFailed: 'Algo salió mal al contactar el backend.',
+      health: {
+        unavailable: 'Backend status is unavailable right now.',
+        notConfigured: 'Backend status is not configured.',
+      },
       saveSummaryNotConfigured:
         'Guardar resúmenes de reuniones en el backend no está configurado.',
       signInFailed: 'Algo salió mal al iniciar sesión.',

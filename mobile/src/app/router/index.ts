@@ -19,6 +19,7 @@ import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage.vue';
 import SettingsPage from '@/pages/SettingsPage.vue';
 import SignInPage from '@/pages/SignInPage.vue';
 import SignUpPage from '@/pages/SignUpPage.vue';
+import SupportDiagnosticsPage from '@/pages/SupportDiagnosticsPage.vue';
 import TasksPage from '@/pages/TasksPage.vue';
 import TermsPage from '@/pages/TermsPage.vue';
 import UpgradePage from '@/pages/UpgradePage.vue';
@@ -136,6 +137,11 @@ export const router = createRouter({
       name: 'account',
       component: AccountPage,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/settings/support',
+      name: 'support-diagnostics',
+      component: SupportDiagnosticsPage,
     },
     {
       path: '/logout',
