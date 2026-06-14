@@ -4,6 +4,9 @@ import {
   readStorageSlice,
   writeStorageSlice,
 } from '@/shared/services/storageService';
+import { appConfig } from '@/shared/config/env';
+import { nowIso } from '@/shared/utils/dates';
+import { createId } from '@/shared/utils/ids';
 import type {
   Participant,
   ParticipantType,
@@ -46,23 +49,8 @@ interface LegacyParticipant {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
-}
-
-function createId(prefix: string) {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-
-  void prefix;
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (token) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = token === 'x' ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
-
-function nowIso() {
-  return new Date().toISOString();
+  serverRevision?: number;
+  deletedAt?: string;
 }
 
 function getInitials(name: string) {
@@ -86,7 +74,7 @@ function createParticipant(
   const createdAt = nowIso();
 
   return {
-    id: createId('person'),
+    id: createId(),
     name,
     initials: getInitials(name),
     avatarColor: participantColors[index % participantColors.length],
@@ -121,7 +109,7 @@ function normalizeParticipant(
   const createdAt = participant.createdAt ?? nowIso();
 
   return {
-    id: participant.id ?? createId('person'),
+    id: participant.id ?? createId(),
     name,
     initials: (participant.initials?.trim() || getInitials(name))
       .slice(0, 3)
@@ -133,6 +121,8 @@ function normalizeParticipant(
     isActive: participant.isActive ?? true,
     createdAt,
     updatedAt: participant.updatedAt ?? createdAt,
+    serverRevision: participant.serverRevision,
+    deletedAt: participant.deletedAt,
   };
 }
 
@@ -192,10 +182,13 @@ export const useParticipantsStore = defineStore('participants', {
   state: (): ParticipantsState => getStoredState(),
   getters: {
     activeParticipants: (state) =>
-      state.participants.filter((participant) => participant.isActive),
+      state.participants.filter(
+        (participant) => participant.isActive && !participant.deletedAt
+      ),
     getParticipantById: (state) => (participantId: string) =>
       state.participants.find(
-        (participant) => participant.id === participantId
+        (participant) =>
+          participant.id === participantId && !participant.deletedAt
       ) ?? null,
   },
   actions: {
@@ -219,7 +212,7 @@ export const useParticipantsStore = defineStore('participants', {
 
       const createdAt = nowIso();
       const participant: Participant = {
-        id: createId('person'),
+        id: createId(),
         name,
         initials: (payload.initials?.trim() || getInitials(name))
           .slice(0, 3)
@@ -247,7 +240,7 @@ export const useParticipantsStore = defineStore('participants', {
         (item) => item.id === participantId
       );
 
-      if (!participant) {
+      if (!participant || participant.deletedAt) {
         return null;
       }
 
@@ -294,9 +287,26 @@ export const useParticipantsStore = defineStore('participants', {
       return this.updateParticipant(participantId, { isActive: true });
     },
     removeParticipant(participantId: string) {
+      const participant = this.participants.find(
+        (item) => item.id === participantId
+      );
+
+      if (!participant) {
+        return;
+      }
+
+      if (appConfig.isBackendApiEnabled) {
+        const deletedAt = nowIso();
+        participant.deletedAt = deletedAt;
+        participant.updatedAt = deletedAt;
+        participant.isActive = false;
+        this.persist();
+        return;
+      }
+
       const originalLength = this.participants.length;
       this.participants = this.participants.filter(
-        (participant) => participant.id !== participantId
+        (item) => item.id !== participantId
       );
 
       if (this.participants.length !== originalLength) {

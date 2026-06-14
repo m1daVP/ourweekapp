@@ -1,0 +1,120 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+
+const mocks = vi.hoisted(() => ({
+  clearAuthTokens: vi.fn(),
+  prepareSyncForAuthenticatedUser: vi.fn(),
+  readAuthTokens: vi.fn(),
+  resetSyncRuntimeState: vi.fn(),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  writeAuthTokens: vi.fn(),
+  writeOnboardingStorage: vi.fn(),
+}));
+
+vi.mock('@/shared/config/env', () => ({
+  appConfig: {
+    isBackendApiEnabled: true,
+    apiMode: 'backend',
+    apiBaseUrl: 'http://localhost:3030',
+  },
+}));
+
+vi.mock('@/features/localization/i18n', () => ({
+  translate: (key: string) => key,
+}));
+
+vi.mock('@/shared/api/httpClient', () => ({
+  ApiClientError: class ApiClientError extends Error {
+    status?: number;
+  },
+  setApiAuthHandlers: vi.fn(),
+}));
+
+vi.mock('@/shared/api/authApi', () => ({
+  getCurrentUser: vi.fn(),
+  refreshSession: vi.fn(),
+  register: vi.fn(),
+  signIn: mocks.signIn,
+  signOut: mocks.signOut,
+}));
+
+vi.mock('@/shared/services/authTokenStorageService', () => ({
+  clearAuthTokens: mocks.clearAuthTokens,
+  readAuthTokens: mocks.readAuthTokens,
+  writeAuthTokens: mocks.writeAuthTokens,
+}));
+
+vi.mock('@/shared/services/storageService', () => ({
+  readOnboardingStorage: vi.fn((_: string, fallback: unknown) => fallback),
+  writeOnboardingStorage: mocks.writeOnboardingStorage,
+}));
+
+vi.mock('@/shared/services/safeLogService', () => ({
+  warnSafely: vi.fn(),
+}));
+
+vi.mock('@/shared/services/syncSessionService', () => ({
+  prepareSyncForAuthenticatedUser: mocks.prepareSyncForAuthenticatedUser,
+  resetSyncRuntimeState: mocks.resetSyncRuntimeState,
+}));
+
+import { useAuthStore } from '@/app/stores/auth';
+
+const session = {
+  user: {
+    id: 'user-1',
+    email: 'rita@example.com',
+    displayName: 'Rita',
+    role: 'owner',
+    planType: 'free',
+    createdAt: '2026-06-13T12:00:00.000Z',
+    updatedAt: '2026-06-13T12:00:00.000Z',
+  },
+  accessToken: 'access-token',
+  refreshToken: 'refresh-token',
+  expiresAt: '2026-06-13T13:00:00.000Z',
+};
+
+beforeEach(() => {
+  setActivePinia(createPinia());
+
+  mocks.clearAuthTokens.mockReset();
+  mocks.prepareSyncForAuthenticatedUser.mockReset();
+  mocks.readAuthTokens.mockReset();
+  mocks.resetSyncRuntimeState.mockReset();
+  mocks.signIn.mockReset();
+  mocks.signOut.mockReset();
+  mocks.writeAuthTokens.mockReset();
+  mocks.writeOnboardingStorage.mockReset();
+
+  mocks.signIn.mockResolvedValue(session);
+  mocks.readAuthTokens.mockResolvedValue({ refreshToken: 'refresh-token' });
+});
+
+describe('auth sync safety hooks', () => {
+  it('prepares sync ownership before applying a signed-in session', async () => {
+    const authStore = useAuthStore();
+
+    await authStore.signIn({
+      email: 'rita@example.com',
+      password: 'password123',
+    });
+
+    expect(mocks.prepareSyncForAuthenticatedUser).toHaveBeenCalledWith(
+      'user-1'
+    );
+    expect(authStore.user?.id).toBe('user-1');
+  });
+
+  it('resets sync runtime state on logout cleanup', async () => {
+    const authStore = useAuthStore();
+
+    await authStore.applySession(session);
+    await authStore.logout();
+
+    expect(mocks.signOut).toHaveBeenCalledWith('refresh-token');
+    expect(mocks.resetSyncRuntimeState).toHaveBeenCalled();
+    expect(authStore.authStatus).toBe('idle');
+  });
+});

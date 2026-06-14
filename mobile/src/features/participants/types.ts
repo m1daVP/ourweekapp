@@ -9,4 +9,6 @@ export interface Participant {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  serverRevision?: number;
+  deletedAt?: string;
 }

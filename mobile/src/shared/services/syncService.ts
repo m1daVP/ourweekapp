@@ -1,16 +1,17 @@
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
+import { useWorkspaceStore } from '@/app/stores/workspace';
 import { translate } from '@/features/localization/i18n';
-import type { Participant } from '@/features/participants/types';
 import type { Agreement, Task } from '@/features/tasks/types';
 import { apiRequest } from '@/shared/api/httpClient';
-import { syncMeetingsApi } from '@/shared/api/meetingsApi';
-import { syncTasksApi } from '@/shared/api/tasksApi';
+import { listMeetings, syncMeetingsApi } from '@/shared/api/meetingsApi';
+import { listTasks, syncTasksApi } from '@/shared/api/tasksApi';
 import { appConfig } from '@/shared/config/env';
-import { shallowRef } from 'vue';
 import {
+  bindSyncOwner,
   ensureFirstSyncBackup,
+  readSyncMetadata,
   readSyncResourceMetadata,
   writeSyncResourceMetadata,
 } from '@/shared/services/storageService';
@@ -18,16 +19,41 @@ import {
   mergeReviewDecisions,
   mergeSyncItems,
 } from '@/shared/services/syncMergeService';
+import {
+  fromAgreementDto,
+  fromMeetingDto,
+  fromParticipantDto,
+  fromTaskDto,
+  toAgreementDto,
+  toMeetingDto,
+  toParticipantDto,
+  toReviewDecisionDto,
+  toTaskDto,
+  type ParticipantDto,
+} from '@/shared/api/syncDtos';
+import { latestIso, nowIso } from '@/shared/utils/dates';
 import type { Meeting } from '@/features/meeting/types';
+import {
+  beginRemoteSync,
+  endRemoteSyncSoon,
+  hasInitialHydrationCompleted,
+  markInitialHydrationComplete,
+  resetSyncRuntimeState,
+  syncStatus,
+  type ResourceSyncStatus,
+  type SyncResource,
+  type SyncState,
+} from '@/shared/services/syncRuntimeService';
 
-export type SyncResource = 'meetings' | 'tasks' | 'participants';
-export type SyncState =
-  | 'idle'
-  | 'savedLocally'
-  | 'syncing'
-  | 'synced'
-  | 'failed'
-  | 'offline';
+export {
+  isApplyingRemoteSync,
+  resetSyncRuntimeState,
+  syncStatus,
+} from '@/shared/services/syncRuntimeService';
+export type {
+  SyncResource,
+  SyncState,
+} from '@/shared/services/syncRuntimeService';
 
 export interface SyncResult {
   resource: SyncResource;
@@ -37,11 +63,6 @@ export interface SyncResult {
   conflictCount: number;
   syncedAt: string;
   skippedReason?: string;
-}
-
-interface ParticipantDto extends Participant {
-  serverRevision?: number;
-  deletedAt?: string;
 }
 
 interface SyncParticipantsRequestDto {
@@ -56,14 +77,6 @@ interface SyncParticipantsResponseDto {
   syncedAt: string;
 }
 
-interface ResourceSyncStatus {
-  state: SyncState;
-  lastSyncedAt?: string;
-  lastAttemptedAt?: string;
-  conflictCount: number;
-  errorMessage?: string;
-}
-
 export interface AggregateSyncStatus {
   state: SyncState;
   resources: SyncResource[];
@@ -73,55 +86,8 @@ export interface AggregateSyncStatus {
   errorMessage?: string;
 }
 
-export const syncStatus = shallowRef<Record<SyncResource, ResourceSyncStatus>>({
-  meetings: { state: 'idle', conflictCount: 0 },
-  tasks: { state: 'idle', conflictCount: 0 },
-  participants: { state: 'idle', conflictCount: 0 },
-});
-export const isApplyingRemoteSync = shallowRef(false);
-let remoteSyncDepth = 0;
-let remoteSyncClearTimeout: ReturnType<typeof setTimeout> | null = null;
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function beginRemoteSync() {
-  if (remoteSyncClearTimeout) {
-    clearTimeout(remoteSyncClearTimeout);
-    remoteSyncClearTimeout = null;
-  }
-
-  remoteSyncDepth += 1;
-  isApplyingRemoteSync.value = true;
-}
-
-function endRemoteSyncSoon() {
-  remoteSyncClearTimeout = setTimeout(() => {
-    remoteSyncDepth = Math.max(0, remoteSyncDepth - 1);
-
-    if (remoteSyncDepth === 0) {
-      isApplyingRemoteSync.value = false;
-    }
-  }, 0);
-}
-
 function isOffline() {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
-}
-
-function latestNullableDate(first: string | null, second: string | null) {
-  if (!first) {
-    return second;
-  }
-
-  if (!second) {
-    return first;
-  }
-
-  return new Date(second).getTime() > new Date(first).getTime()
-    ? second
-    : first;
 }
 
 function setResourceStatus(
@@ -233,6 +199,10 @@ export async function retrySync(
   beginRemoteSync();
 
   try {
+    if (!resource) {
+      await hydrateCoreDataFromBackend();
+    }
+
     if (resource === 'meetings') {
       return [await syncMeetings()];
     }
@@ -248,6 +218,96 @@ export async function retrySync(
     return await syncCoreData();
   } finally {
     endRemoteSyncSoon();
+  }
+}
+
+export const resetSyncRuntimeStateForTests = resetSyncRuntimeState;
+
+function applyMeetingsFromBackend(
+  response: Awaited<ReturnType<typeof listMeetings>>
+) {
+  const meetingsStore = useMeetingsStore();
+  const localMeetings = meetingsStore.meetings;
+  const remoteMeetings = response.meetings.map(fromMeetingDto);
+  const mergedMeetings = mergeSyncItems<Meeting>(localMeetings, remoteMeetings);
+  const activeMeetingId =
+    response.activeMeetingId &&
+    mergedMeetings.some((meeting) => meeting.id === response.activeMeetingId)
+      ? response.activeMeetingId
+      : meetingsStore.activeMeetingId &&
+          mergedMeetings.some(
+            (meeting) => meeting.id === meetingsStore.activeMeetingId
+          )
+        ? meetingsStore.activeMeetingId
+        : null;
+
+  meetingsStore.meetings = mergedMeetings;
+  meetingsStore.activeMeetingId = activeMeetingId;
+  meetingsStore.draftSavedAt = latestIso(
+    meetingsStore.draftSavedAt,
+    response.draftSavedAt
+  );
+  meetingsStore.persist();
+  useTasksStore().syncFromMeetings(mergedMeetings);
+}
+
+function applyTasksFromBackend(
+  response: Awaited<ReturnType<typeof listTasks>>
+) {
+  const tasksStore = useTasksStore();
+
+  tasksStore.tasks = mergeSyncItems<Task>(
+    tasksStore.tasks,
+    response.tasks.map(fromTaskDto)
+  );
+  tasksStore.agreements = mergeSyncItems<Agreement>(
+    tasksStore.agreements,
+    response.agreements.map(fromAgreementDto)
+  );
+  tasksStore.reviewDecisions = mergeReviewDecisions(
+    tasksStore.reviewDecisions,
+    response.reviewDecisions.map(toReviewDecisionDto)
+  );
+  tasksStore.persist();
+}
+
+async function hydrateCoreDataFromBackend() {
+  if (
+    hasInitialHydrationCompleted() ||
+    !appConfig.isBackendApiEnabled ||
+    isOffline()
+  ) {
+    return;
+  }
+
+  ensureFirstSyncBackup();
+
+  try {
+    const workspaceStore = useWorkspaceStore();
+    const didLoadWorkspace = await workspaceStore.loadWorkspace();
+
+    if (!didLoadWorkspace) {
+      throw new Error(translate('workspace.loadFailed'));
+    }
+
+    const ownerUserId = readSyncMetadata().ownerUserId;
+
+    if (ownerUserId) {
+      bindSyncOwner(ownerUserId, workspaceStore.workspace.id);
+    }
+
+    const [meetingsResponse, tasksResponse] = await Promise.all([
+      listMeetings(),
+      listTasks(),
+    ]);
+
+    applyMeetingsFromBackend(meetingsResponse);
+    applyTasksFromBackend(tasksResponse);
+    markInitialHydrationComplete();
+  } catch (error) {
+    markSyncFailure('meetings', error);
+    markSyncFailure('tasks', error);
+    throw error;
   }
 }
 
@@ -315,7 +375,7 @@ export async function syncMeetings(): Promise<SyncResult> {
     const metadata = readSyncResourceMetadata('meetings');
     const localMeetings = meetingsStore.meetings;
     const response = await syncMeetingsApi({
-      meetings: localMeetings,
+      meetings: localMeetings.map(toMeetingDto),
       activeMeetingId: meetingsStore.activeMeetingId,
       draftSavedAt: meetingsStore.draftSavedAt,
       clientUpdatedAt: attemptedAt,
@@ -323,7 +383,7 @@ export async function syncMeetings(): Promise<SyncResult> {
     });
     const mergedMeetings = mergeSyncItems<Meeting>(
       localMeetings,
-      response.meetings
+      response.meetings.map(fromMeetingDto)
     );
     const activeMeetingId =
       response.activeMeetingId &&
@@ -338,7 +398,7 @@ export async function syncMeetings(): Promise<SyncResult> {
 
     meetingsStore.meetings = mergedMeetings;
     meetingsStore.activeMeetingId = activeMeetingId;
-    meetingsStore.draftSavedAt = latestNullableDate(
+    meetingsStore.draftSavedAt = latestIso(
       meetingsStore.draftSavedAt,
       response.draftSavedAt
     );
@@ -384,21 +444,24 @@ export async function syncTasks(): Promise<SyncResult> {
     const localAgreements = tasksStore.agreements;
     const localReviewDecisions = tasksStore.reviewDecisions;
     const response = await syncTasksApi({
-      tasks: localTasks,
-      agreements: localAgreements,
-      reviewDecisions: localReviewDecisions,
+      tasks: localTasks.map(toTaskDto),
+      agreements: localAgreements.map(toAgreementDto),
+      reviewDecisions: localReviewDecisions.map(toReviewDecisionDto),
       clientUpdatedAt: attemptedAt,
       lastSyncedAt: metadata.lastSyncedAt,
     });
 
-    tasksStore.tasks = mergeSyncItems<Task>(localTasks, response.tasks);
+    tasksStore.tasks = mergeSyncItems<Task>(
+      localTasks,
+      response.tasks.map(fromTaskDto)
+    );
     tasksStore.agreements = mergeSyncItems<Agreement>(
       localAgreements,
-      response.agreements
+      response.agreements.map(fromAgreementDto)
     );
     tasksStore.reviewDecisions = mergeReviewDecisions(
       localReviewDecisions,
-      response.reviewDecisions
+      response.reviewDecisions.map(toReviewDecisionDto)
     );
     tasksStore.persist();
     markSyncSuccess('tasks', response.syncedAt, response.conflicts.length);
@@ -443,7 +506,7 @@ export async function syncParticipants(): Promise<SyncResult> {
       {
         method: 'POST',
         body: {
-          participants: localParticipants,
+          participants: localParticipants.map(toParticipantDto),
           clientUpdatedAt: attemptedAt,
           lastSyncedAt: metadata.lastSyncedAt,
         } satisfies SyncParticipantsRequestDto,
@@ -459,9 +522,9 @@ export async function syncParticipants(): Promise<SyncResult> {
     const syncedAt = response.syncedAt ?? nowIso();
 
     participantsStore.participants = mergeSyncItems<ParticipantDto>(
-      localParticipants,
+      localParticipants.map(toParticipantDto),
       remoteParticipants
-    );
+    ).map(fromParticipantDto);
     participantsStore.persist();
     markSyncSuccess('participants', syncedAt, remoteConflicts.length);
 
@@ -480,23 +543,32 @@ export async function syncParticipants(): Promise<SyncResult> {
 }
 
 export async function syncCoreData() {
-  const syncResults = await Promise.allSettled([
-    syncParticipants(),
-    syncMeetings(),
-    syncTasks(),
-  ]);
-  const results = syncResults
-    .filter(
-      (result): result is PromiseFulfilledResult<SyncResult> =>
-        result.status === 'fulfilled'
-    )
-    .map((result) => result.value);
+  const results: SyncResult[] = [];
+  let firstError: unknown;
+
+  try {
+    results.push(await syncParticipants());
+  } catch (error) {
+    firstError = error;
+  }
+
+  if (!firstError) {
+    try {
+      results.push(await syncMeetings());
+    } catch (error) {
+      firstError ??= error;
+    }
+  }
+
+  if (!firstError) {
+    try {
+      results.push(await syncTasks());
+    } catch (error) {
+      firstError ??= error;
+    }
+  }
 
   if (!results.length) {
-    const firstError = syncResults.find(
-      (result): result is PromiseRejectedResult => result.status === 'rejected'
-    )?.reason;
-
     throw firstError instanceof Error
       ? firstError
       : new Error(translate('sync.failed'));

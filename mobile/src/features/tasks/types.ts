@@ -16,6 +16,8 @@ export interface Task {
   sourceMeetingId?: string;
   createdAt: string;
   updatedAt: string;
+  serverRevision?: number;
+  deletedAt?: string;
 }
 
 export interface Agreement {
@@ -27,6 +29,8 @@ export interface Agreement {
   sourceMeetingId: string;
   createdAt: string;
   updatedAt: string;
+  serverRevision?: number;
+  deletedAt?: string;
 }
 
 export interface TaskReviewDecision {

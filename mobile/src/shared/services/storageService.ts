@@ -1,6 +1,8 @@
 import { shallowRef } from 'vue';
 import { Preferences } from '@capacitor/preferences';
 import { translate } from '@/features/localization/i18n';
+import { nowIso } from '@/shared/utils/dates';
+import { createId, isUuid } from '@/shared/utils/ids';
 
 export const appDataVersion = 4;
 
@@ -15,7 +17,6 @@ const legacyStorageKeys = {
   participants: 'ourweek:participants',
   privateNotes: 'ourweek:private-notes',
   reminderSettings: 'ourweek:reminder-settings',
-  subscriptionMock: 'ourweek:subscription:mock',
   tasks: 'ourweek:tasks-agreements',
   workspace: 'ourweek:workspace',
 } as const;
@@ -25,8 +26,7 @@ type TopLevelStorageSliceKey =
   | 'meetings'
   | 'tasks'
   | 'privateNotes'
-  | 'syncMetadata'
-  | 'subscriptionMockState';
+  | 'syncMetadata';
 
 export type SyncStorageResource = 'meetings' | 'tasks' | 'participants';
 
@@ -43,6 +43,9 @@ interface SyncStorageMetadata {
   resources: Partial<Record<SyncStorageResource, SyncResourceMetadata>>;
   firstBackupKey?: string;
   migratedAt?: string;
+  ownerUserId?: string;
+  ownerWorkspaceId?: string;
+  lastOwnerCheckedAt?: string;
 }
 
 type SettingsStorageSliceKey =
@@ -72,7 +75,6 @@ export interface AppDataEnvelope {
   syncMetadata: unknown;
   settings: AppDataSettings;
   onboarding: AppDataOnboarding;
-  subscriptionMockState: unknown;
   updatedAt: string;
 }
 
@@ -101,10 +103,6 @@ const migrations: Record<number, Migration> = {
   2: migrateAppDataFromVersion2ToVersion3,
   3: migrateAppDataFromVersion3ToVersion4,
 };
-
-function nowIso() {
-  return new Date().toISOString();
-}
 
 function getLocalStorage() {
   if (typeof window === 'undefined') {
@@ -144,7 +142,6 @@ function createEmptyAppData(): AppDataEnvelope {
     onboarding: {
       auth: null,
     },
-    subscriptionMockState: null,
     updatedAt: nowIso(),
   };
 }
@@ -307,7 +304,6 @@ function validateAppDataEnvelope(value: unknown): AppDataEnvelope | null {
     onboarding: {
       auth: onboarding.auth ?? null,
     },
-    subscriptionMockState: value.subscriptionMockState ?? null,
     updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : nowIso(),
   };
 }
@@ -333,7 +329,6 @@ function migrateAppDataFromVersion1ToVersion2(
     onboarding: {
       auth: data.auth ?? onboarding.auth ?? null,
     },
-    subscriptionMockState: data.subscriptionMockState ?? null,
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : nowIso(),
   };
 }
@@ -347,27 +342,6 @@ function migrateAppDataFromVersion2ToVersion3(
   };
 }
 
-function createUuid() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (token) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = token === 'x' ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
-
-function isUuid(value: unknown) {
-  return (
-    typeof value === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      value
-    )
-  );
-}
-
 function remapId(value: unknown, idMap: Map<string, string>) {
   if (typeof value !== 'string' || isUuid(value)) {
     return typeof value === 'string' ? value : '';
@@ -379,7 +353,7 @@ function remapId(value: unknown, idMap: Map<string, string>) {
     return existingId;
   }
 
-  const nextId = createUuid();
+  const nextId = createId();
   idMap.set(value, nextId);
   return nextId;
 }
@@ -657,7 +631,6 @@ function createAppDataFromLegacyStorage(): AppDataEnvelope {
     calendarSyncSettings: readLegacyJson('calendarSyncSettings'),
     workspace: readLegacyJson('workspace'),
     auth: readLegacyJson('auth'),
-    subscriptionMockState: readLegacyJson('subscriptionMock'),
     updatedAt: nowIso(),
   };
 
@@ -830,6 +803,16 @@ function normalizeSyncMetadata(value: unknown): SyncStorageMetadata {
         : undefined,
     migratedAt:
       typeof value.migratedAt === 'string' ? value.migratedAt : undefined,
+    ownerUserId:
+      typeof value.ownerUserId === 'string' ? value.ownerUserId : undefined,
+    ownerWorkspaceId:
+      typeof value.ownerWorkspaceId === 'string'
+        ? value.ownerWorkspaceId
+        : undefined,
+    lastOwnerCheckedAt:
+      typeof value.lastOwnerCheckedAt === 'string'
+        ? value.lastOwnerCheckedAt
+        : undefined,
   };
 }
 
@@ -857,6 +840,37 @@ export function writeSyncResourceMetadata(
       },
     },
   });
+}
+
+export function bindSyncOwner(ownerUserId: string, ownerWorkspaceId?: string) {
+  const currentMetadata = readSyncMetadata();
+
+  writeStorageSlice('syncMetadata', {
+    ...currentMetadata,
+    ownerUserId,
+    ownerWorkspaceId,
+    lastOwnerCheckedAt: nowIso(),
+  });
+}
+
+export function resetSyncedAppDataForOwner(ownerUserId: string) {
+  const previousMetadata = readSyncMetadata();
+  const backupKey = createInternalAppDataBackup('before-sync-owner-change');
+
+  writeStorageSlice('participants', null);
+  writeStorageSlice('meetings', null);
+  writeStorageSlice('tasks', null);
+  writeSettingsStorage('workspace', null);
+  writeStorageSlice('syncMetadata', {
+    version: 1,
+    resources: {},
+    firstBackupKey: backupKey ?? previousMetadata.firstBackupKey,
+    migratedAt: previousMetadata.migratedAt,
+    ownerUserId,
+    lastOwnerCheckedAt: nowIso(),
+  } satisfies SyncStorageMetadata);
+
+  return backupKey;
 }
 
 export function ensureFirstSyncBackup() {

@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { useAuthStore } from '@/app/stores/auth';
 import { translate } from '@/features/localization/i18n';
 import { appConfig } from '@/shared/config/env';
 import {
@@ -13,6 +12,8 @@ import {
   readSettingsStorage,
   writeSettingsStorage,
 } from '@/shared/services/storageService';
+import { nowIso } from '@/shared/utils/dates';
+import { createPrefixedId } from '@/shared/utils/ids';
 import type { UserRole } from '@/features/access/types';
 import type {
   Workspace,
@@ -47,18 +48,6 @@ interface InviteMemberPayload {
   role: Exclude<UserRole, 'owner'>;
 }
 
-function createId(prefix: string) {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
 function isBackendWorkspaceEnabled() {
   return appConfig.isBackendApiEnabled;
 }
@@ -87,7 +76,7 @@ function createDefaultWorkspace(): Workspace {
   const createdAt = nowIso();
 
   return {
-    id: createId('workspace'),
+    id: createPrefixedId('workspace'),
     name: translate('settings.defaultWorkspace'),
     ownerId: LOCAL_OWNER_ID,
     members: [
@@ -109,6 +98,26 @@ function createDefaultWorkspace(): Workspace {
   };
 }
 
+function createAuthenticatedPlaceholderWorkspace(userId: string): Workspace {
+  const createdAt = nowIso();
+
+  return {
+    id: createPrefixedId('workspace'),
+    name: translate('settings.defaultWorkspace'),
+    ownerId: userId,
+    members: [
+      {
+        userId,
+        displayName: translate('common.weeklyUsUser'),
+        role: 'owner',
+        status: 'active',
+      },
+    ],
+    createdAt,
+    updatedAt: createdAt,
+  };
+}
+
 function normalizeMember(member: Partial<WorkspaceMember>) {
   const displayName = member.displayName?.trim();
 
@@ -117,7 +126,7 @@ function normalizeMember(member: Partial<WorkspaceMember>) {
   }
 
   return {
-    userId: member.userId?.trim() || createId('member'),
+    userId: member.userId?.trim() || createPrefixedId('member'),
     displayName,
     email: member.email?.trim() || undefined,
     role: normalizeRole(member.role),
@@ -231,17 +240,7 @@ export const useWorkspaceStore = defineStore('workspace', {
     applyWorkspace(workspace: Workspace) {
       this.workspace = normalizeWorkspace(workspace);
 
-      const authStore = useAuthStore();
-      const authenticatedUserId = authStore.user?.id;
-
       if (
-        authenticatedUserId &&
-        this.workspace.members.some(
-          (member) => member.userId === authenticatedUserId
-        )
-      ) {
-        this.currentUserId = authenticatedUserId;
-      } else if (
         !this.workspace.members.some(
           (member) => member.userId === this.currentUserId
         )
@@ -250,6 +249,15 @@ export const useWorkspaceStore = defineStore('workspace', {
       }
 
       this.lastSyncedAt = nowIso();
+      this.persist();
+    },
+    resetForAuthenticatedUser(userId: string) {
+      this.workspace = createAuthenticatedPlaceholderWorkspace(userId);
+      this.currentUserId = userId;
+      this.isLoading = false;
+      this.isSaving = false;
+      this.errorMessage = '';
+      this.lastSyncedAt = null;
       this.persist();
     },
     applyMember(nextMember: WorkspaceMember) {
@@ -444,7 +452,7 @@ export const useWorkspaceStore = defineStore('workspace', {
       }
 
       const member: WorkspaceMember = {
-        userId: createId('member'),
+        userId: createPrefixedId('member'),
         displayName,
         email: payload.email?.trim() || undefined,
         role: payload.role,
@@ -528,7 +536,7 @@ export const useWorkspaceStore = defineStore('workspace', {
 
         const createdAt = nowIso();
         this.workspace.members.push({
-          userId: createId('member'),
+          userId: createPrefixedId('member'),
           displayName:
             role === 'adult_member'
               ? translate('settings.role.adultMember')

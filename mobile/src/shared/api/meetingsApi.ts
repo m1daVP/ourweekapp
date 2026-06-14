@@ -1,11 +1,8 @@
-import type { Meeting, MeetingSummary } from '@/features/meeting/types';
+import type { MeetingSummary } from '@/features/meeting/types';
 import { translate } from '@/features/localization/i18n';
 import { apiRequest, isBackendApiConfigured } from './httpClient';
-
-export interface MeetingDto extends Meeting {
-  serverRevision?: number;
-  deletedAt?: string;
-}
+import { nowIso } from '@/shared/utils/dates';
+import type { MeetingDto } from '@/shared/api/syncDtos';
 
 export interface ListMeetingsResponseDto {
   meetings: MeetingDto[];
@@ -33,10 +30,6 @@ export interface SyncMeetingsResponseDto {
 export interface SaveMeetingSummaryRequestDto {
   meetingId: string;
   summary: MeetingSummary;
-}
-
-function nowIso() {
-  return new Date().toISOString();
 }
 
 function normalizeListMeetingsResponse(

@@ -1,3 +1,5 @@
+import { toDateTime } from '@/shared/utils/dates';
+
 export interface SyncableItem {
   id: string;
   createdAt?: string;
@@ -20,8 +22,8 @@ function isRemoteNewer<TItem extends SyncableItem>(
   remoteItem: TItem
 ) {
   return (
-    new Date(getItemTimestamp(remoteItem)).getTime() >=
-    new Date(getItemTimestamp(localItem)).getTime()
+    toDateTime(getItemTimestamp(remoteItem)) >=
+    toDateTime(getItemTimestamp(localItem))
   );
 }
 
@@ -38,8 +40,8 @@ function isDeletedNewer<TItem extends SyncableItem>(
   }
 
   return (
-    new Date(deletedItem.deletedAt).getTime() >=
-    new Date(getItemTimestamp(existingItem)).getTime()
+    toDateTime(deletedItem.deletedAt) >=
+    toDateTime(getItemTimestamp(existingItem))
   );
 }
 
@@ -95,8 +97,7 @@ export function mergeReviewDecisions<TDecision extends ReviewDecisionLike>(
 
     if (
       !existingDecision ||
-      new Date(decision.decidedAt).getTime() >=
-        new Date(existingDecision.decidedAt).getTime()
+      toDateTime(decision.decidedAt) >= toDateTime(existingDecision.decidedAt)
     ) {
       decisionsByKey.set(key, decision);
     }

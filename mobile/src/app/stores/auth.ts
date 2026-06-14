@@ -23,7 +23,10 @@ import {
   writeOnboardingStorage,
 } from '@/shared/services/storageService';
 import { warnSafely } from '@/shared/services/safeLogService';
-import type { PlanType } from '@/features/access/types';
+import {
+  prepareSyncForAuthenticatedUser,
+  resetSyncRuntimeState,
+} from '@/shared/services/syncSessionService';
 import type {
   AuthStatus,
   AuthUser,
@@ -105,6 +108,18 @@ async function clearStoredAuthTokensSafely() {
   }
 
   clearLegacyAuthTokensFromLocalStorage();
+}
+
+async function prepareSyncForSessionUser(userId: string) {
+  if (!appConfig.isBackendApiEnabled) {
+    return;
+  }
+
+  prepareSyncForAuthenticatedUser(userId);
+}
+
+function resetSyncAfterSessionEnd() {
+  resetSyncRuntimeState();
 }
 
 function normalizeEmail(email: string) {
@@ -268,7 +283,10 @@ export const useAuthStore = defineStore('auth', {
         refreshToken: session.refreshToken ?? null,
       });
 
-      this.user = mapSessionUser(session);
+      const nextUser = mapSessionUser(session);
+      await prepareSyncForSessionUser(nextUser.id);
+
+      this.user = nextUser;
       this.authStatus = 'authenticated';
       this.hasHydratedSecureTokens = true;
       this.hasVerifiedCurrentUser = true;
@@ -278,6 +296,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async clearSessionAfterUnauthorized() {
       await clearStoredAuthTokensSafely();
+      await resetSyncAfterSessionEnd();
       this.user = null;
       this.authStatus = 'idle';
       this.hasHydratedSecureTokens = true;
@@ -304,7 +323,10 @@ export const useAuthStore = defineStore('auth', {
           return false;
         }
 
-        this.user = mapAuthUser(currentUser, this.user?.email);
+        const nextUser = mapAuthUser(currentUser, this.user?.email);
+        await prepareSyncForSessionUser(nextUser.id);
+
+        this.user = nextUser;
         this.authStatus = 'authenticated';
         this.hasVerifiedCurrentUser = true;
         this.errorMessage = '';
@@ -401,6 +423,7 @@ export const useAuthStore = defineStore('auth', {
       }
 
       await clearStoredAuthTokensSafely();
+      await resetSyncAfterSessionEnd();
       this.user = null;
       this.authStatus = 'localOnly';
       this.hasHydratedSecureTokens = true;
@@ -421,19 +444,6 @@ export const useAuthStore = defineStore('auth', {
         displayName: nextDisplayName,
       };
       this.persist();
-      return true;
-    },
-    setMockSubscriptionPlan(plan: PlanType) {
-      if (!this.user) {
-        return false;
-      }
-
-      this.user = {
-        ...this.user,
-        plan,
-      };
-      this.persist();
-      this.syncAccessState();
       return true;
     },
     async logout() {

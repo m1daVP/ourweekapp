@@ -1,19 +1,7 @@
-import type {
-  Agreement,
-  Task,
-  TaskReviewDecision,
-} from '@/features/tasks/types';
+import type { TaskReviewDecision } from '@/features/tasks/types';
 import { apiRequest, isBackendApiConfigured } from './httpClient';
-
-export interface TaskDto extends Task {
-  serverRevision?: number;
-  deletedAt?: string;
-}
-
-export interface AgreementDto extends Agreement {
-  serverRevision?: number;
-  deletedAt?: string;
-}
+import { nowIso } from '@/shared/utils/dates';
+import type { AgreementDto, TaskDto } from '@/shared/api/syncDtos';
 
 export interface SyncTasksRequestDto {
   tasks: TaskDto[];
@@ -29,10 +17,6 @@ export interface SyncTasksResponseDto {
   reviewDecisions: TaskReviewDecision[];
   conflicts: Array<TaskDto | AgreementDto>;
   syncedAt: string;
-}
-
-function nowIso() {
-  return new Date().toISOString();
 }
 
 function normalizeSyncTasksResponse(

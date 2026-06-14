@@ -5,6 +5,10 @@ import {
   readStorageSlice,
   writeStorageSlice,
 } from '@/shared/services/storageService';
+import { appConfig } from '@/shared/config/env';
+import { uniqueStrings } from '@/shared/utils/collections';
+import { nowIso } from '@/shared/utils/dates';
+import { createId } from '@/shared/utils/ids';
 import {
   DEFAULT_MEETING_TEMPLATE_ID,
   getMeetingSectionPrompt,
@@ -122,27 +126,8 @@ interface LegacyMeeting {
   updatedAt?: string;
   completedAt?: string;
   aiSummary?: LegacyMeetingSummary;
-}
-
-function createId(prefix: string) {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-
-  void prefix;
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (token) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = token === 'x' ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function uniqueIds(ids: Array<string | undefined>) {
-  return [...new Set(ids.filter((id): id is string => Boolean(id?.trim())))];
+  serverRevision?: number;
+  deletedAt?: string;
 }
 
 function getActiveParticipantIds() {
@@ -172,7 +157,7 @@ function createDefaultMeeting(
   const createdAt = nowIso();
 
   return {
-    id: createId('meeting'),
+    id: createId(),
     templateId: template.id,
     title: getMeetingTemplateName(template.id, template.name),
     status: 'in_progress',
@@ -194,7 +179,7 @@ function normalizeMeetingTask(
     return null;
   }
 
-  const responsibleParticipantIds = uniqueIds([
+  const responsibleParticipantIds = uniqueStrings([
     ...(task.responsibleParticipantIds ?? []),
     task.responsiblePersonId,
   ]);
@@ -204,7 +189,7 @@ function normalizeMeetingTask(
   const createdAt = task.createdAt ?? nowIso();
 
   return {
-    id: task.id ?? createId('task'),
+    id: task.id ?? createId(),
     sectionId,
     title,
     description: task.description?.trim() || undefined,
@@ -237,7 +222,7 @@ function normalizeMeetingSummaryTask(
     responsibleParticipantIds:
       responsibilityType === 'needsDiscussion'
         ? []
-        : uniqueIds(task.responsibleParticipantIds ?? []),
+        : uniqueStrings(task.responsibleParticipantIds ?? []),
     dueDate: task.dueDate?.trim() || undefined,
     status: task.status ?? 'open',
   };
@@ -291,11 +276,11 @@ function normalizeAgreement(
   }
 
   return {
-    id: agreement.id ?? createId('agreement'),
+    id: agreement.id ?? createId(),
     sectionId,
     text,
     participantIds: agreement.participantIds?.length
-      ? uniqueIds(agreement.participantIds)
+      ? uniqueStrings(agreement.participantIds)
       : fallbackParticipantIds,
     createdAt: agreement.createdAt ?? nowIso(),
   };
@@ -303,9 +288,9 @@ function normalizeAgreement(
 
 function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
   const createdAt = meeting.createdAt ?? nowIso();
-  const id = meeting.id ?? createId('meeting');
+  const id = meeting.id ?? createId();
   const template = getMeetingTemplate(meeting.templateId);
-  const participantIds = uniqueIds([
+  const participantIds = uniqueStrings([
     ...(meeting.participantIds ?? []),
     ...(meeting.participants ?? []).map((participant) => participant.id),
   ]);
@@ -348,6 +333,8 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
     updatedAt: meeting.updatedAt ?? createdAt,
     completedAt: meeting.completedAt,
     aiSummary: normalizeMeetingSummary(meeting.aiSummary, id),
+    serverRevision: meeting.serverRevision,
+    deletedAt: meeting.deletedAt,
   };
 }
 
@@ -409,7 +396,7 @@ function meetingHasContent(meeting: Meeting) {
 
 function syncMeetingParticipants(meeting: Meeting) {
   const activeIds = getActiveParticipantIds();
-  const nextParticipantIds = uniqueIds([
+  const nextParticipantIds = uniqueStrings([
     ...meeting.participantIds,
     ...activeIds,
   ]);
@@ -427,10 +414,13 @@ export const useMeetingsStore = defineStore('meetings', {
   state: (): MeetingsState => getStoredState(),
   getters: {
     activeMeeting: (state) =>
-      state.meetings.find((meeting) => meeting.id === state.activeMeetingId) ??
-      null,
+      state.meetings.find(
+        (meeting) => meeting.id === state.activeMeetingId && !meeting.deletedAt
+      ) ?? null,
     completedMeetings: (state) =>
-      state.meetings.filter((meeting) => meeting.status === 'completed'),
+      state.meetings.filter(
+        (meeting) => meeting.status === 'completed' && !meeting.deletedAt
+      ),
   },
   actions: {
     persist() {
@@ -452,7 +442,7 @@ export const useMeetingsStore = defineStore('meetings', {
       }
 
       const existingDraft = this.meetings.find(
-        (meeting) => meeting.status !== 'completed'
+        (meeting) => meeting.status !== 'completed' && !meeting.deletedAt
       );
 
       if (existingDraft) {
@@ -487,7 +477,7 @@ export const useMeetingsStore = defineStore('meetings', {
     resumeMeeting(meetingId: string) {
       const meeting = this.meetings.find((item) => item.id === meetingId);
 
-      if (!meeting || meeting.status === 'completed') {
+      if (!meeting || meeting.status === 'completed' || meeting.deletedAt) {
         return null;
       }
 
@@ -501,17 +491,27 @@ export const useMeetingsStore = defineStore('meetings', {
     deleteDraftMeeting(meetingId: string) {
       const meeting = this.meetings.find((item) => item.id === meetingId);
 
-      if (!meeting || meeting.status === 'completed') {
+      if (!meeting || meeting.status === 'completed' || meeting.deletedAt) {
         return false;
       }
 
-      this.meetings = this.meetings.filter((item) => item.id !== meetingId);
+      if (appConfig.isBackendApiEnabled) {
+        const deletedAt = nowIso();
+        meeting.deletedAt = deletedAt;
+        meeting.updatedAt = deletedAt;
+      } else {
+        this.meetings = this.meetings.filter((item) => item.id !== meetingId);
+      }
 
       if (this.activeMeetingId === meetingId) {
         this.activeMeetingId = null;
       }
 
-      if (!this.meetings.some((item) => item.status !== 'completed')) {
+      if (
+        !this.meetings.some(
+          (item) => item.status !== 'completed' && !item.deletedAt
+        )
+      ) {
         this.draftSavedAt = null;
       }
 
@@ -538,7 +538,7 @@ export const useMeetingsStore = defineStore('meetings', {
       }
 
       const activeParticipantIds = new Set(getActiveParticipantIds());
-      const selectedParticipantIds = uniqueIds(participantIds).filter(
+      const selectedParticipantIds = uniqueStrings(participantIds).filter(
         (participantId) => activeParticipantIds.has(participantId)
       );
 
@@ -587,7 +587,7 @@ export const useMeetingsStore = defineStore('meetings', {
       }
 
       const note: MeetingNote = {
-        id: createId('note'),
+        id: createId(),
         sectionId,
         participantId,
         text: trimmedText,
@@ -612,7 +612,7 @@ export const useMeetingsStore = defineStore('meetings', {
       const responsibleParticipantIds =
         responsibilityType === 'needsDiscussion'
           ? []
-          : uniqueIds(payload.responsibleParticipantIds);
+          : uniqueStrings(payload.responsibleParticipantIds);
 
       if (!meeting || !section) {
         return translate('meetingStore.openBeforeTask');
@@ -639,7 +639,7 @@ export const useMeetingsStore = defineStore('meetings', {
 
       const createdAt = nowIso();
       const task: MeetingTask = {
-        id: createId('task'),
+        id: createId(),
         sectionId,
         title,
         description: description || undefined,
@@ -704,7 +704,7 @@ export const useMeetingsStore = defineStore('meetings', {
         const responsibleParticipantIds =
           responsibilityType === 'needsDiscussion'
             ? []
-            : uniqueIds(payload.responsibleParticipantIds ?? []);
+            : uniqueStrings(payload.responsibleParticipantIds ?? []);
 
         if (
           responsibilityType === 'participant' &&
@@ -839,7 +839,7 @@ export const useMeetingsStore = defineStore('meetings', {
       const meeting = this.activeMeeting;
       const section = meeting ? findSection(meeting, sectionId) : undefined;
       const trimmedText = text.trim();
-      const selectedParticipantIds = uniqueIds(participantIds);
+      const selectedParticipantIds = uniqueStrings(participantIds);
 
       if (!meeting || !section) {
         return translate('meetingStore.openBeforeAgreement');
@@ -863,7 +863,7 @@ export const useMeetingsStore = defineStore('meetings', {
 
       const createdAt = nowIso();
       const agreement: Agreement = {
-        id: createId('agreement'),
+        id: createId(),
         sectionId,
         text: trimmedText,
         participantIds: selectedParticipantIds,

@@ -144,4 +144,6 @@ export interface Meeting {
   updatedAt: string;
   completedAt?: string;
   aiSummary?: MeetingSummary;
+  serverRevision?: number;
+  deletedAt?: string;
 }
