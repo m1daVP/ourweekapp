@@ -7,6 +7,7 @@ export interface AppConfig {
   apiMode: ApiMode;
   appEnvironment: AppEnvironment;
   isBackendApiEnabled: boolean;
+  isDevelopmentMockUiEnabled: boolean;
   isGoogleCalendarSyncEnabled: boolean;
 }
 
@@ -90,12 +91,15 @@ export function createAppConfig(env: AppConfigEnv): AppConfig {
     Boolean(env.PROD)
   );
   const isBackendApiEnabled = apiMode === 'backend' && Boolean(apiBaseUrl);
+  const isDevelopmentMockUiEnabled =
+    !env.PROD && appEnvironment === 'local' && apiMode === 'mock';
 
   return {
     apiBaseUrl,
     apiMode,
     appEnvironment,
     isBackendApiEnabled,
+    isDevelopmentMockUiEnabled,
     isGoogleCalendarSyncEnabled:
       isBackendApiEnabled &&
       normalizeBooleanFlag(

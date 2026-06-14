@@ -13,6 +13,7 @@ describe('createAppConfig', () => {
     expect(config.apiMode).toBe('backend');
     expect(config.appEnvironment).toBe('staging');
     expect(config.isBackendApiEnabled).toBe(true);
+    expect(config.isDevelopmentMockUiEnabled).toBe(false);
   });
 
   it('treats invalid backend URLs as unavailable', () => {
@@ -46,5 +47,35 @@ describe('createAppConfig', () => {
     const config = createAppConfig({ PROD: true });
 
     expect(config.appEnvironment).toBe('production');
+  });
+
+  it('enables development mock UI only for local mock builds', () => {
+    const config = createAppConfig({
+      VITE_API_MODE: 'mock',
+      VITE_APP_ENV: 'local',
+    });
+
+    expect(config.isDevelopmentMockUiEnabled).toBe(true);
+  });
+
+  it('hides development mock UI in backend mode', () => {
+    const config = createAppConfig({
+      VITE_API_BASE_URL: 'http://localhost:3030',
+      VITE_API_MODE: 'backend',
+      VITE_APP_ENV: 'local',
+    });
+
+    expect(config.isDevelopmentMockUiEnabled).toBe(false);
+  });
+
+  it('hides development mock UI in production builds', () => {
+    const config = createAppConfig({
+      VITE_API_MODE: 'mock',
+      VITE_APP_ENV: 'local',
+      PROD: true,
+    });
+
+    expect(config.appEnvironment).toBe('local');
+    expect(config.isDevelopmentMockUiEnabled).toBe(false);
   });
 });
