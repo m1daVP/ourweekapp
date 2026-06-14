@@ -204,7 +204,7 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
       - `src/pages/TasksPage.vue`
     - Use app-native accessible dialogs/bottom sheets with Android back handling.
 
-13. **Clean up all user-facing mock/debug UI**
+13. **Clean up all user-facing mock/debug UI** ✅
     - Remove or dev-gate:
       - mock auth notices;
       - mock Premium controls;
@@ -213,7 +213,7 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
       - Calendar placeholder text;
       - demo summary fallback on real routes.
 
-14. **Consolidate duplicated local helper methods**
+14. **Consolidate duplicated local helper methods** ✅
     - Audit the project for repeated helper methods with the same behavior, for example UUID/id creation, date helpers, DTO normalization, sorting, and storage-safe parsing.
     - Replace copy-pasted implementations with small shared utilities under `src/shared` when the behavior is truly common.
     - Keep feature-specific helpers local when the behavior is intentionally different.
@@ -223,12 +223,12 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
 
 ## P2 - Production Readiness After API MVP Works
 
-15. **Add observability and support**
+15. **Add observability and support** ✅
     - Add privacy-conscious error reporting.
     - Add backend health checks for API, AI provider, subscription provider, and Calendar integration.
     - Add support diagnostics that do not expose sensitive family content.
 
-16. **Complete release operations**
+16. **Complete release operations** ✅/❎
     - Configure Android signing.
     - Replace launcher and splash artwork.
     - Run real Android QA.
