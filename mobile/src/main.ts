@@ -6,6 +6,7 @@ import { useLocalizationStore } from './app/stores/localization';
 import { i18n } from './features/localization/i18n';
 import { initializeStorageServices } from './shared/services/storageService';
 import { hideLaunchSplash } from './shared/services/splashScreenService';
+import { configureSystemBars } from './shared/services/systemBarsService';
 import './styles/main.css';
 
 const app = createApp(App);
@@ -19,6 +20,9 @@ void initializeStorageServices().then(() => {
 
   void router.isReady().then(() => {
     app.mount('#app');
-    void hideLaunchSplash();
+    void configureSystemBars().then(async () => {
+      await hideLaunchSplash();
+      await configureSystemBars();
+    });
   });
 });
