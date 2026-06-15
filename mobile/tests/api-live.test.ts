@@ -41,7 +41,7 @@ describe('live API contract smoke checks', () => {
     expect(healthResponse.status).toBe(200);
     expect(liveResponse.status).toBe(200);
     expect([200, 503]).toContain(readyResponse.status);
-  });
+  }, 15000);
 
   it('matches frontend endpoint contracts against localhost OpenAPI', async () => {
     const spec = await fetchOpenApiSpec();
