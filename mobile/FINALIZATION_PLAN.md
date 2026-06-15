@@ -28,7 +28,7 @@ OurWeek is launch-ready only when:
 
 ## P0 - Must Finish Before Final User Testing
 
-### 1. Lock Production Feature Scope
+### 1. Lock Production Feature Scope ✅
 
 - Confirm every feature listed in the app and store copy is included in the
   real launch:
@@ -88,7 +88,7 @@ Acceptance criteria:
 - `/health/ready` includes all launch-critical dependencies, not only database,
   if AI, billing, email, or Calendar providers can block launch behavior.
 
-### 3. Complete Real Auth And Account Lifecycle
+### 3. Complete Real Auth And Account Lifecycle ✅
 
 - Verify real backend behavior for:
   - `POST /v1/auth/register`;
