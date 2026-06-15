@@ -18,9 +18,11 @@ Full description draft:
 
 OurWeek helps couples and families run a calm weekly check-in about what went
 well, what felt stressful, household tasks, agreements, purchases, routines, and
-plans for next week. Public v1 keeps the flow simple: start a meeting, add notes,
-assign tasks, record agreements, finish with a summary, and review unfinished
-items next week.
+plans for next week. Public v1 keeps the flow simple and complete: create an
+account, start a meeting, add notes, assign tasks, record agreements, finish
+with a summary, review unfinished items next week, sync household records,
+manage Premium, use reminders, export meeting records, and connect Google
+Calendar when the verified production integration is enabled.
 
 ## Release Assets
 
@@ -28,18 +30,22 @@ The Android project must use final branded launcher icons in
 `android/app/src/main/res/mipmap-*` and final branded splash assets in
 `android/app/src/main/res/drawable*` before public release.
 
-## Release Notes
+## Scope And Release Notes
 
-- App data is local-first unless a feature is explicitly connected to backend
-  sync.
-- Meetings, tasks, agreements, private notes, settings, onboarding state, and
-  development-only mock subscription state are stored through the versioned
-  local storage envelope.
+- Public v1 scope is locked in `docs/public-v1-feature-scope.md`.
+- App data is local-first and backend-backed where launch sync is implemented.
+  Meetings, tasks, agreements, participants, workspace records, account data,
+  and subscription state must match the production backend contract.
+- Private notes remain local-only unless a reviewed sync design is implemented.
 - Paid Premium must use trusted backend or store entitlement validation before
   paid features are unlocked.
-- Development-only mock billing must not grant production paid access.
-- AI summaries are Premium-gated. Production AI summaries require backend API
-  support.
+- Development-only billing or entitlement test providers must not grant
+  production paid access.
+- AI summaries are Premium-gated and generated through the backend in
+  production.
+- Google Calendar sync is part of public v1 scope and must stay hidden in
+  production until the backend OAuth, token storage, disconnect/revoke, and Data
+  Safety review are complete.
 - Privacy Policy and Terms screens must be replaced with reviewed legal
   documents before public release.
 

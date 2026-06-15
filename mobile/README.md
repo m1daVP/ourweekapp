@@ -22,9 +22,7 @@ OurWeek supports one core ritual:
 Public v1 intentionally avoids generic family-organizer features such as chat,
 meal planning, grocery lists, complex budgeting, or calendar management.
 
-## Current Product Capabilities
-
-Available in the app:
+## Public V1 Scope
 
 - Guided weekly meeting flow
 - Default and additional meeting templates
@@ -32,21 +30,25 @@ Available in the app:
 - Notes, tasks, and agreements
 - Responsible person assignment
 - Meeting history with Free and Premium access rules
+- Backend auth and secure session handling
+- Backend sync for meetings, tasks, agreements, participants, and workspace
 - Local persistence with basic data versioning
+- Real Premium purchase, restore, management, and entitlement validation
+- Backend AI meeting summaries
 - Private notes with a local-only storage notice
 - Local reminders
 - Meeting export
+- Account export and deletion
+- Google Calendar sync
+- Workspace/member basics
 - Free and Premium feature locks
 - Android-first Capacitor app prepared for release builds
 
-Production-gated capabilities:
-
-- Paid Premium purchase and entitlement validation
-- Real AI meeting summaries
-- Google Calendar OAuth and sync
-
-These production-gated capabilities must use trusted backend or store-backed
-validation before they are offered in a public paid release.
+Public v1 scope is locked in `docs/public-v1-feature-scope.md`. Features listed
+in app navigation, store copy, release notes, or legal copy must be complete for
+production launch and must not be described as test-only, draft, or hidden from
+release. Calendar sync remains behind `VITE_ENABLE_GOOGLE_CALENDAR=true` until
+the verified backend OAuth flow is ready for a production build.
 
 ## Tech Stack
 
@@ -149,35 +151,35 @@ Android Studio and a configured JDK are required for native builds.
 
 ## Data and Privacy Notes
 
-OurWeek stores meeting data locally on the device unless a feature is explicitly
-connected to backend sync. Meetings, tasks, agreements, participants, settings,
-private notes, and onboarding state are stored through the shared local storage
-service.
+OurWeek stores app data locally on the device and syncs selected account,
+workspace, meeting, task, agreement, and participant data in backend API mode.
+Meetings, tasks, agreements, participants, settings, private notes,
+and onboarding state are stored through the shared local storage service.
 
 Sensitive auth tokens must use secure token storage when auth or backend API
 mode is enabled. Do not store access tokens, refresh tokens, OAuth tokens, API
 keys, payment data, or other secrets in local storage, Capacitor Preferences,
 logs, exports, or user-visible errors.
 
-Do not claim cloud sync or encryption unless those features are actually
-implemented.
+Do not claim encryption unless it is implemented. Cloud sync claims must match
+the backend-backed behavior that is actually connected and tested.
 
 Private notes are stored on this device unless a reviewed sync design is
 implemented.
 
 ## Premium and AI Notes
 
-Paid Premium must not rely on mock state in production. Production Premium
-entitlement must come from trusted backend or store validation before paid
-features are unlocked.
+Paid Premium must not rely on frontend-only state in production. Production
+Premium entitlement must come from trusted backend or store validation before
+paid features are unlocked.
 
-The mock subscription provider is development-only. Do not sell Premium until
-purchase, restore, manage-subscription, and entitlement validation behavior are
-connected to the production billing path.
+The local test subscription provider is for development only and must not grant
+production access. Do not sell Premium until purchase, restore,
+manage-subscription, and entitlement validation behavior are connected to the
+production billing path.
 
-AI summaries are Premium-gated. Development can use the local mock provider, but
-production AI summaries must go through a backend. API keys must not be placed
-in the mobile app.
+AI summaries are Premium-gated. Production AI summaries must go through the
+backend. API keys must not be placed in the mobile app.
 
 AI summaries may be inaccurate. Review before relying on them.
 

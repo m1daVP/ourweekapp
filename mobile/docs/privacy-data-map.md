@@ -1,8 +1,8 @@
 # OurWeek Privacy Data Map
 
-This document maps the API-backed MVP behavior to the disclosures needed for
-the in-app Privacy Policy, Terms, Google Play Data Safety answers, and release
-review.
+This document maps the public v1 production behavior to the disclosures needed
+for the in-app Privacy Policy, Terms, Google Play Data Safety answers, and
+release review.
 
 This is a product and engineering source of truth. It is not legal advice and
 must be reviewed before public release.
@@ -37,7 +37,7 @@ Relevant backend surfaces:
 | Meetings                 | Meeting title, date, status, sections, notes, agreements, tasks, summary          | Local app data and backend meeting sync                                   | Meeting notes may include sensitive household information.                                                                                       |
 | Tasks and agreements     | Titles, descriptions, responsible participant ids, due dates, status, related ids | Local app data and backend task/agreement sync                            | Use neutral follow-up language. Avoid shame-oriented labels.                                                                                     |
 | Review decisions         | Meeting id, source meeting id, decision timestamps                                | Local app data and backend sync                                           | Used to carry unfinished follow-ups into later meetings.                                                                                         |
-| Private notes            | Personal title, note body, related meeting id                                     | Local device data only for MVP                                            | Excluded from exports and AI summaries by default. Do not imply encryption unless implemented.                                                   |
+| Private notes            | Personal title, note body, related meeting id                                     | Local device data only unless a reviewed sync design is implemented       | Excluded from exports and AI summaries by default. Do not imply encryption unless implemented.                                                   |
 | Subscription entitlement | Plan, status, provider, expiration, product id, receipt/token metadata            | Backend or app store provider; local UI snapshot only                     | Frontend state is not the source of truth for paid access in production.                                                                         |
 | AI summaries             | Meeting id, generated summary, disclaimer, generated timestamp                    | Backend AI endpoint; provider details must be filled before release       | AI summaries may be inaccurate. Review before relying on them. No provider API keys in the mobile app.                                           |
 | Google Calendar          | Connection status, OAuth callback, selected reminder/task/follow-up sync payloads | Backend-supported OAuth and Calendar API calls                            | Google access and refresh tokens must not be stored in the mobile app. Ship only after OAuth scope, retention, and revoke behavior are reviewed. |
@@ -58,14 +58,14 @@ Relevant backend surfaces:
   logged on the backend.
 - Google OAuth scopes, token storage, disconnect/revoke behavior, and consent
   screen copy.
-- Whether private notes remain strictly local-only for public v1.
+- Whether any future release changes private notes from local-only behavior.
 - Whether diagnostics, crash reporting, or analytics are added.
 
 ## Implementation Notes
 
-- In-app legal screens should not say the MVP is local-only when
+- In-app legal screens should not say the product is local-only when
   `VITE_API_MODE=backend` is used.
-- Production paid Premium must not be unlocked by mock subscription state.
+- Production paid Premium must not be unlocked by local test subscription state.
 - Production AI summaries must go through the backend.
 - Calendar sync should be hidden in production unless backend OAuth and Data
   Safety disclosures are complete.
