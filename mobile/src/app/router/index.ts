@@ -16,6 +16,7 @@ import MeetingSummaryPage from '@/pages/MeetingSummaryPage.vue';
 import MeetingTemplatesPage from '@/pages/MeetingTemplatesPage.vue';
 import PrivateNotesPage from '@/pages/PrivateNotesPage.vue';
 import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage.vue';
+import ResetPasswordPage from '@/pages/ResetPasswordPage.vue';
 import SettingsPage from '@/pages/SettingsPage.vue';
 import SignInPage from '@/pages/SignInPage.vue';
 import SignUpPage from '@/pages/SignUpPage.vue';
@@ -54,6 +55,12 @@ export const router = createRouter({
       path: '/forgot-password',
       name: 'forgot-password',
       component: ForgotPasswordPage,
+      meta: { hideNavigation: true, guestOnly: true, isPublicEntry: true },
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: ResetPasswordPage,
       meta: { hideNavigation: true, guestOnly: true, isPublicEntry: true },
     },
     {

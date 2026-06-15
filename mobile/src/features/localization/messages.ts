@@ -10,6 +10,7 @@ export const messages = {
       routeTitles: {
         home: 'OurWeek',
         meeting: 'Weekly Ritual',
+        resetPassword: 'Reset Password',
         meetingTemplates: 'Choose a Template',
         tasks: 'Household Tasks',
         history: 'History',
@@ -110,7 +111,7 @@ export const messages = {
       logOut: 'Log out',
       dataRights: 'Account data',
       dataRightsHelp:
-        'Export your backend account data or delete the account from the OurWeek backend. Local data already saved on this device is not removed by this action.',
+        'Export your backend account data or delete the account and OurWeek data stored on this device.',
       exportAccount: 'Export account data',
       exportingAccount: 'Preparing export...',
       exportReady: 'Account export downloaded.',
@@ -119,8 +120,18 @@ export const messages = {
       deletingAccount: 'Deleting account...',
       deleteAccountTitle: 'Delete account?',
       deleteAccountConfirm:
-        'This asks the backend to delete your account data. Local data already saved on this device is not removed by this action.',
+        'This deletes your backend account and removes OurWeek data stored on this device, including meetings, tasks, agreements, private notes, settings, and local backups. This action cannot be undone.',
       deleteFailed: 'Could not delete the account right now.',
+      cleanupFailedTitle: 'Account deleted',
+      cleanupFailedIntro:
+        'Your backend account was deleted, but OurWeek could not finish clearing data from this device.',
+      cleanupFailedHelp:
+        'Try clearing local data again. If you continue, some OurWeek data may remain on this device until app storage is cleared.',
+      retryCleanup: 'Retry local cleanup',
+      retryingCleanup: 'Clearing local data...',
+      cleanupRetryFailed:
+        'OurWeek still could not clear local data on this device.',
+      continueWithLocalDataWarning: 'Continue with local data warning',
       addDisplayName: 'Add a display name.',
       updateFailed: 'Could not update the account.',
       updated: 'Account updated on this device.',
@@ -153,6 +164,15 @@ export const messages = {
         'Якщо ця електронна пошта відповідає акаунту, інструкції для скидання буде надіслано.',
       resetFailed: 'Не вдалося запросити скидання пароля зараз.',
       sendingReset: 'Надсилання...',
+      chooseNewPasswordTitle: 'Choose a new password',
+      chooseNewPasswordIntro: 'Enter a new password for your OurWeek account.',
+      updatePassword: 'Update password',
+      updatingPassword: 'Updating...',
+      resetConfirmed: 'Password updated. Sign in with your new password.',
+      resetMissingToken:
+        'This reset link is missing the reset token. Request a new password reset email.',
+      resetConfirmFailed:
+        'Could not update the password. The link may have expired. Request a new reset email and try again.',
       remembered: 'Remembered it?',
       addAccountEmail: 'Add the email for your account.',
       addEmail: 'Add an email address.',
@@ -1218,6 +1238,8 @@ export const messages = {
         'Saved OurWeek data could not be read. A local backup was kept, and the app started with safe defaults so you can keep using it.',
       backupFailed:
         'OurWeek could not create a local data backup because device storage may be full or blocked.',
+      clearFailed:
+        'OurWeek could not clear all local data on this device. Check device storage permissions and try again.',
     },
     notifications: {
       unavailable: 'Notifications are not available in this environment.',
@@ -1260,6 +1282,7 @@ export const messages = {
       routeTitles: {
         home: 'OurWeek',
         meeting: 'Щотижневий ритуал',
+        resetPassword: 'Скидання пароля',
         meetingTemplates: 'Виберіть шаблон',
         tasks: 'Побутові завдання',
         history: 'Історія',
@@ -1358,6 +1381,30 @@ export const messages = {
       apiSession:
         'Запити з входом мають використовувати збережений токен доступу через API-шар.',
       logOut: 'Вийти',
+      dataRights: 'Дані акаунта',
+      dataRightsHelp:
+        'Експортуйте дані акаунта з бекенду або видаліть акаунт і дані OurWeek, збережені на цьому пристрої.',
+      exportAccount: 'Експортувати дані акаунта',
+      exportingAccount: 'Підготовка експорту...',
+      exportReady: 'Експорт акаунта завантажено.',
+      exportFailed: 'Не вдалося експортувати дані акаунта зараз.',
+      deleteAccount: 'Видалити акаунт',
+      deletingAccount: 'Видалення акаунта...',
+      deleteAccountTitle: 'Видалити акаунт?',
+      deleteAccountConfirm:
+        'Це видалить ваш акаунт на бекенді і дані OurWeek, збережені на цьому пристрої, включно із зустрічами, завданнями, домовленостями, приватними нотатками, налаштуваннями та локальними резервними копіями. Цю дію не можна скасувати.',
+      deleteFailed: 'Не вдалося видалити акаунт зараз.',
+      cleanupFailedTitle: 'Акаунт видалено',
+      cleanupFailedIntro:
+        'Ваш акаунт на бекенді видалено, але OurWeek не зміг завершити очищення даних на цьому пристрої.',
+      cleanupFailedHelp:
+        'Спробуйте очистити локальні дані ще раз. Якщо продовжити, деякі дані OurWeek можуть залишитися на цьому пристрої, доки сховище додатка не буде очищено.',
+      retryCleanup: 'Повторити локальне очищення',
+      retryingCleanup: 'Очищення локальних даних...',
+      cleanupRetryFailed:
+        'OurWeek досі не зміг очистити локальні дані на цьому пристрої.',
+      continueWithLocalDataWarning:
+        'Продовжити з попередженням про локальні дані',
       addDisplayName: 'Додайте відображуване ім’я.',
       updateFailed: 'Не вдалося оновити акаунт.',
       updated: 'Акаунт оновлено на цьому пристрої.',
@@ -1383,14 +1430,23 @@ export const messages = {
       creating: 'Створення...',
       alreadyHaveAccount: 'Вже маєте акаунт?',
       passwordHelpKicker: 'Допомога з паролем',
-      resetPasswordTitle: 'Restablecer contraseña',
+      resetPasswordTitle: 'Скидання пароля',
       resetPasswordIntro:
-        'Ingresa el correo de tu cuenta. Si coincide con una cuenta, se enviarán instrucciones para restablecerla.',
+        'Введіть електронну пошту вашого акаунта. Якщо вона відповідає акаунту, інструкції для скидання буде надіслано.',
       resetRequested:
-        'Si ese correo coincide con una cuenta, se enviarán instrucciones para restablecerla.',
-      resetFailed:
-        'No se pudo solicitar el restablecimiento de contraseña ahora.',
-      sendingReset: 'Enviando...',
+        'Якщо ця електронна пошта відповідає акаунту, інструкції для скидання буде надіслано.',
+      resetFailed: 'Не вдалося запросити скидання пароля зараз.',
+      sendingReset: 'Надсилання...',
+      chooseNewPasswordTitle: 'Оберіть новий пароль',
+      chooseNewPasswordIntro:
+        'Введіть новий пароль для вашого акаунта OurWeek.',
+      updatePassword: 'Оновити пароль',
+      updatingPassword: 'Оновлення...',
+      resetConfirmed: 'Пароль оновлено. Увійдіть із новим паролем.',
+      resetMissingToken:
+        'У цьому посиланні немає токена скидання. Запросіть новий лист для скидання пароля.',
+      resetConfirmFailed:
+        'Не вдалося оновити пароль. Посилання могло застаріти. Запросіть новий лист і спробуйте ще раз.',
       remembered: 'Згадали?',
       addAccountEmail: 'Додайте електронну пошту вашого акаунта.',
       addEmail: 'Додайте адресу електронної пошти.',
@@ -2425,6 +2481,8 @@ export const messages = {
         'Збережені дані OurWeek не вдалося прочитати. Локальну резервну копію збережено, а додаток запустився з безпечними типовими значеннями.',
       backupFailed:
         'OurWeek не зміг створити локальну резервну копію даних, бо сховище пристрою може бути переповнене або заблоковане.',
+      clearFailed:
+        'OurWeek не зміг очистити всі локальні дані на цьому пристрої. Перевірте дозволи сховища і спробуйте ще раз.',
     },
     notifications: {
       unavailable: 'Сповіщення недоступні в цьому середовищі.',
@@ -2466,6 +2524,7 @@ export const messages = {
       routeTitles: {
         home: 'OurWeek',
         meeting: 'Ritual semanal',
+        resetPassword: 'Restablecer contraseña',
         meetingTemplates: 'Elegir una plantilla',
         tasks: 'Tareas del hogar',
         history: 'Historial',
@@ -2566,6 +2625,30 @@ export const messages = {
       apiSession:
         'Las solicitudes con sesión iniciada deben usar el token de acceso guardado a través de la capa de API.',
       logOut: 'Cerrar sesión',
+      dataRights: 'Datos de la cuenta',
+      dataRightsHelp:
+        'Exporta los datos de tu cuenta en el backend o elimina la cuenta y los datos de OurWeek guardados en este dispositivo.',
+      exportAccount: 'Exportar datos de la cuenta',
+      exportingAccount: 'Preparando exportación...',
+      exportReady: 'Exportación de cuenta descargada.',
+      exportFailed: 'No se pudieron exportar los datos de la cuenta ahora.',
+      deleteAccount: 'Eliminar cuenta',
+      deletingAccount: 'Eliminando cuenta...',
+      deleteAccountTitle: '¿Eliminar cuenta?',
+      deleteAccountConfirm:
+        'Esto elimina tu cuenta del backend y borra los datos de OurWeek guardados en este dispositivo, incluidas reuniones, tareas, acuerdos, notas privadas, ajustes y copias locales. Esta acción no se puede deshacer.',
+      deleteFailed: 'No se pudo eliminar la cuenta ahora.',
+      cleanupFailedTitle: 'Cuenta eliminada',
+      cleanupFailedIntro:
+        'Tu cuenta del backend fue eliminada, pero OurWeek no pudo terminar de borrar los datos de este dispositivo.',
+      cleanupFailedHelp:
+        'Intenta borrar los datos locales otra vez. Si continúas, algunos datos de OurWeek pueden permanecer en este dispositivo hasta que se borre el almacenamiento de la app.',
+      retryCleanup: 'Reintentar limpieza local',
+      retryingCleanup: 'Borrando datos locales...',
+      cleanupRetryFailed:
+        'OurWeek todavía no pudo borrar los datos locales en este dispositivo.',
+      continueWithLocalDataWarning:
+        'Continuar con advertencia de datos locales',
       addDisplayName: 'Agrega un nombre visible.',
       updateFailed: 'No se pudo actualizar la cuenta.',
       updated: 'Cuenta actualizada en este dispositivo.',
@@ -2591,13 +2674,25 @@ export const messages = {
       creating: 'Creando...',
       alreadyHaveAccount: '¿Ya tienes una cuenta?',
       passwordHelpKicker: 'Ayuda con la contraseña',
-      resetPasswordTitle: 'Reset password',
+      resetPasswordTitle: 'Restablecer contraseña',
       resetPasswordIntro:
-        'Enter the email for your account. If it matches an account, reset instructions will be sent.',
+        'Ingresa el correo de tu cuenta. Si coincide con una cuenta, se enviarán instrucciones para restablecerla.',
       resetRequested:
-        'If that email matches an account, reset instructions will be sent.',
-      resetFailed: 'Could not request a password reset right now.',
-      sendingReset: 'Sending...',
+        'Si ese correo coincide con una cuenta, se enviarán instrucciones para restablecerla.',
+      resetFailed:
+        'No se pudo solicitar el restablecimiento de contraseña ahora.',
+      sendingReset: 'Enviando...',
+      chooseNewPasswordTitle: 'Elige una contraseña nueva',
+      chooseNewPasswordIntro:
+        'Ingresa una contraseña nueva para tu cuenta de OurWeek.',
+      updatePassword: 'Actualizar contraseña',
+      updatingPassword: 'Actualizando...',
+      resetConfirmed:
+        'Contraseña actualizada. Inicia sesión con tu nueva contraseña.',
+      resetMissingToken:
+        'A este enlace le falta el token de restablecimiento. Solicita un nuevo correo para restablecer la contraseña.',
+      resetConfirmFailed:
+        'No se pudo actualizar la contraseña. Es posible que el enlace haya vencido. Solicita un nuevo correo e inténtalo otra vez.',
       remembered: '¿La recordaste?',
       addAccountEmail: 'Agrega el correo electrónico de tu cuenta.',
       addEmail: 'Agrega una dirección de correo electrónico.',
@@ -3644,6 +3739,8 @@ export const messages = {
         'No se pudieron leer los datos guardados de OurWeek. Se conservó una copia local de respaldo y la app inició con valores seguros para que puedas seguir usándola.',
       backupFailed:
         'OurWeek no pudo crear una copia local de respaldo porque el almacenamiento del dispositivo puede estar lleno o bloqueado.',
+      clearFailed:
+        'OurWeek no pudo borrar todos los datos locales en este dispositivo. Revisa los permisos de almacenamiento e inténtalo otra vez.',
     },
     notifications: {
       unavailable: 'Las notificaciones no están disponibles en este entorno.',
