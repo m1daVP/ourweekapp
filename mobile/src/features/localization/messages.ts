@@ -99,11 +99,12 @@ export const messages = {
       viewPremium: 'View Premium',
       restorePurchases: 'Restore purchases',
       profile: 'Profile',
-      profileHelp: 'Only display name editing is local in this MVP.',
+      profileHelp:
+        'Display name changes are saved to this account and this device.',
       saveAccount: 'Save account',
       session: 'Session',
       mockSession:
-        'Mock auth is active. The access token is a placeholder and no real password is stored locally.',
+        'Development auth is active. No real password is stored locally.',
       apiSession:
         'Signed-in requests use the stored secure session through the API layer.',
       logOut: 'Log out',
@@ -131,7 +132,7 @@ export const messages = {
         'Continue your weekly household rhythm and pick up where you left off.',
       forgotPassword: 'Forgot password?',
       mockSignIn:
-        'Mock auth is active. Any email and password will create a temporary frontend session.',
+        'Development auth is active. Any email and password will create a temporary local session.',
       signingIn: 'Signing in...',
       signIn: 'Sign in',
       newHere: 'New to OurWeek?',
@@ -141,7 +142,7 @@ export const messages = {
       yourName: 'Your name',
       passwordHelp: 'At least 8 characters',
       mockSignUp:
-        'Mock auth is active. The password is sent through the mock auth service and is not saved locally.',
+        'Development auth is active. The password is used only for this local session.',
       creating: 'Creating...',
       alreadyHaveAccount: 'Already have an account?',
       passwordHelpKicker: 'Password help',
@@ -169,17 +170,17 @@ export const messages = {
       intro:
         'A guided 15-minute weekly meeting for shared tasks, practical agreements, and fewer repeated household conversations.',
       benefitsLabel: 'Why create an account',
-      syncLater: 'Sync later',
+      syncLater: 'Sync across devices',
       syncLaterText:
-        'Prepare for cross-device access when backend sync is connected.',
+        'Keep household records available across signed-in devices.',
       keepHistory: 'Keep history',
       keepHistoryText:
         'Connect meetings, agreements, and unfinished follow-ups to you.',
       premiumReady: 'Premium ready',
       premiumReadyText:
-        'Use the same account model for paid features when payments are added.',
+        'Use the same account for Premium access after store validation.',
       mockAuth:
-        'Account sign-in is mocked in this build. No real password is stored locally.',
+        'Development sign-in is active in this build. No real password is stored locally.',
       getStarted: 'Get Started',
       continueLocal: 'Continue on this device only',
     },
@@ -310,7 +311,7 @@ export const messages = {
       storageLabel: 'Private notes storage note',
       reflectionTitle: 'For your own reflection',
       storageText:
-        'Private notes are stored on this device in the current MVP.',
+        'Private notes are stored on this device unless a reviewed sync design is implemented.',
       premiumTitle: 'Private notes are premium',
       premiumMessage:
         'Upgrade to keep personal meeting prep and reflections separate from shared household records.',
@@ -356,7 +357,7 @@ export const messages = {
         'Upgrade to sync OurWeek meetings, task due dates, and follow-ups with Google Calendar.',
       connectionTitle: 'Google Calendar connection',
       checkingConnection: 'Checking Google Calendar connection.',
-      notConnected: 'Google Calendar is not connected.',
+      notConnected: 'Google Calendar is disconnected.',
       preparingConnection: 'Preparing connection',
       connect: 'Connect Google Calendar',
       disconnect: 'Disconnect',
@@ -378,7 +379,7 @@ export const messages = {
         },
       },
       unavailable:
-        'Google Calendar sync is not available right now. Your OurWeek data remains saved without Calendar access.',
+        'Google Calendar sync could not be reached. Your OurWeek data remains saved without Calendar access.',
       addMeetingDate: 'Add a meeting date before syncing a calendar reminder.',
       addTaskDueDate:
         'Add a task due date before syncing it to Google Calendar.',
@@ -417,16 +418,16 @@ export const messages = {
       manageAvailable: 'Available through the store.',
       manageUnavailable: 'No active store subscription to manage yet.',
       localDeviceMode: 'Local device mode',
-      storeBillingNotConnected: 'Store billing is not available right now.',
+      storeBillingNotConnected: 'Store billing could not be reached.',
       billingUnavailableAction: 'Store billing unavailable',
       billingUnavailable:
-        'Store billing is not available right now. Premium access stays locked.',
+        'Store billing could not be reached. Premium access stays locked until validation succeeds.',
       planUnavailable: 'This Premium plan is not available.',
       premiumEnabled: 'Premium is active for this account.',
       premiumRestored: 'Premium was restored for this account.',
       noPremiumFound: 'No active Premium subscription was found.',
       managementLater:
-        'Subscription management will open Google Play or App Store settings after real billing is configured.',
+        'Subscription management opens through Google Play or App Store settings when a store subscription is available.',
       managementOpened: 'Opening subscription management.',
       checkFailed: 'Something went wrong while checking Premium access.',
       startFailed: 'Something went wrong while starting Premium.',
@@ -510,7 +511,7 @@ export const messages = {
       participantRemoved: 'Unused participant removed.',
       addNameFirst: 'Add a name first.',
       disable: 'Disable',
-      mockWorkspaceRole: 'Mock workspace role',
+      mockWorkspaceRole: 'Development workspace role',
       premiumFeatureChecks: 'Premium feature checks',
       role: {
         owner: 'Owner',
@@ -634,7 +635,7 @@ export const messages = {
         kicker: 'Privacy Policy',
         title: 'OurWeek privacy',
         intro:
-          'This policy describes the production API-backed MVP behavior prepared for OurWeek. Replace ownership, provider, retention, and support details with reviewed legal text before public release.',
+          'This policy describes the public v1 production behavior prepared for OurWeek. Replace ownership, provider, retention, and support details with reviewed legal text before public release.',
         accountTitle: 'Account data',
         accountText:
           'When you create or use an account, OurWeek processes your email address, display name, user id, role, plan type, authentication session, password reset requests, and basic timestamps needed to run the account.',
@@ -670,7 +671,7 @@ export const messages = {
         kicker: 'Terms',
         title: 'OurWeek terms',
         intro:
-          'These draft terms describe the intended production MVP behavior. Replace entity, jurisdiction, billing, retention, and support details with reviewed legal text before public release.',
+          'These draft terms describe the intended public v1 production behavior. Replace entity, jurisdiction, billing, retention, and support details with reviewed legal text before public release.',
         serviceTitle: 'What OurWeek provides',
         serviceText:
           'OurWeek is a practical guided weekly check-in app for couples and families. It helps households record notes, tasks, agreements, follow-ups, reminders, summaries, and exports.',
@@ -980,7 +981,7 @@ export const messages = {
         },
         upcomingExpenses: {
           title: 'Upcoming expenses',
-          prompt: 'What expenses are coming soon?',
+          prompt: 'What expenses are expected soon?',
         },
         subscriptionsBills: {
           title: 'Subscriptions / bills',
@@ -1348,11 +1349,12 @@ export const messages = {
       viewPremium: 'Переглянути Premium',
       restorePurchases: 'Відновити покупки',
       profile: 'Профіль',
-      profileHelp: 'У цьому MVP локально редагується лише відображуване ім’я.',
+      profileHelp:
+        'Зміни відображуваного імені зберігаються для цього акаунта і пристрою.',
       saveAccount: 'Зберегти акаунт',
       session: 'Сеанс',
       mockSession:
-        'Увімкнено mock-авторизацію. Токен доступу є заглушкою, справжній пароль локально не зберігається.',
+        'Увімкнено режим розробки для входу. Справжній пароль локально не зберігається.',
       apiSession:
         'Запити з входом мають використовувати збережений токен доступу через API-шар.',
       logOut: 'Вийти',
@@ -1367,7 +1369,7 @@ export const messages = {
         'Продовжуйте свій щотижневий домашній ритм із місця, де зупинилися.',
       forgotPassword: 'Забули пароль?',
       mockSignIn:
-        'Увімкнено mock-авторизацію. Будь-яка електронна пошта й пароль створять тимчасовий frontend-сеанс.',
+        'Увімкнено режим розробки для входу. Будь-яка електронна пошта й пароль створять тимчасовий локальний сеанс.',
       signingIn: 'Вхід...',
       signIn: 'Увійти',
       newHere: 'Вперше у OurWeek?',
@@ -1377,7 +1379,7 @@ export const messages = {
       yourName: 'Ваше ім’я',
       passwordHelp: 'Щонайменше 8 символів',
       mockSignUp:
-        'Увімкнено mock-авторизацію. Пароль передається в mock-сервіс і локально не зберігається.',
+        'Увімкнено режим розробки для входу. Пароль використовується лише для цього локального сеансу.',
       creating: 'Створення...',
       alreadyHaveAccount: 'Вже маєте акаунт?',
       passwordHelpKicker: 'Допомога з паролем',
@@ -1405,17 +1407,17 @@ export const messages = {
       intro:
         'Керована 15-хвилинна щотижнева зустріч для спільних завдань, практичних домовленостей і меншої кількості повторних домашніх розмов.',
       benefitsLabel: 'Навіщо створювати акаунт',
-      syncLater: 'Синхронізація пізніше',
+      syncLater: 'Синхронізація між пристроями',
       syncLaterText:
-        'Підготуйте доступ із кількох пристроїв, коли буде підключено backend-синхронізацію.',
+        'Тримайте домашні записи доступними на пристроях, де ви увійшли.',
       keepHistory: 'Зберігати історію',
       keepHistoryText:
         'Прив’язуйте зустрічі, домовленості й незавершені справи до себе.',
       premiumReady: 'Готово до Premium',
       premiumReadyText:
-        'Використовуйте ту саму модель акаунта для платних функцій, коли додадуть платежі.',
+        'Використовуйте той самий акаунт для Premium після перевірки підписки магазином.',
       mockAuth:
-        'Вхід в акаунт у цій збірці імітований. Справжній пароль локально не зберігається.',
+        'У цій збірці активний режим розробки для входу. Справжній пароль локально не зберігається.',
       getStarted: 'Почати',
       continueLocal: 'Продовжити лише на цьому пристрої',
     },
@@ -1533,7 +1535,7 @@ export const messages = {
       storageLabel: 'Примітка про зберігання приватних нотаток',
       reflectionTitle: 'Для власних роздумів',
       storageText:
-        'Приватні нотатки зберігаються на цьому пристрої в поточному MVP.',
+        'Приватні нотатки зберігаються на цьому пристрої, якщо не впроваджено перевірений дизайн синхронізації.',
       premiumTitle: 'Приватні нотатки доступні в Premium',
       premiumMessage:
         'Оновіться, щоб тримати особисту підготовку до зустрічей і роздуми окремо від спільних домашніх записів.',
@@ -1581,16 +1583,15 @@ export const messages = {
         'Оновіться, щоб підготувати зустрічі OurWeek, дати завдань і повернення до тем для Google Calendar.',
       connectionTitle: 'Підключення Google Calendar',
       checkingConnection: 'Перевірка підключення Google Calendar.',
-      notConnected: 'Google Calendar не підключено.',
+      notConnected: 'Google Calendar відключено.',
       preparingConnection: 'Підготовка підключення',
       connect: 'Підключити Google Calendar',
       disconnect: 'Відключити',
       noTokens: 'У цьому мобільному додатку токени Google не зберігаються.',
       unavailable:
-        'Синхронізація Google Calendar зараз недоступна. Дані OurWeek залишаються збереженими без доступу до календаря.',
+        'Не вдалося зв’язатися із синхронізацією Google Calendar. Дані OurWeek залишаються збереженими без доступу до календаря.',
       optionsTitle: 'Параметри синхронізації',
-      optionsText:
-        'Виберіть, що OurWeek має синхронізувати, коли Google Calendar буде готовий.',
+      optionsText: 'Виберіть, що OurWeek має синхронізувати з Google Calendar.',
       options: {
         weeklyMeeting: {
           label: 'Додати нагадування про щотижневу зустріч до календаря',
@@ -1647,16 +1648,16 @@ export const messages = {
       manageAvailable: 'Доступно через магазин.',
       manageUnavailable: 'Поки немає активної підписки магазину для керування.',
       localDeviceMode: 'Локальний режим пристрою',
-      storeBillingNotConnected: 'Білінг магазину зараз недоступний.',
+      storeBillingNotConnected: 'Не вдалося зв’язатися з білінгом магазину.',
       billingUnavailableAction: 'Білінг магазину недоступний',
       billingUnavailable:
-        'Білінг магазину зараз недоступний. Premium залишається закритим.',
+        'Не вдалося зв’язатися з білінгом магазину. Premium залишається закритим, доки перевірка не буде успішною.',
       planUnavailable: 'Цей Premium-план недоступний.',
       premiumEnabled: 'Premium активний для цього акаунта.',
       premiumRestored: 'Premium відновлено для цього акаунта.',
       noPremiumFound: 'Активну Premium-підписку не знайдено.',
       managementLater:
-        'Керування підпискою відкриватиме налаштування Google Play або App Store після налаштування справжнього білінгу.',
+        'Керування підпискою відкривається через налаштування Google Play або App Store, коли доступна підписка магазину.',
       managementOpened: 'Відкриваємо керування підпискою.',
       checkFailed: 'Щось пішло не так під час перевірки Premium-доступу.',
       startFailed: 'Щось пішло не так під час запуску Premium.',
@@ -1865,32 +1866,32 @@ export const messages = {
         title: 'Конфіденційність OurWeek',
         intro:
           'Заглушка для внутрішнього тестування. Замініть її на перевірену політику перед будь-яким публічним релізом у Google Play.',
-        dataTitle: 'Поточна модель даних MVP',
+        dataTitle: 'Поточна модель даних',
         dataText:
-          'OurWeek зберігає нотатки зустрічей, завдання, домовленості, учасників, приватні нотатки, налаштування та mock-стан Premium локально на цьому пристрої. Backend-синхронізацію в поточному MVP не підключено.',
+          'OurWeek може зберігати дані локально на цьому пристрої та синхронізувати вибрані дані акаунта, простору, зустрічей, завдань, домовленостей і учасників через backend.',
         privateNotesTitle: 'Приватні нотатки',
         privateNotesText:
-          'Приватні нотатки зберігаються на цьому пристрої в поточному MVP. За замовчуванням вони не включаються в експорт зустрічей.',
-        aiTitle: 'Заглушки AI та Premium',
+          'Приватні нотатки зберігаються на цьому пристрої, якщо не впроваджено перевірений дизайн синхронізації. За замовчуванням вони не включаються в експорт зустрічей.',
+        aiTitle: 'AI та Premium',
         aiText:
-          'AI-підсумки використовують локального mock-провайдера, якщо backend API явно не увімкнено. AI-підсумки можуть бути неточними. Перевіряйте їх перед використанням.',
+          'AI-підсумки запитуються через backend і можуть бути неточними. Перевіряйте їх перед використанням.',
         premiumText:
-          'Екрани Premium і білінгу використовують mock-стан підписки лише для внутрішнього тестування. Справжні платежі не підключені.',
+          'Premium-доступ залежить від підписки, перевіреної backend або магазином, а не лише від локального стану пристрою.',
       },
       terms: {
         kicker: 'Умови',
         title: 'Умови OurWeek',
         intro:
           'Заглушка для внутрішнього тестування. Замініть її на перевірені умови перед будь-яким публічним релізом у Google Play.',
-        testingTitle: 'Лише внутрішнє тестування',
+        testingTitle: 'Доступність сервісу',
         testingText:
-          'Ця збірка підготовлена для внутрішнього тестування. Вона не готова для публічного поширення, платних підписок, backend-синхронізації або production-підтримки.',
+          'Доступні функції можуть залежати від вашого акаунта, підписки, пристрою, мережевого з’єднання та backend-сервісів.',
         adviceTitle: 'Не професійна порада',
         adviceText:
           'OurWeek є практичним інструментом домашніх зустрічей. Це не терапія, юридична порада, фінансова порада або екстрена підтримка.',
         localDataTitle: 'Відповідальність за локальні дані',
         localDataText:
-          'Дані зберігаються локально на цьому пристрої в поточному MVP. Користувачам варто перевіряти важливі домовленості перед тим, як покладатися на них, і розуміти, що видалення додатка або очищення сховища може видалити локальні дані.',
+          'OurWeek зберігає дані на цьому пристрої та може синхронізувати вибрані записи через backend. Користувачам варто перевіряти важливі домовленості перед тим, як покладатися на них.',
       },
     },
     days: {
@@ -2556,11 +2557,12 @@ export const messages = {
       viewPremium: 'Ver Premium',
       restorePurchases: 'Restaurar compras',
       profile: 'Perfil',
-      profileHelp: 'En este MVP, solo la edición del nombre visible es local.',
+      profileHelp:
+        'Los cambios del nombre visible se guardan en esta cuenta y este dispositivo.',
       saveAccount: 'Guardar cuenta',
       session: 'Sesión',
       mockSession:
-        'La autenticación simulada está activa. El token de acceso es un marcador de posición y no se guarda una contraseña real localmente.',
+        'El inicio de sesión de desarrollo está activo. No se guarda una contraseña real localmente.',
       apiSession:
         'Las solicitudes con sesión iniciada deben usar el token de acceso guardado a través de la capa de API.',
       logOut: 'Cerrar sesión',
@@ -2575,7 +2577,7 @@ export const messages = {
         'Continúa tu ritmo semanal del hogar y retoma donde te quedaste.',
       forgotPassword: '¿Olvidaste tu contraseña?',
       mockSignIn:
-        'La autenticación simulada está activa. Cualquier correo y contraseña crearán una sesión temporal en el frontend.',
+        'El inicio de sesión de desarrollo está activo. Cualquier correo y contraseña crearán una sesión local temporal.',
       signingIn: 'Iniciando sesión...',
       signIn: 'Iniciar sesión',
       newHere: '¿Nuevo en OurWeek?',
@@ -2585,7 +2587,7 @@ export const messages = {
       yourName: 'Tu nombre',
       passwordHelp: 'Al menos 8 caracteres',
       mockSignUp:
-        'La autenticación simulada está activa. La contraseña se envía al servicio simulado y no se guarda localmente.',
+        'El inicio de sesión de desarrollo está activo. La contraseña se usa solo para esta sesión local.',
       creating: 'Creando...',
       alreadyHaveAccount: '¿Ya tienes una cuenta?',
       passwordHelpKicker: 'Ayuda con la contraseña',
@@ -2612,17 +2614,17 @@ export const messages = {
       intro:
         'Una reunión semanal guiada de 15 minutos para tareas compartidas, acuerdos prácticos y menos conversaciones repetidas del hogar.',
       benefitsLabel: 'Por qué crear una cuenta',
-      syncLater: 'Sincronizar después',
+      syncLater: 'Sincronizar entre dispositivos',
       syncLaterText:
-        'Prepárate para el acceso entre dispositivos cuando se conecte la sincronización del backend.',
+        'Mantén los registros del hogar disponibles en los dispositivos donde inicias sesión.',
       keepHistory: 'Guardar historial',
       keepHistoryText:
         'Conecta reuniones, acuerdos y seguimientos pendientes contigo.',
       premiumReady: 'Listo para Premium',
       premiumReadyText:
-        'Usa el mismo modelo de cuenta para funciones pagas cuando se agreguen pagos.',
+        'Usa la misma cuenta para Premium después de la validación de la tienda.',
       mockAuth:
-        'El inicio de sesión está simulado en esta versión. No se guarda una contraseña real localmente.',
+        'El inicio de sesión de desarrollo está activo en esta versión. No se guarda una contraseña real localmente.',
       getStarted: 'Comenzar',
       continueLocal: 'Continuar solo en este dispositivo',
     },
@@ -2740,7 +2742,7 @@ export const messages = {
       storageLabel: 'Nota de almacenamiento de notas privadas',
       reflectionTitle: 'Para tu propia reflexión',
       storageText:
-        'Las notas privadas se guardan en este dispositivo en el MVP actual.',
+        'Las notas privadas se guardan en este dispositivo salvo que se implemente un diseño de sincronización revisado.',
       editorHelp:
         'Estas notas quedan fuera de los resúmenes compartidos de reuniones y acuerdos.',
       premiumTitle: 'Las notas privadas son Premium',
@@ -2788,16 +2790,15 @@ export const messages = {
         'Mejora para preparar reuniones de OurWeek, fechas de tareas y seguimientos para Google Calendar.',
       connectionTitle: 'Conexión de Google Calendar',
       checkingConnection: 'Revisando la conexión de Google Calendar.',
-      notConnected: 'Google Calendar no está conectado.',
+      notConnected: 'Google Calendar está desconectado.',
       preparingConnection: 'Preparando conexión',
       connect: 'Conectar Google Calendar',
       disconnect: 'Desconectar',
       noTokens: 'No se guardan tokens de Google en esta app móvil.',
       unavailable:
-        'La sincronización con Google Calendar no está disponible ahora. Tus datos de OurWeek permanecen guardados sin acceso al calendario.',
+        'No se pudo contactar la sincronización con Google Calendar. Tus datos de OurWeek permanecen guardados sin acceso al calendario.',
       optionsTitle: 'Opciones de sincronización',
-      optionsText:
-        'Elige qué debe sincronizar OurWeek cuando Google Calendar esté listo.',
+      optionsText: 'Elige qué debe sincronizar OurWeek con Google Calendar.',
       options: {
         weeklyMeeting: {
           label: 'Agregar recordatorio de reunión semanal al calendario',
@@ -2857,16 +2858,16 @@ export const messages = {
         'Premium se desbloquea solo después de que el backend valide tu suscripción.',
       localDeviceMode: 'Modo local del dispositivo',
       storeBillingNotConnected:
-        'La facturación de la tienda no está disponible ahora.',
+        'No se pudo contactar la facturación de la tienda.',
       billingUnavailableAction: 'Facturación no disponible',
       billingUnavailable:
-        'La facturación de la tienda no está disponible ahora. Premium permanece bloqueado.',
+        'No se pudo contactar la facturación de la tienda. Premium permanece bloqueado hasta que la validación se complete.',
       planUnavailable: 'Este plan Premium no está disponible.',
       premiumEnabled: 'Premium está activo para esta cuenta.',
       premiumRestored: 'Premium se restauró para esta cuenta.',
       noPremiumFound: 'No se encontró ninguna suscripción Premium activa.',
       managementLater:
-        'La administración de suscripción abrirá Google Play o los ajustes de App Store después de configurar la facturación real.',
+        'La administración de suscripción se abre en Google Play o App Store cuando hay una suscripción de tienda disponible.',
       managementOpened: 'Abriendo la administración de suscripción.',
       checkFailed: 'Algo salió mal al revisar el acceso Premium.',
       startFailed: 'Algo salió mal al iniciar Premium.',
@@ -2907,7 +2908,7 @@ export const messages = {
       supportDiagnostics: 'Support diagnostics',
       legal: 'Legal',
       legalText:
-        'Revisa cómo OurWeek maneja privacidad, datos y términos para el MVP conectado por API.',
+        'Revisa cómo OurWeek maneja privacidad, datos y términos para public v1 conectado por API.',
       privacyPolicy: 'Política de privacidad',
       terms: 'Términos',
       reminders: 'Recordatorios',
@@ -3078,13 +3079,13 @@ export const messages = {
         kicker: 'Política de privacidad',
         title: 'Privacidad de OurWeek',
         intro:
-          'Esta política describe el comportamiento del MVP conectado por API preparado para OurWeek. Reemplaza los detalles de titularidad, proveedores, retención y soporte con texto legal revisado antes del lanzamiento público.',
-        dataTitle: 'Modelo de datos actual del MVP',
+          'Esta política describe el comportamiento de producción de public v1 preparado para OurWeek. Reemplaza los detalles de titularidad, proveedores, retención y soporte con texto legal revisado antes del lanzamiento público.',
+        dataTitle: 'Modelo de datos actual',
         dataText:
           'OurWeek puede guardar datos localmente en este dispositivo y sincronizar datos seleccionados de cuenta, espacio, reuniones, tareas, acuerdos y participantes mediante el backend.',
         privateNotesTitle: 'Notas privadas',
         privateNotesText:
-          'Las notas privadas se guardan en este dispositivo en el MVP actual. No se incluyen en las exportaciones de reuniones de forma predeterminada.',
+          'Las notas privadas se guardan en este dispositivo salvo que se implemente un diseño de sincronización revisado. No se incluyen en las exportaciones de reuniones de forma predeterminada.',
         aiTitle: 'AI y Premium',
         aiText:
           'Los resúmenes de AI se solicitan mediante el backend y pueden ser inexactos. Revísalos antes de confiar en ellos.',
@@ -3095,7 +3096,7 @@ export const messages = {
         kicker: 'Términos',
         title: 'Términos de OurWeek',
         intro:
-          'Estos términos describen el comportamiento previsto del MVP de producción. Reemplaza entidad, jurisdicción, facturación, retención y soporte con texto legal revisado antes del lanzamiento público.',
+          'Estos términos describen el comportamiento previsto de public v1 en producción. Reemplaza entidad, jurisdicción, facturación, retención y soporte con texto legal revisado antes del lanzamiento público.',
         testingTitle: 'Disponibilidad del servicio',
         testingText:
           'Las funciones disponibles pueden depender de tu cuenta, suscripción, dispositivo, conexión de red y servicios backend.',
@@ -3104,7 +3105,7 @@ export const messages = {
           'OurWeek es una herramienta práctica de revisión del hogar. No es terapia, asesoría legal, asesoría financiera ni soporte de emergencia.',
         localDataTitle: 'Responsabilidad sobre datos locales',
         localDataText:
-          'Los datos se guardan localmente en este dispositivo en el MVP actual. Las personas usuarias deben revisar acuerdos importantes antes de confiar en ellos y entender que desinstalar la app o borrar el almacenamiento puede eliminar datos locales.',
+          'OurWeek guarda datos en este dispositivo y puede sincronizar registros seleccionados mediante el backend. Las personas usuarias deben revisar acuerdos importantes antes de confiar en ellos.',
       },
     },
     days: {

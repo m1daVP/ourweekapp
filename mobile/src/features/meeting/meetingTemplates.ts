@@ -158,7 +158,7 @@ export const meetingTemplates: MeetingTemplate[] = [
       {
         id: 'upcomingExpenses',
         title: 'Upcoming expenses',
-        prompt: 'What expenses are coming soon?',
+        prompt: 'What expenses are expected soon?',
       },
       {
         id: 'subscriptionsBills',
