@@ -964,6 +964,90 @@ export function createInternalAppDataBackup(reason = 'manual') {
   return backupKey;
 }
 
+function removeLocalStorageKey(key: string) {
+  const storage = getLocalStorage();
+
+  if (!storage) {
+    if (typeof window !== 'undefined') {
+      addRecoveryMessage(translate('storage.clearFailed'));
+      return false;
+    }
+
+    return true;
+  }
+
+  try {
+    storage.removeItem(key);
+    return true;
+  } catch {
+    addRecoveryMessage(translate('storage.clearFailed'));
+    return false;
+  }
+}
+
+function clearAppDataBackupKeys() {
+  const storage = getLocalStorage();
+
+  if (!storage) {
+    if (typeof window !== 'undefined') {
+      addRecoveryMessage(translate('storage.clearFailed'));
+      return false;
+    }
+
+    return true;
+  }
+
+  const keysToRemove: string[] = [];
+
+  try {
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+
+      if (key?.startsWith(BACKUP_STORAGE_PREFIX)) {
+        keysToRemove.push(key);
+      }
+    }
+  } catch {
+    addRecoveryMessage(translate('storage.clearFailed'));
+    return false;
+  }
+
+  let didClearAll = true;
+
+  for (const key of keysToRemove) {
+    didClearAll = removeLocalStorageKey(key) && didClearAll;
+  }
+
+  return didClearAll;
+}
+
+export async function clearAllLocalAppDataAfterAccountDeletion() {
+  clearStorageRecoveryMessages();
+  let didClearAll = true;
+
+  for (const key of Object.values(legacyStorageKeys)) {
+    didClearAll = removeLocalStorageKey(key) && didClearAll;
+  }
+
+  didClearAll = removeLocalStorageKey(APP_DATA_STORAGE_KEY) && didClearAll;
+  didClearAll = clearAppDataBackupKeys() && didClearAll;
+
+  try {
+    await Preferences.remove({ key: SETTINGS_STORAGE_KEY });
+  } catch {
+    addRecoveryMessage(translate('storage.clearFailed'));
+    didClearAll = false;
+  }
+
+  cachedAppData = null;
+  cachedSettingsData = null;
+  hasInitializedSettingsStorage = false;
+
+  if (!didClearAll) {
+    throw new Error(translate('storage.clearFailed'));
+  }
+}
+
 export function exportAppDataBackup() {
   return JSON.stringify(loadAppData(), null, 2);
 }

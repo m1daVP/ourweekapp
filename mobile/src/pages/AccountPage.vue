@@ -3,13 +3,28 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
+import { useCalendarSyncStore } from '@/app/stores/calendarSync';
+import { useMeetingsStore } from '@/app/stores/meetings';
+import { useParticipantsStore } from '@/app/stores/participants';
+import { usePrivateNotesStore } from '@/app/stores/privateNotes';
+import { useRemindersStore } from '@/app/stores/reminders';
 import { useSubscriptionStore } from '@/app/stores/subscription';
+import { useTasksStore } from '@/app/stores/tasks';
+import { useUserAccessStore } from '@/app/stores/userAccess';
+import { useWorkspaceStore } from '@/app/stores/workspace';
+import {
+  AccountDeletionCleanupError,
+  deleteAccountAndClearLocalData,
+} from '@/features/auth/accountDeletionLifecycle';
+import { cancelReminderNotifications } from '@/features/reminders/reminderService';
 import {
   deleteAccount as deleteAccountRequest,
   exportAccountData,
 } from '@/shared/api/accountApi';
 import { appConfig } from '@/shared/config/env';
 import { saveOrShareExportFile } from '@/shared/services/exportFileDeliveryService';
+import { warnSafely } from '@/shared/services/safeLogService';
+import { clearAllLocalAppDataAfterAccountDeletion } from '@/shared/services/storageService';
 import { nowIso } from '@/shared/utils/dates';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import PremiumBadge from '@/shared/components/PremiumBadge.vue';
@@ -25,6 +40,8 @@ const dataActionError = ref('');
 const isExportingAccount = ref(false);
 const isDeletingAccount = ref(false);
 const isDeleteAccountDialogOpen = ref(false);
+const hasPostDeleteCleanupFailure = ref(false);
+const isRetryingLocalCleanup = ref(false);
 
 const user = computed(() => authStore.user);
 const currentPlanLabel = computed(() =>
@@ -97,6 +114,33 @@ async function deleteAccount() {
   isDeleteAccountDialogOpen.value = true;
 }
 
+function resetInMemoryStoresAfterAccountDeletion() {
+  useCalendarSyncStore().$reset();
+  useMeetingsStore().$reset();
+  useParticipantsStore().$reset();
+  usePrivateNotesStore().$reset();
+  useRemindersStore().$reset();
+  useSubscriptionStore().$reset();
+  useTasksStore().$reset();
+  useUserAccessStore().$reset();
+  useWorkspaceStore().$reset();
+}
+
+async function cancelLocalRemindersAfterAccountDeletion() {
+  try {
+    await cancelReminderNotifications();
+  } catch (error) {
+    warnSafely('Unable to cancel reminders during account deletion.', error);
+  }
+}
+
+async function finishLocalCleanupAfterAccountDeletion() {
+  await cancelLocalRemindersAfterAccountDeletion();
+  await clearAllLocalAppDataAfterAccountDeletion();
+  await authStore.clearSessionAfterUnauthorized();
+  resetInMemoryStoresAfterAccountDeletion();
+}
+
 async function confirmDeleteAccount() {
   dataActionError.value = '';
   statusMessage.value = '';
@@ -105,20 +149,85 @@ async function confirmDeleteAccount() {
   isDeletingAccount.value = true;
 
   try {
-    await deleteAccountRequest();
-    await authStore.clearSessionAfterUnauthorized();
+    await deleteAccountAndClearLocalData({
+      deleteBackendAccount: deleteAccountRequest,
+      clearSession: () => authStore.clearSessionAfterUnauthorized(),
+      cancelLocalReminders: cancelLocalRemindersAfterAccountDeletion,
+      clearLocalAppData: clearAllLocalAppDataAfterAccountDeletion,
+      resetInMemoryStores: resetInMemoryStoresAfterAccountDeletion,
+    });
     await router.replace({ name: 'welcome' });
   } catch (error) {
-    dataActionError.value =
-      error instanceof Error ? error.message : t('account.deleteFailed');
+    if (error instanceof AccountDeletionCleanupError) {
+      hasPostDeleteCleanupFailure.value = true;
+      dataActionError.value = '';
+      return;
+    }
+
+    dataActionError.value = t('account.deleteFailed');
   } finally {
     isDeletingAccount.value = false;
   }
 }
+
+async function retryLocalCleanupAfterAccountDeletion() {
+  dataActionError.value = '';
+  isRetryingLocalCleanup.value = true;
+
+  try {
+    await finishLocalCleanupAfterAccountDeletion();
+    hasPostDeleteCleanupFailure.value = false;
+    await router.replace({ name: 'welcome' });
+  } catch {
+    dataActionError.value = t('account.cleanupRetryFailed');
+  } finally {
+    isRetryingLocalCleanup.value = false;
+  }
+}
+
+async function continueAfterCleanupFailure() {
+  await authStore.clearSessionAfterUnauthorized();
+  await router.replace({ name: 'welcome' });
+}
 </script>
 
 <template>
-  <section v-if="user" class="page-stack account-page">
+  <section v-if="hasPostDeleteCleanupFailure" class="page-stack account-page">
+    <div>
+      <p class="page-kicker">{{ t('account.kicker') }}</p>
+      <h1>{{ t('account.cleanupFailedTitle') }}</h1>
+      <p class="page-copy">{{ t('account.cleanupFailedIntro') }}</p>
+    </div>
+
+    <section class="content-panel settings-panel">
+      <p>{{ t('account.cleanupFailedHelp') }}</p>
+      <button
+        class="meeting-primary"
+        type="button"
+        :disabled="isRetryingLocalCleanup"
+        @click="retryLocalCleanupAfterAccountDeletion"
+      >
+        {{
+          isRetryingLocalCleanup
+            ? t('account.retryingCleanup')
+            : t('account.retryCleanup')
+        }}
+      </button>
+      <button
+        class="secondary-button"
+        type="button"
+        :disabled="isRetryingLocalCleanup"
+        @click="continueAfterCleanupFailure"
+      >
+        {{ t('account.continueWithLocalDataWarning') }}
+      </button>
+      <p v-if="dataActionError" class="meeting-error" role="alert">
+        {{ dataActionError }}
+      </p>
+    </section>
+  </section>
+
+  <section v-else-if="user" class="page-stack account-page">
     <div>
       <p class="page-kicker">{{ t('account.kicker') }}</p>
       <h1>{{ t('account.title') }}</h1>
