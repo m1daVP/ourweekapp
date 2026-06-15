@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   clearAuthTokens: vi.fn(),
   prepareSyncForAuthenticatedUser: vi.fn(),
   readAuthTokens: vi.fn(),
+  refreshSession: vi.fn(),
   resetSyncRuntimeState: vi.fn(),
   signIn: vi.fn(),
   signOut: vi.fn(),
@@ -33,7 +34,7 @@ vi.mock('@/shared/api/httpClient', () => ({
 
 vi.mock('@/shared/api/authApi', () => ({
   getCurrentUser: vi.fn(),
-  refreshSession: vi.fn(),
+  refreshSession: mocks.refreshSession,
   register: vi.fn(),
   signIn: mocks.signIn,
   signOut: mocks.signOut,
@@ -82,6 +83,7 @@ beforeEach(() => {
   mocks.clearAuthTokens.mockReset();
   mocks.prepareSyncForAuthenticatedUser.mockReset();
   mocks.readAuthTokens.mockReset();
+  mocks.refreshSession.mockReset();
   mocks.resetSyncRuntimeState.mockReset();
   mocks.signIn.mockReset();
   mocks.signOut.mockReset();
@@ -89,6 +91,11 @@ beforeEach(() => {
   mocks.writeOnboardingStorage.mockReset();
 
   mocks.signIn.mockResolvedValue(session);
+  mocks.refreshSession.mockResolvedValue({
+    ...session,
+    accessToken: 'rotated-access-token',
+    refreshToken: 'rotated-refresh-token',
+  });
   mocks.readAuthTokens.mockResolvedValue({ refreshToken: 'refresh-token' });
 });
 
@@ -116,5 +123,39 @@ describe('auth sync safety hooks', () => {
     expect(mocks.signOut).toHaveBeenCalledWith('refresh-token');
     expect(mocks.resetSyncRuntimeState).toHaveBeenCalled();
     expect(authStore.authStatus).toBe('idle');
+  });
+
+  it('stores rotated tokens after a refresh succeeds', async () => {
+    const authStore = useAuthStore();
+
+    await authStore.applySession(session);
+    mocks.writeAuthTokens.mockClear();
+
+    const accessToken = await authStore.refreshAuthenticatedSession();
+
+    expect(mocks.refreshSession).toHaveBeenCalledWith({
+      refreshToken: 'refresh-token',
+    });
+    expect(accessToken).toBe('rotated-access-token');
+    expect(mocks.writeAuthTokens).toHaveBeenCalledWith({
+      accessToken: 'rotated-access-token',
+      refreshToken: 'rotated-refresh-token',
+    });
+    expect(authStore.authStatus).toBe('authenticated');
+  });
+
+  it('clears tokens and auth state when refresh fails', async () => {
+    const authStore = useAuthStore();
+
+    await authStore.applySession(session);
+    mocks.refreshSession.mockRejectedValue(new Error('expired'));
+
+    const accessToken = await authStore.refreshAuthenticatedSession();
+
+    expect(accessToken).toBeNull();
+    expect(mocks.clearAuthTokens).toHaveBeenCalled();
+    expect(mocks.resetSyncRuntimeState).toHaveBeenCalled();
+    expect(authStore.authStatus).toBe('idle');
+    expect(authStore.user).toBeNull();
   });
 });
