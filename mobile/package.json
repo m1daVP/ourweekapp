@@ -18,7 +18,7 @@
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run lint",
     "cap:sync": "npm run build && cap sync android",
-    "cap:open:android": "cap open android"
+    "cap:open": "cap open android"
   },
   "dependencies": {
     "@aparajita/capacitor-secure-storage": "8.0.0",
