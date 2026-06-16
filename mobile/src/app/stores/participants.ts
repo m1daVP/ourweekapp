@@ -66,6 +66,64 @@ function getInitials(name: string) {
     .join('');
 }
 
+function getParticipantDisplayKey(participant: Participant) {
+  return [
+    participant.name.trim().toLocaleLowerCase(),
+    participant.initials.trim().toLocaleUpperCase(),
+    participant.avatarColor.trim().toLocaleLowerCase(),
+    participant.type,
+  ].join('|');
+}
+
+function uniqueParticipantsByDisplay(participants: Participant[]) {
+  const seenKeys = new Set<string>();
+
+  return participants.filter((participant) => {
+    const key = getParticipantDisplayKey(participant);
+
+    if (seenKeys.has(key)) {
+      return false;
+    }
+
+    seenKeys.add(key);
+    return true;
+  });
+}
+
+function isDefaultPlaceholderParticipant(participant: Participant) {
+  if (participant.type !== 'adult') {
+    return false;
+  }
+
+  const name = participant.name.trim().toLocaleLowerCase();
+
+  return (
+    name === translate('settings.defaultParticipant.me').toLocaleLowerCase() ||
+    name ===
+      translate('settings.defaultParticipant.partner').toLocaleLowerCase()
+  );
+}
+
+function withoutStaleDefaultPlaceholders(participants: Participant[]) {
+  const activeAdults = participants.filter(
+    (participant) => participant.isActive && participant.type === 'adult'
+  );
+  const customAdultCount = activeAdults.filter(
+    (participant) => !isDefaultPlaceholderParticipant(participant)
+  ).length;
+  const defaultPlaceholderCount = activeAdults.filter(
+    isDefaultPlaceholderParticipant
+  ).length;
+
+  if (customAdultCount < 2 || defaultPlaceholderCount < 2) {
+    return participants;
+  }
+
+  return participants.filter(
+    (participant) => !isDefaultPlaceholderParticipant(participant)
+  );
+}
+
 function createParticipant(
   name: string,
   type: ParticipantType,
@@ -182,8 +240,12 @@ export const useParticipantsStore = defineStore('participants', {
   state: (): ParticipantsState => getStoredState(),
   getters: {
     activeParticipants: (state) =>
-      state.participants.filter(
-        (participant) => participant.isActive && !participant.deletedAt
+      withoutStaleDefaultPlaceholders(
+        uniqueParticipantsByDisplay(
+          state.participants.filter(
+            (participant) => participant.isActive && !participant.deletedAt
+          )
+        )
       ),
     getParticipantById: (state) => (participantId: string) =>
       state.participants.find(
