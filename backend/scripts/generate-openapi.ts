@@ -17,7 +17,6 @@ const generationEnv = {
   SUPABASE_URL: 'http://127.0.0.1:54321',
   SUPABASE_SERVICE_ROLE_KEY: 'openapi-generation-service-role-key',
   SUPABASE_ANON_KEY: 'openapi-generation-anon-key',
-  DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:54322/postgres',
   ACCESS_TOKEN_SECRET: 'a'.repeat(32),
   REFRESH_TOKEN_SECRET: 'b'.repeat(32),
   PASSWORD_RESET_TOKEN_SECRET: 'c'.repeat(32),

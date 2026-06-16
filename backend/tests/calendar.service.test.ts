@@ -32,7 +32,6 @@ beforeAll(async () => {
   process.env.SUPABASE_URL ??= 'https://example.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY ??= 'service-role-key';
   process.env.SUPABASE_ANON_KEY ??= 'anon-key';
-  process.env.DATABASE_URL ??= 'postgres://postgres:postgres@localhost:54322/postgres';
   process.env.ACCESS_TOKEN_SECRET ??= 'access-token-secret-with-at-least-32-bytes';
   process.env.REFRESH_TOKEN_SECRET ??= 'refresh-token-secret-with-at-least-32-bytes';
   process.env.PASSWORD_RESET_TOKEN_SECRET ??= 'password-reset-token-secret-with-32-bytes';

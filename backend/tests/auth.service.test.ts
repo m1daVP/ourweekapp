@@ -8,7 +8,6 @@ const testEnv = {
   SUPABASE_URL: 'https://example.supabase.co',
   SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
   SUPABASE_ANON_KEY: 'anon-key',
-  DATABASE_URL: 'postgres://user:pass@localhost:5432/weekly_us_test',
   ACCESS_TOKEN_SECRET: 'access-token-secret-at-least-32-bytes',
   REFRESH_TOKEN_SECRET: 'refresh-token-secret-at-least-32-bytes',
   PASSWORD_RESET_TOKEN_SECRET: 'password-reset-secret-at-least-32-bytes',

@@ -24,7 +24,6 @@ The repository already has Fastify, Zod provider setup, Supabase plugin wiring, 
 
 - Update `src/config/env.ts` so optional integrations can be disabled locally.
 - Add missing required variables from the implementation spec:
-  - `DATABASE_URL`
   - `REFRESH_TOKEN_SECRET`, if needed
   - `PASSWORD_RESET_TOKEN_SECRET`
   - `TOKEN_ENCRYPTION_KEY`
