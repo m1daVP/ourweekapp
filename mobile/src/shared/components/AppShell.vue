@@ -3,7 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import BottomNavigation from '@/shared/components/BottomNavigation.vue';
-import SyncStatusNotice from '@/shared/components/SyncStatusNotice.vue';
+import smallLogoUrl from '@/assets/small-logo.svg';
 import { useParticipantsStore } from '@/app/stores/participants';
 import {
   clearStorageRecoveryMessages,
@@ -85,11 +85,11 @@ watch(
       </RouterLink>
       <h1>{{ pageTitle }}</h1>
       <RouterLink
-        class="app-top-bar__icon material-symbols-outlined"
+        class="app-top-bar__icon"
         :to="{ name: 'workspace-settings' }"
         :aria-label="t('app.householdMembers')"
       >
-        group_work
+        <img :src="smallLogoUrl" alt="" aria-hidden="true" />
       </RouterLink>
     </header>
     <main ref="mainElement" class="app-main">
@@ -108,7 +108,6 @@ watch(
           {{ t('app.dismiss') }}
         </button>
       </aside>
-      <SyncStatusNotice />
       <slot />
     </main>
     <BottomNavigation v-if="showNavigation" />
