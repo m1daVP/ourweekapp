@@ -6,7 +6,14 @@ const enabledConfig: AppConfig = {
   apiMode: 'backend',
   appEnvironment: 'local',
   isBackendApiEnabled: true,
+  isDevelopmentMockUiEnabled: false,
   isGoogleCalendarSyncEnabled: true,
+  revenueCatAndroidApiKey: null,
+  revenueCatIosApiKey: null,
+  revenueCatEntitlementId: 'OurWeek Premium',
+  revenueCatCurrentOfferingId: 'default',
+  isRevenueCatEnabled: false,
+  isRevenueCatValidationEnabled: false,
 };
 
 function jsonResponse(body: unknown, status = 200) {

@@ -182,7 +182,7 @@ export const endpointContracts: EndpointContract[] = [
     requestExample: {
       provider: 'google_play',
       purchaseToken: 'purchase-token',
-      productId: 'ourweek_premium_monthly',
+      productId: 'monthly',
     },
   },
   {

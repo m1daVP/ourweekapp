@@ -41,6 +41,10 @@ describe('createAppConfig', () => {
 
     expect(config.apiMode).toBe('mock');
     expect(config.isBackendApiEnabled).toBe(false);
+    expect(config.revenueCatEntitlementId).toBe('OurWeek Premium');
+    expect(config.revenueCatCurrentOfferingId).toBe('default');
+    expect(config.isRevenueCatEnabled).toBe(false);
+    expect(config.isRevenueCatValidationEnabled).toBe(false);
   });
 
   it('defaults production app environment from the production build flag', () => {
@@ -77,5 +81,33 @@ describe('createAppConfig', () => {
 
     expect(config.appEnvironment).toBe('local');
     expect(config.isDevelopmentMockUiEnabled).toBe(false);
+  });
+
+  it('normalizes RevenueCat configuration values', () => {
+    const config = createAppConfig({
+      VITE_REVENUECAT_ANDROID_API_KEY: ' test_android ',
+      VITE_REVENUECAT_IOS_API_KEY: ' test_ios ',
+      VITE_REVENUECAT_ENTITLEMENT_ID: ' OurWeek Premium ',
+      VITE_REVENUECAT_CURRENT_OFFERING_ID: ' default ',
+    });
+
+    expect(config.revenueCatAndroidApiKey).toBe('test_android');
+    expect(config.revenueCatIosApiKey).toBe('test_ios');
+    expect(config.revenueCatEntitlementId).toBe('OurWeek Premium');
+    expect(config.revenueCatCurrentOfferingId).toBe('default');
+  });
+
+  it('requires backend mode and an explicit flag for RevenueCat validation', () => {
+    const mockConfig = createAppConfig({
+      VITE_ENABLE_REVENUECAT_VALIDATION: 'true',
+    });
+    const backendConfig = createAppConfig({
+      VITE_API_BASE_URL: 'http://localhost:3030',
+      VITE_API_MODE: 'backend',
+      VITE_ENABLE_REVENUECAT_VALIDATION: 'true',
+    });
+
+    expect(mockConfig.isRevenueCatValidationEnabled).toBe(false);
+    expect(backendConfig.isRevenueCatValidationEnabled).toBe(true);
   });
 });

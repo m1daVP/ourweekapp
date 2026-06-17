@@ -24,6 +24,7 @@ import {
   getSubscriptionStatus,
   restoreSubscription,
   validateSubscription,
+  validateRevenueCatSubscription,
 } from '@/shared/api/subscriptionsApi';
 import { generateAiMeetingSummary } from '@/shared/api/aiApi';
 import {
@@ -307,6 +308,26 @@ describe('subscriptionsApi', () => {
           provider: 'google_play',
           purchaseToken: 'purchase-token',
           productId: 'premium-monthly',
+        },
+        requiresAuth: true,
+      },
+    ]);
+
+    await validateRevenueCatSubscription({
+      provider: 'revenuecat',
+      appUserID: 'user-1',
+      productId: 'monthly',
+      entitlementId: 'OurWeek Premium',
+    });
+    expect(lastApiCall()).toEqual([
+      '/subscriptions/validate',
+      {
+        method: 'POST',
+        body: {
+          provider: 'revenuecat',
+          appUserID: 'user-1',
+          productId: 'monthly',
+          entitlementId: 'OurWeek Premium',
         },
         requiresAuth: true,
       },
