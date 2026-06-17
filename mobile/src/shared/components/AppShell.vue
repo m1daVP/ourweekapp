@@ -9,6 +9,7 @@ import {
   clearStorageRecoveryMessages,
   storageRecoveryState,
 } from '@/shared/services/storageService';
+import { useToast } from '@/shared/composables/useToast';
 
 withDefaults(
   defineProps<{
@@ -23,6 +24,7 @@ const route = useRoute();
 const { t } = useI18n();
 const mainElement = ref<HTMLElement | null>(null);
 const participantsStore = useParticipantsStore();
+const { dismissToast, toastState } = useToast();
 const recoveryMessages = computed(() => storageRecoveryState.value.messages);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
 const firstParticipant = computed(() => activeParticipants.value[0] ?? null);
@@ -110,6 +112,25 @@ watch(
       </aside>
       <slot />
     </main>
+    <Transition name="app-toast">
+      <div
+        v-if="toastState"
+        :key="toastState.id"
+        :class="['app-toast', `app-toast--${toastState.tone}`]"
+        role="status"
+        aria-live="polite"
+      >
+        <span>{{ toastState.message }}</span>
+        <button
+          type="button"
+          class="material-symbols-outlined"
+          :aria-label="t('app.dismiss')"
+          @click="dismissToast"
+        >
+          close
+        </button>
+      </div>
+    </Transition>
     <BottomNavigation v-if="showNavigation" />
   </div>
 </template>

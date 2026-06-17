@@ -428,6 +428,64 @@ input[type='radio'] {
   max-width: 58px;
 }
 
+.app-toast {
+  position: fixed;
+  right: auto;
+  bottom: calc(120px + env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  width: min(calc(100vw - 48px), calc(var(--container-max-width) - 48px));
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 54%, white);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface-lowest) 96%, transparent);
+  padding: 8px 10px 8px 18px;
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label-lg);
+  font-weight: 800;
+  box-shadow:
+    0 16px 32px rgba(47, 42, 38, 0.12),
+    0 2px 10px rgba(47, 42, 38, 0.06);
+  transform: translateX(-50%);
+}
+
+.app-toast--error {
+  border-color: color-mix(in srgb, var(--color-error) 36%, white);
+  color: var(--color-error);
+}
+
+.app-toast button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: currentColor;
+  padding: 0;
+  font-size: 1.25rem;
+  box-shadow: none;
+}
+
+.app-toast-enter-active,
+.app-toast-leave-active {
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.app-toast-enter-from,
+.app-toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 8px);
+}
+
 .storage-recovery-notice {
   display: flex;
   align-items: flex-start;
@@ -3737,7 +3795,6 @@ input[type='radio'] {
   font-size: 1.65rem;
 }
 
-.meeting-summary-share-status,
 .meeting-summary-share-error {
   grid-column: 1 / -1;
   border-radius: var(--radius-sm);
