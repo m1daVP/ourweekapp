@@ -12,6 +12,7 @@ import type {
 } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
+import { useToast } from '@/shared/composables/useToast';
 
 interface SummaryParticipant {
   id: string;
@@ -47,9 +48,9 @@ const { t, te, locale } = useI18n();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const { canAccessMeetingHistoryItem, canUseFeature } = useFeatureAccess();
-const shareStatus = ref('');
 const shareError = ref('');
 const isSharing = ref(false);
+const { showToast } = useToast();
 
 const meetingSummaryFallbackText = {
   aiDisclaimer:
@@ -348,13 +349,13 @@ async function shareVisibleSummary() {
       title: meetingSummary.value.title,
       text,
     });
-    shareStatus.value = t('meetingSummary.shared');
+    await showToast(t('meetingSummary.shared'));
     return;
   }
 
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
-    shareStatus.value = t('meetingSummary.copied');
+    await showToast(t('meetingSummary.copied'));
     return;
   }
 
@@ -366,7 +367,6 @@ async function handleShareSummary() {
     return;
   }
 
-  shareStatus.value = '';
   shareError.value = '';
   isSharing.value = true;
 
@@ -543,9 +543,6 @@ function goBack() {
       v-if="meetingSummary"
       class="meeting-summary-bottom-action floating-bottom-block"
     >
-      <p v-if="shareStatus" class="meeting-summary-share-status">
-        {{ shareStatus }}
-      </p>
       <p v-if="shareError" class="meeting-summary-share-error">
         {{ shareError }}
       </p>
