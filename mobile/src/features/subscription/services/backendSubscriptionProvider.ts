@@ -44,7 +44,9 @@ function createPremiumEntitlement(
   };
 }
 
-function createSnapshot(status: SubscriptionStatusDto): SubscriptionSnapshot {
+export function createSubscriptionSnapshotFromStatus(
+  status: SubscriptionStatusDto
+): SubscriptionSnapshot {
   return {
     currentPlan: status.planType,
     provider: mapProviderKind(status.provider),
@@ -65,14 +67,18 @@ export function createBackendSubscriptionProvider(): SubscriptionProvider {
   return {
     kind: 'direct_store',
     async getCurrentPlan() {
-      return createSnapshot(await getSubscriptionStatus());
+      return createSubscriptionSnapshotFromStatus(
+        await getSubscriptionStatus()
+      );
     },
     async getAvailablePlans() {
       return premiumPlanOptions;
     },
     async purchasePlan(planId: SubscriptionPlanId) {
       const purchase = await nativeBillingService.purchasePlan(planId);
-      const snapshot = createSnapshot(await validateSubscription(purchase));
+      const snapshot = createSubscriptionSnapshotFromStatus(
+        await validateSubscription(purchase)
+      );
 
       return {
         status: snapshot.currentPlan === 'premium' ? 'completed' : 'cancelled',
@@ -89,12 +95,16 @@ export function createBackendSubscriptionProvider(): SubscriptionProvider {
       if (!provider) {
         return {
           status: 'not_supported',
-          snapshot: createSnapshot(await getSubscriptionStatus()),
+          snapshot: createSubscriptionSnapshotFromStatus(
+            await getSubscriptionStatus()
+          ),
           message: translate('upgrade.billingUnavailable'),
         };
       }
 
-      const snapshot = createSnapshot(await restoreSubscription({ provider }));
+      const snapshot = createSubscriptionSnapshotFromStatus(
+        await restoreSubscription({ provider })
+      );
 
       return {
         status: snapshot.currentPlan === 'premium' ? 'completed' : 'cancelled',

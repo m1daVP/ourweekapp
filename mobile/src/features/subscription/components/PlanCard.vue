@@ -7,6 +7,7 @@ const props = defineProps<{
   plan: SubscriptionPlanOption;
   selected?: boolean;
   disabled?: boolean;
+  interactive?: boolean;
 }>();
 
 const { t } = useI18n();
@@ -20,10 +21,12 @@ const planMessageKey = computed(() =>
     ? 'upgrade.plans.premiumYearly'
     : 'upgrade.plans.premiumMonthly'
 );
+const planTitleId = computed(() => `plan-card-title-${props.plan.id}`);
 </script>
 
 <template>
   <button
+    v-if="interactive !== false"
     type="button"
     :class="['plan-card', { 'is-selected': selected }]"
     :aria-pressed="selected"
@@ -32,10 +35,20 @@ const planMessageKey = computed(() =>
   >
     <span class="plan-card__header">
       <strong>{{ t(`${planMessageKey}.name`) }}</strong>
-      <span>{{ t(`${planMessageKey}.priceLabel`) }}</span>
+      <span>{{ plan.priceLabel }}</span>
     </span>
     <span class="plan-card__description">
       {{ t(`${planMessageKey}.description`) }}
     </span>
   </button>
+
+  <article v-else class="plan-card" :aria-labelledby="planTitleId">
+    <span class="plan-card__header">
+      <strong :id="planTitleId">{{ t(`${planMessageKey}.name`) }}</strong>
+      <span>{{ plan.priceLabel }}</span>
+    </span>
+    <span class="plan-card__description">
+      {{ t(`${planMessageKey}.description`) }}
+    </span>
+  </article>
 </template>

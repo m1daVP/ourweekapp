@@ -27,6 +27,10 @@ import {
   prepareSyncForAuthenticatedUser,
   resetSyncRuntimeState,
 } from '@/shared/services/syncSessionService';
+import {
+  logInRevenueCat,
+  logOutRevenueCat,
+} from '@/features/subscription/services/revenueCatService';
 import type {
   AuthStatus,
   AuthUser,
@@ -120,6 +124,22 @@ async function prepareSyncForSessionUser(userId: string) {
 
 function resetSyncAfterSessionEnd() {
   resetSyncRuntimeState();
+}
+
+async function syncRevenueCatForSessionUser(userId: string) {
+  try {
+    await logInRevenueCat(userId);
+  } catch (error) {
+    warnSafely('Unable to sync RevenueCat user identity.', error);
+  }
+}
+
+async function clearRevenueCatSessionSafely() {
+  try {
+    await logOutRevenueCat();
+  } catch (error) {
+    warnSafely('Unable to clear RevenueCat user identity.', error);
+  }
 }
 
 function normalizeEmail(email: string) {
@@ -285,6 +305,7 @@ export const useAuthStore = defineStore('auth', {
 
       const nextUser = mapSessionUser(session);
       await prepareSyncForSessionUser(nextUser.id);
+      await syncRevenueCatForSessionUser(nextUser.id);
 
       this.user = nextUser;
       this.authStatus = 'authenticated';
@@ -295,6 +316,7 @@ export const useAuthStore = defineStore('auth', {
       this.syncAccessState();
     },
     async clearSessionAfterUnauthorized() {
+      await clearRevenueCatSessionSafely();
       await clearStoredAuthTokensSafely();
       await resetSyncAfterSessionEnd();
       this.user = null;
@@ -325,6 +347,7 @@ export const useAuthStore = defineStore('auth', {
 
         const nextUser = mapAuthUser(currentUser, this.user?.email);
         await prepareSyncForSessionUser(nextUser.id);
+        await syncRevenueCatForSessionUser(nextUser.id);
 
         this.user = nextUser;
         this.authStatus = 'authenticated';
@@ -424,6 +447,7 @@ export const useAuthStore = defineStore('auth', {
 
       await clearStoredAuthTokensSafely();
       await resetSyncAfterSessionEnd();
+      await clearRevenueCatSessionSafely();
       this.user = null;
       this.authStatus = 'localOnly';
       this.hasHydratedSecureTokens = true;

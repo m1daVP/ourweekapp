@@ -1,6 +1,8 @@
 import { appConfig } from '@/shared/config/env';
 import { createBackendSubscriptionProvider } from './backendSubscriptionProvider';
 import { createMockSubscriptionProvider } from './mockSubscriptionProvider';
+import { createRevenueCatSubscriptionProvider } from './revenueCatSubscriptionProvider';
+import { isRevenueCatAvailable } from './revenueCatService';
 import type {
   ManageSubscriptionResult,
   SubscriptionActionResult,
@@ -14,12 +16,23 @@ let activeProvider: SubscriptionProvider | null = null;
 
 function getActiveProvider() {
   if (!activeProvider) {
-    activeProvider = appConfig.isBackendApiEnabled
-      ? createBackendSubscriptionProvider()
-      : createMockSubscriptionProvider();
+    if (!appConfig.isBackendApiEnabled) {
+      activeProvider = createMockSubscriptionProvider();
+    } else if (isRevenueCatAvailable()) {
+      activeProvider = createRevenueCatSubscriptionProvider();
+    } else {
+      activeProvider = createBackendSubscriptionProvider();
+    }
   }
 
   return activeProvider;
+}
+
+async function getUnsupportedActionResult(): Promise<SubscriptionActionResult> {
+  return {
+    status: 'not_supported',
+    snapshot: await getActiveProvider().getCurrentPlan(),
+  };
 }
 
 export const subscriptionsService = {
@@ -38,6 +51,18 @@ export const subscriptionsService = {
   manageSubscription(): Promise<ManageSubscriptionResult> {
     return getActiveProvider().manageSubscription();
   },
+  presentPremiumPaywall(): Promise<SubscriptionActionResult> {
+    return (
+      getActiveProvider().presentPremiumPaywall?.() ??
+      getUnsupportedActionResult()
+    );
+  },
+  refreshCustomerInfo(): Promise<SubscriptionActionResult> {
+    return (
+      getActiveProvider().refreshCustomerInfo?.() ??
+      getUnsupportedActionResult()
+    );
+  },
 };
 
 /*
@@ -45,11 +70,11 @@ Production billing TODOs:
 - Prefer RevenueCat for the MVP because @revenuecat/purchases-capacitor
   supports Android and iOS through one Capacitor SDK, includes store receipt
   handling, and maps products to entitlements.
-- Configure a single RevenueCat entitlement named "premium" and attach the
-  Google Play and App Store subscription products from subscriptionPlans.ts.
-- Validate real premium access through RevenueCat trusted entitlements and/or a
-  backend subscription status endpoint. Do not persist permanent Premium access
-  from this frontend store in production.
+- Configure a single RevenueCat entitlement named "OurWeek Premium" and attach
+  the "monthly" and "yearly" store products from subscriptionPlans.ts.
+- Validate real premium access through the backend after RevenueCat purchase or
+  restore. Do not persist permanent Premium access from this frontend store in
+  production.
 - If OurWeek later chooses direct store billing instead, keep it behind this
   same SubscriptionProvider contract and send Google Play purchase tokens or
   Apple signed transactions to the backend before unlocking Premium.

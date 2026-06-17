@@ -1,15 +1,16 @@
 # Subscription Billing Notes
 
-OurWeek currently uses `mockSubscriptionProvider` only. The mock provider is
-for browser and local development paywall behavior; it is disabled from granting
-Premium in production builds.
+OurWeek uses `mockSubscriptionProvider` for browser and local development and
+`revenueCatSubscriptionProvider` for native store billing when backend
+validation is enabled. The mock provider is disabled from granting Premium in
+production builds.
 
 ## Recommended MVP Billing Path
 
 Prefer RevenueCat for the first production billing implementation:
 
 - one Capacitor SDK can cover Google Play Billing and Apple In-App Purchases;
-- products can map to one `premium` entitlement;
+- products can map to one `OurWeek Premium` entitlement;
 - receipt and subscription status handling are managed by a trusted provider;
 - the app can keep UI code behind `SubscriptionProvider` instead of branching on
   Android and iOS store details.
@@ -20,11 +21,12 @@ transactions to a backend before unlocking Premium.
 
 ## Production TODOs
 
-- Add a native provider, likely `@revenuecat/purchases-capacitor`.
-- Configure RevenueCat products for `ourweek_premium_monthly` and
-  `ourweek_premium_yearly`.
-- Attach both products to a `premium` entitlement.
-- Validate entitlements through RevenueCat trusted status and/or the backend.
-- Add store subscription management redirects when native billing is configured.
+- Configure RevenueCat products for `monthly` and `yearly`.
+- Attach both products to the `OurWeek Premium` entitlement.
+- Validate entitlements through the backend after RevenueCat purchase or
+  restore. Backend support must be enabled before the app sends RevenueCat
+  validation payloads.
+- Use RevenueCat Customer Center for subscription management when native
+  billing is configured, with backend management URL fallback.
 - Do not persist permanent Premium access from local frontend state in
   production.

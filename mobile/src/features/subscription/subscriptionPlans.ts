@@ -10,8 +10,8 @@ export const premiumPlanOptions: SubscriptionPlanOption[] = [
     planType: 'premium',
     entitlementKey: 'premium',
     productIds: {
-      android: 'ourweek_premium_monthly',
-      ios: 'ourweek_premium_monthly',
+      android: 'monthly',
+      ios: 'monthly',
     },
   },
   {
@@ -23,8 +23,8 @@ export const premiumPlanOptions: SubscriptionPlanOption[] = [
     planType: 'premium',
     entitlementKey: 'premium',
     productIds: {
-      android: 'ourweek_premium_yearly',
-      ios: 'ourweek_premium_yearly',
+      android: 'yearly',
+      ios: 'yearly',
     },
   },
 ];

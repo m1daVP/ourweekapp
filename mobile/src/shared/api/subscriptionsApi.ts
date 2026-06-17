@@ -22,6 +22,13 @@ export interface ValidateSubscriptionRequestDto {
   productId: string;
 }
 
+export interface ValidateRevenueCatSubscriptionRequestDto {
+  provider: 'revenuecat';
+  appUserID: string;
+  productId?: string;
+  entitlementId: string;
+}
+
 export interface RestoreSubscriptionRequestDto {
   provider: Exclude<SubscriptionProviderDto, 'revenuecat' | null>;
 }
@@ -60,6 +67,20 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatusDto> {
 
 export async function validateSubscription(
   payload: ValidateSubscriptionRequestDto
+): Promise<SubscriptionStatusDto> {
+  if (!isBackendApiConfigured()) {
+    return createMockStatus();
+  }
+
+  return apiRequest<SubscriptionStatusDto>('/subscriptions/validate', {
+    method: 'POST',
+    body: payload,
+    requiresAuth: true,
+  });
+}
+
+export async function validateRevenueCatSubscription(
+  payload: ValidateRevenueCatSubscriptionRequestDto
 ): Promise<SubscriptionStatusDto> {
   if (!isBackendApiConfigured()) {
     return createMockStatus();

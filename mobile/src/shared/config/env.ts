@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+
 export type AppEnvironment = 'local' | 'development' | 'staging' | 'production';
 
 export type ApiMode = 'mock' | 'backend';
@@ -9,6 +11,12 @@ export interface AppConfig {
   isBackendApiEnabled: boolean;
   isDevelopmentMockUiEnabled: boolean;
   isGoogleCalendarSyncEnabled: boolean;
+  revenueCatAndroidApiKey: string | null;
+  revenueCatIosApiKey: string | null;
+  revenueCatEntitlementId: string;
+  revenueCatCurrentOfferingId: string;
+  isRevenueCatEnabled: boolean;
+  isRevenueCatValidationEnabled: boolean;
 }
 
 export interface AppConfigEnv {
@@ -16,6 +24,11 @@ export interface AppConfigEnv {
   VITE_API_MODE?: string;
   VITE_APP_ENV?: string;
   VITE_ENABLE_GOOGLE_CALENDAR?: string;
+  VITE_REVENUECAT_ANDROID_API_KEY?: string;
+  VITE_REVENUECAT_IOS_API_KEY?: string;
+  VITE_REVENUECAT_ENTITLEMENT_ID?: string;
+  VITE_REVENUECAT_CURRENT_OFFERING_ID?: string;
+  VITE_ENABLE_REVENUECAT_VALIDATION?: string;
   PROD?: boolean;
 }
 
@@ -83,6 +96,37 @@ function normalizeBooleanFlag(
   return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
 }
 
+function normalizeOptionalString(value: string | undefined) {
+  const trimmedValue = value?.trim();
+
+  return trimmedValue || null;
+}
+
+function normalizeRequiredString(value: string | undefined, fallback: string) {
+  return normalizeOptionalString(value) ?? fallback;
+}
+
+function hasNativeRevenueCatKey(
+  androidApiKey: string | null,
+  iosApiKey: string | null
+) {
+  if (!Capacitor.isNativePlatform()) {
+    return false;
+  }
+
+  const platform = Capacitor.getPlatform();
+
+  if (platform === 'android') {
+    return Boolean(androidApiKey);
+  }
+
+  if (platform === 'ios') {
+    return Boolean(iosApiKey);
+  }
+
+  return false;
+}
+
 export function createAppConfig(env: AppConfigEnv): AppConfig {
   const apiBaseUrl = normalizeBaseUrl(env.VITE_API_BASE_URL);
   const apiMode = normalizeApiMode(env.VITE_API_MODE, apiBaseUrl);
@@ -93,6 +137,12 @@ export function createAppConfig(env: AppConfigEnv): AppConfig {
   const isBackendApiEnabled = apiMode === 'backend' && Boolean(apiBaseUrl);
   const isDevelopmentMockUiEnabled =
     !env.PROD && appEnvironment === 'local' && apiMode === 'mock';
+  const revenueCatAndroidApiKey = normalizeOptionalString(
+    env.VITE_REVENUECAT_ANDROID_API_KEY
+  );
+  const revenueCatIosApiKey = normalizeOptionalString(
+    env.VITE_REVENUECAT_IOS_API_KEY
+  );
 
   return {
     apiBaseUrl,
@@ -106,6 +156,23 @@ export function createAppConfig(env: AppConfigEnv): AppConfig {
         env.VITE_ENABLE_GOOGLE_CALENDAR,
         appEnvironment !== 'production'
       ),
+    revenueCatAndroidApiKey,
+    revenueCatIosApiKey,
+    revenueCatEntitlementId: normalizeRequiredString(
+      env.VITE_REVENUECAT_ENTITLEMENT_ID,
+      'OurWeek Premium'
+    ),
+    revenueCatCurrentOfferingId: normalizeRequiredString(
+      env.VITE_REVENUECAT_CURRENT_OFFERING_ID,
+      'default'
+    ),
+    isRevenueCatEnabled: hasNativeRevenueCatKey(
+      revenueCatAndroidApiKey,
+      revenueCatIosApiKey
+    ),
+    isRevenueCatValidationEnabled:
+      isBackendApiEnabled &&
+      normalizeBooleanFlag(env.VITE_ENABLE_REVENUECAT_VALIDATION, false),
   };
 }
 

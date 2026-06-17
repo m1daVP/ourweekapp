@@ -82,4 +82,6 @@ export interface SubscriptionProvider {
   purchasePlan(planId: SubscriptionPlanId): Promise<SubscriptionActionResult>;
   restorePurchases(): Promise<SubscriptionActionResult>;
   manageSubscription(): Promise<ManageSubscriptionResult>;
+  presentPremiumPaywall?(): Promise<SubscriptionActionResult>;
+  refreshCustomerInfo?(): Promise<SubscriptionActionResult>;
 }

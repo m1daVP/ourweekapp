@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
@@ -7,7 +7,6 @@ import { useSubscriptionStore } from '@/app/stores/subscription';
 import FeatureList from '@/features/subscription/components/FeatureList.vue';
 import PlanCard from '@/features/subscription/components/PlanCard.vue';
 import { planComparisonItems } from '@/features/subscription/subscriptionPlans';
-import type { SubscriptionPlanId } from '@/features/subscription/types';
 import { appConfig } from '@/shared/config/env';
 import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 
@@ -15,21 +14,25 @@ const router = useRouter();
 const authStore = useAuthStore();
 const subscriptionStore = useSubscriptionStore();
 const { t } = useI18n();
-const selectedPlanId = ref<SubscriptionPlanId>('premium_monthly');
 
 const currentPlanLabel = computed(() =>
   subscriptionStore.currentPlan === 'premium'
     ? t('premium.badge')
     : t('common.free')
 );
-const selectedPlan = computed(() =>
-  subscriptionStore.availablePlans.find(
-    (plan) => plan.id === selectedPlanId.value
-  )
-);
 const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
-const isPurchaseUnavailable = computed(() => !appConfig.isBackendApiEnabled);
-const canRestorePurchases = computed(() => appConfig.isBackendApiEnabled);
+const isPurchaseUnavailable = computed(
+  () =>
+    !appConfig.isBackendApiEnabled ||
+    !appConfig.isRevenueCatEnabled ||
+    !appConfig.isRevenueCatValidationEnabled
+);
+const canRestorePurchases = computed(
+  () =>
+    appConfig.isBackendApiEnabled &&
+    appConfig.isRevenueCatEnabled &&
+    appConfig.isRevenueCatValidationEnabled
+);
 const purchaseButtonLabel = computed(() => {
   if (hasPremium.value) {
     return t('upgrade.premiumActive');
@@ -40,12 +43,8 @@ const purchaseButtonLabel = computed(() => {
     : t('upgrade.startPremium');
 });
 
-function selectPlan(planId: SubscriptionPlanId) {
-  selectedPlanId.value = planId;
-}
-
-function purchaseSelectedPlan() {
-  subscriptionStore.purchasePlan(selectedPlanId.value);
+function openPremiumOptions() {
+  subscriptionStore.presentPremiumPaywall();
 }
 </script>
 
@@ -77,9 +76,7 @@ function purchaseSelectedPlan() {
           v-for="plan in subscriptionStore.availablePlans"
           :key="plan.id"
           :plan="plan"
-          :selected="selectedPlanId === plan.id"
-          :disabled="subscriptionStore.isPurchasing"
-          @select="selectPlan"
+          :interactive="false"
         />
       </div>
 
@@ -88,11 +85,11 @@ function purchaseSelectedPlan() {
         type="button"
         :disabled="
           subscriptionStore.isPurchasing ||
-          !selectedPlan ||
+          !subscriptionStore.availablePlans.length ||
           hasPremium ||
           isPurchaseUnavailable
         "
-        @click="purchaseSelectedPlan"
+        @click="openPremiumOptions"
       >
         {{ purchaseButtonLabel }}
       </button>

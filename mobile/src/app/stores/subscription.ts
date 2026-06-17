@@ -164,5 +164,44 @@ export const useSubscriptionStore = defineStore('subscription', {
         this.isManaging = false;
       }
     },
+    async presentPremiumPaywall() {
+      this.isPurchasing = true;
+      this.errorMessage = '';
+      this.statusMessage = '';
+
+      try {
+        const result = await subscriptionsService.presentPremiumPaywall();
+        this.applySnapshot(result.snapshot);
+        this.statusMessage = result.message ?? '';
+        return result.status === 'completed';
+      } catch (error) {
+        this.errorMessage =
+          error instanceof Error
+            ? error.message
+            : translate('upgrade.startFailed');
+        return false;
+      } finally {
+        this.isPurchasing = false;
+      }
+    },
+    async refreshCustomerInfo() {
+      this.isLoading = true;
+      this.errorMessage = '';
+
+      try {
+        const result = await subscriptionsService.refreshCustomerInfo();
+        this.applySnapshot(result.snapshot);
+        this.statusMessage = result.message ?? '';
+        return result.status === 'completed';
+      } catch (error) {
+        this.errorMessage =
+          error instanceof Error
+            ? error.message
+            : translate('upgrade.checkFailed');
+        return false;
+      } finally {
+        this.isLoading = false;
+      }
+    },
   },
 });
