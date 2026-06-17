@@ -78,15 +78,23 @@ function getTemplateDescription(template: MeetingTemplate) {
     @click="emit('select', template)"
   >
     <span
-      v-if="selected && !locked"
-      class="template-card__status material-symbols-outlined filled"
+      :class="[
+        'template-card__status',
+        'material-symbols-outlined',
+        'filled',
+        { 'is-visible': selected && !locked },
+      ]"
       aria-hidden="true"
     >
       check_circle
     </span>
     <span
-      v-else-if="locked"
-      class="template-card__status template-card__status--locked material-symbols-outlined"
+      :class="[
+        'template-card__status',
+        'template-card__status--locked',
+        'material-symbols-outlined',
+        { 'is-visible': locked },
+      ]"
       aria-hidden="true"
     >
       lock
@@ -113,14 +121,18 @@ function getTemplateDescription(template: MeetingTemplate) {
       </div>
     </div>
 
-    <ul
-      v-if="selected"
-      class="template-card__sections"
-      :aria-label="t('templatePage.sectionsLabel')"
+    <div
+      :class="['template-card__sections-frame', { 'is-visible': selected }]"
+      :aria-hidden="!selected"
     >
-      <li v-for="section in template.sections.slice(0, 3)" :key="section.id">
-        {{ getMeetingSectionTitle(section.id, section.title) }}
-      </li>
-    </ul>
+      <ul
+        class="template-card__sections"
+        :aria-label="t('templatePage.sectionsLabel')"
+      >
+        <li v-for="section in template.sections.slice(0, 3)" :key="section.id">
+          {{ getMeetingSectionTitle(section.id, section.title) }}
+        </li>
+      </ul>
+    </div>
   </button>
 </template>
