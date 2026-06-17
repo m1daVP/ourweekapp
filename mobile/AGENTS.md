@@ -1012,12 +1012,13 @@ Rules:
 Rules:
 
 - Use a consistent spacing scale.
-- Prefer CSS variables for colors, spacing, radius, and shadows.
+- Prefer CSS variables for font-size, colors, spacing, radius, and shadows.
 - Keep global styles minimal.
 - Component styles should be scoped when appropriate.
 - Avoid deep selectors unless necessary.
 - Avoid inline styles except for dynamic values.
 - Respect safe areas and dynamic viewport height.
+- Use `rem` for font sizes, `px` for borders, icons, tiny fixed UI details and `em` only for component-relative spacing when needed.
 
 Example tokens:
 
