@@ -7,7 +7,7 @@ const route = useRoute();
 
 const navigationItems = [
   { to: '/', labelKey: 'app.nav.home', icon: 'home', exact: true },
-  { to: '/meeting', labelKey: 'app.nav.meeting', icon: 'chat_bubble' },
+  { to: '/meeting/templates', labelKey: 'app.nav.meeting', icon: 'chat_bubble' },
   { to: '/tasks', labelKey: 'app.nav.tasks', icon: 'check_circle' },
   { to: '/history', labelKey: 'app.nav.history', icon: 'history' },
   { to: '/settings', labelKey: 'app.nav.settings', icon: 'settings' },
