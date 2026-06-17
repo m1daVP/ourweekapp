@@ -33,10 +33,13 @@ function isActiveNavItem(item: (typeof navigationItems)[number]) {
         { 'bottom-navigation__item--active': isActiveNavItem(item) },
       ]"
     >
-      <span class="material-symbols-outlined" aria-hidden="true">
+      <span
+        class="bottom-navigation__icon material-symbols-outlined"
+        aria-hidden="true"
+      >
         {{ item.icon }}
       </span>
-      <span>{{ t(item.labelKey) }}</span>
+      <span class="bottom-navigation__label">{{ t(item.labelKey) }}</span>
     </RouterLink>
   </nav>
 </template>
