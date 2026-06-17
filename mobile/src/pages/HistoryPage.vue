@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import type { Participant } from '@/features/participants/types';
 import type { Meeting } from '@/features/meeting/types';
+import HistoryProgressSwipeCard from '@/features/meeting/components/HistoryProgressSwipeCard.vue';
+import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
+import { useToast } from '@/shared/composables/useToast';
 
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
@@ -14,8 +17,10 @@ const router = useRouter();
 const { canAccessMeetingHistoryItem, canUseFeature, getFreeLimit } =
   useFeatureAccess();
 const { t, locale } = useI18n();
+const { showToast } = useToast();
 
 const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
+const pendingDeleteMeeting = ref<Meeting | null>(null);
 
 const sortedCompletedMeetings = computed(() =>
   [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
@@ -23,7 +28,7 @@ const sortedCompletedMeetings = computed(() =>
 
 const inProgressItems = computed(() =>
   meetingsStore.meetings
-    .filter((meeting) => meeting.status !== 'completed')
+    .filter((meeting) => meeting.status !== 'completed' && !meeting.deletedAt)
     .sort(compareMeetingsByDate)
     .map((meeting) => ({
       meeting,
@@ -128,6 +133,25 @@ function openInProgressMeeting(meeting: Meeting) {
   router.push({ name: 'meeting' });
 }
 
+function requestDeleteDraft(meeting: Meeting) {
+  pendingDeleteMeeting.value = meeting;
+}
+
+function confirmDeleteDraft() {
+  const meeting = pendingDeleteMeeting.value;
+
+  if (!meeting) {
+    return;
+  }
+
+  const wasDeleted = meetingsStore.deleteDraftMeeting(meeting.id);
+  pendingDeleteMeeting.value = null;
+
+  if (wasDeleted) {
+    showToast(t('history.draftDeleted'));
+  }
+}
+
 function openCompletedMeeting(item: (typeof completedItems.value)[number]) {
   if (item.isLocked) {
     return;
@@ -152,31 +176,15 @@ function openUpgrade() {
     <section class="history-section" aria-labelledby="history-progress-title">
       <h2 id="history-progress-title">{{ t('history.inProgress') }}</h2>
       <ul v-if="inProgressItems.length" class="history-card-list">
-        <li
+        <HistoryProgressSwipeCard
           v-for="item in inProgressItems"
           :key="item.meeting.id"
-          class="history-progress-card"
-        >
-          <button
-            type="button"
-            class="history-progress-card__button"
-            @click="openInProgressMeeting(item.meeting)"
-          >
-            <span class="history-progress-card__icon" aria-hidden="true">
-              <span class="material-symbols-outlined">edit_document</span>
-            </span>
-            <span class="history-progress-card__copy">
-              <strong>{{ item.title }}</strong>
-              <small>{{ item.subtitle }}</small>
-            </span>
-            <span
-              class="history-card__chevron material-symbols-outlined"
-              aria-hidden="true"
-            >
-              chevron_right
-            </span>
-          </button>
-        </li>
+          :title="item.title"
+          :subtitle="item.subtitle"
+          :delete-label="t('history.deleteDraft')"
+          @open="openInProgressMeeting(item.meeting)"
+          @request-delete="requestDeleteDraft(item.meeting)"
+        />
       </ul>
       <p v-else class="history-empty-card">{{ t('history.noDrafts') }}</p>
     </section>
@@ -245,5 +253,15 @@ function openUpgrade() {
         {{ t('history.upgradePremium') }}
       </button>
     </section>
+
+    <ConfirmationDialog
+      :open="Boolean(pendingDeleteMeeting)"
+      :title="t('history.deleteDraft')"
+      :message="t('history.confirmDeleteDraft')"
+      :confirm-label="t('common.delete')"
+      destructive
+      @close="pendingDeleteMeeting = null"
+      @confirm="confirmDeleteDraft"
+    />
   </section>
 </template>

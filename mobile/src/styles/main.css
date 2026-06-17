@@ -3088,6 +3088,52 @@ input[type='radio'] {
   display: grid;
 }
 
+.history-progress-card {
+  position: relative;
+}
+
+.history-progress-card__swipe-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.history-progress-card__delete-underlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-radius: inherit;
+  background: #b9362f;
+  opacity: 0;
+  padding-right: 22px;
+  transition: opacity 140ms ease;
+}
+
+.history-progress-card.is-swiping .history-progress-card__delete-underlay {
+  opacity: 1;
+}
+
+.history-progress-card__delete-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  color: #fff8f6;
+  opacity: 0;
+  transform: scale(0.72);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.history-progress-card.is-delete-ready .history-progress-card__delete-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
 .history-progress-card__button,
 .history-completed-card__button {
   width: 100%;
@@ -3111,12 +3157,53 @@ input[type='radio'] {
 }
 
 .history-progress-card__button {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr) auto;
   min-height: 96px;
   align-items: center;
   gap: 18px;
   padding: 20px 18px;
+  touch-action: pan-y;
+  user-select: none;
+  will-change: transform;
+}
+
+.history-progress-card.is-dragging .history-progress-card__button {
+  transition: none;
+}
+
+.history-progress-card__delete-accessible {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.history-progress-card__delete-accessible:focus-visible {
+  right: 16px;
+  bottom: 16px;
+  z-index: 3;
+  width: auto;
+  min-width: 48px;
+  height: 48px;
+  clip: auto;
+  overflow: visible;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: #b9362f;
+  color: #fff8f6;
+  padding: 0 18px;
+  margin: 0;
+  font-size: var(--font-size-label-md);
+  font-weight: 800;
+  white-space: normal;
 }
 
 .history-progress-card__icon {
@@ -3319,6 +3406,14 @@ input[type='radio'] {
   .history-completed-card__button {
     min-height: 132px;
     padding: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history-progress-card__button,
+  .history-progress-card__delete-underlay,
+  .history-progress-card__delete-icon {
+    transition: none;
   }
 }
 
