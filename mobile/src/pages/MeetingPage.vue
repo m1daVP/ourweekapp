@@ -238,6 +238,7 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
       @go-back="goBack"
       @go-next="goNext"
       @handle-unfinished-tasks="handleUnfinishedTasks"
+      @open-menu="isRitualMenuOpen = true"
       @save-draft="saveDraft"
       @start-new="startNewMeeting"
       @toggle-task="toggleTask"
