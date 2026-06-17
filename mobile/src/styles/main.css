@@ -336,21 +336,18 @@ input[type='radio'] {
 }
 
 .app-shell--meeting .app-main {
-  padding: env(safe-area-inset-top) var(--edge-margin) 0
+  padding: env(safe-area-inset-top) var(--edge-margin)
+    calc(136px + env(safe-area-inset-bottom));
 }
 
-.bottom-navigation {
+.floating-bottom-block {
   position: fixed;
   right: auto;
   bottom: calc(16px + env(safe-area-inset-bottom));
   left: 50%;
   z-index: 30;
-  display: grid;
-  width: min(calc(100vw - 32px), calc(var(--container-max-width) - 32px));
-  min-height: 88px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 2px;
-  align-items: center;
+  width: calc(100vw - 32px);
+  max-width: calc(var(--container-max-width) - 32px);
   border: 1px solid color-mix(in srgb, var(--color-outline-variant) 58%, white);
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--color-surface-lowest) 94%, transparent);
@@ -359,6 +356,14 @@ input[type='radio'] {
     0 16px 32px rgba(47, 42, 38, 0.12),
     0 2px 10px rgba(47, 42, 38, 0.06);
   transform: translateX(-50%);
+}
+
+.bottom-navigation {
+  display: grid;
+  min-height: 88px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+  align-items: center;
 }
 
 .bottom-navigation__item {
@@ -1113,8 +1118,8 @@ input[type='radio'] {
   grid-template-columns: 44px 1fr 56px;
   gap: 12px;
   align-items: center;
-  margin: calc(var(--edge-margin) * -1) calc(var(--edge-margin) * -1) 0;
-  padding: calc(12px + env(safe-area-inset-top)) var(--edge-margin) 12px;
+  /* margin: calc(var(--edge-margin) * -1) calc(var(--edge-margin) * -1) 0; */
+  /* padding: calc(12px + env(safe-area-inset-top)) var(--edge-margin) 12px; */
   background: var(--color-surface);
 }
 
@@ -1126,6 +1131,10 @@ input[type='radio'] {
   background: transparent;
   color: var(--color-primary);
   font-weight: 800;
+}
+
+.meeting-focus-bar__icon {
+  font-size: 1.5rem;
 }
 
 .meeting-focus-bar__progress {
@@ -1343,39 +1352,87 @@ input[type='radio'] {
 }
 
 .meeting-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 8;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-inline: calc(var(--edge-margin) * -1);
   margin-bottom: 0;
-  padding: 48px var(--edge-margin) calc(24px + env(safe-area-inset-bottom));
-  background: linear-gradient(
-    to top,
-    var(--color-background),
-    color-mix(in srgb, var(--color-background) 90%, transparent),
-    transparent
-  );
 }
 
-.meeting-actions button {
+.meeting-step-actions {
+  display: grid;
+  min-height: 88px;
+  gap: 8px;
+  align-items: center;
+}
+
+.meeting-step-actions--two,
+.meeting-step-actions--review {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+}
+
+.meeting-step-actions--section {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.meeting-step-actions button {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 64px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: var(--font-size-label-lg);
+  line-height: 1.1;
+  text-align: center;
+  overflow-wrap: anywhere;
   border: 0;
   background: transparent;
   box-shadow: none;
   color: var(--color-on-surface-variant);
   padding: 0 8px;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 120ms ease;
 }
 
-.meeting-actions .meeting-primary {
+.meeting-step-actions button:active {
+  transform: scale(0.96);
+}
+
+.meeting-step-actions button:disabled {
+  transform: none;
+}
+
+.meeting-step-actions .meeting-primary,
+.meeting-step-actions .ritual-action--start,
+.meeting-step-actions .review-close-finish {
   background: var(--color-primary);
   color: var(--color-on-primary);
+  box-shadow: 0 8px 18px rgba(69, 99, 73, 0.24);
 }
 
-.meeting-actions button:first-child:last-child,
+.meeting-actions button:first-child:last-child {
+  grid-column: 1 / -1;
+}
+
 .meeting-actions button:nth-child(2):last-child {
   grid-column: span 2;
+}
+
+.meeting-step-actions--review button:first-child:last-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 360px) {
+  .meeting-step-actions {
+    gap: 4px;
+    padding-inline: 8px;
+  }
+
+  .meeting-step-actions button {
+    font-size: var(--font-size-label-sm);
+    padding-inline: 6px;
+  }
 }
 
 .participant-selector,
@@ -3296,7 +3353,7 @@ input[type='radio'] {
   display: grid;
   flex: 1;
   gap: 32px;
-  padding: 24px var(--edge-margin) 0;
+  padding: 24px var(--edge-margin) calc(124px + env(safe-area-inset-bottom));
 }
 
 .meeting-summary-hero {
@@ -3628,24 +3685,16 @@ input[type='radio'] {
 }
 
 .meeting-summary-bottom-action {
-  position: sticky;
-  bottom: 0;
-  z-index: 12;
   display: grid;
+  min-height: 88px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
   gap: 8px;
+  align-items: center;
   margin-top: 20px;
-  background: linear-gradient(
-    to top,
-    #faf9f5 0%,
-    #faf9f5 72%,
-    rgba(250, 249, 245, 0)
-  );
-  padding: 36px var(--edge-margin) calc(24px + env(safe-area-inset-bottom));
 }
 
 .meeting-summary-share-button {
   display: inline-flex;
-  width: 100%;
   min-height: 64px;
   align-items: center;
   justify-content: center;
@@ -3658,7 +3707,7 @@ input[type='radio'] {
   font-weight: 800;
   gap: 10px;
   letter-spacing: 0;
-  box-shadow: 0 9px 18px rgba(47, 42, 38, 0.18);
+  box-shadow: 0 8px 18px rgba(69, 99, 73, 0.24);
   transition:
     transform 120ms ease,
     opacity 160ms ease;
@@ -3670,12 +3719,13 @@ input[type='radio'] {
 
 .meeting-summary-full-notes-link {
   display: inline-flex;
-  min-height: 44px;
+  min-height: 64px;
   align-items: center;
   justify-content: center;
-  color: var(--color-on-surface-muted);
+  border-radius: var(--radius-pill);
+  color: var(--color-on-surface-variant);
   font-size: var(--font-size-label-lg);
-  font-weight: 700;
+  font-weight: 800;
   text-decoration: none;
 }
 
@@ -3689,6 +3739,7 @@ input[type='radio'] {
 
 .meeting-summary-share-status,
 .meeting-summary-share-error {
+  grid-column: 1 / -1;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--color-primary-fixed) 52%, white);
   padding: 10px 12px;

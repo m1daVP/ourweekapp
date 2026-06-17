@@ -233,7 +233,17 @@ const { t } = useI18n();
       </p>
     </main>
 
-    <footer class="review-close-bottom-actions">
+    <footer
+      class="review-close-bottom-actions floating-bottom-block meeting-step-actions meeting-step-actions--review"
+    >
+      <button
+        class="review-close-back"
+        type="button"
+        :disabled="!canEditMeeting"
+        @click="emit('go-back')"
+      >
+        {{ t('meeting.goBackEdit') }}
+      </button>
       <button
         v-if="!isCompleted && canEditMeeting"
         class="review-close-finish"
@@ -262,14 +272,6 @@ const { t } = useI18n();
           add_circle
         </span>
         <span>{{ t('meeting.newMeeting') }}</span>
-      </button>
-      <button
-        class="review-close-back"
-        type="button"
-        :disabled="!canEditMeeting"
-        @click="emit('go-back')"
-      >
-        {{ t('meeting.goBackEdit') }}
       </button>
     </footer>
   </article>
@@ -621,32 +623,16 @@ const { t } = useI18n();
 }
 
 .review-close-bottom-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 9;
-  display: grid;
-  gap: 18px;
   margin-top: auto;
-  border-top: 1px solid
-    color-mix(in srgb, var(--color-outline-variant) 28%, transparent);
-  background: color-mix(in srgb, #faf9f5 94%, transparent);
-  padding: 28px var(--edge-margin) calc(28px + env(safe-area-inset-bottom));
 }
 
 .review-close-finish {
-  display: inline-flex;
-  min-height: 72px;
+  min-height: 64px;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-pill);
-  background: var(--color-primary);
   color: var(--color-on-primary);
-  font-family: var(--font-display);
-  font-size: var(--font-size-body-lg);
   font-weight: 700;
-  box-shadow: 0 12px 24px rgba(69, 99, 73, 0.18);
 }
 
 .review-close-finish .material-symbols-outlined {
@@ -659,12 +645,9 @@ const { t } = useI18n();
 }
 
 .review-close-back {
-  min-height: 48px;
-  border: 0;
-  background: transparent;
-  color: var(--color-primary);
+  min-height: 64px;
+  color: var(--color-on-surface-variant);
   font-weight: 850;
-  box-shadow: none;
 }
 
 @media (max-width: 360px) {
@@ -677,8 +660,7 @@ const { t } = useI18n();
     font-size: var(--font-size-headline-md);
   }
 
-  .review-close-content,
-  .review-close-bottom-actions {
+  .review-close-content {
     padding-inline: 18px;
   }
 

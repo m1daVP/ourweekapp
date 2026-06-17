@@ -59,6 +59,7 @@ const emit = defineEmits<{
   'go-back': [];
   'go-next': [];
   'handle-unfinished-tasks': [action: TaskReviewAction];
+  'open-menu': [];
   'save-draft': [];
   'start-new': [];
   'toggle-task': [taskId: string, status: EnrichedMeetingTask['status']];
@@ -115,14 +116,13 @@ function updateAgreementParticipant(
       </div>
     </div>
     <button
-      v-if="!isCompleted && canEditMeeting"
-      class="meeting-focus-bar__save"
+      class="meeting-focus-bar__icon material-symbols-outlined"
       type="button"
-      @click="emit('save-draft')"
+      :aria-label="t('meeting.menu.open')"
+      @click="emit('open-menu')"
     >
-      {{ t('common.save') }}
+      more_vert
     </button>
-    <span v-else />
   </header>
 
   <header class="meeting-header">
@@ -428,7 +428,9 @@ function updateAgreementParticipant(
     {{ statusMessage }}
   </p>
 
-  <footer class="meeting-actions">
+  <footer
+    class="meeting-actions floating-bottom-block meeting-step-actions meeting-step-actions--section"
+  >
     <button
       type="button"
       :disabled="!isFirstStep && !canEditMeeting"

@@ -539,7 +539,10 @@ function goBack() {
       </section>
     </main>
 
-    <footer v-if="meetingSummary" class="meeting-summary-bottom-action">
+    <footer
+      v-if="meetingSummary"
+      class="meeting-summary-bottom-action floating-bottom-block"
+    >
       <p v-if="shareStatus" class="meeting-summary-share-status">
         {{ shareStatus }}
       </p>

@@ -47,29 +47,17 @@ function updateGuestName(event: Event) {
 </script>
 
 <template>
-  <header class="ritual-check-in__top-bar">
+  <header class="meeting-focus-bar">
     <button
-      class="ritual-check-in__icon material-symbols-outlined"
+      class="meeting-focus-bar__icon material-symbols-outlined"
       type="button"
       :aria-label="t('meeting.closeMeeting')"
       @click="emit('exit')"
     >
       close
     </button>
-    <h1>{{ t('meeting.ritualTitle') }}</h1>
-    <button
-      class="ritual-check-in__icon material-symbols-outlined"
-      type="button"
-      :aria-label="t('meeting.menu.open')"
-      @click="emit('open-menu')"
-    >
-      more_vert
-    </button>
-  </header>
-
-  <main class="ritual-check-in__content">
     <div
-      class="ritual-progress"
+      class="meeting-focus-bar__progress"
       :aria-label="
         t('meeting.stepOf', {
           current: currentStepNumber,
@@ -85,12 +73,26 @@ function updateGuestName(event: Event) {
           })
         }}
       </span>
-      <div class="ritual-progress__track">
-        <div class="ritual-progress__bar" :style="{ width: progressPercent }" />
+      <div class="meeting-progress__track">
+        <div
+          class="meeting-progress__bar"
+          :style="{ width: progressPercent }"
+        />
       </div>
     </div>
+    <button
+      class="meeting-focus-bar__icon material-symbols-outlined"
+      type="button"
+      :aria-label="t('meeting.menu.open')"
+      @click="emit('open-menu')"
+    >
+      more_vert
+    </button>
+  </header>
 
+  <main class="ritual-check-in__content">
     <header class="ritual-check-in__hero">
+      <h1>{{ t('meeting.ritualTitle') }}</h1>
       <h2>{{ t('meeting.checkInTitle') }}</h2>
       <p>{{ t('meeting.checkInIntro') }}</p>
     </header>
@@ -225,7 +227,9 @@ function updateGuestName(event: Event) {
     </p>
   </main>
 
-  <footer class="ritual-check-in__actions">
+  <footer
+    class="ritual-check-in__actions floating-bottom-block meeting-step-actions meeting-step-actions--two"
+  >
     <button
       type="button"
       class="ritual-action ritual-action--back"
@@ -263,41 +267,6 @@ function updateGuestName(event: Event) {
   color: #1a1c1a;
 } */
 
-.ritual-check-in__top-bar {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
-  min-height: calc(64px + env(safe-area-inset-top));
-  align-items: center;
-  gap: 12px;
-  /* padding: env(safe-area-inset-top) var(--edge-margin) 0; */
-  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
-}
-
-.ritual-check-in__top-bar h1 {
-  margin: 0;
-  overflow: hidden;
-  color: var(--color-primary);
-  font-family: var(--font-display);
-  font-size: var(--font-size-display);
-  font-weight: 700;
-  line-height: 1.3;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ritual-check-in__icon {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-primary);
-  font-size: 1.5rem;
-}
-
 .ritual-check-in__content {
   display: flex;
   flex: 1;
@@ -306,44 +275,27 @@ function updateGuestName(event: Event) {
   /* padding: 28px var(--edge-margin) 0; */
 }
 
-.ritual-progress {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 28px;
-  align-items: center;
-}
-
-.ritual-progress span {
-  color: var(--color-outline);
-  font-size: var(--font-size-label-sm);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.ritual-progress__track {
-  height: 10px;
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-outline-variant) 42%, white);
-}
-
-.ritual-progress__bar {
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-primary);
-}
-
 .ritual-check-in__hero {
   display: grid;
   gap: 10px;
+}
+
+.ritual-check-in__hero h1 {
+  margin: 0 0 16px;
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: var(--font-size-display);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.12;
+  text-align: center;
 }
 
 .ritual-check-in__hero h2 {
   margin: 0;
   color: #0f1110;
   font-family: var(--font-display);
-  font-size: var(--font-size-display);
+  font-size: var(--font-size-headline-lg);
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.04;
@@ -352,7 +304,7 @@ function updateGuestName(event: Event) {
 .ritual-check-in__hero p {
   max-width: 14.5em;
   color: #30362f;
-  font-size: var(--font-size-headline-lg);
+  font-size: var(--font-size-headline-md);
   line-height: 1.55;
 }
 
@@ -377,12 +329,20 @@ function updateGuestName(event: Event) {
   color: #30362f;
   text-align: center;
   box-shadow: none;
+  border-radius: var(--radius-md);
+
+  transition:
+    border-color 0.22s ease-in-out,
+    background 0.22s ease-in-out,
+    box-shadow 0.22s ease-in-out,
+    border-radius 0.22s ease-in-out;
 }
 
 .ritual-member-card.is-selected {
   border-color: var(--color-primary);
   background: var(--color-surface-lowest);
   box-shadow: 0 12px 32px rgba(47, 42, 38, 0.05);
+  border-radius: var(--radius-lg);
 }
 
 .ritual-member-card__check {
@@ -410,6 +370,11 @@ function updateGuestName(event: Event) {
   font-weight: 700;
   line-height: 1;
   box-shadow: inset 0 0 0 1px rgba(47, 42, 38, 0.08);
+
+  transition:
+    border-color 0.22s ease-in-out,
+    filter 0.22s ease-in-out,
+    opacity 0.22s ease-in-out;
 }
 
 .ritual-member-card.is-selected .ritual-member-card__avatar {
@@ -482,7 +447,7 @@ function updateGuestName(event: Event) {
   display: flex;
   gap: 18px;
   overflow-x: auto;
-  padding: 0 2px 4px;
+  padding: 6px 2px 4px;
   scrollbar-width: none;
 }
 
@@ -552,36 +517,22 @@ function updateGuestName(event: Event) {
 }
 
 .ritual-check-in__actions {
-  display: flex;
-  gap: 28px;
   margin-top: auto;
-  /* padding: 34px var(--edge-margin) calc(16px + env(safe-area-inset-bottom)); */
-  background: #faf9f5;
 }
 
 .ritual-action {
   min-height: 64px;
-  border-radius: var(--radius-pill);
-  padding: 0 22px;
-  font-size: var(--font-size-body-lg);
+  padding: 0 14px;
   font-weight: 800;
   letter-spacing: 0.01em;
 }
 
 .ritual-action--back {
-  flex: 1;
-  border: 1px solid var(--color-outline-variant);
-  background: color-mix(in srgb, var(--color-surface-lowest) 68%, #faf9f5);
-  color: #30362f;
-  box-shadow: none;
+  color: var(--color-on-surface-variant);
 }
 
 .ritual-action--start {
-  flex: 2;
-  border: 1px solid var(--color-primary);
-  background: var(--color-primary);
   color: var(--color-on-primary);
-  box-shadow: 0 10px 22px rgba(47, 42, 38, 0.16);
 }
 
 .ritual-action--start:disabled {
