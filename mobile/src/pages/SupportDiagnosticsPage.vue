@@ -305,7 +305,7 @@ onMounted(() => {
 
 .diagnostics-list dt {
   color: var(--color-muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-label-lg);
 }
 
 .diagnostics-list dd {
