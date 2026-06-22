@@ -38,7 +38,7 @@ const adultAuth = {
 function apiMeeting(overrides: Partial<MeetingDto> = {}): MeetingDto {
   return {
     id: meetingId,
-    templateId: 'default',
+    templateId: 'weekly-family-check-in',
     title: 'Weekly check-in',
     status: 'draft',
     participantIds: ['participant_1'],
@@ -121,6 +121,48 @@ describe('MeetingsService', () => {
   it('requires UUID-shaped meeting IDs', () => {
     expect(meetingSchema.safeParse(apiMeeting()).success).toBe(true);
     expect(meetingSchema.safeParse(apiMeeting({ id: 'meeting_1' })).success).toBe(false);
+  });
+
+  it('uses text for section agreements while tolerating legacy stored titles', () => {
+    const parsed = meetingSchema.parse(apiMeeting({
+      sections: [
+        {
+          id: 'section_1',
+          notes: [],
+          tasks: [],
+          agreements: [
+            {
+              id: 'agreement_1',
+              text: 'Alternate pickup',
+              participantIds: ['participant_1'],
+            },
+          ],
+        },
+      ],
+    }));
+    const legacyParsed = meetingSchema.parse(apiMeeting({
+      sections: [
+        {
+          id: 'section_1',
+          notes: [],
+          tasks: [],
+          agreements: [
+            {
+              id: 'agreement_1',
+              title: 'Legacy pickup agreement',
+              participantIds: ['participant_1'],
+            },
+          ],
+        },
+      ],
+    }));
+
+    expect(parsed.sections[0]?.agreements[0]?.text).toBe('Alternate pickup');
+    expect(legacyParsed.sections[0]?.agreements[0]).toEqual({
+      id: 'agreement_1',
+      text: 'Legacy pickup agreement',
+      participantIds: ['participant_1'],
+    });
   });
 
   it('limits free history to active meetings plus latest completed meetings', async () => {
@@ -282,6 +324,106 @@ describe('MeetingsService', () => {
     );
     expect(response.conflicts).toEqual([]);
     expect(response.meetings[0]?.serverRevision).toBe(3);
+  });
+
+  it('accepts the free weekly family check-in template during sync', async () => {
+    const repos = createRepositories();
+    const client = apiMeeting({
+      templateId: 'weekly-family-check-in',
+      status: 'completed',
+      completedAt: now,
+    });
+    delete client.serverRevision;
+    const created = repositoryMeeting({
+      ...client,
+      serverRevision: 1,
+      completedAt: now,
+    });
+    repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(null);
+    repos.meetings.insertMeeting.mockResolvedValue(created);
+    repos.meetings.listCompletedMeetingsForFreePlan.mockResolvedValue([created]);
+
+    const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
+    const response = await service.syncMeetings(auth, {
+      meetings: [client],
+      activeMeetingId: null,
+      draftSavedAt: null,
+      clientUpdatedAt: now,
+    }, new Date(now));
+
+    expect(repos.meetings.insertMeeting).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateId: 'weekly-family-check-in',
+        workspaceId: 'workspace_1',
+      }),
+    );
+    expect(response.conflicts).toEqual([]);
+    expect(response.meetings[0]?.templateId).toBe('weekly-family-check-in');
+  });
+
+  it('rejects premium-only templates for free workspaces', async () => {
+    const repos = createRepositories();
+    const client = apiMeeting({
+      templateId: 'couple-reset',
+      status: 'completed',
+      completedAt: now,
+    });
+    delete client.serverRevision;
+
+    const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
+    const response = await service.syncMeetings(auth, {
+      meetings: [client],
+      activeMeetingId: null,
+      draftSavedAt: null,
+      clientUpdatedAt: now,
+    }, new Date(now));
+
+    expect(repos.meetings.insertMeeting).not.toHaveBeenCalled();
+    expect(response.conflicts).toEqual([
+      expect.objectContaining({
+        resourceType: 'meeting',
+        resourceId: meetingId,
+        reason: 'invalid_reference',
+      }),
+    ]);
+  });
+
+  it('accepts premium-only templates for premium workspaces', async () => {
+    const repos = createRepositories();
+    const client = apiMeeting({
+      templateId: 'busy-week-planning',
+      status: 'completed',
+      completedAt: now,
+    });
+    delete client.serverRevision;
+    const created = repositoryMeeting({
+      ...client,
+      serverRevision: 1,
+      completedAt: now,
+    });
+    repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(null);
+    repos.meetings.insertMeeting.mockResolvedValue(created);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([created]);
+    repos.subscriptions.findCurrentSubscriptionForWorkspace.mockResolvedValue(
+      trustedPremiumSubscription(),
+    );
+
+    const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
+    const response = await service.syncMeetings({ ...auth, planType: 'premium' }, {
+      meetings: [client],
+      activeMeetingId: null,
+      draftSavedAt: null,
+      clientUpdatedAt: now,
+    }, new Date(now));
+
+    expect(repos.meetings.insertMeeting).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateId: 'busy-week-planning',
+        workspaceId: 'workspace_1',
+      }),
+    );
+    expect(response.conflicts).toEqual([]);
+    expect(response.meetings[0]?.templateId).toBe('busy-week-planning');
   });
 
   it('blocks viewers from syncing meetings', async () => {

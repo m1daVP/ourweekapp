@@ -102,7 +102,7 @@ describe('repository mappers', () => {
     const meeting = mapMeetingRowToDto({
       id: 'meeting-1',
       workspace_id: 'workspace-1',
-      template_id: 'weekly',
+      template_id: 'weekly-family-check-in',
       title: 'Weekly check-in',
       status: 'completed',
       participant_ids: ['participant-1', 'participant-2'],
@@ -133,7 +133,7 @@ describe('repository mappers', () => {
     });
 
     expect(meeting.participantIds).toEqual(['participant-1', 'participant-2']);
-    expect(meeting.templateId).toBe('weekly');
+    expect(meeting.templateId).toBe('weekly-family-check-in');
     expect(meeting.currentSectionIndex).toBe(1);
     expect(task.responsibilityType).toBe('participant');
     expect(task.responsibleParticipantIds).toEqual(['participant-1']);

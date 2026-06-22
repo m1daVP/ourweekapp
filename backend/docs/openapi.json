@@ -8388,7 +8388,7 @@
                                         "minLength": 1,
                                         "maxLength": 128
                                       },
-                                      "title": {
+                                      "text": {
                                         "type": "string",
                                         "minLength": 1,
                                         "maxLength": 140
@@ -8412,7 +8412,7 @@
                                       }
                                     },
                                     "required": [
-                                      "title",
+                                      "text",
                                       "description"
                                     ],
                                     "additionalProperties": false
@@ -8987,7 +8987,7 @@
                                       "minLength": 1,
                                       "maxLength": 128
                                     },
-                                    "title": {
+                                    "text": {
                                       "type": "string",
                                       "minLength": 1,
                                       "maxLength": 140
@@ -9014,7 +9014,7 @@
                                     }
                                   },
                                   "required": [
-                                    "title"
+                                    "text"
                                   ]
                                 }
                               },
@@ -9389,7 +9389,7 @@
                                         "minLength": 1,
                                         "maxLength": 128
                                       },
-                                      "title": {
+                                      "text": {
                                         "type": "string",
                                         "minLength": 1,
                                         "maxLength": 140
@@ -9413,7 +9413,7 @@
                                       }
                                     },
                                     "required": [
-                                      "title",
+                                      "text",
                                       "description"
                                     ],
                                     "additionalProperties": false
@@ -9806,7 +9806,7 @@
                                             "minLength": 1,
                                             "maxLength": 128
                                           },
-                                          "title": {
+                                          "text": {
                                             "type": "string",
                                             "minLength": 1,
                                             "maxLength": 140
@@ -9830,7 +9830,7 @@
                                           }
                                         },
                                         "required": [
-                                          "title",
+                                          "text",
                                           "description"
                                         ],
                                         "additionalProperties": false
@@ -10155,7 +10155,7 @@
                                             "minLength": 1,
                                             "maxLength": 128
                                           },
-                                          "title": {
+                                          "text": {
                                             "type": "string",
                                             "minLength": 1,
                                             "maxLength": 140
@@ -10179,7 +10179,7 @@
                                           }
                                         },
                                         "required": [
-                                          "title",
+                                          "text",
                                           "description"
                                         ],
                                         "additionalProperties": false
@@ -10859,7 +10859,7 @@
                                   "minLength": 1,
                                   "maxLength": 128
                                 },
-                                "title": {
+                                "text": {
                                   "type": "string",
                                   "minLength": 1,
                                   "maxLength": 140
@@ -10883,7 +10883,7 @@
                                 }
                               },
                               "required": [
-                                "title",
+                                "text",
                                 "description"
                               ],
                               "additionalProperties": false

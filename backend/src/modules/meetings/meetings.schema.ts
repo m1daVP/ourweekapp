@@ -13,7 +13,6 @@ import {
 import { meetingSummarySchema } from '../ai/ai.schema.js';
 import {
   agreementDescriptionSchema,
-  agreementTitleSchema,
   taskDescriptionSchema,
   taskResponsibilityTypeSchema,
   taskStatusSchema,
@@ -67,13 +66,33 @@ export const meetingSectionTaskSchema = z.object({
   status: taskStatusSchema.optional(),
 });
 
-export const meetingSectionAgreementSchema = z.object({
+const meetingSectionAgreementBaseSchema = z.object({
   id: apiIdSchema.optional(),
-  title: agreementTitleSchema,
+  text: trimmedString(
+    VALIDATION_LIMITS.agreementTitleMinLength,
+    VALIDATION_LIMITS.agreementTitleMaxLength,
+  ),
   description: agreementDescriptionSchema,
   participantIds: z.array(apiIdSchema).optional(),
   relatedTaskIds: z.array(apiIdSchema).optional(),
 });
+
+export const meetingSectionAgreementSchema = z.preprocess((value) => {
+  if (
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    !('text' in value) &&
+    'title' in value
+  ) {
+    return {
+      ...value,
+      text: (value as { title?: unknown }).title,
+    };
+  }
+
+  return value;
+}, meetingSectionAgreementBaseSchema);
 
 export const meetingSectionSchema = z.object({
   id: apiIdSchema,

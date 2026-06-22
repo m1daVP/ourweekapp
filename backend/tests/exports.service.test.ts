@@ -25,7 +25,7 @@ function meeting(overrides: Partial<MeetingDto> = {}): MeetingDto {
   return {
     id: meetingId,
     workspaceId,
-    templateId: 'default',
+    templateId: 'weekly-family-check-in',
     title: 'Weekly check-in',
     status: 'completed',
     participantIds: ['participant_1'],
@@ -58,7 +58,7 @@ function meeting(overrides: Partial<MeetingDto> = {}): MeetingDto {
         ],
         agreements: [
           {
-            title: 'Alternate pickup',
+            text: 'Alternate pickup',
             description: 'Take turns each week.',
             participantIds: ['participant_1'],
           },

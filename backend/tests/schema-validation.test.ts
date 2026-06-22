@@ -151,7 +151,7 @@ describe('DTO schema validation limits', () => {
   it('rejects empty meeting note text after trimming', () => {
     const meeting = {
       id: 'meeting_1',
-      templateId: 'default',
+      templateId: 'weekly-family-check-in',
       title: 'Weekly check-in',
       status: 'draft',
       participantIds: [participantId],

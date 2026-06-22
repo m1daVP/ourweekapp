@@ -97,7 +97,7 @@ describe('AccountService export', () => {
         {
           id: '55555555-5555-4555-8555-555555555555',
           workspaceId: ownerAuth.workspaceId,
-          templateId: 'default',
+          templateId: 'weekly-family-check-in',
           title: 'Weekly meeting',
           status: 'completed',
           participantIds: [],

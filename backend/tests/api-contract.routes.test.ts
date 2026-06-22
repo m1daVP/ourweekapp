@@ -208,7 +208,7 @@ function participantPayload() {
 function meetingPayload() {
   return {
     id: meetingId,
-    templateId: 'default',
+    templateId: 'weekly-family-check-in',
     title: 'Weekly check-in',
     status: 'draft',
     participantIds: [participantId],
@@ -217,7 +217,13 @@ function meetingPayload() {
         id: 'section-1',
         notes: [],
         tasks: [],
-        agreements: [],
+        agreements: [
+          {
+            id: 'agreement-1',
+            text: 'Alternate pickup',
+            participantIds: [participantId],
+          },
+        ],
       },
     ],
     currentSectionIndex: 0,

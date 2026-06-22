@@ -27,12 +27,14 @@ import {
 
 const FREE_COMPLETED_MEETING_LIMIT = 3;
 const ACTIVE_MEETING_STATUSES = ['draft', 'in_progress', 'paused', 'incomplete'] as const;
-const FREE_TEMPLATE_IDS = new Set(['default', 'weekly']);
+const FREE_TEMPLATE_IDS = new Set(['weekly-family-check-in']);
 const PREMIUM_TEMPLATE_IDS = new Set([
   ...FREE_TEMPLATE_IDS,
-  'planning',
-  'repair',
-  'monthly_review',
+  'couple-reset',
+  'family-with-kids',
+  'money-check-in',
+  'conflict-cleanup',
+  'busy-week-planning',
 ]);
 
 type MeetingStatus = MeetingDto['status'];

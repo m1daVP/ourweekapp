@@ -53,7 +53,7 @@ function meeting(overrides: Partial<MeetingDto> = {}): MeetingDto {
   return {
     id: meetingId,
     workspaceId,
-    templateId: 'default',
+    templateId: 'weekly-family-check-in',
     title: 'Weekly check-in',
     status: 'completed',
     participantIds: [],
