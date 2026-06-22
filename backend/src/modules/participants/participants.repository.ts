@@ -19,6 +19,11 @@ type ParticipantRow = {
   deleted_at: string | null;
 };
 
+type ParticipantNameRow = {
+  id: string;
+  name: string;
+};
+
 export type ParticipantDto = {
   id: string;
   workspaceId: string;
@@ -118,6 +123,24 @@ export class ParticipantsRepository {
     throwOnSupabaseError(error, 'participant_lookup_failed', 'Unable to load the participant.');
 
     return data ? mapParticipantRowToDto(data) : null;
+  }
+
+  async listParticipantNamesForWorkspace(workspaceId: string, participantIds: string[]) {
+    if (participantIds.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await this.supabase
+      .from('participants')
+      .select('id,name')
+      .eq('workspace_id', workspaceId)
+      .in('id', participantIds)
+      .is('deleted_at', null)
+      .returns<ParticipantNameRow[]>();
+
+    throwOnSupabaseError(error, 'participant_list_failed', 'Unable to list participants.');
+
+    return data ?? [];
   }
 
   async upsertParticipant(input: UpsertParticipantInput) {

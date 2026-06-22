@@ -875,7 +875,10 @@ Required logic:
 - Require authentication.
 - Require Premium entitlement server-side.
 - Verify the meeting belongs to the active workspace.
-- Do not include private notes.
+- Generate only for completed meetings; return `409 meeting_not_completed` for drafts, paused, in-progress, or incomplete meetings.
+- Send only the trimmed AI input: template ID, locale, participant names, meeting steps, public notes, tasks, and agreements.
+- Do not include private notes or full app state in AI prompts.
+- Select the AI model by meeting template and cap the provider output tokens.
 - Keep output neutral, short, practical, and non-judgmental.
 - Do not diagnose users, provide therapy, assign blame, or make psychological claims.
 - Enforce response shape before returning to the app.

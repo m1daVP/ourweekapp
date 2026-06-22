@@ -72,6 +72,7 @@ export const aiRoutes: FastifyPluginAsyncZod = async (app) => {
           aiConfigured: env.AI_CONFIGURED,
           model: env.AI_MODEL,
           providerName: env.AI_PROVIDER,
+          logger: request.log,
         },
       );
 
