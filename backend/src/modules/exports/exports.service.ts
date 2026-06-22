@@ -1,5 +1,6 @@
 import { requireMinimumRole, type AuthContext } from '../../shared/auth/index.js';
 import { ApiError } from '../../shared/errors/index.js';
+import { isPrivateMarkedObject } from '../../shared/privacy/index.js';
 import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import type { MeetingDto } from '../meetings/meetings.repository.js';
 import { ExportsRepository } from './exports.repository.js';
@@ -23,7 +24,7 @@ type ExportSection = {
     status?: string;
   }>;
   agreements: Array<{
-    title: string;
+    text: string;
     description?: string;
     participantIds?: string[];
   }>;
@@ -45,15 +46,6 @@ function stringArray(value: unknown) {
     : undefined;
 }
 
-function isPrivateNote(value: { [key: string]: JsonValue }) {
-  return (
-    value.private === true ||
-    value.isPrivate === true ||
-    value.visibility === 'private' ||
-    value.type === 'private'
-  );
-}
-
 function sanitizeNotes(value: JsonValue | undefined) {
   if (!Array.isArray(value)) {
     return [];
@@ -62,7 +54,7 @@ function sanitizeNotes(value: JsonValue | undefined) {
   const notes: ExportSection['notes'] = [];
 
   for (const item of value) {
-    if (!isJsonObject(item) || isPrivateNote(item)) {
+    if (!isJsonObject(item) || isPrivateMarkedObject(item)) {
       continue;
     }
 
@@ -130,9 +122,9 @@ function sanitizeAgreements(value: JsonValue | undefined) {
       continue;
     }
 
-    const title = trimmedString(item.title);
+    const text = trimmedString(item.text) ?? trimmedString(item.title);
 
-    if (!title) {
+    if (!text) {
       continue;
     }
 
@@ -140,7 +132,7 @@ function sanitizeAgreements(value: JsonValue | undefined) {
     const participantIds = stringArray(item.participantIds);
 
     agreements.push({
-      title,
+      text,
       ...(description ? { description } : {}),
       ...(participantIds ? { participantIds } : {}),
     });
@@ -261,8 +253,8 @@ function buildExportContent(
         lines.push(
           bullet(
             details.length > 0
-              ? `${agreement.title} (${details.join('; ')})`
-              : agreement.title,
+              ? `${agreement.text} (${details.join('; ')})`
+              : agreement.text,
             format,
           ),
         );

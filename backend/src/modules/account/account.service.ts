@@ -1,6 +1,7 @@
 import type { AuthContext } from '../../shared/auth/index.js';
 import { requireAuthenticatedContext } from '../../shared/auth/index.js';
 import { ApiError } from '../../shared/errors/index.js';
+import { isPrivateMarkedObject } from '../../shared/privacy/index.js';
 import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import {
   freeSubscriptionFeatures,
@@ -36,28 +37,15 @@ function isJsonObject(value: JsonValue): value is { [key: string]: JsonValue } {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function isPrivateNote(value: JsonValue) {
-  if (!isJsonObject(value)) {
-    return false;
-  }
-
-  return (
-    value.private === true ||
-    value.isPrivate === true ||
-    value.visibility === 'private' ||
-    value.type === 'private'
-  );
-}
-
 function sanitizeJsonForExport(value: JsonValue): JsonValue | undefined {
   if (Array.isArray(value)) {
     return value
-      .filter((item) => !isPrivateNote(item))
+      .filter((item) => !isPrivateMarkedObject(item))
       .map(sanitizeJsonForExport)
       .filter((item): item is JsonValue => item !== undefined);
   }
 
-  if (isPrivateNote(value)) {
+  if (isPrivateMarkedObject(value)) {
     return undefined;
   }
 
@@ -74,7 +62,7 @@ function sanitizeJsonForExport(value: JsonValue): JsonValue | undefined {
 
     if (key === 'notes' && Array.isArray(childValue)) {
       sanitized[key] = childValue
-        .filter((note) => !isPrivateNote(note))
+        .filter((note) => !isPrivateMarkedObject(note))
         .map(sanitizeJsonForExport)
         .filter((note): note is JsonValue => note !== undefined);
       continue;
