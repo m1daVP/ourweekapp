@@ -16,28 +16,7 @@ import { v1Routes } from './routes/v1.routes.js';
 import { registerOpenApi } from './plugins/openapi.js';
 import supabasePlugin from './plugins/supabase.js';
 import { registerErrorHandler } from './shared/errors/index.js';
-
-const sensitiveLogPaths = [
-  'req.headers.authorization',
-  'req.headers.cookie',
-  'req.headers["x-api-key"]',
-  'req.headers["x-supabase-auth"]',
-  'req.headers["x-revenuecat-signature"]',
-  'req.headers["x-webhook-signature"]',
-  'res.headers["set-cookie"]',
-  'authorization',
-  'cookie',
-  'accessToken',
-  'refreshToken',
-  'password',
-  'passwordHash',
-  'token',
-  '*.accessToken',
-  '*.refreshToken',
-  '*.password',
-  '*.passwordHash',
-  '*.token',
-];
+import { sensitiveLogRedaction } from './shared/logging/pino-options.js';
 
 export async function buildApp(options: FastifyServerOptions = {}) {
   const app = Fastify({
@@ -45,17 +24,11 @@ export async function buildApp(options: FastifyServerOptions = {}) {
       env.NODE_ENV === 'production'
         ? {
             level: env.LOG_LEVEL,
-            redact: {
-              paths: sensitiveLogPaths,
-              censor: '[redacted]',
-            },
+            redact: sensitiveLogRedaction,
           }
         : {
             level: env.LOG_LEVEL,
-            redact: {
-              paths: sensitiveLogPaths,
-              censor: '[redacted]',
-            },
+            redact: sensitiveLogRedaction,
             transport: {
               target: 'pino-pretty',
               options: { translateTime: 'SYS:standard' },
