@@ -187,7 +187,7 @@ function updateLocale(event: Event) {
         <p>{{ t('localization.description') }}</p>
       </div>
       <label>
-        <span>{{ t('localization.label') }}</span>
+        <!--<span>{{ t('localization.label') }}</span>-->
         <select :value="localizationStore.locale" @change="updateLocale">
           <option
             v-for="locale in localeOptions"

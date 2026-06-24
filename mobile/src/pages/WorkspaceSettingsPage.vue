@@ -234,9 +234,9 @@ onMounted(() => {
       {{ visibleErrorMessage }}
     </p>
 
-    <div class="workspace-invite-dock">
+    <div class="templates-cta">
       <button
-        class="meeting-primary"
+        class="meeting-primary templates-cta__button"
         type="button"
         :disabled="!can('inviteMembers') || workspaceStore.isSaving"
         @click="openInviteSheet"
