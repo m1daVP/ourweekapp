@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import ActionMenuPopup from '@/shared/components/ActionMenuPopup.vue';
 import type { ActionMenuItem } from '@/shared/components/ActionMenuPopup.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
+import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import MeetingCheckInStep from '@/features/meeting/components/MeetingCheckInStep.vue';
 import MeetingReviewCloseStep from '@/features/meeting/components/MeetingReviewCloseStep.vue';
 import MeetingSectionStep from '@/features/meeting/components/MeetingSectionStep.vue';
@@ -21,7 +22,6 @@ const {
   agreementText,
   allAgreements,
   allNotes,
-  allTasks,
   canAddAgreements,
   canAddGuestParticipant,
   canAddTasks,
@@ -34,6 +34,7 @@ const {
   checkedInParticipantIds,
   clearDrawerParticipantSelection,
   closeGuestDrawer,
+  closeNoteEditor,
   closeMeeting,
   confirmDeleteRitual,
   confirmEndSessionIncomplete,
@@ -44,6 +45,8 @@ const {
   currentTasks,
   drawerFamilyMembers,
   drawerSelectedParticipantId,
+  editingNoteParticipantId,
+  editingNoteText,
   editActions,
   exitMeeting,
   finishMeeting,
@@ -61,20 +64,26 @@ const {
   isFinishingMeeting,
   isFirstStep,
   isGuestDrawerOpen,
+  isNoteEditorOpen,
   isParticipantCheckInStep,
   isPaused,
   isRitualMenuOpen,
   meetingDurationLabel,
   neutralHint,
+  noteEditorError,
+  noteEditorNeutralHint,
   notePlaceholder,
   noteText,
   openGuestDrawer,
+  openNoteEditor,
   previousCompletedMeeting,
   previousCompletedMeetingLabel,
   previousUnfinishedTasks,
   progressPercent,
   reviewCounts,
+  reviewTasks,
   saveDraft,
+  saveNoteEdit,
   sectionPrompt,
   sectionTitle,
   selectDrawerParticipant,
@@ -170,7 +179,7 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
       v-else-if="isFinalSection"
       :all-agreements="allAgreements"
       :all-notes="allNotes"
-      :all-tasks="allTasks"
+      :all-tasks="reviewTasks"
       :can-create-meeting="canCreateMeeting"
       :can-edit-meeting="canEditMeeting"
       :can-edit-tasks="canEditTasks"
@@ -233,6 +242,7 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
       @add-agreement="addAgreement"
       @add-note="addNote"
       @add-task="addTask"
+      @edit-note="openNoteEditor"
       @exit="closeMeeting"
       @finish="finishMeeting"
       @go-back="goBack"
@@ -255,6 +265,55 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
       {{ t('meeting.viewHistory') }}
     </RouterLink>
   </section>
+
+  <BaseBottomSheet
+    :open="isNoteEditorOpen"
+    :title="t('meeting.editNote')"
+    @close="closeNoteEditor"
+  >
+    <form
+      class="task-editor-form note-editor-form"
+      @submit.prevent="saveNoteEdit"
+    >
+      <label for="edit-note-person">
+        <span>{{ t('meeting.author') }}</span>
+        <select
+          id="edit-note-person"
+          v-model="editingNoteParticipantId"
+          :disabled="!canEditMeeting"
+        >
+          <option
+            v-for="participant in activeMeetingParticipants"
+            :key="participant.id"
+            :value="participant.id"
+          >
+            {{ participant.name }}
+          </option>
+        </select>
+      </label>
+
+      <label for="edit-note-text">
+        <span>{{ t('meeting.note') }}</span>
+        <textarea
+          id="edit-note-text"
+          v-model="editingNoteText"
+          rows="5"
+          :disabled="!canEditMeeting"
+        />
+      </label>
+
+      <p v-if="noteEditorNeutralHint" class="meeting-help">
+        {{ noteEditorNeutralHint }}
+      </p>
+      <p v-if="noteEditorError" class="meeting-error" role="alert">
+        {{ noteEditorError }}
+      </p>
+
+      <button v-if="canEditMeeting" type="submit" class="meeting-primary">
+        {{ t('common.save') }}
+      </button>
+    </form>
+  </BaseBottomSheet>
 
   <ConfirmationDialog
     :open="isEndSessionDialogOpen"

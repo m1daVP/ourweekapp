@@ -143,7 +143,20 @@ export function resolveTaskResponsibility(
   };
 }
 
-export function getMeetingReviewCounts(meeting: Meeting | null) {
+export function getMeetingReviewTasks(meeting: Meeting | null): MeetingTask[] {
+  if (!meeting) {
+    return [];
+  }
+
+  return meeting.sections
+    .flatMap((section) => section.tasks)
+    .filter((task) => !task.carriedFromTaskId);
+}
+
+export function getMeetingReviewCounts(
+  meeting: Meeting | null,
+  reviewTasks?: MeetingTask[]
+) {
   const counts: MeetingReviewCounts = {
     notes: 0,
     tasks: 0,
@@ -157,14 +170,33 @@ export function getMeetingReviewCounts(meeting: Meeting | null) {
 
   for (const section of meeting.sections) {
     counts.notes += section.notes.length;
-    counts.tasks += section.tasks.length;
     counts.agreements += section.agreements.length;
   }
+
+  counts.tasks =
+    reviewTasks?.length ??
+    meeting.sections.reduce(
+      (total, section) => total + section.tasks.length,
+      0
+    );
 
   counts.hasContent =
     counts.notes > 0 || counts.tasks > 0 || counts.agreements > 0;
 
   return counts;
+}
+
+export function getMeetingNotes(meeting: Meeting | null): MeetingNote[] {
+  if (!meeting) {
+    return [];
+  }
+
+  return meeting.sections.flatMap((section) =>
+    section.notes.map((note) => ({
+      ...note,
+      sectionId: section.id,
+    }))
+  );
 }
 
 export function getMeetingDurationMinutes(
@@ -218,6 +250,10 @@ export function useMeetingSession() {
   const drawerSelectedParticipantId = ref('');
   const guestName = ref('');
   const checkedInParticipantIds = ref<string[]>([]);
+  const editingNoteId = ref('');
+  const editingNoteParticipantId = ref('');
+  const editingNoteText = ref('');
+  const noteEditorError = ref('');
 
   const taskDraft = reactive<TaskDraftState>({
     title: '',
@@ -361,15 +397,17 @@ export function useMeetingSession() {
   });
 
   const allNotes = computed<EnrichedMeetingNote[]>(() =>
-    activeMeeting.value
-      ? activeMeeting.value.sections.flatMap((section) =>
-          section.notes.map((note) => ({
-            ...note,
-            sectionTitle: getMeetingSectionTitle(section.id, section.title),
-            participantName: getParticipantName(note.participantId),
-          }))
-        )
-      : []
+    getMeetingNotes(activeMeeting.value).map((note) => {
+      const section = activeMeeting.value?.sections.find(
+        (candidate) => candidate.id === note.sectionId
+      );
+
+      return {
+        ...note,
+        sectionTitle: getMeetingSectionTitle(note.sectionId, section?.title),
+        participantName: getParticipantName(note.participantId),
+      };
+    })
   );
   const allTasks = computed<EnrichedMeetingTask[]>(() =>
     activeMeeting.value
@@ -385,6 +423,13 @@ export function useMeetingSession() {
         )
       : []
   );
+  const reviewTasks = computed<EnrichedMeetingTask[]>(() => {
+    const reviewTaskIds = new Set(
+      getMeetingReviewTasks(activeMeeting.value).map((task) => task.id)
+    );
+
+    return allTasks.value.filter((task) => reviewTaskIds.has(task.id));
+  });
   const allAgreements = computed<EnrichedAgreement[]>(() =>
     activeMeeting.value
       ? activeMeeting.value.sections.flatMap((section) =>
@@ -399,7 +444,7 @@ export function useMeetingSession() {
       : []
   );
   const reviewCounts = computed(() =>
-    getMeetingReviewCounts(activeMeeting.value)
+    getMeetingReviewCounts(activeMeeting.value, reviewTasks.value)
   );
   const meetingDurationMinutes = computed(() =>
     getMeetingDurationMinutes(activeMeeting.value)
@@ -410,6 +455,7 @@ export function useMeetingSession() {
       : t('meeting.timeSpentUnderMinute')
   );
   const hasMeetingContent = computed(() => reviewCounts.value.hasContent);
+  const isNoteEditorOpen = computed(() => Boolean(editingNoteId.value));
   const currentNotes = computed(() =>
     allNotes.value.filter((note) => note.sectionId === currentSection.value?.id)
   );
@@ -422,18 +468,23 @@ export function useMeetingSession() {
     )
   );
 
-  const neutralHint = computed(() => {
-    if (currentSection.value?.id !== 'tensions' || !noteText.value.trim()) {
+  function getNeutralHint(text: string) {
+    if (currentSection.value?.id !== 'tensions' || !text.trim()) {
       return '';
     }
 
     const loadedWords = ['always', 'never', 'lazy', 'stupid', 'fault', 'blame'];
-    const lowerText = noteText.value.toLowerCase();
+    const lowerText = text.toLowerCase();
 
     return loadedWords.some((word) => lowerText.includes(word))
       ? t('meeting.neutralHint')
       : '';
-  });
+  }
+
+  const neutralHint = computed(() => getNeutralHint(noteText.value));
+  const noteEditorNeutralHint = computed(() =>
+    getNeutralHint(editingNoteText.value)
+  );
 
   onMounted(() => {
     participantsStore.ensureDefaultParticipants();
@@ -484,6 +535,7 @@ export function useMeetingSession() {
   watch(
     () => currentSection.value?.id,
     () => {
+      closeNoteEditor();
       noteText.value = '';
       agreementText.value = '';
       formError.value = '';
@@ -749,6 +801,52 @@ export function useMeetingSession() {
     statusMessage.value = t('meeting.personAdded');
   }
 
+  function openNoteEditor(note: EnrichedMeetingNote) {
+    if (!canEditMeeting.value || isCompleted.value) {
+      return;
+    }
+
+    clearMessages();
+    editingNoteId.value = note.id;
+    editingNoteParticipantId.value = note.participantId;
+    editingNoteText.value = note.text;
+    noteEditorError.value = '';
+  }
+
+  function closeNoteEditor() {
+    editingNoteId.value = '';
+    editingNoteParticipantId.value = '';
+    editingNoteText.value = '';
+    noteEditorError.value = '';
+  }
+
+  function saveNoteEdit() {
+    if (!editingNoteId.value) {
+      return;
+    }
+
+    noteEditorError.value = '';
+
+    if (!canEditMeeting.value) {
+      noteEditorError.value = t('meeting.roleCannotEditMeetings');
+      return;
+    }
+
+    const error = meetingsStore.updateNote(
+      editingNoteId.value,
+      editingNoteParticipantId.value,
+      editingNoteText.value
+    );
+
+    if (error) {
+      noteEditorError.value = error;
+      return;
+    }
+
+    closeNoteEditor();
+    statusMessage.value = t('meeting.noteUpdated');
+  }
+
   function addNote() {
     const section = currentSection.value;
 
@@ -881,15 +979,8 @@ export function useMeetingSession() {
     }
 
     if (action === 'move') {
-      const movedTasks = tasksStore.moveOpenTasksToMeeting(
-        previousMeeting.id,
-        meeting.id
-      );
-      meetingsStore.addMovedTasksToMeeting(
-        previousMeeting.id,
-        meeting.id,
-        movedTasks
-      );
+      tasksStore.moveOpenTasksToMeeting(previousMeeting.id, meeting.id);
+      meetingsStore.updateTasksFromMeeting(previousMeeting.id, 'skipped');
       statusMessage.value = t('meeting.movedToThisWeek');
     }
 
@@ -1037,6 +1128,11 @@ export function useMeetingSession() {
 
     if (!meetingId) {
       formError.value = t('meetingStore.openBeforeFinish');
+      return;
+    }
+
+    if (!hasMeetingContent.value) {
+      formError.value = t('meeting.atLeastOne');
       return;
     }
 
@@ -1189,6 +1285,7 @@ export function useMeetingSession() {
     checkedInParticipantIds,
     clearDrawerParticipantSelection,
     closeGuestDrawer,
+    closeNoteEditor,
     closeMeeting,
     currentAgreements,
     currentNotes,
@@ -1198,6 +1295,8 @@ export function useMeetingSession() {
     deleteRitual,
     drawerFamilyMembers,
     drawerSelectedParticipantId,
+    editingNoteParticipantId,
+    editingNoteText,
     editActions,
     exitMeeting,
     finishMeeting,
@@ -1215,21 +1314,26 @@ export function useMeetingSession() {
     isFinishingMeeting,
     isFirstStep,
     isGuestDrawerOpen,
+    isNoteEditorOpen,
     isParticipantCheckInStep,
     isPaused,
     isRitualMenuOpen,
     meetingDurationLabel,
     meetingDurationMinutes,
     neutralHint,
+    noteEditorError,
+    noteEditorNeutralHint,
     notePlaceholder,
     noteText,
     openGuestDrawer,
+    openNoteEditor,
     participantIsCheckedIn,
     previousCompletedMeeting,
     previousCompletedMeetingLabel,
     previousUnfinishedTasks,
     progressPercent,
     reviewCounts,
+    reviewTasks,
     sectionPrompt,
     sectionTitle,
     selectDrawerParticipant,
@@ -1250,5 +1354,6 @@ export function useMeetingSession() {
     confirmDeleteRitual,
     confirmEndSessionIncomplete,
     saveDraft,
+    saveNoteEdit,
   };
 }

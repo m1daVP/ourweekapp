@@ -54,6 +54,7 @@ const emit = defineEmits<{
   'add-agreement': [];
   'add-note': [];
   'add-task': [];
+  'edit-note': [note: EnrichedMeetingNote];
   exit: [];
   finish: [];
   'go-back': [];
@@ -250,9 +251,25 @@ function updateAgreementParticipant(
     </button>
 
     <ul v-if="currentNotes.length" class="meeting-list">
-      <li v-for="note in currentNotes" :key="note.id">
-        <span>{{ note.participantName }}</span>
-        <p>{{ note.text }}</p>
+      <li v-for="note in currentNotes" :key="note.id" class="meeting-note-item">
+        <div class="meeting-note-item__content">
+          <span>{{ note.participantName }}</span>
+          <p>{{ note.text }}</p>
+        </div>
+        <button
+          v-if="canEditMeeting && !isCompleted"
+          type="button"
+          class="meeting-note-item__edit"
+          :aria-label="
+            t('meeting.editNoteAria', { author: note.participantName })
+          "
+          @click="emit('edit-note', note)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">
+            edit
+          </span>
+          {{ t('common.edit') }}
+        </button>
       </li>
     </ul>
     <p v-else class="meeting-empty">{{ t('meeting.noNotesYet') }}</p>

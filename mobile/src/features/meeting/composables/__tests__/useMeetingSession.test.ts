@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   getMeetingRouteDecision,
   getMeetingDurationMinutes,
+  getMeetingNotes,
   getMeetingReviewCounts,
+  getMeetingReviewTasks,
   normalizeCheckedInParticipantIds,
   chooseSelectedParticipantId,
   resolveTaskResponsibility,
@@ -167,6 +169,111 @@ describe('meeting session helpers', () => {
       agreements: 0,
       hasContent: false,
     });
+  });
+
+  it('excludes carried-forward tasks from final review by provenance', () => {
+    const movedAt = '2026-06-01T10:01:00.000Z';
+    const newTaskCreatedAt = '2026-06-01T10:05:00.000Z';
+    const movedTask = {
+      id: 'moved-task',
+      carriedFromTaskId: 'previous-task',
+      sectionId: 'tasks' as const,
+      title: 'Carry this forward',
+      responsibilityType: 'participant' as const,
+      responsibleParticipantIds: ['participant-1'],
+      status: 'open' as const,
+      createdAt: movedAt,
+      updatedAt: movedAt,
+    };
+    const newTask = {
+      ...movedTask,
+      id: 'new-task',
+      carriedFromTaskId: undefined,
+      title: 'Created in this meeting',
+      createdAt: newTaskCreatedAt,
+      updatedAt: newTaskCreatedAt,
+    };
+    const meeting = createMeeting({
+      id: 'current-meeting',
+      sections: [
+        {
+          id: 'tasks',
+          title: 'Tasks',
+          prompt: 'What needs to be handled?',
+          notes: [],
+          tasks: [movedTask, newTask],
+          agreements: [],
+        },
+      ],
+    });
+
+    const reviewTasks = getMeetingReviewTasks(meeting);
+
+    expect(reviewTasks.map((task) => task.id)).toEqual(['new-task']);
+    expect(getMeetingReviewCounts(meeting, reviewTasks)).toEqual({
+      notes: 0,
+      tasks: 1,
+      agreements: 0,
+      hasContent: true,
+    });
+  });
+
+  it('does not count a carried-forward task as meeting content', () => {
+    const movedAt = '2026-06-01T10:01:00.000Z';
+    const meeting = createMeeting({
+      id: 'current-meeting',
+      sections: [
+        {
+          id: 'tasks',
+          title: 'Tasks',
+          prompt: 'What needs to be handled?',
+          notes: [],
+          tasks: [
+            {
+              id: 'moved-task',
+              sectionId: 'tasks',
+              title: 'Carry this forward',
+              responsibilityType: 'needsDiscussion',
+              responsibleParticipantIds: [],
+              status: 'open',
+              carriedFromTaskId: 'previous-task',
+              createdAt: movedAt,
+              updatedAt: movedAt,
+            },
+          ],
+          agreements: [],
+        },
+      ],
+    });
+    const reviewTasks = getMeetingReviewTasks(meeting);
+
+    expect(reviewTasks).toEqual([]);
+    expect(getMeetingReviewCounts(meeting, reviewTasks)).toEqual({
+      notes: 0,
+      tasks: 0,
+      agreements: 0,
+      hasContent: false,
+    });
+  });
+
+  it('uses the containing section for notes hydrated without a section id', () => {
+    const meeting = createMeeting();
+    meeting.sections[0].notes = [
+      {
+        id: 'note-from-api',
+        sectionId: undefined as never,
+        participantId: 'participant-1',
+        text: 'Plan the school pickup.',
+        createdAt: '2026-06-01T10:01:00.000Z',
+      },
+    ];
+
+    expect(getMeetingNotes(meeting)).toEqual([
+      expect.objectContaining({
+        id: 'note-from-api',
+        sectionId: 'goodThings',
+      }),
+    ]);
   });
 
   it('calculates meeting duration from real timestamps without negative values', () => {

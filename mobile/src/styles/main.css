@@ -1409,6 +1409,38 @@ input[type='radio'] {
   box-shadow: none;
 }
 
+.meeting-note-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.meeting-note-item__content {
+  min-width: 0;
+}
+
+.meeting-note-item__content p {
+  overflow-wrap: anywhere;
+}
+
+.meeting-note-item__edit {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: var(--font-size-label-lg);
+  font-weight: 800;
+  padding: 0 8px;
+}
+
+.meeting-note-item__edit .material-symbols-outlined {
+  color: currentColor;
+  font-size: 1.125rem;
+}
+
 .meeting-actions {
   margin-bottom: 0;
 }
@@ -2617,10 +2649,10 @@ input[type='radio'] {
   display: grid;
 }
 
-.history-item__delete {
+/* .history-item__delete {
   width: calc(100% - 32px);
   margin: 0 16px 16px;
-}
+} */
 
 .history-item__meta {
   display: flex;
@@ -3035,6 +3067,15 @@ input[type='radio'] {
 .task-editor-form__note {
   color: var(--color-on-surface-variant);
   font-size: var(--font-size-label-lg);
+}
+
+.note-editor-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.note-editor-form > .meeting-primary {
+  width: 100%;
 }
 
 .history-page--redesign {
@@ -3665,6 +3706,26 @@ input[type='radio'] {
   font-size: var(--font-size-label-lg);
   font-weight: 700;
   text-decoration: none;
+}
+
+.meeting-summary-ai-card__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  cursor: pointer;
+  font-size: var(--font-size-label-lg);
+  font-weight: 700;
+  padding: 0 18px;
+}
+
+.meeting-summary-ai-card__button .material-symbols-outlined {
+  font-size: 1.25rem;
 }
 
 .meeting-summary-section {

@@ -15,10 +15,9 @@ import {
   getMeetingSectionTitle,
   getMeetingTemplate,
   getMeetingTemplateName,
-  taskSectionIds,
 } from '@/features/meeting/meetingTemplates';
 import { translate } from '@/features/localization/i18n';
-import type { Task, TaskResponsibilityType } from '@/features/tasks/types';
+import type { TaskResponsibilityType } from '@/features/tasks/types';
 import type {
   Agreement,
   Meeting,
@@ -91,6 +90,7 @@ interface LegacyMeetingTask {
   responsiblePersonId?: string;
   dueDate?: string;
   status?: MeetingTaskStatus;
+  carriedFromTaskId?: string;
   createdAt?: string;
   updatedAt?: string;
   completedAt?: string;
@@ -198,6 +198,7 @@ function normalizeMeetingTask(
       responsibilityType === 'needsDiscussion' ? [] : responsibleParticipantIds,
     dueDate: task.dueDate?.trim() || undefined,
     status: task.status ?? 'open',
+    carriedFromTaskId: task.carriedFromTaskId?.trim() || undefined,
     createdAt,
     updatedAt: task.updatedAt ?? createdAt,
     completedAt: task.completedAt,
@@ -364,13 +365,6 @@ function findSection(meeting: Meeting, sectionId: MeetingSectionId) {
   return meeting.sections.find((section) => section.id === sectionId);
 }
 
-function findTaskTargetSection(meeting: Meeting) {
-  return (
-    findSection(meeting, 'tasks') ??
-    meeting.sections.find((section) => taskSectionIds.includes(section.id))
-  );
-}
-
 function findTask(meetings: Meeting[], taskId: string) {
   for (const meeting of meetings) {
     for (const section of meeting.sections) {
@@ -379,6 +373,18 @@ function findTask(meetings: Meeting[], taskId: string) {
       if (task) {
         return { meeting, task };
       }
+    }
+  }
+
+  return null;
+}
+
+function findNote(meeting: Meeting, noteId: string) {
+  for (const section of meeting.sections) {
+    const note = section.notes.find((item) => item.id === noteId);
+
+    if (note) {
+      return note;
     }
   }
 
@@ -599,6 +605,39 @@ export const useMeetingsStore = defineStore('meetings', {
       this.persist();
       return null;
     },
+    updateNote(
+      noteId: string,
+      participantId: string,
+      text: string
+    ): string | null {
+      const meeting = this.activeMeeting;
+      const trimmedText = text.trim();
+
+      if (!meeting || meeting.status === 'completed') {
+        return translate('meetingStore.noteNotEditable');
+      }
+
+      const note = findNote(meeting, noteId);
+
+      if (!note) {
+        return translate('meetingStore.noteNotFound');
+      }
+
+      if (!trimmedText) {
+        return translate('meetingStore.addShortNote');
+      }
+
+      if (!meeting.participantIds.includes(participantId)) {
+        return translate('meetingStore.chooseNoteAuthor');
+      }
+
+      const updatedAt = nowIso();
+      note.participantId = participantId;
+      note.text = trimmedText;
+      meeting.updatedAt = updatedAt;
+      this.persist();
+      return null;
+    },
     addTask(
       sectionId: MeetingSectionId,
       payload: AddTaskPayload
@@ -751,66 +790,6 @@ export const useMeetingsStore = defineStore('meetings', {
         meeting.updatedAt = updatedAt;
         this.persist();
       }
-    },
-    addMovedTasksToMeeting(
-      sourceMeetingId: string,
-      targetMeetingId: string,
-      movedTasks: Task[]
-    ) {
-      const sourceMeeting = this.meetings.find(
-        (meeting) => meeting.id === sourceMeetingId
-      );
-      const targetMeeting = this.meetings.find(
-        (meeting) => meeting.id === targetMeetingId
-      );
-      const targetSection = targetMeeting
-        ? findTaskTargetSection(targetMeeting)
-        : undefined;
-
-      if (
-        !sourceMeeting ||
-        !targetMeeting ||
-        !targetSection ||
-        !movedTasks.length
-      ) {
-        return;
-      }
-
-      const updatedAt = nowIso();
-      const movedTaskIds = new Set(movedTasks.map((task) => task.id));
-
-      for (const task of sourceMeeting.sections.flatMap(
-        (section) => section.tasks
-      )) {
-        if (task.status === 'open') {
-          task.status = 'skipped';
-          task.updatedAt = updatedAt;
-        }
-      }
-
-      for (const task of movedTasks) {
-        if (
-          movedTaskIds.has(task.id) &&
-          !targetSection.tasks.some((item) => item.id === task.id)
-        ) {
-          targetSection.tasks.push({
-            id: task.id,
-            sectionId: targetSection.id,
-            title: task.title,
-            description: task.description,
-            responsibilityType: task.responsibilityType,
-            responsibleParticipantIds: task.responsibleParticipantIds,
-            dueDate: task.dueDate,
-            status: task.status,
-            createdAt: task.createdAt,
-            updatedAt: task.updatedAt,
-          });
-        }
-      }
-
-      sourceMeeting.updatedAt = updatedAt;
-      targetMeeting.updatedAt = updatedAt;
-      this.persist();
     },
     deleteTask(taskId: string) {
       let changed = false;
