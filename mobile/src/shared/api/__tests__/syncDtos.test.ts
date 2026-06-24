@@ -26,7 +26,28 @@ describe('sync DTO mapping', () => {
       title: 'Weekly family check-in',
       status: 'draft',
       participantIds: ['participant-1'],
-      sections: [],
+      sections: [
+        {
+          id: 'tasks',
+          title: 'Tasks',
+          prompt: 'What needs to be handled?',
+          notes: [],
+          tasks: [
+            {
+              id: 'moved-task',
+              sectionId: 'tasks',
+              title: 'Buy shoes',
+              responsibilityType: 'needsDiscussion',
+              responsibleParticipantIds: [],
+              status: 'open',
+              carriedFromTaskId: 'previous-task',
+              createdAt,
+              updatedAt,
+            },
+          ],
+          agreements: [],
+        },
+      ],
       currentSectionIndex: 0,
       createdAt,
       updatedAt,
@@ -42,7 +63,16 @@ describe('sync DTO mapping', () => {
       title: 'Weekly family check-in',
       status: 'draft',
       participantIds: ['participant-1'],
-      sections: [],
+      sections: [
+        expect.objectContaining({
+          tasks: [
+            expect.objectContaining({
+              id: 'moved-task',
+              carriedFromTaskId: 'previous-task',
+            }),
+          ],
+        }),
+      ],
       currentSectionIndex: 0,
       createdAt,
       updatedAt,
@@ -62,6 +92,7 @@ describe('sync DTO mapping', () => {
       dueDate: '2026-06-20',
       status: 'open',
       sourceMeetingId: 'meeting-1',
+      carriedFromTaskId: 'previous-task',
       createdAt,
       updatedAt,
       serverRevision: 4,

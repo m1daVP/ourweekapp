@@ -75,6 +75,7 @@ export interface MeetingTask {
   responsibleParticipantIds: string[];
   dueDate?: string;
   status: MeetingTaskStatus;
+  carriedFromTaskId?: string;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;

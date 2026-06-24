@@ -32,6 +32,7 @@ interface AddTaskPayload {
   dueDate?: string;
   status?: TaskStatus;
   sourceMeetingId?: string;
+  carriedFromTaskId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -67,6 +68,7 @@ interface LegacyTask {
   dueDate?: string;
   status?: TaskStatus;
   sourceMeetingId?: string;
+  carriedFromTaskId?: string;
   createdAt?: string;
   updatedAt?: string;
   serverRevision?: number;
@@ -113,6 +115,7 @@ function normalizeTask(task: LegacyTask): Task | null {
     dueDate: task.dueDate?.trim() || undefined,
     status: task.status ?? 'open',
     sourceMeetingId: task.sourceMeetingId,
+    carriedFromTaskId: task.carriedFromTaskId?.trim() || undefined,
     createdAt,
     updatedAt: task.updatedAt ?? createdAt,
     serverRevision: task.serverRevision,
@@ -266,6 +269,7 @@ export const useTasksStore = defineStore('tasks', {
               dueDate: meetingTask.dueDate,
               status: meetingTask.status,
               sourceMeetingId: meeting.id,
+              carriedFromTaskId: meetingTask.carriedFromTaskId,
               createdAt: meetingTask.createdAt,
               updatedAt:
                 meetingTask.completedAt ??
@@ -324,6 +328,7 @@ export const useTasksStore = defineStore('tasks', {
         dueDate: payload.dueDate?.trim() || undefined,
         status: payload.status ?? 'open',
         sourceMeetingId: payload.sourceMeetingId,
+        carriedFromTaskId: payload.carriedFromTaskId?.trim() || undefined,
         createdAt,
         updatedAt: payload.updatedAt ?? createdAt,
       };
@@ -550,6 +555,7 @@ export const useTasksStore = defineStore('tasks', {
           id: createId(),
           status: 'open',
           sourceMeetingId: targetMeetingId,
+          carriedFromTaskId: task.id,
           createdAt: changedAt,
           updatedAt: changedAt,
         };

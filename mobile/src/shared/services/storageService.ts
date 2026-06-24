@@ -4,7 +4,7 @@ import { translate } from '@/features/localization/i18n';
 import { nowIso } from '@/shared/utils/dates';
 import { createId, isUuid } from '@/shared/utils/ids';
 
-export const appDataVersion = 4;
+export const appDataVersion = 5;
 
 const APP_DATA_STORAGE_KEY = 'ourweek:app-data';
 const BACKUP_STORAGE_PREFIX = 'ourweek:app-data:backup';
@@ -102,6 +102,7 @@ const migrations: Record<number, Migration> = {
   1: migrateAppDataFromVersion1ToVersion2,
   2: migrateAppDataFromVersion2ToVersion3,
   3: migrateAppDataFromVersion3ToVersion4,
+  4: migrateAppDataFromVersion4ToVersion5,
 };
 
 function getLocalStorage() {
@@ -588,6 +589,200 @@ function migrateAppDataFromVersion3ToVersion4(
       resources: {},
       migratedAt: nowIso(),
     },
+  };
+}
+
+function getLegacyTaskSignature(task: Record<string, unknown>) {
+  const responsibleParticipantIds = Array.isArray(
+    task.responsibleParticipantIds
+  )
+    ? task.responsibleParticipantIds
+        .filter((item): item is string => typeof item === 'string')
+        .sort()
+    : [];
+
+  return JSON.stringify([
+    typeof task.title === 'string' ? task.title : '',
+    typeof task.description === 'string' ? task.description : '',
+    typeof task.responsibilityType === 'string' ? task.responsibilityType : '',
+    responsibleParticipantIds,
+    typeof task.dueDate === 'string' ? task.dueDate : '',
+  ]);
+}
+
+function findLegacyCarriedFromTaskId(
+  candidate: Record<string, unknown>,
+  sourceTasks: Record<string, unknown>[],
+  decidedAt: string
+) {
+  if (
+    typeof candidate.carriedFromTaskId === 'string' &&
+    candidate.carriedFromTaskId.trim()
+  ) {
+    return candidate.carriedFromTaskId;
+  }
+
+  const createdAt = candidate.createdAt;
+
+  if (typeof createdAt !== 'string' || createdAt > decidedAt) {
+    return undefined;
+  }
+
+  const signature = getLegacyTaskSignature(candidate);
+  const matches = sourceTasks.filter(
+    (sourceTask) =>
+      sourceTask.status === 'skipped' &&
+      sourceTask.updatedAt === createdAt &&
+      getLegacyTaskSignature(sourceTask) === signature &&
+      typeof sourceTask.id === 'string' &&
+      Boolean(sourceTask.id.trim())
+  );
+
+  return matches.length === 1 ? (matches[0].id as string) : undefined;
+}
+
+export function migrateAppDataFromVersion4ToVersion5(
+  data: MigrationInput
+): MigrationInput {
+  const tasksState = getRecord(data.tasks);
+  const meetingsState = getRecord(data.meetings);
+  const reviewDecisions = Array.isArray(tasksState.reviewDecisions)
+    ? tasksState.reviewDecisions.map(getRecord)
+    : [];
+  let tasks = Array.isArray(tasksState.tasks)
+    ? tasksState.tasks.map((task) => ({ ...getRecord(task) }))
+    : null;
+  let meetings = Array.isArray(meetingsState.meetings)
+    ? meetingsState.meetings.map((meeting) => {
+        const item = getRecord(meeting);
+
+        return {
+          ...item,
+          sections: Array.isArray(item.sections)
+            ? item.sections.map((section) => {
+                const sectionItem = getRecord(section);
+
+                return {
+                  ...sectionItem,
+                  tasks: Array.isArray(sectionItem.tasks)
+                    ? sectionItem.tasks.map((task) => ({
+                        ...getRecord(task),
+                      }))
+                    : sectionItem.tasks,
+                };
+              })
+            : item.sections,
+        };
+      })
+    : null;
+
+  if (tasks && meetings) {
+    for (const decision of reviewDecisions) {
+      const meetingId = decision.meetingId;
+      const sourceMeetingId = decision.sourceMeetingId;
+      const decidedAt = decision.decidedAt;
+
+      if (
+        typeof meetingId !== 'string' ||
+        typeof sourceMeetingId !== 'string' ||
+        typeof decidedAt !== 'string'
+      ) {
+        continue;
+      }
+
+      const sourceTasks = tasks.filter(
+        (task) => task.sourceMeetingId === sourceMeetingId
+      );
+
+      tasks = tasks.map((task) => {
+        if (task.sourceMeetingId !== meetingId) {
+          return task;
+        }
+
+        const carriedFromTaskId = findLegacyCarriedFromTaskId(
+          task,
+          sourceTasks,
+          decidedAt
+        );
+
+        return carriedFromTaskId ? { ...task, carriedFromTaskId } : task;
+      });
+
+      meetings = meetings.map((meeting) => {
+        if (meeting.id !== meetingId || !Array.isArray(meeting.sections)) {
+          return meeting;
+        }
+
+        return {
+          ...meeting,
+          sections: meeting.sections.map((section) => {
+            const sectionItem = getRecord(section);
+
+            return {
+              ...sectionItem,
+              tasks: Array.isArray(sectionItem.tasks)
+                ? sectionItem.tasks.map((task) => {
+                    const taskItem = getRecord(task);
+                    const carriedFromTaskId = findLegacyCarriedFromTaskId(
+                      taskItem,
+                      sourceTasks,
+                      decidedAt
+                    );
+
+                    return carriedFromTaskId
+                      ? { ...taskItem, carriedFromTaskId }
+                      : taskItem;
+                  })
+                : sectionItem.tasks,
+            };
+          }),
+        };
+      });
+    }
+
+    const provenanceByTaskId = new Map(
+      tasks
+        .filter(
+          (task) =>
+            typeof task.id === 'string' &&
+            typeof task.carriedFromTaskId === 'string'
+        )
+        .map((task) => [task.id as string, task.carriedFromTaskId as string])
+    );
+
+    meetings = meetings.map((meeting) => ({
+      ...meeting,
+      sections: Array.isArray(meeting.sections)
+        ? meeting.sections.map((section) => {
+            const sectionItem = getRecord(section);
+
+            return {
+              ...sectionItem,
+              tasks: Array.isArray(sectionItem.tasks)
+                ? sectionItem.tasks.map((task) => {
+                    const taskItem = getRecord(task);
+                    const carriedFromTaskId =
+                      typeof taskItem.id === 'string'
+                        ? provenanceByTaskId.get(taskItem.id)
+                        : undefined;
+
+                    return carriedFromTaskId &&
+                      typeof taskItem.carriedFromTaskId !== 'string'
+                      ? { ...taskItem, carriedFromTaskId }
+                      : taskItem;
+                  })
+                : sectionItem.tasks,
+            };
+          })
+        : meeting.sections,
+    }));
+  }
+
+  return {
+    ...data,
+    appDataVersion: 5,
+    tasks: tasks ? { ...tasksState, tasks } : data.tasks,
+    meetings: meetings ? { ...meetingsState, meetings } : data.meetings,
   };
 }
 

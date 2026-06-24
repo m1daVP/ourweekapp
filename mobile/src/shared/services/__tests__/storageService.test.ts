@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Preferences } from '@capacitor/preferences';
-import { clearAllLocalAppDataAfterAccountDeletion } from '@/shared/services/storageService';
+import {
+  clearAllLocalAppDataAfterAccountDeletion,
+  migrateAppDataFromVersion4ToVersion5,
+} from '@/shared/services/storageService';
 
 vi.mock('@capacitor/preferences', () => ({
   Preferences: {
@@ -52,6 +55,48 @@ const localStorageKeysToClear = [
   'ourweek:app-data:backup:before-sync-owner-change:2',
 ];
 
+function createVersionFourData(sourceTasks: Record<string, unknown>[]) {
+  const movedAt = '2026-06-22T10:05:00.000Z';
+  const movedTask = {
+    id: 'moved-task',
+    title: 'Book the appointment',
+    responsibilityType: 'needsDiscussion',
+    responsibleParticipantIds: [],
+    status: 'open',
+    sourceMeetingId: 'current-meeting',
+    createdAt: movedAt,
+    updatedAt: movedAt,
+  };
+
+  return {
+    appDataVersion: 4,
+    tasks: {
+      tasks: [...sourceTasks, movedTask],
+      agreements: [],
+      reviewDecisions: [
+        {
+          meetingId: 'current-meeting',
+          sourceMeetingId: 'previous-meeting',
+          decidedAt: '2026-06-22T10:05:00.001Z',
+        },
+      ],
+    },
+    meetings: {
+      meetings: [
+        {
+          id: 'current-meeting',
+          sections: [
+            {
+              id: 'tasks',
+              tasks: [{ ...movedTask, sectionId: 'tasks' }],
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
 beforeEach(() => {
   const storage = new MemoryStorage();
 
@@ -100,5 +145,128 @@ describe('clearAllLocalAppDataAfterAccountDeletion', () => {
     await expect(clearAllLocalAppDataAfterAccountDeletion()).rejects.toThrow(
       'storage.clearFailed'
     );
+  });
+});
+
+describe('version 5 carried-task migration', () => {
+  it('tags an unambiguous global and embedded carried task', () => {
+    const migrated = migrateAppDataFromVersion4ToVersion5(
+      createVersionFourData([
+        {
+          id: 'previous-task',
+          title: 'Book the appointment',
+          responsibilityType: 'needsDiscussion',
+          responsibleParticipantIds: [],
+          status: 'skipped',
+          sourceMeetingId: 'previous-meeting',
+          createdAt: '2026-06-15T10:00:00.000Z',
+          updatedAt: '2026-06-22T10:05:00.000Z',
+        },
+      ])
+    );
+
+    expect(migrated).toMatchObject({
+      appDataVersion: 5,
+      tasks: {
+        tasks: [
+          { id: 'previous-task' },
+          {
+            id: 'moved-task',
+            carriedFromTaskId: 'previous-task',
+          },
+        ],
+      },
+      meetings: {
+        meetings: [
+          {
+            id: 'current-meeting',
+            sections: [
+              {
+                tasks: [
+                  {
+                    id: 'moved-task',
+                    carriedFromTaskId: 'previous-task',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it('leaves ambiguous legacy tasks unchanged', () => {
+    const duplicateSourceTask = {
+      title: 'Book the appointment',
+      responsibilityType: 'needsDiscussion',
+      responsibleParticipantIds: [],
+      status: 'skipped',
+      sourceMeetingId: 'previous-meeting',
+      createdAt: '2026-06-15T10:00:00.000Z',
+      updatedAt: '2026-06-22T10:05:00.000Z',
+    };
+    const migrated = migrateAppDataFromVersion4ToVersion5(
+      createVersionFourData([
+        { ...duplicateSourceTask, id: 'previous-task-1' },
+        { ...duplicateSourceTask, id: 'previous-task-2' },
+      ])
+    );
+    const taskState = migrated.tasks as {
+      tasks: Array<Record<string, unknown>>;
+    };
+    const meetingState = migrated.meetings as {
+      meetings: Array<{
+        sections: Array<{ tasks: Array<Record<string, unknown>> }>;
+      }>;
+    };
+
+    expect(taskState.tasks.at(-1)).not.toHaveProperty('carriedFromTaskId');
+    expect(meetingState.meetings[0].sections[0].tasks[0]).not.toHaveProperty(
+      'carriedFromTaskId'
+    );
+  });
+
+  it('preserves provenance that is already present', () => {
+    const data = createVersionFourData([]);
+    const taskState = data.tasks as {
+      tasks: Array<Record<string, unknown>>;
+    };
+    const meetingState = data.meetings as {
+      meetings: Array<{
+        sections: Array<{ tasks: Array<Record<string, unknown>> }>;
+      }>;
+    };
+
+    taskState.tasks[0].carriedFromTaskId = 'explicit-source-task';
+    meetingState.meetings[0].sections[0].tasks[0].carriedFromTaskId =
+      'explicit-source-task';
+
+    expect(migrateAppDataFromVersion4ToVersion5(data)).toMatchObject({
+      tasks: {
+        tasks: [
+          {
+            id: 'moved-task',
+            carriedFromTaskId: 'explicit-source-task',
+          },
+        ],
+      },
+      meetings: {
+        meetings: [
+          {
+            sections: [
+              {
+                tasks: [
+                  {
+                    id: 'moved-task',
+                    carriedFromTaskId: 'explicit-source-task',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
   });
 });

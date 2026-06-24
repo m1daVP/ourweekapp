@@ -14,6 +14,7 @@ export interface Task {
   dueDate?: string;
   status: TaskStatus;
   sourceMeetingId?: string;
+  carriedFromTaskId?: string;
   createdAt: string;
   updatedAt: string;
   serverRevision?: number;

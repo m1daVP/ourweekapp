@@ -68,6 +68,7 @@ export function toTaskDto(task: Task): TaskDto {
     dueDate: task.dueDate,
     status: task.status,
     sourceMeetingId: task.sourceMeetingId,
+    carriedFromTaskId: task.carriedFromTaskId,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
     ...syncMetadataFields(task),
