@@ -51,6 +51,15 @@ const meeting = computed(
 
 const aiSummary = computed(() => meeting.value?.aiSummary ?? null);
 
+const canGenerateAiSummary = computed(() =>
+  Boolean(
+    meeting.value &&
+    meeting.value.status === 'completed' &&
+    !aiSummary.value &&
+    canUseFeature('aiSummary')
+  )
+);
+
 const sortedCompletedMeetings = computed(() =>
   [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
 );
@@ -306,7 +315,7 @@ async function generateSummary() {
   if (
     !meeting.value ||
     isGeneratingSummary.value ||
-    !canUseFeature('aiSummary')
+    !canGenerateAiSummary.value
   ) {
     return;
   }
@@ -407,17 +416,14 @@ async function generateSummary() {
               <p class="meeting-help">{{ t('meeting.aiDisclaimer') }}</p>
             </div>
             <button
+              v-if="canGenerateAiSummary"
               type="button"
               class="meeting-primary ai-summary-panel__button"
               :disabled="isGeneratingSummary"
               @click="generateSummary"
             >
               {{
-                t('meeting.generateSummary', {
-                  action: aiSummary
-                    ? t('meeting.regenerate')
-                    : t('meeting.generate'),
-                })
+                t('meeting.generateSummary', { action: t('meeting.generate') })
               }}
             </button>
           </div>

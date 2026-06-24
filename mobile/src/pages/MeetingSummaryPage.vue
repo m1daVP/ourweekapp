@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
+import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
 import { getMeetingTemplateName } from '@/features/meeting/meetingTemplates';
 import type {
   Meeting,
@@ -50,6 +51,8 @@ const participantsStore = useParticipantsStore();
 const { canAccessMeetingHistoryItem, canUseFeature } = useFeatureAccess();
 const shareError = ref('');
 const isSharing = ref(false);
+const aiSummaryError = ref('');
+const isGeneratingSummary = ref(false);
 const { showToast } = useToast();
 
 const meetingSummaryFallbackText = {
@@ -63,6 +66,7 @@ const meetingSummaryFallbackText = {
     'The AI insight could not be prepared right now. The saved decisions and action items are still shown below.',
   aiEmpty:
     'No AI insight is saved for this meeting yet. The saved decisions and action items are still shown below.',
+  aiGenerate: 'Generate AI insight',
   noDecisions: 'No decisions were recorded in this meeting.',
   noActions: 'No action items were recorded in this meeting.',
   unavailableTitle: 'Summary unavailable',
@@ -126,6 +130,16 @@ const hiddenParticipantCount = computed(() =>
 
 const canUseAiSummary = computed(() => canUseFeature('aiSummary'));
 
+const canGenerateAiSummary = computed(() =>
+  Boolean(
+    accessibleMeeting.value &&
+    accessibleMeeting.value.status === 'completed' &&
+    canUseAiSummary.value &&
+    !accessibleMeeting.value.aiSummary &&
+    !isGeneratingSummary.value
+  )
+);
+
 const aiSummaryRouteStatus = computed(() =>
   String(route.query.aiSummary ?? '')
 );
@@ -139,15 +153,18 @@ const aiInsightState = computed<AiInsightState>(() => {
     return 'locked';
   }
 
-  if (aiSummaryRouteStatus.value === 'generating') {
-    return 'loading';
-  }
-
   if (meetingSummary.value.aiInsight) {
     return 'available';
   }
 
-  if (aiSummaryRouteStatus.value === 'failed') {
+  if (
+    isGeneratingSummary.value ||
+    aiSummaryRouteStatus.value === 'generating'
+  ) {
+    return 'loading';
+  }
+
+  if (aiSummaryError.value || aiSummaryRouteStatus.value === 'failed') {
     return 'error';
   }
 
@@ -379,6 +396,28 @@ async function handleShareSummary() {
   }
 }
 
+async function handleGenerateSummary() {
+  if (
+    !accessibleMeeting.value ||
+    !canGenerateAiSummary.value ||
+    isGeneratingSummary.value
+  ) {
+    return;
+  }
+
+  aiSummaryError.value = '';
+  isGeneratingSummary.value = true;
+
+  try {
+    const summary = await generateMeetingSummary(accessibleMeeting.value);
+    meetingsStore.saveAiSummary(accessibleMeeting.value.id, summary);
+  } catch {
+    aiSummaryError.value = meetingSummaryText('aiFailed');
+  } finally {
+    isGeneratingSummary.value = false;
+  }
+}
+
 function goBack() {
   if (window.history.length > 1) {
     router.back();
@@ -463,6 +502,17 @@ function goBack() {
           {{ meetingSummaryText('aiFailed') }}
         </p>
         <p v-else>{{ meetingSummaryText('aiEmpty') }}</p>
+        <button
+          v-if="canGenerateAiSummary"
+          class="meeting-summary-ai-card__button"
+          type="button"
+          @click="handleGenerateSummary"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">
+            auto_awesome
+          </span>
+          {{ meetingSummaryText('aiGenerate') }}
+        </button>
       </section>
 
       <section class="meeting-summary-section">
