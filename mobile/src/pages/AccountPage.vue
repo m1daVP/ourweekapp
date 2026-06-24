@@ -325,14 +325,6 @@ async function continueAfterCleanupFailure() {
     </section>
 
     <section class="content-panel settings-panel">
-      <h2>{{ t('account.session') }}</h2>
-      <p>{{ t('account.apiSession') }}</p>
-      <RouterLink class="secondary-button link-button" :to="{ name: 'logout' }">
-        {{ t('account.logOut') }}
-      </RouterLink>
-    </section>
-
-    <section class="content-panel settings-panel">
       <div>
         <h2>{{ t('account.dataRights') }}</h2>
         <p>{{ t('account.dataRightsHelp') }}</p>
@@ -365,6 +357,11 @@ async function continueAfterCleanupFailure() {
         {{ dataActionError }}
       </p>
     </section>
+
+    <RouterLink class="secondary-button link-button" :to="{ name: 'logout' }">
+      {{ t('account.logOut') }}
+    </RouterLink>
+
     <ConfirmationDialog
       :open="isDeleteAccountDialogOpen"
       :title="t('account.deleteAccountTitle')"
