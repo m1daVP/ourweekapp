@@ -3,7 +3,6 @@ import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
-import { appConfig } from '@/shared/config/env';
 import AccountPage from '@/pages/AccountPage.vue';
 import CalendarSyncPage from '@/pages/CalendarSyncPage.vue';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
@@ -172,14 +171,6 @@ router.beforeEach(async (to) => {
 
   authStore.syncAccessState();
 
-  if (
-    appConfig.isBackendApiEnabled &&
-    authStore.isLocalOnly &&
-    !to.meta.isPublicEntry
-  ) {
-    return { name: 'welcome' };
-  }
-
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return {
       name: 'sign-in',
@@ -193,10 +184,6 @@ router.beforeEach(async (to) => {
 
   if (authStore.authStatus === 'idle' && !to.meta.isPublicEntry) {
     return { name: 'welcome' };
-  }
-
-  if (to.name === 'calendar-sync' && !appConfig.isGoogleCalendarSyncEnabled) {
-    return { name: 'settings' };
   }
 
   const requiredFeature = to.meta.requiresFeature;

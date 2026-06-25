@@ -1,11 +1,6 @@
 import type { PlanType } from '@/features/access/types';
 
-export type AuthStatus =
-  | 'idle'
-  | 'loading'
-  | 'authenticated'
-  | 'localOnly'
-  | 'error';
+export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'error';
 
 export interface AuthUser {
   id: string;

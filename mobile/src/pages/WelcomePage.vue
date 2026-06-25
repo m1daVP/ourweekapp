@@ -1,26 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/app/stores/auth';
-import { appConfig } from '@/shared/config/env';
 
-const router = useRouter();
-const authStore = useAuthStore();
 const { t } = useI18n();
-
-const canShowDevelopmentMockUi = computed(
-  () => appConfig.isDevelopmentMockUiEnabled
-);
-const canContinueLocalOnly = computed(() => !appConfig.isBackendApiEnabled);
-
-async function continueLocalOnly() {
-  const didContinue = await authStore.continueLocalOnly();
-
-  if (didContinue) {
-    void router.push({ name: 'home' });
-  }
-}
 </script>
 
 <template>
@@ -47,10 +28,6 @@ async function continueLocalOnly() {
       </div>
     </div>
 
-    <p v-if="canShowDevelopmentMockUi" class="auth-note">
-      {{ t('welcome.mockAuth') }}
-    </p>
-
     <div class="auth-actions">
       <RouterLink class="meeting-primary link-button" :to="{ name: 'sign-up' }">
         {{ t('welcome.getStarted') }}
@@ -61,14 +38,6 @@ async function continueLocalOnly() {
       >
         {{ t('auth.signIn') }}
       </RouterLink>
-      <button
-        v-if="canContinueLocalOnly"
-        type="button"
-        class="text-button"
-        @click="continueLocalOnly"
-      >
-        {{ t('welcome.continueLocal') }}
-      </button>
     </div>
   </section>
 </template>

@@ -7,7 +7,6 @@ import { useSubscriptionStore } from '@/app/stores/subscription';
 import AppShell from '@/shared/components/AppShell.vue';
 import { useNotifications } from '@/shared/composables/useNotifications';
 import { useCoreDataSync } from '@/shared/composables/useCoreDataSync';
-import { appConfig } from '@/shared/config/env';
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -18,7 +17,7 @@ const showNavigation = computed(() => !route.meta.hideNavigation);
 watch(
   () => authStore.isAuthenticated,
   (isAuthenticated) => {
-    if (!appConfig.isBackendApiEnabled || isAuthenticated) {
+    if (isAuthenticated) {
       void subscriptionStore.initializeSubscriptions();
       return;
     }

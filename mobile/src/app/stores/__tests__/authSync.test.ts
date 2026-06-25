@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 const mocks = vi.hoisted(() => ({
   clearAuthTokens: vi.fn(),
   prepareSyncForAuthenticatedUser: vi.fn(),
+  readOnboardingStorage: vi.fn(),
   readAuthTokens: vi.fn(),
   refreshSession: vi.fn(),
   resetSyncRuntimeState: vi.fn(),
@@ -11,14 +12,6 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   writeAuthTokens: vi.fn(),
   writeOnboardingStorage: vi.fn(),
-}));
-
-vi.mock('@/shared/config/env', () => ({
-  appConfig: {
-    isBackendApiEnabled: true,
-    apiMode: 'backend',
-    apiBaseUrl: 'http://localhost:3030',
-  },
 }));
 
 vi.mock('@/features/localization/i18n', () => ({
@@ -47,7 +40,7 @@ vi.mock('@/shared/services/authTokenStorageService', () => ({
 }));
 
 vi.mock('@/shared/services/storageService', () => ({
-  readOnboardingStorage: vi.fn((_: string, fallback: unknown) => fallback),
+  readOnboardingStorage: mocks.readOnboardingStorage,
   writeOnboardingStorage: mocks.writeOnboardingStorage,
 }));
 
@@ -83,6 +76,7 @@ beforeEach(() => {
   mocks.clearAuthTokens.mockReset();
   mocks.prepareSyncForAuthenticatedUser.mockReset();
   mocks.readAuthTokens.mockReset();
+  mocks.readOnboardingStorage.mockReset();
   mocks.refreshSession.mockReset();
   mocks.resetSyncRuntimeState.mockReset();
   mocks.signIn.mockReset();
@@ -97,9 +91,25 @@ beforeEach(() => {
     refreshToken: 'rotated-refresh-token',
   });
   mocks.readAuthTokens.mockResolvedValue({ refreshToken: 'refresh-token' });
+  mocks.readOnboardingStorage.mockImplementation(
+    (_: string, fallback: unknown) => fallback
+  );
 });
 
 describe('auth sync safety hooks', () => {
+  it('migrates legacy local-only auth state to signed out', () => {
+    mocks.readOnboardingStorage.mockReturnValue({
+      version: 2,
+      user: null,
+      authStatus: 'localOnly',
+    });
+
+    const authStore = useAuthStore();
+
+    expect(authStore.authStatus).toBe('idle');
+    expect(authStore.user).toBeNull();
+  });
+
   it('prepares sync ownership before applying a signed-in session', async () => {
     const authStore = useAuthStore();
 

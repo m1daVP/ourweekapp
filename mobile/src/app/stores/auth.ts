@@ -10,8 +10,6 @@ import {
   type AuthSessionDto,
 } from '@/shared/api/authApi';
 import { ApiClientError, setApiAuthHandlers } from '@/shared/api/httpClient';
-import { useUserAccessStore } from '@/app/stores/userAccess';
-import { appConfig } from '@/shared/config/env';
 import {
   clearAuthTokens,
   readAuthTokens,
@@ -38,13 +36,13 @@ import type {
   SignUpPayload,
 } from '@/features/auth/types';
 
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 const LEGACY_AUTH_STORAGE_KEY = 'ourweek:auth';
 
 interface StoredAuthState {
   version: number;
   user: AuthUser | null;
-  authStatus: AuthStatus;
+  authStatus: AuthStatus | 'localOnly';
   accessToken?: string | null;
   refreshToken?: string | null;
 }
@@ -115,10 +113,6 @@ async function clearStoredAuthTokensSafely() {
 }
 
 async function prepareSyncForSessionUser(userId: string) {
-  if (!appConfig.isBackendApiEnabled) {
-    return;
-  }
-
   prepareSyncForAuthenticatedUser(userId);
 }
 
@@ -169,7 +163,9 @@ function isStoredAuthState(value: unknown): value is StoredAuthState {
   const status = candidate.authStatus;
 
   return (
-    (candidate.version === 1 || candidate.version === STORAGE_VERSION) &&
+    (candidate.version === 1 ||
+      candidate.version === 2 ||
+      candidate.version === STORAGE_VERSION) &&
     (status === 'authenticated' || status === 'localOnly' || status === 'idle')
   );
 }
@@ -200,7 +196,7 @@ function getStoredState(): Pick<AuthState, 'user' | 'authStatus'> {
     };
   }
 
-  if (appConfig.isBackendApiEnabled && storedState.authStatus === 'localOnly') {
+  if (storedState.authStatus === 'localOnly') {
     return {
       user: null,
       authStatus: 'idle',
@@ -209,7 +205,7 @@ function getStoredState(): Pick<AuthState, 'user' | 'authStatus'> {
 
   return {
     user: storedState.user,
-    authStatus: storedState.authStatus,
+    authStatus: storedState.authStatus as AuthStatus,
   };
 }
 
@@ -223,7 +219,6 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (state) =>
       Boolean(state.user && state.authStatus === 'authenticated'),
-    isLocalOnly: (state) => state.authStatus === 'localOnly',
   },
   actions: {
     persist() {
@@ -290,13 +285,6 @@ export const useAuthStore = defineStore('auth', {
 
       clearLegacyAuthTokensFromLocalStorage();
     },
-    syncAccessState() {
-      const accessStore = useUserAccessStore();
-
-      if (this.user) {
-        accessStore.setAccountPlan(this.user.plan);
-      }
-    },
     async applySession(session: AuthSessionDto) {
       await writeAuthTokens({
         accessToken: session.accessToken,
@@ -313,7 +301,6 @@ export const useAuthStore = defineStore('auth', {
       this.hasVerifiedCurrentUser = true;
       this.errorMessage = '';
       this.persist();
-      this.syncAccessState();
     },
     async clearSessionAfterUnauthorized() {
       await clearRevenueCatSessionSafely();
@@ -354,7 +341,6 @@ export const useAuthStore = defineStore('auth', {
         this.hasVerifiedCurrentUser = true;
         this.errorMessage = '';
         this.persist();
-        this.syncAccessState();
         return true;
       } catch (error) {
         if (error instanceof ApiClientError && error.status === 401) {
@@ -438,23 +424,6 @@ export const useAuthStore = defineStore('auth', {
         this.persist();
         return false;
       }
-    },
-    async continueLocalOnly() {
-      if (appConfig.isBackendApiEnabled) {
-        this.errorMessage = translate('auth.accountRequired');
-        return false;
-      }
-
-      await clearStoredAuthTokensSafely();
-      await resetSyncAfterSessionEnd();
-      await clearRevenueCatSessionSafely();
-      this.user = null;
-      this.authStatus = 'localOnly';
-      this.hasHydratedSecureTokens = true;
-      this.hasVerifiedCurrentUser = true;
-      this.errorMessage = '';
-      this.persist();
-      return true;
     },
     updateProfile(displayName: string) {
       const nextDisplayName = displayName.trim();
