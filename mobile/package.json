@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vue-tsc --noEmit && vite build",
+    "build:prod": "vue-tsc --noEmit && vite build --mode release",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run src tests/contract",
     "test:api:live": "vitest run tests/api-live.test.ts",
@@ -18,6 +19,7 @@
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run lint",
     "cap:sync": "npm run build && cap sync android",
+    "cap:sync:prod": "npm run build:production && cap sync android",
     "cap:open": "cap open android"
   },
   "dependencies": {
