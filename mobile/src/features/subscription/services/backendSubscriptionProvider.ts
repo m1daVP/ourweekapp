@@ -3,12 +3,9 @@ import { translate } from '@/features/localization/i18n';
 import {
   getSubscriptionManagementUrl,
   getSubscriptionStatus,
-  restoreSubscription,
-  validateSubscription,
   type SubscriptionStatusDto,
 } from '@/shared/api/subscriptionsApi';
 import { premiumPlanOptions } from '../subscriptionPlans';
-import { nativeBillingService } from './nativeBillingService';
 import type {
   SubscriptionActionResult,
   SubscriptionEntitlementStatus,
@@ -21,7 +18,7 @@ import type {
 function mapProviderKind(
   provider: SubscriptionStatusDto['provider']
 ): SubscriptionProviderKind {
-  return provider === 'revenuecat' ? 'revenuecat' : 'direct_store';
+  return provider === 'revenuecat' ? 'revenuecat' : 'backend';
 }
 
 function createPremiumEntitlement(
@@ -65,7 +62,7 @@ export function createSubscriptionSnapshotFromStatus(
 
 export function createBackendSubscriptionProvider(): SubscriptionProvider {
   return {
-    kind: 'direct_store',
+    kind: 'backend',
     async getCurrentPlan() {
       return createSubscriptionSnapshotFromStatus(
         await getSubscriptionStatus()
@@ -75,44 +72,26 @@ export function createBackendSubscriptionProvider(): SubscriptionProvider {
       return premiumPlanOptions;
     },
     async purchasePlan(planId: SubscriptionPlanId) {
-      const purchase = await nativeBillingService.purchasePlan(planId);
+      void planId;
       const snapshot = createSubscriptionSnapshotFromStatus(
-        await validateSubscription(purchase)
+        await getSubscriptionStatus()
       );
 
       return {
-        status: snapshot.currentPlan === 'premium' ? 'completed' : 'cancelled',
+        status: 'not_supported',
         snapshot,
-        message:
-          snapshot.currentPlan === 'premium'
-            ? translate('upgrade.premiumEnabled')
-            : translate('upgrade.noPremiumFound'),
+        message: translate('upgrade.billingUnavailable'),
       };
     },
     async restorePurchases(): Promise<SubscriptionActionResult> {
-      const provider = nativeBillingService.getRestoreProvider();
-
-      if (!provider) {
-        return {
-          status: 'not_supported',
-          snapshot: createSubscriptionSnapshotFromStatus(
-            await getSubscriptionStatus()
-          ),
-          message: translate('upgrade.billingUnavailable'),
-        };
-      }
-
       const snapshot = createSubscriptionSnapshotFromStatus(
-        await restoreSubscription({ provider })
+        await getSubscriptionStatus()
       );
 
       return {
-        status: snapshot.currentPlan === 'premium' ? 'completed' : 'cancelled',
+        status: 'not_supported',
         snapshot,
-        message:
-          snapshot.currentPlan === 'premium'
-            ? translate('upgrade.premiumRestored')
-            : translate('upgrade.noPremiumFound'),
+        message: translate('upgrade.billingUnavailable'),
       };
     },
     async manageSubscription() {

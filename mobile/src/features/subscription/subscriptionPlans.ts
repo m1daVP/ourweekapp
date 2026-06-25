@@ -1,4 +1,5 @@
 import type { PlanComparisonItem, SubscriptionPlanOption } from './types';
+import { appConfig } from '@/shared/config/env';
 
 export const premiumPlanOptions: SubscriptionPlanOption[] = [
   {
@@ -10,7 +11,7 @@ export const premiumPlanOptions: SubscriptionPlanOption[] = [
     planType: 'premium',
     entitlementKey: 'premium',
     productIds: {
-      android: 'monthly',
+      android: appConfig.revenueCatAndroidMonthlyProductId ?? 'monthly',
       ios: 'monthly',
     },
   },
@@ -23,7 +24,7 @@ export const premiumPlanOptions: SubscriptionPlanOption[] = [
     planType: 'premium',
     entitlementKey: 'premium',
     productIds: {
-      android: 'yearly',
+      android: appConfig.revenueCatAndroidYearlyProductId ?? 'yearly',
       ios: 'yearly',
     },
   },

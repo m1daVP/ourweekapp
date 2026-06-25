@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { useUserAccessStore } from '@/app/stores/userAccess';
 import { translate } from '@/features/localization/i18n';
 import { subscriptionsService } from '@/features/subscription/services/subscriptionService';
 import type { FeatureKey, PlanType } from '@/features/access/types';
@@ -30,7 +29,7 @@ interface SubscriptionState {
 export const useSubscriptionStore = defineStore('subscription', {
   state: (): SubscriptionState => ({
     currentPlan: 'free',
-    provider: 'mock',
+    provider: 'backend',
     premiumEntitlement: null,
     availablePlans: [],
     isLoading: false,
@@ -53,15 +52,12 @@ export const useSubscriptionStore = defineStore('subscription', {
     applySnapshot(
       snapshot: Awaited<ReturnType<typeof subscriptionsService.getCurrentPlan>>
     ) {
-      const accessStore = useUserAccessStore();
-
       this.currentPlan = snapshot.currentPlan;
       this.provider = snapshot.provider;
       this.premiumEntitlement = snapshot.entitlements.premium;
       this.lastCheckedAt = snapshot.checkedAt;
       this.managementUrl = snapshot.management.url ?? null;
       this.canManageSubscription = snapshot.management.supported;
-      accessStore.setAccountPlan(snapshot.currentPlan);
     },
     async initializeSubscriptions() {
       this.isLoading = true;

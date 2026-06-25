@@ -2,7 +2,7 @@ import type { FeatureKey, PlanType } from '@/features/access/types';
 
 export type BillingCadence = 'monthly' | 'yearly';
 export type SubscriptionPlanId = 'premium_monthly' | 'premium_yearly';
-export type SubscriptionProviderKind = 'mock' | 'revenuecat' | 'direct_store';
+export type SubscriptionProviderKind = 'backend' | 'revenuecat';
 export type SubscriptionPlatform = 'web' | 'android' | 'ios';
 export type SubscriptionEntitlementKey = 'premium';
 export type EntitlementVerificationSource =

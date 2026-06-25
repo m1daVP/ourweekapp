@@ -61,19 +61,11 @@ function isPurchaseCancelled(error: unknown) {
   );
 }
 
-function isRevenueCatValidationAvailable() {
-  return isRevenueCatAvailable() && appConfig.isRevenueCatValidationEnabled;
-}
-
 async function getBackendSnapshot() {
   return createSubscriptionSnapshotFromStatus(await getSubscriptionStatus());
 }
 
 async function validateCurrentRevenueCatCustomer(productId?: string) {
-  if (!appConfig.isRevenueCatValidationEnabled) {
-    throw new Error(translate('upgrade.billingUnavailable'));
-  }
-
   const { appUserID } = await getRevenueCatAppUserID();
 
   return createSubscriptionSnapshotFromStatus(
@@ -159,7 +151,7 @@ export function createRevenueCatSubscriptionProvider(): SubscriptionProvider {
       return getRevenueCatPlans();
     },
     async purchasePlan(planId) {
-      if (!isRevenueCatValidationAvailable()) {
+      if (!isRevenueCatAvailable()) {
         return {
           status: 'not_supported',
           snapshot: await getBackendSnapshot(),
@@ -199,7 +191,7 @@ export function createRevenueCatSubscriptionProvider(): SubscriptionProvider {
       );
     },
     async restorePurchases() {
-      if (!isRevenueCatValidationAvailable()) {
+      if (!isRevenueCatAvailable()) {
         return {
           status: 'not_supported',
           snapshot: await getBackendSnapshot(),
@@ -215,7 +207,7 @@ export function createRevenueCatSubscriptionProvider(): SubscriptionProvider {
       );
     },
     async manageSubscription() {
-      if (isRevenueCatValidationAvailable()) {
+      if (isRevenueCatAvailable()) {
         try {
           await presentRevenueCatCustomerCenter();
 
@@ -239,7 +231,7 @@ export function createRevenueCatSubscriptionProvider(): SubscriptionProvider {
       };
     },
     async presentPremiumPaywall() {
-      if (!isRevenueCatValidationAvailable()) {
+      if (!isRevenueCatAvailable()) {
         return {
           status: 'not_supported',
           snapshot: await getBackendSnapshot(),
@@ -261,7 +253,7 @@ export function createRevenueCatSubscriptionProvider(): SubscriptionProvider {
       );
     },
     async refreshCustomerInfo() {
-      if (!isRevenueCatValidationAvailable()) {
+      if (!isRevenueCatAvailable()) {
         return {
           status: 'not_supported',
           snapshot: await getBackendSnapshot(),
