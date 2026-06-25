@@ -10,7 +10,6 @@ import { usePrivateNotesStore } from '@/app/stores/privateNotes';
 import { useRemindersStore } from '@/app/stores/reminders';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useTasksStore } from '@/app/stores/tasks';
-import { useUserAccessStore } from '@/app/stores/userAccess';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import {
   AccountDeletionCleanupError,
@@ -49,7 +48,7 @@ const currentPlanLabel = computed(() =>
     ? t('premium.badge')
     : t('common.free')
 );
-const canRestorePurchases = computed(() => appConfig.isBackendApiEnabled);
+const canRestorePurchases = computed(() => appConfig.isRevenueCatEnabled);
 
 function formatDate(value?: string) {
   if (!value) {
@@ -122,7 +121,6 @@ function resetInMemoryStoresAfterAccountDeletion() {
   useRemindersStore().$reset();
   useSubscriptionStore().$reset();
   useTasksStore().$reset();
-  useUserAccessStore().$reset();
   useWorkspaceStore().$reset();
 }
 

@@ -21,18 +21,8 @@ const currentPlanLabel = computed(() =>
     : t('common.free')
 );
 const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
-const isPurchaseUnavailable = computed(
-  () =>
-    !appConfig.isBackendApiEnabled ||
-    !appConfig.isRevenueCatEnabled ||
-    !appConfig.isRevenueCatValidationEnabled
-);
-const canRestorePurchases = computed(
-  () =>
-    appConfig.isBackendApiEnabled &&
-    appConfig.isRevenueCatEnabled &&
-    appConfig.isRevenueCatValidationEnabled
-);
+const isPurchaseUnavailable = computed(() => !appConfig.isRevenueCatEnabled);
+const canRestorePurchases = computed(() => appConfig.isRevenueCatEnabled);
 const purchaseButtonLabel = computed(() => {
   if (hasPremium.value) {
     return t('upgrade.premiumActive');

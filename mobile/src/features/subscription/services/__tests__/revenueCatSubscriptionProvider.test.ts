@@ -15,13 +15,11 @@ import {
   hasOurWeekPremium,
   isRevenueCatAvailable,
   presentPremiumPaywall,
-  presentRevenueCatCustomerCenter,
   purchasePackage,
   restoreRevenueCatPurchases,
 } from '@/features/subscription/services/revenueCatService';
 
 const mockAppConfig = vi.hoisted(() => ({
-  isRevenueCatValidationEnabled: true,
   revenueCatEntitlementId: 'OurWeek Premium',
 }));
 
@@ -107,9 +105,6 @@ const mockedGetRevenueCatAppUserID = vi.mocked(getRevenueCatAppUserID);
 const mockedGetRevenueCatCustomerInfo = vi.mocked(getRevenueCatCustomerInfo);
 const mockedHasOurWeekPremium = vi.mocked(hasOurWeekPremium);
 const mockedPresentPremiumPaywall = vi.mocked(presentPremiumPaywall);
-const mockedPresentRevenueCatCustomerCenter = vi.mocked(
-  presentRevenueCatCustomerCenter
-);
 
 describe('RevenueCat subscription configuration', () => {
   it('maps Premium plans to the configured store product identifiers', () => {
@@ -137,7 +132,6 @@ describe('RevenueCat subscription configuration', () => {
 describe('createRevenueCatSubscriptionProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAppConfig.isRevenueCatValidationEnabled = true;
     mockedIsRevenueCatAvailable.mockReturnValue(true);
     mockedGetSubscriptionStatus.mockResolvedValue(freeStatus);
     mockedValidateRevenueCatSubscription.mockResolvedValue(premiumStatus);
@@ -154,18 +148,6 @@ describe('createRevenueCatSubscriptionProvider', () => {
     } as Awaited<ReturnType<typeof getRevenueCatCustomerInfo>>);
     mockedHasOurWeekPremium.mockReturnValue(true);
     mockedPresentPremiumPaywall.mockResolvedValue(true);
-  });
-
-  it('does not send RevenueCat validation while backend support is disabled', async () => {
-    mockAppConfig.isRevenueCatValidationEnabled = false;
-
-    const provider = createRevenueCatSubscriptionProvider();
-    const result = await provider.presentPremiumPaywall?.();
-
-    expect(result?.status).toBe('not_supported');
-    expect(result?.snapshot.currentPlan).toBe('free');
-    expect(mockedPresentPremiumPaywall).not.toHaveBeenCalled();
-    expect(mockedValidateRevenueCatSubscription).not.toHaveBeenCalled();
   });
 
   it('fills plan prices from RevenueCat offerings without changing product ids', async () => {
@@ -212,23 +194,6 @@ describe('createRevenueCatSubscriptionProvider', () => {
 
     expect(plans[0]?.priceLabel).toBe('$4.99');
     expect(plans[1]?.priceLabel).toBe('Price pending');
-  });
-
-  it('does not open Customer Center while RevenueCat backend validation is disabled', async () => {
-    mockAppConfig.isRevenueCatValidationEnabled = false;
-    mockedGetSubscriptionManagementUrl.mockResolvedValue({
-      url: 'https://store.example/manage',
-    });
-
-    const provider = createRevenueCatSubscriptionProvider();
-    const result = await provider.manageSubscription();
-
-    expect(mockedPresentRevenueCatCustomerCenter).not.toHaveBeenCalled();
-    expect(mockedGetSubscriptionManagementUrl).toHaveBeenCalled();
-    expect(result).toMatchObject({
-      supported: true,
-      url: 'https://store.example/manage',
-    });
   });
 
   it('does not unlock Premium after purchase until backend validation returns Premium', async () => {
