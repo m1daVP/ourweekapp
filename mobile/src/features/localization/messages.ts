@@ -104,8 +104,6 @@ export const messages = {
         'Display name changes are saved to this account and this device.',
       saveAccount: 'Save account',
       session: 'Session',
-      mockSession:
-        'Development auth is active. No real password is stored locally.',
       apiSession:
         'Signed-in requests use the stored secure session through the API layer.',
       logOut: 'Log out',
@@ -142,8 +140,6 @@ export const messages = {
       signInIntro:
         'Continue your weekly household rhythm and pick up where you left off.',
       forgotPassword: 'Forgot password?',
-      mockSignIn:
-        'Development auth is active. Any email and password will create a temporary local session.',
       signingIn: 'Signing in...',
       signIn: 'Sign in',
       newHere: 'New to OurWeek?',
@@ -152,8 +148,6 @@ export const messages = {
         'Set up a calm shared place for weekly check-ins, agreements, and household follow-up.',
       yourName: 'Your name',
       passwordHelp: 'At least 8 characters',
-      mockSignUp:
-        'Development auth is active. The password is used only for this local session.',
       creating: 'Creating...',
       alreadyHaveAccount: 'Already have an account?',
       passwordHelpKicker: 'Password help',
@@ -199,10 +193,7 @@ export const messages = {
       premiumReady: 'Premium ready',
       premiumReadyText:
         'Use the same account for Premium access after store validation.',
-      mockAuth:
-        'Development sign-in is active in this build. No real password is stored locally.',
       getStarted: 'Get Started',
-      continueLocal: 'Continue on this device only',
     },
     logout: {
       kicker: 'Log out',
@@ -210,7 +201,7 @@ export const messages = {
       accountFallback: 'this account',
       intro:
         'You will leave {email} on this device. Local meeting data already saved on this phone is not deleted.',
-      help: 'You can continue local-only after logging out, or sign back in from the welcome screen.',
+      help: 'Sign back in from the welcome screen to continue.',
       loggingOut: 'Logging out...',
       keepSignedIn: 'Keep signed in',
     },
@@ -478,7 +469,6 @@ export const messages = {
       account: 'Account',
       signedInAs: 'Signed in as {email}.',
       signedInFallback: 'your account',
-      localOnly: 'Using OurWeek on this device only.',
       noAccount: 'No account connected yet.',
       accountSettings: 'Account settings',
       accountOptions: 'Account options',
@@ -541,8 +531,6 @@ export const messages = {
       participantRemoved: 'Unused person removed.',
       addNameFirst: 'Add a name first.',
       disable: 'Hide from new meetings',
-      mockWorkspaceRole: 'Development workspace role',
-      premiumFeatureChecks: 'Premium feature checks',
       role: {
         owner: 'Owner',
         adultMember: 'Adult member',
@@ -568,7 +556,6 @@ export const messages = {
       privacyNote:
         'Diagnostics include technical status only. Meeting notes, private notes, tasks, agreements, tokens, receipts, and AI prompts are not included.',
       environment: 'Environment',
-      apiMode: 'API mode',
       backendOrigin: 'Backend',
       platform: 'Platform',
       online: 'Online',
@@ -608,13 +595,11 @@ export const messages = {
       no: 'No',
       accountStates: {
         signed_in: 'Signed in',
-        local_only: 'Local only',
         guest: 'No account',
         loading: 'Checking account',
         error: 'Account needs attention',
       },
       backendStates: {
-        not_configured: 'Not configured',
         reachable: 'Reachable',
         not_ready: 'Reachable, not ready',
         unreachable: 'Unavailable',
@@ -1296,21 +1281,16 @@ export const messages = {
       updateFailed: 'Reminder scheduling could not be updated.',
     },
     api: {
-      backendNotConfigured: 'Backend API is not configured.',
       backendContactFailed:
         'Something went wrong while contacting the backend.',
       health: {
         unavailable: 'Backend status is unavailable right now.',
         notConfigured: 'Backend status is not configured.',
       },
-      saveSummaryNotConfigured:
-        'Saving meeting summaries to the backend is not configured.',
       signInFailed: 'Something went wrong while signing in.',
       signUpFailed: 'Something went wrong while creating the account.',
     },
     sync: {
-      backendUnavailable:
-        'Backend API is not configured. Local data remains stored on this device.',
       failed: 'Sync could not finish right now. Local changes are still saved.',
       offline: 'You are offline. Local changes will sync later.',
       retry: 'Retry',
@@ -1425,8 +1405,6 @@ export const messages = {
         'Зміни відображуваного імені зберігаються для цього акаунта і пристрою.',
       saveAccount: 'Зберегти акаунт',
       session: 'Сеанс',
-      mockSession:
-        'Увімкнено режим розробки для входу. Справжній пароль локально не зберігається.',
       apiSession:
         'Запити з входом мають використовувати збережений токен доступу через API-шар.',
       logOut: 'Вийти',
@@ -1464,8 +1442,6 @@ export const messages = {
       signInIntro:
         'Продовжуйте свій щотижневий домашній ритм із місця, де зупинилися.',
       forgotPassword: 'Забули пароль?',
-      mockSignIn:
-        'Увімкнено режим розробки для входу. Будь-яка електронна пошта й пароль створять тимчасовий локальний сеанс.',
       signingIn: 'Вхід...',
       signIn: 'Увійти',
       newHere: 'Вперше у OurWeek?',
@@ -1474,8 +1450,6 @@ export const messages = {
         'Створіть спокійне спільне місце для щотижневих зустрічей, домовленостей і домашніх справ.',
       yourName: 'Ваше ім’я',
       passwordHelp: 'Щонайменше 8 символів',
-      mockSignUp:
-        'Увімкнено режим розробки для входу. Пароль використовується лише для цього локального сеансу.',
       creating: 'Створення...',
       alreadyHaveAccount: 'Вже маєте акаунт?',
       passwordHelpKicker: 'Допомога з паролем',
@@ -1521,10 +1495,7 @@ export const messages = {
       premiumReady: 'Готово до Premium',
       premiumReadyText:
         'Використовуйте той самий акаунт для Premium після перевірки підписки магазином.',
-      mockAuth:
-        'У цій збірці активний режим розробки для входу. Справжній пароль локально не зберігається.',
       getStarted: 'Почати',
-      continueLocal: 'Продовжити лише на цьому пристрої',
     },
     logout: {
       kicker: 'Вийти',
@@ -1532,7 +1503,7 @@ export const messages = {
       accountFallback: 'цього акаунта',
       intro:
         'Ви вийдете з {email} на цьому пристрої. Локальні дані зустрічей, уже збережені на цьому телефоні, не буде видалено.',
-      help: 'Після виходу можна продовжити локально або знову увійти з екрана привітання.',
+      help: 'Щоб продовжити, знову увійдіть з екрана привітання.',
       loggingOut: 'Вихід...',
       keepSignedIn: 'Залишитися в акаунті',
     },
@@ -1794,7 +1765,6 @@ export const messages = {
       account: 'Акаунт',
       signedInAs: 'Ви увійшли як {email}.',
       signedInFallback: 'ваш акаунт',
-      localOnly: 'OurWeek використовується лише на цьому пристрої.',
       noAccount: 'Акаунт ще не підключено.',
       accountSettings: 'Налаштування акаунта',
       accountOptions: 'Опції акаунта',
@@ -1857,8 +1827,6 @@ export const messages = {
       participantRemoved: 'Невикористану людину видалено.',
       addNameFirst: 'Спочатку додайте ім’я.',
       disable: 'Приховати для нових зустрічей',
-      mockWorkspaceRole: 'Тестова роль у домі',
-      premiumFeatureChecks: 'Перевірка Premium-функцій',
       role: {
         owner: 'Власник',
         adultMember: 'Дорослий учасник',
@@ -1884,7 +1852,6 @@ export const messages = {
       privacyNote:
         'Diagnostics include technical status only. Meeting notes, private notes, tasks, agreements, tokens, receipts, and AI prompts are not included.',
       environment: 'Environment',
-      apiMode: 'API mode',
       backendOrigin: 'Backend',
       platform: 'Platform',
       online: 'Online',
@@ -1924,13 +1891,11 @@ export const messages = {
       no: 'No',
       accountStates: {
         signed_in: 'Signed in',
-        local_only: 'Local only',
         guest: 'No account',
         loading: 'Checking account',
         error: 'Account needs attention',
       },
       backendStates: {
-        not_configured: 'Not configured',
         reachable: 'Reachable',
         not_ready: 'Reachable, not ready',
         unreachable: 'Unavailable',
@@ -2591,20 +2556,15 @@ export const messages = {
       updateFailed: 'Не вдалося оновити планування нагадувань.',
     },
     api: {
-      backendNotConfigured: 'Backend API не налаштовано.',
       backendContactFailed: 'Щось пішло не так під час зв’язку з backend.',
       health: {
         unavailable: 'Backend status is unavailable right now.',
         notConfigured: 'Backend status is not configured.',
       },
-      saveSummaryNotConfigured:
-        'Збереження підсумків зустрічей у backend не налаштовано.',
       signInFailed: 'Щось пішло не так під час входу.',
       signUpFailed: 'Щось пішло не так під час створення акаунта.',
     },
     sync: {
-      backendUnavailable:
-        'Backend API не налаштовано. Локальні дані залишаються збереженими на цьому пристрої.',
       failed: 'Sync could not finish right now. Local changes are still saved.',
       offline: 'You are offline. Local changes will sync later.',
       retry: 'Retry',
@@ -2721,8 +2681,6 @@ export const messages = {
         'Los cambios del nombre visible se guardan en esta cuenta y este dispositivo.',
       saveAccount: 'Guardar cuenta',
       session: 'Sesión',
-      mockSession:
-        'El inicio de sesión de desarrollo está activo. No se guarda una contraseña real localmente.',
       apiSession:
         'Las solicitudes con sesión iniciada deben usar el token de acceso guardado a través de la capa de API.',
       logOut: 'Cerrar sesión',
@@ -2760,8 +2718,6 @@ export const messages = {
       signInIntro:
         'Continúa tu ritmo semanal del hogar y retoma donde te quedaste.',
       forgotPassword: '¿Olvidaste tu contraseña?',
-      mockSignIn:
-        'El inicio de sesión de desarrollo está activo. Cualquier correo y contraseña crearán una sesión local temporal.',
       signingIn: 'Iniciando sesión...',
       signIn: 'Iniciar sesión',
       newHere: '¿Nuevo en OurWeek?',
@@ -2770,8 +2726,6 @@ export const messages = {
         'Configura un lugar compartido y tranquilo para revisiones semanales, acuerdos y seguimiento del hogar.',
       yourName: 'Tu nombre',
       passwordHelp: 'Al menos 8 caracteres',
-      mockSignUp:
-        'El inicio de sesión de desarrollo está activo. La contraseña se usa solo para esta sesión local.',
       creating: 'Creando...',
       alreadyHaveAccount: '¿Ya tienes una cuenta?',
       passwordHelpKicker: 'Ayuda con la contraseña',
@@ -2819,10 +2773,7 @@ export const messages = {
       premiumReady: 'Listo para Premium',
       premiumReadyText:
         'Usa la misma cuenta para Premium después de la validación de la tienda.',
-      mockAuth:
-        'El inicio de sesión de desarrollo está activo en esta versión. No se guarda una contraseña real localmente.',
       getStarted: 'Comenzar',
-      continueLocal: 'Continuar solo en este dispositivo',
     },
     logout: {
       kicker: 'Cerrar sesión',
@@ -2830,7 +2781,7 @@ export const messages = {
       accountFallback: 'esta cuenta',
       intro:
         'Saldrás de {email} en este dispositivo. Los datos locales de reuniones ya guardados en este teléfono no se eliminan.',
-      help: 'Puedes continuar solo localmente después de cerrar sesión o volver a iniciar sesión desde la pantalla de bienvenida.',
+      help: 'Vuelve a iniciar sesión desde la pantalla de bienvenida para continuar.',
       loggingOut: 'Cerrando sesión...',
       keepSignedIn: 'Mantener sesión iniciada',
     },
@@ -3095,7 +3046,6 @@ export const messages = {
       account: 'Cuenta',
       signedInAs: 'Sesión iniciada como {email}.',
       signedInFallback: 'tu cuenta',
-      localOnly: 'Usando OurWeek solo en este dispositivo.',
       noAccount: 'Todavía no hay una cuenta conectada.',
       accountSettings: 'Ajustes de la cuenta',
       accountOptions: 'Opciones de cuenta',
@@ -3177,8 +3127,6 @@ export const messages = {
         partner: 'Pareja',
       },
       defaultWorkspace: 'Nuestro espacio semanal',
-      mockWorkspaceRole: 'Rol simulado del espacio',
-      premiumFeatureChecks: 'Comprobaciones de funciones Premium',
     },
     supportDiagnostics: {
       kicker: 'Support',
@@ -3189,7 +3137,6 @@ export const messages = {
       privacyNote:
         'Diagnostics include technical status only. Meeting notes, private notes, tasks, agreements, tokens, receipts, and AI prompts are not included.',
       environment: 'Environment',
-      apiMode: 'API mode',
       backendOrigin: 'Backend',
       platform: 'Platform',
       online: 'Online',
@@ -3229,13 +3176,11 @@ export const messages = {
       no: 'No',
       accountStates: {
         signed_in: 'Signed in',
-        local_only: 'Local only',
         guest: 'No account',
         loading: 'Checking account',
         error: 'Account needs attention',
       },
       backendStates: {
-        not_configured: 'Not configured',
         reachable: 'Reachable',
         not_ready: 'Reachable, not ready',
         unreachable: 'Unavailable',
@@ -3902,20 +3847,15 @@ export const messages = {
       updateFailed: 'No se pudo actualizar la programación de recordatorios.',
     },
     api: {
-      backendNotConfigured: 'La API del backend no está configurada.',
       backendContactFailed: 'Algo salió mal al contactar el backend.',
       health: {
         unavailable: 'Backend status is unavailable right now.',
         notConfigured: 'Backend status is not configured.',
       },
-      saveSummaryNotConfigured:
-        'Guardar resúmenes de reuniones en el backend no está configurado.',
       signInFailed: 'Algo salió mal al iniciar sesión.',
       signUpFailed: 'Algo salió mal al crear la cuenta.',
     },
     sync: {
-      backendUnavailable:
-        'La API del backend no está configurada. Los datos locales permanecen guardados en este dispositivo.',
       failed:
         'La sincronizaciГіn no pudo terminar ahora. Los cambios locales siguen guardados.',
       offline:

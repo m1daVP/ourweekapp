@@ -9,11 +9,7 @@ const baseInput: SupportDiagnosticsInput = {
   generatedAt: '2026-06-14T10:00:00.000Z',
   app: {
     environment: 'local',
-    apiMode: 'backend',
     backendOrigin: 'http://localhost:3030',
-    backendEnabled: true,
-    googleCalendarSyncEnabled: false,
-    developmentMockUiEnabled: false,
   },
   device: {
     platform: 'web',

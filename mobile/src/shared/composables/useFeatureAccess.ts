@@ -3,13 +3,11 @@ import { useI18n } from 'vue-i18n';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
-import type { FeatureKey, UserRole } from '@/features/access/types';
+import type { FeatureKey } from '@/features/access/types';
 import type { Meeting } from '@/features/meeting/types';
-import { useUserAccessStore } from '@/app/stores/userAccess';
 
 export function useFeatureAccess() {
   const { t, te } = useI18n();
-  const accessStore = useUserAccessStore();
   const subscriptionStore = useSubscriptionStore();
   const workspaceStore = useWorkspaceStore();
 
@@ -80,11 +78,6 @@ export function useFeatureAccess() {
     return featureAccessConfig[featureKey].freeLimit;
   }
 
-  function setMockRole(nextRole: UserRole) {
-    workspaceStore.setCurrentMemberRole(nextRole);
-    accessStore.setMockRole(nextRole);
-  }
-
   return {
     planType,
     userRole,
@@ -93,6 +86,5 @@ export function useFeatureAccess() {
     canAccessMeetingHistoryItem,
     getFeatureAccess,
     getFreeLimit,
-    setMockRole,
   };
 }

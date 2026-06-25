@@ -5,11 +5,8 @@ import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
 import { useLocalizationStore } from '@/app/stores/localization';
 import { reminderDayOptions, useRemindersStore } from '@/app/stores/reminders';
-import {
-  featureAccessConfig,
-  premiumFeatureKeys,
-} from '@/features/access/featureAccess.config';
-import type { FeatureKey, UserRole } from '@/features/access/types';
+import { featureAccessConfig } from '@/features/access/featureAccess.config';
+import type { FeatureKey } from '@/features/access/types';
 import type { ReminderDay } from '@/features/reminders/types';
 import {
   isSupportedLocale,
@@ -21,14 +18,12 @@ import PremiumLock from '@/shared/components/PremiumLock.vue';
 import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useNotifications } from '@/shared/composables/useNotifications';
-import { appConfig } from '@/shared/config/env';
 
 const route = useRoute();
 const { t } = useI18n();
 const authStore = useAuthStore();
 const localizationStore = useLocalizationStore();
-const { userRole, canUseFeature, getFeatureAccess, setMockRole } =
-  useFeatureAccess();
+const { canUseFeature } = useFeatureAccess();
 const remindersStore = useRemindersStore();
 const {
   disableReminders,
@@ -42,11 +37,6 @@ const {
 
 void syncPermissionStatus();
 
-const roleOptions = computed<Array<{ label: string; value: UserRole }>>(() => [
-  { label: t('settings.role.owner'), value: 'owner' },
-  { label: t('settings.role.adultMember'), value: 'adult_member' },
-  { label: t('settings.role.viewer'), value: 'viewer' },
-]);
 const timeInputStep = 300;
 const localizedReminderDayOptions = computed(() =>
   reminderDayOptions.map((option) => ({
@@ -58,29 +48,12 @@ const localeOptions = supportedLocales.map((locale) => ({
   value: locale,
   label: localeNames[locale],
 }));
-const premiumFeatures = computed(() =>
-  premiumFeatureKeys.map((featureKey) => ({
-    key: featureKey,
-    access: getFeatureAccess(featureKey),
-  }))
-);
-const canShowDevelopmentMockUi = computed(
-  () => appConfig.isDevelopmentMockUiEnabled
-);
-
 const canUseReminders = computed(() => canUseFeature('agreementReminders'));
-const canShowCalendarSync = computed(
-  () => appConfig.isGoogleCalendarSyncEnabled
-);
 const accountStatusText = computed(() => {
   if (authStore.isAuthenticated) {
     return t('settings.signedInAs', {
       email: authStore.user?.email ?? t('settings.signedInFallback'),
     });
-  }
-
-  if (authStore.isLocalOnly) {
-    return t('settings.localOnly');
   }
 
   return t('settings.noAccount');
@@ -226,7 +199,6 @@ function updateLocale(event: Event) {
         {{ t('settings.workspaceSettings') }}
       </RouterLink>
       <RouterLink
-        v-if="canShowCalendarSync"
         class="secondary-button link-button"
         :to="{ name: 'calendar-sync' }"
       >
@@ -354,44 +326,5 @@ function updateLocale(event: Event) {
     <HouseholdMembersSettings />
 
     <UpgradePrompt v-if="lockedFeature" :feature="lockedFeature" />
-
-    <div v-if="canShowDevelopmentMockUi" class="content-panel settings-panel">
-      <h2>{{ t('settings.mockWorkspaceRole') }}</h2>
-      <div class="role-grid">
-        <button
-          v-for="role in roleOptions"
-          :key="role.value"
-          type="button"
-          :class="['role-option', { 'is-active': userRole === role.value }]"
-          @click="setMockRole(role.value)"
-        >
-          {{ role.label }}
-        </button>
-      </div>
-    </div>
-
-    <div v-if="canShowDevelopmentMockUi" class="content-panel settings-panel">
-      <h2>{{ t('settings.premiumFeatureChecks') }}</h2>
-      <ul class="feature-list">
-        <li v-for="feature in premiumFeatures" :key="feature.key">
-          <div>
-            <strong>{{ feature.access.label }}</strong>
-            <p>{{ feature.access.description }}</p>
-          </div>
-          <span
-            :class="[
-              'feature-status',
-              { 'is-available': canUseFeature(feature.key) },
-            ]"
-          >
-            {{
-              canUseFeature(feature.key)
-                ? t('common.available')
-                : t('common.locked')
-            }}
-          </span>
-        </li>
-      </ul>
-    </div>
   </section>
 </template>

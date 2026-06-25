@@ -118,10 +118,6 @@ onMounted(() => {
           </dd>
         </div>
         <div>
-          <dt>{{ t('supportDiagnostics.apiMode') }}</dt>
-          <dd>{{ diagnostics?.app.apiMode ?? t('common.notAvailable') }}</dd>
-        </div>
-        <div>
           <dt>{{ t('supportDiagnostics.backendOrigin') }}</dt>
           <dd>
             {{ diagnostics?.app.backendOrigin ?? t('common.notAvailable') }}

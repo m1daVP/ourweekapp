@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { useAuthStore } from '@/app/stores/auth';
 import { useLocalizationStore } from '@/app/stores/localization';
 import { useSubscriptionStore } from '@/app/stores/subscription';
+import { useWorkspaceStore } from '@/app/stores/workspace';
 import { appConfig } from '@/shared/config/env';
 import {
   getBackendHealthSummary,
@@ -20,12 +21,7 @@ import {
 } from '@/shared/services/redactionService';
 import { nowIso } from '@/shared/utils/dates';
 
-type AccountDiagnosticsState =
-  | 'signed_in'
-  | 'local_only'
-  | 'guest'
-  | 'loading'
-  | 'error';
+type AccountDiagnosticsState = 'signed_in' | 'guest' | 'loading' | 'error';
 
 interface BackendHealthDiagnostics {
   health: HealthCheckResult<HealthStatusDto>;
@@ -37,11 +33,7 @@ export interface SupportDiagnostics {
   generatedAt: string;
   app: {
     environment: string;
-    apiMode: string;
-    backendOrigin: string | null;
-    backendEnabled: boolean;
-    googleCalendarSyncEnabled: boolean;
-    developmentMockUiEnabled: boolean;
+    backendOrigin: string;
   };
   device: {
     platform: string;
@@ -78,14 +70,10 @@ export type SupportDiagnosticsInput = Omit<
 };
 
 function getBackendOrigin() {
-  if (!appConfig.apiBaseUrl) {
-    return null;
-  }
-
   try {
     return new URL(appConfig.apiBaseUrl).origin;
   } catch {
-    return null;
+    return '';
   }
 }
 
@@ -105,10 +93,6 @@ function getAccountState(): AccountDiagnosticsState {
 
   if (authStore.isAuthenticated) {
     return 'signed_in';
-  }
-
-  if (authStore.isLocalOnly) {
-    return 'local_only';
   }
 
   if (authStore.authStatus === 'loading') {
@@ -134,22 +118,19 @@ export function createSupportDiagnosticsSnapshot(
 export async function collectSupportDiagnostics(): Promise<SupportDiagnostics> {
   const authStore = useAuthStore();
   const subscriptionStore = useSubscriptionStore();
+  const workspaceStore = useWorkspaceStore();
   const localizationStore = useLocalizationStore();
   const backend = await getBackendHealthSummary();
 
   return createSupportDiagnosticsSnapshot({
     app: {
       environment: appConfig.appEnvironment,
-      apiMode: appConfig.apiMode,
       backendOrigin: getBackendOrigin(),
-      backendEnabled: appConfig.isBackendApiEnabled,
-      googleCalendarSyncEnabled: appConfig.isGoogleCalendarSyncEnabled,
-      developmentMockUiEnabled: appConfig.isDevelopmentMockUiEnabled,
     },
     device: getDeviceDiagnostics(),
     account: {
       state: getAccountState(),
-      role: authStore.user?.role ?? null,
+      role: authStore.isAuthenticated ? workspaceStore.currentUserRole : null,
     },
     subscription: {
       plan: subscriptionStore.currentPlan,
@@ -222,11 +203,7 @@ function createAllowedSupportDiagnostics(
     generatedAt: diagnostics.generatedAt,
     app: {
       environment: diagnostics.app.environment,
-      apiMode: diagnostics.app.apiMode,
       backendOrigin: diagnostics.app.backendOrigin,
-      backendEnabled: diagnostics.app.backendEnabled,
-      googleCalendarSyncEnabled: diagnostics.app.googleCalendarSyncEnabled,
-      developmentMockUiEnabled: diagnostics.app.developmentMockUiEnabled,
     },
     device: {
       platform: diagnostics.device.platform,

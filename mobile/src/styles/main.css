@@ -869,8 +869,7 @@ input[type='radio'] {
 .auth-actions a,
 .auth-actions button,
 .empty-state button,
-.base-bottom-sheet__header button,
-.subscription-mock-button {
+.base-bottom-sheet__header button {
   display: inline-flex;
   min-height: 52px;
   align-items: center;
@@ -941,8 +940,7 @@ input[type='radio'] {
 
 .base-button--secondary,
 .secondary-button,
-.calendar-sync-secondary,
-.subscription-mock-button {
+.calendar-sync-secondary {
   border-color: var(--color-secondary-fixed);
   background: var(--color-secondary-fixed);
   color: #633f0b;
