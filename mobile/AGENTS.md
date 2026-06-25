@@ -149,10 +149,9 @@ The current product supports or is being prepared to support for public v1:
 - meeting history;
 - local persistence with basic data versioning;
 - Free and Premium feature locks;
-- development-only mock Premium subscription provider;
+- RevenueCat-backed native Premium purchase and trusted backend validation;
 - paid Premium purchase and entitlement validation behind trusted backend or store validation;
-- development-only mock AI summaries behind a Premium lock;
-- production AI summaries only through a backend provider;
+- backend AI summaries behind a Premium lock;
 - private notes with a local-only storage notice;
 - local reminders;
 - export;
@@ -236,7 +235,7 @@ Do not shame users. Do not decide who is right or wrong. Do not present the app 
 
 Free and Premium remain the product tiers. Paid Premium v1 requires trusted backend or store entitlement checks before unlocking paid features.
 
-Development builds may use mock Premium state for testing. Production builds must not expose paid features through mock state or frontend-only entitlement checks.
+All app builds use trusted backend entitlement state. Shipped development mock Premium state is not supported.
 
 ### Free plan
 
@@ -428,15 +427,13 @@ Current environment variables:
 
 ```txt
 VITE_API_BASE_URL=
-VITE_API_MODE=mock
-VITE_APP_ENV=local
 ```
 
 Rules:
 
 - Never put secrets in Vite environment variables.
 - Never place AI provider API keys in the mobile app.
-- If no API base URL is configured, the app should use local development behavior where available.
+- The API base URL is required for development, staging, and production.
 - Keep Vite config simple.
 - Use path aliases if already configured; do not introduce alias churn without benefit.
 
@@ -773,7 +770,7 @@ Storage is split by sensitivity:
 
 - Sensitive auth tokens, including access tokens and refresh tokens, must use `src/shared/services/authTokenStorageService.ts`, backed by `@aparajita/capacitor-secure-storage` on native platforms.
 - Non-sensitive app settings should use `@capacitor/preferences` through the shared storage service. Preferences are suitable for lightweight settings such as localization, reminder settings, calendar sync preferences without OAuth tokens, and workspace UI/member settings.
-- Meeting data, tasks, agreements, participants, private notes, and development-only mock subscription state remain in the versioned local app data store until a more specific persistence layer is introduced.
+- Meeting data, tasks, agreements, participants, and private notes remain in the versioned local app data store for offline/local-first behavior until a more specific persistence layer is introduced.
 - Do not store access tokens, refresh tokens, OAuth tokens, API keys, payment data, or other secrets in `localStorage`, Capacitor Preferences, Pinia persistence, exports, logs, or user-visible error messages.
 - Capacitor Preferences is not secure storage. Use it only for non-sensitive settings.
 
@@ -786,7 +783,6 @@ Stored data may include:
 - settings;
 - private notes;
 - onboarding state;
-- development-only mock subscription state.
 
 Rules:
 
@@ -809,7 +805,7 @@ storageService.remove();
 
 ## Premium and Subscription Rules
 
-Premium access may use a mock subscription provider only for development and local testing.
+Native Premium purchases use RevenueCat and trusted backend entitlement validation.
 
 Rules:
 
@@ -818,14 +814,14 @@ Rules:
 - Keep subscription logic behind a provider/service abstraction.
 - Production paid Premium requires trusted backend or store entitlement validation before paid features are unlocked.
 - In production, frontend state must not be the source of truth for paid access.
-- Mock Premium state must never grant production paid access.
+- Shipped mock Premium providers or frontend-only entitlement overrides are not allowed.
 - Purchase, restore, and manage-subscription flows must fail safely if entitlement validation is unavailable.
 - Consider RevenueCat or direct Google Play Billing only after platform rules are reviewed.
 - Do not use Stripe Checkout for mobile app subscriptions unless store policy implications are reviewed.
 
 ## AI Summary Rules
 
-AI summaries are Premium-gated. Local mock AI is development-only; production AI summaries require a backend provider.
+AI summaries are Premium-gated and always require a backend provider.
 
 Rules:
 
@@ -833,7 +829,7 @@ Rules:
 - Real AI calls must go through a backend.
 - API keys must not be placed in the mobile app.
 - Keep AI behind a clean provider/service abstraction.
-- Mock AI must be clearly separated from real backend AI and must not be presented as production AI.
+- Shipped local or placeholder AI summary providers are not allowed.
 - AI summaries must be neutral, short, practical, and non-judgmental.
 - AI summaries should focus on agreements, tasks, and next steps.
 

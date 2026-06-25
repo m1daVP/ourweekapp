@@ -63,11 +63,8 @@ Acceptance criteria:
 ### 2. Finish Backend Environment And API Contract
 
 - Deploy a staging and production backend with HTTPS URLs.
-- Set release builds to:
-  - `VITE_API_MODE=backend`;
-  - `VITE_API_BASE_URL=<production HTTPS API origin>`;
-  - `VITE_APP_ENV=production`;
-  - `VITE_ENABLE_GOOGLE_CALENDAR=true` only after Calendar is fully verified.
+- Set `VITE_API_BASE_URL` to the production HTTPS API origin. Backend access is
+  mandatory and Calendar uses the backend without a feature switch.
 - Keep API versioning stable under `/v1`.
 - Keep structured error responses consistent:
   - `message`;

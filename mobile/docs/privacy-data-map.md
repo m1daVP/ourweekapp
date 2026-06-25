@@ -63,10 +63,10 @@ Relevant backend surfaces:
 
 ## Implementation Notes
 
-- In-app legal screens should not say the product is local-only when
-  `VITE_API_MODE=backend` is used.
+- In-app legal screens must describe backend sync accurately while preserving
+  the separate local-only policy for private notes.
 - Production paid Premium must not be unlocked by local test subscription state.
 - Production AI summaries must go through the backend.
-- Calendar sync should be hidden in production unless backend OAuth and Data
-  Safety disclosures are complete.
+- Calendar sync requires verified backend OAuth and accurate Data Safety
+  disclosures.
 - Private notes must stay out of exports and AI summaries by default.

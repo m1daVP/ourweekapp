@@ -16,7 +16,7 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
 
 1. **Create backend API foundation** ✅
    - Define and deploy the MVP backend base URL used by `VITE_API_BASE_URL`.
-   - Set production/staging builds to `VITE_API_MODE=backend`.
+   - Require `VITE_API_BASE_URL` for development, staging, and production.
    - Implement a typed HTTP contract matching existing frontend API clients in `src/shared/api`.
    - Add backend handling for:
      - auth/session;
@@ -194,7 +194,7 @@ Scope: this checklist covers what is still needed for a production-capable MVP s
 11. **Add API integration tests or contract checks** ✅
     - Add focused tests for API DTO mapping and sync conflict handling.
     - Add backend contract examples for each endpoint.
-    - Validate `VITE_API_MODE=backend` with missing/invalid `VITE_API_BASE_URL`.
+    - Validate missing or invalid `VITE_API_BASE_URL`.
     - Test backend unavailable, 401, 403, 409, 422, and 500 responses.
 
 12. **Replace browser confirms with mobile dialogs** ✅

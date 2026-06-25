@@ -47,8 +47,7 @@ meal planning, grocery lists, complex budgeting, or calendar management.
 Public v1 scope is locked in `docs/public-v1-feature-scope.md`. Features listed
 in app navigation, store copy, release notes, or legal copy must be complete for
 production launch and must not be described as test-only, draft, or hidden from
-release. Calendar sync remains behind `VITE_ENABLE_GOOGLE_CALENDAR=true` until
-the verified backend OAuth flow is ready for a production build.
+release. Calendar sync always uses the configured backend OAuth flow.
 
 ## Tech Stack
 
@@ -173,10 +172,8 @@ Paid Premium must not rely on frontend-only state in production. Production
 Premium entitlement must come from trusted backend or store validation before
 paid features are unlocked.
 
-The local test subscription provider is for development only and must not grant
-production access. Do not sell Premium until purchase, restore,
-manage-subscription, and entitlement validation behavior are connected to the
-production billing path.
+Native purchases use RevenueCat and every entitlement is validated by the
+backend before Premium access is granted.
 
 AI summaries are Premium-gated. Production AI summaries must go through the
 backend. API keys must not be placed in the mobile app.
@@ -185,24 +182,31 @@ AI summaries may be inaccurate. Review before relying on them.
 
 ## Environment Configuration
 
-Backend API behavior is controlled by Vite environment variables:
+The backend is required for every app run:
 
 ```txt
-VITE_API_BASE_URL=
-VITE_API_MODE=mock
-VITE_APP_ENV=local
-VITE_ENABLE_GOOGLE_CALENDAR=false
+VITE_API_BASE_URL=http://localhost:3030
 ```
 
-Use `VITE_API_MODE=mock` for local development and design/testing flows that do
-not require the backend.
+Development and builds fail immediately when `VITE_API_BASE_URL` is missing or
+invalid. Local HTTP is accepted for development; public release builds require
+a public HTTPS backend URL.
 
-Production builds that use backend-backed auth, subscription validation, AI, or
-Calendar features must configure `VITE_API_BASE_URL`.
+Public release builds use the strict production configuration gate:
 
-Google Calendar sync is hidden in production unless
-`VITE_ENABLE_GOOGLE_CALENDAR=true` is set for a backend build with secure
-server-side Google OAuth and token storage.
+```bash
+copy .env.release.example .env.release.local
+npm run build:production
+```
+
+The build fails unless a public HTTPS backend and explicit Android
+RevenueCat/product identifiers are
+configured. The validator reports variable names and corrective actions but
+does not print their values. `npm run cap:sync:production` applies the same gate
+before syncing Android.
+
+Google Calendar sync always uses the backend for OAuth, token handling, sync,
+disconnect, and revoke behavior.
 
 Never put secrets in Vite environment variables. Values exposed through Vite are
 bundled into the mobile/web app.
