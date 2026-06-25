@@ -3,7 +3,6 @@ import {
   readStorageSlice,
   writeStorageSlice,
 } from '@/shared/services/storageService';
-import { appConfig } from '@/shared/config/env';
 import { uniqueStrings } from '@/shared/utils/collections';
 import { compareIsoDesc, nowIso } from '@/shared/utils/dates';
 import { createId } from '@/shared/utils/ids';
@@ -434,58 +433,33 @@ export const useTasksStore = defineStore('tasks', {
         return;
       }
 
-      if (appConfig.isBackendApiEnabled) {
-        const deletedAt = nowIso();
-        task.deletedAt = deletedAt;
-        task.updatedAt = deletedAt;
-        this.persist();
-        return;
-      }
-
-      const originalLength = this.tasks.length;
-      this.tasks = this.tasks.filter((item) => item.id !== taskId);
-
-      if (this.tasks.length !== originalLength) {
-        this.persist();
-      }
+      const deletedAt = nowIso();
+      task.deletedAt = deletedAt;
+      task.updatedAt = deletedAt;
+      this.persist();
     },
     deleteItemsForMeeting(sourceMeetingId: string) {
       const changedAt = nowIso();
       const originalReviewDecisionLength = this.reviewDecisions.length;
       let changed = false;
 
-      if (appConfig.isBackendApiEnabled) {
-        for (const task of this.tasks) {
-          if (task.sourceMeetingId === sourceMeetingId && !task.deletedAt) {
-            task.deletedAt = changedAt;
-            task.updatedAt = changedAt;
-            changed = true;
-          }
+      for (const task of this.tasks) {
+        if (task.sourceMeetingId === sourceMeetingId && !task.deletedAt) {
+          task.deletedAt = changedAt;
+          task.updatedAt = changedAt;
+          changed = true;
         }
+      }
 
-        for (const agreement of this.agreements) {
-          if (
-            agreement.sourceMeetingId === sourceMeetingId &&
-            !agreement.deletedAt
-          ) {
-            agreement.deletedAt = changedAt;
-            agreement.updatedAt = changedAt;
-            changed = true;
-          }
+      for (const agreement of this.agreements) {
+        if (
+          agreement.sourceMeetingId === sourceMeetingId &&
+          !agreement.deletedAt
+        ) {
+          agreement.deletedAt = changedAt;
+          agreement.updatedAt = changedAt;
+          changed = true;
         }
-      } else {
-        const originalTaskLength = this.tasks.length;
-        const originalAgreementLength = this.agreements.length;
-
-        this.tasks = this.tasks.filter(
-          (task) => task.sourceMeetingId !== sourceMeetingId
-        );
-        this.agreements = this.agreements.filter(
-          (agreement) => agreement.sourceMeetingId !== sourceMeetingId
-        );
-        changed =
-          this.tasks.length !== originalTaskLength ||
-          this.agreements.length !== originalAgreementLength;
       }
 
       this.reviewDecisions = this.reviewDecisions.filter(

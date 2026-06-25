@@ -2,7 +2,6 @@ import { useAuthStore } from '@/app/stores/auth';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
-import { appConfig } from '@/shared/config/env';
 import {
   isApplyingRemoteSync,
   markLocalChange,
@@ -39,9 +38,7 @@ function serializeParticipantState() {
 
 export function useCoreDataSync() {
   const authStore = useAuthStore();
-  const canSync = computed(
-    () => appConfig.isBackendApiEnabled && authStore.isAuthenticated
-  );
+  const canSync = computed(() => authStore.isAuthenticated);
   let syncTimer: ReturnType<typeof setTimeout> | null = null;
   const stopWatchers: Array<() => void> = [];
 

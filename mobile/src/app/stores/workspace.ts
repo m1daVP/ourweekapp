@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { translate } from '@/features/localization/i18n';
-import { appConfig } from '@/shared/config/env';
 import {
   createWorkspaceInvitation,
   getWorkspace,
@@ -46,10 +45,6 @@ interface InviteMemberPayload {
   displayName: string;
   email?: string;
   role: Exclude<UserRole, 'owner'>;
-}
-
-function isBackendWorkspaceEnabled() {
-  return appConfig.isBackendApiEnabled;
 }
 
 function normalizeRole(role: unknown): UserRole {
@@ -226,6 +221,10 @@ export const useWorkspaceStore = defineStore('workspace', {
         (member) => member.userId === state.currentUserId
       ) ?? null,
     currentUserRole(): UserRole {
+      if (this.currentUserId !== LOCAL_OWNER_ID && !this.lastSyncedAt) {
+        return 'viewer';
+      }
+
       return this.currentMember?.role ?? 'viewer';
     },
   },
@@ -282,10 +281,6 @@ export const useWorkspaceStore = defineStore('workspace', {
       this.persist();
     },
     async loadWorkspace() {
-      if (!isBackendWorkspaceEnabled()) {
-        return true;
-      }
-
       this.isLoading = true;
       this.errorMessage = '';
 
@@ -308,10 +303,6 @@ export const useWorkspaceStore = defineStore('workspace', {
 
       if (!nextName) {
         return false;
-      }
-
-      if (!isBackendWorkspaceEnabled()) {
-        return this.updateWorkspaceName(nextName);
       }
 
       this.isSaving = true;
@@ -337,10 +328,6 @@ export const useWorkspaceStore = defineStore('workspace', {
 
       if (!displayName || !email) {
         return null;
-      }
-
-      if (!isBackendWorkspaceEnabled()) {
-        return this.inviteMember(payload);
       }
 
       this.isSaving = true;
@@ -374,10 +361,6 @@ export const useWorkspaceStore = defineStore('workspace', {
       }
     },
     async saveMemberRole(userId: string, role: Exclude<UserRole, 'owner'>) {
-      if (!isBackendWorkspaceEnabled()) {
-        return this.updateMemberRole(userId, role);
-      }
-
       this.isSaving = true;
       this.errorMessage = '';
 
@@ -396,10 +379,6 @@ export const useWorkspaceStore = defineStore('workspace', {
       }
     },
     async removeWorkspaceMember(userId: string) {
-      if (!isBackendWorkspaceEnabled()) {
-        return this.removeMember(userId);
-      }
-
       this.isSaving = true;
       this.errorMessage = '';
 
@@ -431,131 +410,6 @@ export const useWorkspaceStore = defineStore('workspace', {
       } finally {
         this.isSaving = false;
       }
-    },
-    updateWorkspaceName(name: string) {
-      const nextName = name.trim();
-
-      if (!nextName) {
-        return false;
-      }
-
-      this.workspace.name = nextName;
-      this.workspace.updatedAt = nowIso();
-      this.persist();
-      return true;
-    },
-    inviteMember(payload: InviteMemberPayload) {
-      const displayName = payload.displayName.trim();
-
-      if (!displayName) {
-        return null;
-      }
-
-      const member: WorkspaceMember = {
-        userId: createPrefixedId('member'),
-        displayName,
-        email: payload.email?.trim() || undefined,
-        role: payload.role,
-        status: 'invited',
-      };
-
-      this.workspace.members.push(member);
-      this.workspace.updatedAt = nowIso();
-      this.persist();
-      return member;
-    },
-    updateMemberRole(userId: string, role: UserRole) {
-      const member = this.workspace.members.find(
-        (item) => item.userId === userId
-      );
-
-      if (!member || member.userId === this.workspace.ownerId) {
-        return false;
-      }
-
-      member.role = role === 'owner' ? 'adult_member' : role;
-      this.workspace.updatedAt = nowIso();
-      this.persist();
-      return true;
-    },
-    removeMember(userId: string) {
-      const member = this.workspace.members.find(
-        (item) => item.userId === userId
-      );
-
-      if (!member || member.userId === this.workspace.ownerId) {
-        return false;
-      }
-
-      member.status = 'removed';
-      this.workspace.updatedAt = nowIso();
-
-      if (this.currentUserId === userId) {
-        this.currentUserId = this.workspace.ownerId;
-      }
-
-      this.persist();
-      return true;
-    },
-    setCurrentUser(userId: string) {
-      const member = this.workspace.members.find(
-        (item) => item.userId === userId
-      );
-
-      if (!member || member.status === 'removed') {
-        return false;
-      }
-
-      this.currentUserId = userId;
-      this.persist();
-      return true;
-    },
-    setCurrentMemberRole(role: UserRole) {
-      const member = this.currentMember;
-
-      if (!member) {
-        return false;
-      }
-
-      if (role === 'owner') {
-        this.currentUserId = this.workspace.ownerId;
-        this.persist();
-        return true;
-      }
-
-      if (member.userId === this.workspace.ownerId) {
-        const existingMember = this.workspace.members.find(
-          (item) => item.role === role && item.status !== 'removed'
-        );
-
-        if (existingMember) {
-          this.currentUserId = existingMember.userId;
-          this.persist();
-          return true;
-        }
-
-        const createdAt = nowIso();
-        this.workspace.members.push({
-          userId: createPrefixedId('member'),
-          displayName:
-            role === 'adult_member'
-              ? translate('settings.role.adultMember')
-              : translate('settings.role.viewer'),
-          role,
-          status: 'active',
-        });
-        this.workspace.updatedAt = createdAt;
-        this.currentUserId =
-          this.workspace.members[this.workspace.members.length - 1].userId;
-        this.persist();
-        return true;
-      }
-
-      member.role = role;
-      member.status = 'active';
-      this.workspace.updatedAt = nowIso();
-      this.persist();
-      return true;
     },
   },
 });

@@ -7,7 +7,6 @@ import type { Agreement, Task } from '@/features/tasks/types';
 import { apiRequest } from '@/shared/api/httpClient';
 import { listMeetings, syncMeetingsApi } from '@/shared/api/meetingsApi';
 import { listTasks, syncTasksApi } from '@/shared/api/tasksApi';
-import { appConfig } from '@/shared/config/env';
 import {
   bindSyncOwner,
   ensureFirstSyncBackup,
@@ -57,7 +56,7 @@ export type {
 
 export interface SyncResult {
   resource: SyncResource;
-  mode: 'mock' | 'backend';
+  mode: 'backend';
   pushedCount: number;
   pulledCount: number;
   conflictCount: number;
@@ -104,10 +103,6 @@ function setResourceStatus(
 }
 
 export function markLocalChange(resource: SyncResource) {
-  if (!appConfig.isBackendApiEnabled) {
-    return;
-  }
-
   const changedAt = nowIso();
 
   setResourceStatus(resource, {
@@ -175,21 +170,6 @@ function createOfflineResult(resource: SyncResource): SyncResult {
     conflictCount: 0,
     syncedAt,
     skippedReason: translate('sync.offline'),
-  };
-}
-
-function createMockResult(
-  resource: SyncResource,
-  pushedCount: number
-): SyncResult {
-  return {
-    resource,
-    mode: 'mock',
-    pushedCount,
-    pulledCount: 0,
-    conflictCount: 0,
-    syncedAt: nowIso(),
-    skippedReason: translate('sync.backendUnavailable'),
   };
 }
 
@@ -272,11 +252,7 @@ function applyTasksFromBackend(
 }
 
 async function hydrateCoreDataFromBackend() {
-  if (
-    hasInitialHydrationCompleted() ||
-    !appConfig.isBackendApiEnabled ||
-    isOffline()
-  ) {
+  if (hasInitialHydrationCompleted() || isOffline()) {
     return;
   }
 
@@ -360,10 +336,6 @@ export async function syncMeetings(): Promise<SyncResult> {
   const meetingsStore = useMeetingsStore();
   const attemptedAt = nowIso();
 
-  if (!appConfig.isBackendApiEnabled) {
-    return createMockResult('meetings', meetingsStore.meetings.length);
-  }
-
   if (isOffline()) {
     return createOfflineResult('meetings');
   }
@@ -424,13 +396,6 @@ export async function syncTasks(): Promise<SyncResult> {
   const tasksStore = useTasksStore();
   const attemptedAt = nowIso();
 
-  if (!appConfig.isBackendApiEnabled) {
-    return createMockResult(
-      'tasks',
-      tasksStore.tasks.length + tasksStore.agreements.length
-    );
-  }
-
   if (isOffline()) {
     return createOfflineResult('tasks');
   }
@@ -483,13 +448,6 @@ export async function syncTasks(): Promise<SyncResult> {
 export async function syncParticipants(): Promise<SyncResult> {
   const participantsStore = useParticipantsStore();
   const attemptedAt = nowIso();
-
-  if (!appConfig.isBackendApiEnabled) {
-    return createMockResult(
-      'participants',
-      participantsStore.participants.length
-    );
-  }
 
   if (isOffline()) {
     return createOfflineResult('participants');

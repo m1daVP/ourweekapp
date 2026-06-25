@@ -21,14 +21,6 @@ const mocks = vi.hoisted(() => ({
   writeSyncResourceMetadata: vi.fn(),
 }));
 
-vi.mock('@/shared/config/env', () => ({
-  appConfig: {
-    isBackendApiEnabled: true,
-    apiMode: 'backend',
-    apiBaseUrl: 'http://localhost:3030',
-  },
-}));
-
 vi.mock('@/features/localization/i18n', () => ({
   translate: (key: string) => key,
 }));
@@ -114,6 +106,7 @@ function task(id: string, title = id): Task {
 }
 
 beforeEach(() => {
+  vi.unstubAllGlobals();
   setActivePinia(createPinia());
   resetSyncRuntimeStateForTests();
 
@@ -326,6 +319,7 @@ describe('syncService', () => {
     expect(tasksStore.tasks).toEqual([]);
     expect(workspaceStore.workspace.ownerId).toBe('new-user');
     expect(workspaceStore.currentUserId).toBe('new-user');
+    expect(workspaceStore.currentUserRole).toBe('viewer');
     expect(workspaceStore.workspace.name).not.toBe('Old household');
     expect(
       workspaceStore.workspace.members.some((member) =>
@@ -463,5 +457,20 @@ describe('syncService', () => {
       'tasks',
       expect.objectContaining({ lastFailedAt: expect.any(String) })
     );
+  });
+
+  it('keeps authenticated local data queued while offline', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    const tasksStore = useTasksStore();
+    tasksStore.tasks = [task('task-1', 'Keep offline')];
+
+    const result = await syncTasks();
+
+    expect(result.mode).toBe('backend');
+    expect(result.skippedReason).toBe('sync.offline');
+    expect(tasksStore.tasks).toEqual([
+      expect.objectContaining({ id: 'task-1' }),
+    ]);
+    expect(mocks.syncTasksApi).not.toHaveBeenCalled();
   });
 });

@@ -5,7 +5,6 @@ import {
   readStorageSlice,
   writeStorageSlice,
 } from '@/shared/services/storageService';
-import { appConfig } from '@/shared/config/env';
 import { uniqueStrings } from '@/shared/utils/collections';
 import { nowIso } from '@/shared/utils/dates';
 import { createId } from '@/shared/utils/ids';
@@ -501,13 +500,9 @@ export const useMeetingsStore = defineStore('meetings', {
         return false;
       }
 
-      if (appConfig.isBackendApiEnabled) {
-        const deletedAt = nowIso();
-        meeting.deletedAt = deletedAt;
-        meeting.updatedAt = deletedAt;
-      } else {
-        this.meetings = this.meetings.filter((item) => item.id !== meetingId);
-      }
+      const deletedAt = nowIso();
+      meeting.deletedAt = deletedAt;
+      meeting.updatedAt = deletedAt;
 
       if (this.activeMeetingId === meetingId) {
         this.activeMeetingId = null;

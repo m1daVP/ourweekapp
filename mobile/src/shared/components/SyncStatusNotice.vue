@@ -5,14 +5,11 @@ import {
   getAggregateSyncStatus,
   retrySync,
 } from '@/shared/services/syncService';
-import { appConfig } from '@/shared/config/env';
 
 const { t } = useI18n();
 const isRetrying = ref(false);
 const aggregateStatus = computed(() => getAggregateSyncStatus());
-const isVisible = computed(
-  () => appConfig.isBackendApiEnabled && aggregateStatus.value.state !== 'idle'
-);
+const isVisible = computed(() => aggregateStatus.value.state !== 'idle');
 const message = computed(() => {
   if (aggregateStatus.value.errorMessage) {
     return aggregateStatus.value.errorMessage;

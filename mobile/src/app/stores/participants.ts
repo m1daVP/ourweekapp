@@ -4,7 +4,6 @@ import {
   readStorageSlice,
   writeStorageSlice,
 } from '@/shared/services/storageService';
-import { appConfig } from '@/shared/config/env';
 import { nowIso } from '@/shared/utils/dates';
 import { createId } from '@/shared/utils/ids';
 import type {
@@ -357,23 +356,11 @@ export const useParticipantsStore = defineStore('participants', {
         return;
       }
 
-      if (appConfig.isBackendApiEnabled) {
-        const deletedAt = nowIso();
-        participant.deletedAt = deletedAt;
-        participant.updatedAt = deletedAt;
-        participant.isActive = false;
-        this.persist();
-        return;
-      }
-
-      const originalLength = this.participants.length;
-      this.participants = this.participants.filter(
-        (item) => item.id !== participantId
-      );
-
-      if (this.participants.length !== originalLength) {
-        this.persist();
-      }
+      const deletedAt = nowIso();
+      participant.deletedAt = deletedAt;
+      participant.updatedAt = deletedAt;
+      participant.isActive = false;
+      this.persist();
     },
   },
 });
