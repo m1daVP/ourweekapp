@@ -6,7 +6,6 @@ import type {
   CalendarTaskDueDatePayload,
 } from '@/features/calendar/types';
 import { translate } from '@/features/localization/i18n';
-import { appConfig } from '@/shared/config/env';
 import {
   disconnectGoogleCalendar,
   getGoogleCalendarConnectionStatus,
@@ -17,26 +16,6 @@ import {
 } from '@/shared/api/calendarApi';
 import { openExternalAuthUrl } from '@/shared/services/externalAuthService';
 import { nowIso } from '@/shared/utils/dates';
-
-function createDisconnectedStatus(): CalendarConnectionStatus {
-  return {
-    provider: 'google',
-    state: 'disconnected',
-    connected: false,
-    lastCheckedAt: nowIso(),
-    message: translate('calendar.notConnected'),
-  };
-}
-
-function createUnavailableStatus(): CalendarConnectionStatus {
-  return {
-    provider: 'google',
-    state: 'unavailable',
-    connected: false,
-    lastCheckedAt: nowIso(),
-    message: translate('calendar.unavailable'),
-  };
-}
 
 function getCalendarRedirectUrl() {
   if (typeof window === 'undefined') {
@@ -60,14 +39,9 @@ function createSkippedResult(
 }
 
 export async function connectCalendar(): Promise<CalendarConnectionStatus> {
-  if (!appConfig.isGoogleCalendarSyncEnabled) {
-    return createUnavailableStatus();
-  }
-
-  const connectionStatus =
-    (await startGoogleCalendarConnection({
-      redirectUrl: getCalendarRedirectUrl(),
-    })) ?? createDisconnectedStatus();
+  const connectionStatus = await startGoogleCalendarConnection({
+    redirectUrl: getCalendarRedirectUrl(),
+  });
 
   if (connectionStatus.authorizationUrl) {
     openExternalAuthUrl(connectionStatus.authorizationUrl);
@@ -77,33 +51,16 @@ export async function connectCalendar(): Promise<CalendarConnectionStatus> {
 }
 
 export async function disconnectCalendar(): Promise<CalendarConnectionStatus> {
-  if (!appConfig.isGoogleCalendarSyncEnabled) {
-    return createUnavailableStatus();
-  }
-
-  return (await disconnectGoogleCalendar()) ?? createDisconnectedStatus();
+  return disconnectGoogleCalendar();
 }
 
 export async function getCalendarConnectionStatus(): Promise<CalendarConnectionStatus> {
-  if (!appConfig.isGoogleCalendarSyncEnabled) {
-    return createUnavailableStatus();
-  }
-
-  return (
-    (await getGoogleCalendarConnectionStatus()) ?? createDisconnectedStatus()
-  );
+  return getGoogleCalendarConnectionStatus();
 }
 
 export async function syncMeetingReminder(
   payload: CalendarMeetingReminderPayload
 ): Promise<CalendarSyncResult> {
-  if (!appConfig.isGoogleCalendarSyncEnabled) {
-    return createSkippedResult(
-      'oauth-not-configured',
-      translate('calendar.unavailable')
-    );
-  }
-
   if (!payload.startsAt) {
     return createSkippedResult(
       'missing-calendar-date',
@@ -111,25 +68,12 @@ export async function syncMeetingReminder(
     );
   }
 
-  return (
-    (await syncGoogleCalendarMeetingReminder(payload)) ??
-    createSkippedResult(
-      'oauth-not-configured',
-      translate('calendar.unavailable')
-    )
-  );
+  return syncGoogleCalendarMeetingReminder(payload);
 }
 
 export async function syncTaskDueDate(
   payload: CalendarTaskDueDatePayload
 ): Promise<CalendarSyncResult> {
-  if (!appConfig.isGoogleCalendarSyncEnabled) {
-    return createSkippedResult(
-      'oauth-not-configured',
-      translate('calendar.unavailable')
-    );
-  }
-
   if (!payload.dueDate) {
     return createSkippedResult(
       'missing-calendar-date',
@@ -137,25 +81,12 @@ export async function syncTaskDueDate(
     );
   }
 
-  return (
-    (await syncGoogleCalendarTaskDueDate(payload)) ??
-    createSkippedResult(
-      'oauth-not-configured',
-      translate('calendar.unavailable')
-    )
-  );
+  return syncGoogleCalendarTaskDueDate(payload);
 }
 
 export async function syncFollowUpDate(
   payload: CalendarFollowUpDatePayload
 ): Promise<CalendarSyncResult> {
-  if (!appConfig.isGoogleCalendarSyncEnabled) {
-    return createSkippedResult(
-      'oauth-not-configured',
-      translate('calendar.unavailable')
-    );
-  }
-
   if (!payload.followUpDate) {
     return createSkippedResult(
       'missing-calendar-date',
@@ -163,13 +94,7 @@ export async function syncFollowUpDate(
     );
   }
 
-  return (
-    (await syncGoogleCalendarFollowUpDate(payload)) ??
-    createSkippedResult(
-      'oauth-not-configured',
-      translate('calendar.unavailable')
-    )
-  );
+  return syncGoogleCalendarFollowUpDate(payload);
 }
 
 export const calendarService = {

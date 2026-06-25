@@ -1,6 +1,5 @@
 import type { MeetingSummary } from '@/features/meeting/types';
-import { translate } from '@/features/localization/i18n';
-import { apiRequest, isBackendApiConfigured } from './httpClient';
+import { apiRequest } from './httpClient';
 import { nowIso } from '@/shared/utils/dates';
 import type { MeetingDto } from '@/shared/api/syncDtos';
 
@@ -56,15 +55,6 @@ function normalizeSyncMeetingsResponse(
 }
 
 export async function listMeetings(): Promise<ListMeetingsResponseDto> {
-  if (!isBackendApiConfigured()) {
-    return {
-      meetings: [],
-      activeMeetingId: null,
-      draftSavedAt: null,
-      syncedAt: nowIso(),
-    };
-  }
-
   const response = await apiRequest<ListMeetingsResponseDto>('/meetings/', {
     requiresAuth: true,
   });
@@ -75,16 +65,6 @@ export async function listMeetings(): Promise<ListMeetingsResponseDto> {
 export async function syncMeetingsApi(
   payload: SyncMeetingsRequestDto
 ): Promise<SyncMeetingsResponseDto> {
-  if (!isBackendApiConfigured()) {
-    return {
-      meetings: payload.meetings,
-      activeMeetingId: payload.activeMeetingId,
-      draftSavedAt: payload.draftSavedAt,
-      conflicts: [],
-      syncedAt: nowIso(),
-    };
-  }
-
   const response = await apiRequest<SyncMeetingsResponseDto>('/meetings/sync', {
     method: 'POST',
     body: payload,
@@ -97,10 +77,6 @@ export async function syncMeetingsApi(
 export async function saveMeetingSummary(
   payload: SaveMeetingSummaryRequestDto
 ): Promise<MeetingDto> {
-  if (!isBackendApiConfigured()) {
-    throw new Error(translate('api.saveSummaryNotConfigured'));
-  }
-
   return apiRequest<MeetingDto>(`/meetings/${payload.meetingId}/summary`, {
     method: 'PUT',
     body: { summary: payload.summary },

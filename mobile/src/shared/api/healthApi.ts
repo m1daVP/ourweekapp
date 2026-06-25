@@ -15,11 +15,7 @@ export interface ReadinessStatusDto {
   checks: Record<string, ReadinessCheckStatus>;
 }
 
-export type HealthCheckState =
-  | 'not_configured'
-  | 'reachable'
-  | 'not_ready'
-  | 'unreachable';
+export type HealthCheckState = 'reachable' | 'not_ready' | 'unreachable';
 
 export interface HealthCheckResult<TData> {
   state: HealthCheckState;
@@ -28,10 +24,6 @@ export interface HealthCheckResult<TData> {
 }
 
 function createHealthUrl(path: string) {
-  if (!appConfig.isBackendApiEnabled || !appConfig.apiBaseUrl) {
-    return null;
-  }
-
   return `${appConfig.apiBaseUrl}${path}`;
 }
 
@@ -99,10 +91,6 @@ async function requestHealthEndpoint<TData>(
   } = {}
 ): Promise<HealthCheckResult<TData>> {
   const url = createHealthUrl(path);
-
-  if (!url) {
-    return { state: 'not_configured' };
-  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {

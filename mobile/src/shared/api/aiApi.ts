@@ -1,7 +1,6 @@
 import type { MeetingSummary } from '@/features/meeting/types';
 import type { SupportedLocale } from '@/features/localization/types';
-import { translate } from '@/features/localization/i18n';
-import { apiRequest, isBackendApiConfigured } from './httpClient';
+import { apiRequest } from './httpClient';
 
 export interface GenerateMeetingSummaryRequestDto {
   meetingId: string;
@@ -32,10 +31,6 @@ export async function generateAiMeetingSummary(
   payload: GenerateMeetingSummaryRequestDto,
   options: GenerateMeetingSummaryOptions = {}
 ): Promise<GenerateMeetingSummaryResponseDto> {
-  if (!isBackendApiConfigured()) {
-    throw new Error(translate('api.backendNotConfigured'));
-  }
-
   return apiRequest<GenerateMeetingSummaryResponseDto>('/ai/meeting-summary', {
     method: 'POST',
     body: payload,

@@ -3,17 +3,14 @@ import type { AppConfig } from '@/shared/config/env';
 
 const enabledConfig: AppConfig = {
   apiBaseUrl: 'http://api.test',
-  apiMode: 'backend',
   appEnvironment: 'local',
-  isBackendApiEnabled: true,
-  isDevelopmentMockUiEnabled: false,
-  isGoogleCalendarSyncEnabled: false,
   revenueCatAndroidApiKey: null,
   revenueCatIosApiKey: null,
   revenueCatEntitlementId: 'OurWeek Premium',
   revenueCatCurrentOfferingId: 'default',
+  revenueCatAndroidMonthlyProductId: 'monthly',
+  revenueCatAndroidYearlyProductId: 'yearly',
   isRevenueCatEnabled: false,
-  isRevenueCatValidationEnabled: false,
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -121,21 +118,6 @@ describe('healthApi', () => {
         checks: { database: 'error' },
       },
     });
-  });
-
-  it('returns not_configured when backend mode is unavailable', async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    const { getHealthStatus } = await loadHealthApi({
-      ...enabledConfig,
-      apiBaseUrl: null,
-      isBackendApiEnabled: false,
-    });
-
-    await expect(getHealthStatus()).resolves.toEqual({
-      state: 'not_configured',
-    });
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('returns unreachable for network failures', async () => {

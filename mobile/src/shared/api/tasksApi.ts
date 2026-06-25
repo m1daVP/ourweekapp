@@ -1,5 +1,5 @@
 import type { TaskReviewDecision } from '@/features/tasks/types';
-import { apiRequest, isBackendApiConfigured } from './httpClient';
+import { apiRequest } from './httpClient';
 import { nowIso } from '@/shared/utils/dates';
 import type { AgreementDto, TaskDto } from '@/shared/api/syncDtos';
 
@@ -36,16 +36,6 @@ function normalizeSyncTasksResponse(
 export async function syncTasksApi(
   payload: SyncTasksRequestDto
 ): Promise<SyncTasksResponseDto> {
-  if (!isBackendApiConfigured()) {
-    return {
-      tasks: payload.tasks,
-      agreements: payload.agreements,
-      reviewDecisions: payload.reviewDecisions,
-      conflicts: [],
-      syncedAt: nowIso(),
-    };
-  }
-
   const response = await apiRequest<SyncTasksResponseDto>('/tasks/sync', {
     method: 'POST',
     body: payload,
@@ -56,16 +46,6 @@ export async function syncTasksApi(
 }
 
 export async function listTasks(): Promise<SyncTasksResponseDto> {
-  if (!isBackendApiConfigured()) {
-    return {
-      tasks: [],
-      agreements: [],
-      reviewDecisions: [],
-      conflicts: [],
-      syncedAt: nowIso(),
-    };
-  }
-
   const response = await apiRequest<SyncTasksResponseDto>('/tasks/', {
     requiresAuth: true,
   });

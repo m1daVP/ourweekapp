@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  apiRequest,
-  isBackendApiConfigured,
-  type ApiRequestOptions,
-} from '@/shared/api/httpClient';
+import { apiRequest, type ApiRequestOptions } from '@/shared/api/httpClient';
 import {
   confirmPasswordReset,
   getCurrentUser,
@@ -22,8 +18,6 @@ import { listTasks, syncTasksApi } from '@/shared/api/tasksApi';
 import {
   getSubscriptionManagementUrl,
   getSubscriptionStatus,
-  restoreSubscription,
-  validateSubscription,
   validateRevenueCatSubscription,
 } from '@/shared/api/subscriptionsApi';
 import { generateAiMeetingSummary } from '@/shared/api/aiApi';
@@ -46,11 +40,9 @@ import { deleteAccount, exportAccountData } from '@/shared/api/accountApi';
 
 vi.mock('@/shared/api/httpClient', () => ({
   apiRequest: vi.fn(),
-  isBackendApiConfigured: vi.fn(),
 }));
 
 const apiRequestMock = vi.mocked(apiRequest);
-const isBackendApiConfiguredMock = vi.mocked(isBackendApiConfigured);
 
 function lastApiCall(): [string, ApiRequestOptions | undefined] {
   const call = apiRequestMock.mock.calls.at(-1);
@@ -62,8 +54,6 @@ function lastApiCall(): [string, ApiRequestOptions | undefined] {
 
 beforeEach(() => {
   apiRequestMock.mockReset();
-  isBackendApiConfiguredMock.mockReset();
-  isBackendApiConfiguredMock.mockReturnValue(true);
   apiRequestMock.mockResolvedValue({} as never);
 });
 
@@ -295,24 +285,6 @@ describe('subscriptionsApi', () => {
       { requiresAuth: true },
     ]);
 
-    await validateSubscription({
-      provider: 'google_play',
-      purchaseToken: 'purchase-token',
-      productId: 'premium-monthly',
-    });
-    expect(lastApiCall()).toEqual([
-      '/subscriptions/validate',
-      {
-        method: 'POST',
-        body: {
-          provider: 'google_play',
-          purchaseToken: 'purchase-token',
-          productId: 'premium-monthly',
-        },
-        requiresAuth: true,
-      },
-    ]);
-
     await validateRevenueCatSubscription({
       provider: 'revenuecat',
       appUserID: 'user-1',
@@ -329,16 +301,6 @@ describe('subscriptionsApi', () => {
           productId: 'monthly',
           entitlementId: 'OurWeek Premium',
         },
-        requiresAuth: true,
-      },
-    ]);
-
-    await restoreSubscription({ provider: 'google_play' });
-    expect(lastApiCall()).toEqual([
-      '/subscriptions/restore',
-      {
-        method: 'POST',
-        body: { provider: 'google_play' },
         requiresAuth: true,
       },
     ]);

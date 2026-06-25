@@ -49,10 +49,6 @@ export class ApiClientError extends Error {
   }
 }
 
-export function isBackendApiConfigured() {
-  return appConfig.isBackendApiEnabled;
-}
-
 export function setApiAuthHandlers(handlers: ApiAuthHandlers | null) {
   authHandlers = handlers;
 }
@@ -84,12 +80,6 @@ function createVersionedPath(path: string) {
 }
 
 function createUrl(path: string) {
-  if (!appConfig.apiBaseUrl) {
-    throw new ApiClientError(translate('api.backendNotConfigured'), {
-      code: 'backend_unavailable',
-    });
-  }
-
   return `${appConfig.apiBaseUrl}${createVersionedPath(path)}`;
 }
 
@@ -156,12 +146,6 @@ export async function apiRequest<TResponse>(
   path: string,
   options: ApiRequestOptions = {}
 ): Promise<TResponse> {
-  if (!isBackendApiConfigured()) {
-    throw new ApiClientError(translate('api.backendNotConfigured'), {
-      code: 'backend_unavailable',
-    });
-  }
-
   try {
     return await sendApiRequest<TResponse>(path, options);
   } catch (error) {

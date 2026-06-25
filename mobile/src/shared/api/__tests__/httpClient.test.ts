@@ -3,17 +3,14 @@ import type { AppConfig } from '@/shared/config/env';
 
 const enabledConfig: AppConfig = {
   apiBaseUrl: 'http://api.test',
-  apiMode: 'backend',
   appEnvironment: 'local',
-  isBackendApiEnabled: true,
-  isDevelopmentMockUiEnabled: false,
-  isGoogleCalendarSyncEnabled: true,
   revenueCatAndroidApiKey: null,
   revenueCatIosApiKey: null,
   revenueCatEntitlementId: 'OurWeek Premium',
   revenueCatCurrentOfferingId: 'default',
+  revenueCatAndroidMonthlyProductId: 'monthly',
+  revenueCatAndroidYearlyProductId: 'yearly',
   isRevenueCatEnabled: false,
-  isRevenueCatValidationEnabled: false,
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -231,17 +228,5 @@ describe('apiRequest', () => {
     const { apiRequest } = await loadHttpClient();
 
     await expect(apiRequest('/auth/sign-out')).resolves.toBeUndefined();
-  });
-
-  it('reports backend_unavailable when backend mode is not configured', async () => {
-    const { apiRequest } = await loadHttpClient({
-      ...enabledConfig,
-      apiBaseUrl: null,
-      isBackendApiEnabled: false,
-    });
-
-    await expect(apiRequest('/auth/me')).rejects.toMatchObject({
-      code: 'backend_unavailable',
-    });
   });
 });
