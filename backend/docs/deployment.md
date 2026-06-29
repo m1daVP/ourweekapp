@@ -51,6 +51,40 @@ The Docker image uses `/health/ready` for its container health check.
 
 The worker image has no HTTP health check. Use process liveness and automatic restart policy; queue connectivity failures use bounded polling backoff and eventually terminate the process when the configured failure threshold is reached.
 
+## Render
+
+This repository includes `render.yaml` for a Render Blueprint deployment with:
+
+- `weekly-us-api`: Docker web service using `./Dockerfile`.
+- `weekly-us-worker`: Docker background worker using the same image and `node dist/worker.js`.
+- API health checks pointed at `/health/ready`.
+- Secrets left unset with `sync: false`, so values must be entered in Render.
+
+When using Render's manual web-service form instead of the Blueprint, use these API settings:
+
+```text
+Language: Docker
+Root Directory: leave blank
+Docker Build Context Directory: .
+Dockerfile Path: ./Dockerfile
+Docker Command: leave blank
+Health Check Path: /health/ready
+Auto-Deploy: On Commit
+```
+
+Create the worker as a separate Render Background Worker from the same repo:
+
+```text
+Language: Docker
+Root Directory: leave blank
+Docker Build Context Directory: .
+Dockerfile Path: ./Dockerfile
+Docker Command: node dist/worker.js
+Auto-Deploy: On Commit
+```
+
+Do not configure Render's pre-deploy command for `npm run db:migrate` with the production Docker image. The image intentionally installs production dependencies only, while the Supabase CLI is a development dependency. Apply Supabase migrations from a trusted local machine or CI environment before deploying code that depends on them.
+
 ## Logging
 
 Production logging uses Fastify/Pino JSON logs. Sensitive request headers and common token/password fields are redacted, including authorization headers, cookies, API keys, webhook signatures, access tokens, refresh tokens, passwords, and token-like fields.
