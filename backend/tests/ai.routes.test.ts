@@ -112,6 +112,34 @@ describe('AI summary routes', () => {
     routeGenerateMeetingSummary.mockReset();
   });
 
+  it('selects the mock AI provider when configured', async () => {
+    const { createAiSummaryProvider } = await import('../src/modules/ai/ai.routes.js');
+    const provider = createAiSummaryProvider({
+      AI_CONFIGURED: true,
+      AI_PROVIDER: 'mock',
+      AI_API_KEY: '',
+    });
+
+    await expect(
+      provider.generateMeetingSummary({
+        systemPrompt: 'system',
+        userPrompt: 'user',
+        model: 'test-model',
+        maxOutputTokens: 800,
+      }),
+    ).resolves.toEqual({
+      shortSummary:
+        'Mock summary: this meeting was summarized with the local mock AI provider.',
+      mainTopics: ['Mock main topic'],
+      keyTensions: [],
+      agreements: ['Mock agreement'],
+      tasks: [],
+      suggestedNextMeetingFocus: [
+        'Review this mock summary before using real AI output',
+      ],
+    });
+  });
+
   it('returns 401 for unauthenticated summary requests', async () => {
     const app = await buildAiRoutesApp();
     const response = await app.inject({

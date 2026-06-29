@@ -12,6 +12,7 @@ import {
   aiMeetingSummaryResponseSchema,
 } from './ai.schema.js';
 import { createDefaultAiSummaryService } from './ai.service.js';
+import { MockAiSummaryProvider } from './mock-ai.client.js';
 import { OpenAiSummaryProvider, type AiSummaryProvider } from './openai.client.js';
 
 const aiErrorResponses = {
@@ -39,6 +40,23 @@ const unavailableAiProvider: AiSummaryProvider = {
   },
 };
 
+type AiProviderConfig = Pick<
+  typeof env,
+  'AI_CONFIGURED' | 'AI_PROVIDER' | 'AI_API_KEY'
+>;
+
+export function createAiSummaryProvider(config: AiProviderConfig): AiSummaryProvider {
+  if (!config.AI_CONFIGURED) {
+    return unavailableAiProvider;
+  }
+
+  if (config.AI_PROVIDER === 'mock') {
+    return new MockAiSummaryProvider();
+  }
+
+  return new OpenAiSummaryProvider(config.AI_API_KEY);
+}
+
 export const aiRoutes: FastifyPluginAsyncZod = async (app) => {
   const requireAuth = buildAuthPreHandler(app);
   const subscriptionsRepository = new SubscriptionsRepository(app.supabase);
@@ -65,9 +83,7 @@ export const aiRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const service = createDefaultAiSummaryService(
         app.supabase,
-        env.AI_CONFIGURED
-          ? new OpenAiSummaryProvider(env.OPENAI_API_KEY)
-          : unavailableAiProvider,
+        createAiSummaryProvider(env),
         {
           aiConfigured: env.AI_CONFIGURED,
           model: env.AI_MODEL,
