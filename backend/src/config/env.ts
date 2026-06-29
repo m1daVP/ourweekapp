@@ -1,7 +1,10 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
-import { supabaseServiceRoleKeySchema } from './supabase-env.schema.js';
+import {
+  supabaseServiceRoleKeySchema,
+  supabaseUrlSchema,
+} from './supabase-env.schema.js';
 
 const integerFromString = z.coerce.number().int().positive();
 const optionalString = z
@@ -42,7 +45,7 @@ const envInput = z
       .default('info'),
     SENTRY_DSN: optionalUrl,
 
-    SUPABASE_URL: z.string().url(),
+    SUPABASE_URL: supabaseUrlSchema,
     SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKeySchema,
     SUPABASE_ANON_KEY: z.string().min(1),
 
