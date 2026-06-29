@@ -44,6 +44,7 @@ const subscriptionService = vi.hoisted(() => ({
   validate: vi.fn(),
 }));
 const signInUser = vi.hoisted(() => vi.fn());
+const signInWithGoogle = vi.hoisted(() => vi.fn());
 const authMe = vi.hoisted(() => vi.fn());
 
 Object.assign(process.env, {
@@ -131,6 +132,7 @@ vi.mock('../src/modules/auth/auth.service.js', () => ({
   refreshSession: vi.fn(),
   registerUser: vi.fn(),
   requestPasswordReset: vi.fn(),
+  signInWithGoogle,
   signInUser,
   signOutUser: vi.fn(),
 }));
@@ -282,6 +284,7 @@ describe('API route contracts', () => {
     subscriptionService.restore.mockReset();
     subscriptionService.validate.mockReset();
     signInUser.mockReset();
+    signInWithGoogle.mockReset();
     authMe.mockReset();
   });
 
@@ -534,6 +537,72 @@ describe('API route contracts', () => {
       .toEqual([200, 200, 200, 200, 200]);
     expect(responses[5]?.statusCode).toBe(429);
     expect(signInUser).toHaveBeenCalledTimes(5);
+    await app.close();
+  });
+
+  it('routes Google sign-in through the auth service', async () => {
+    signInWithGoogle.mockResolvedValueOnce(authSessionResponse());
+    const app = await buildRouteApp('auth');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/google',
+      payload: {
+        idToken: 'google-id-token',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      user: {
+        id: authContext.userId,
+        email: 'rita@example.com',
+      },
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+    });
+    expect(signInWithGoogle).toHaveBeenCalledWith({}, {
+      idToken: 'google-id-token',
+    });
+    await app.close();
+  });
+
+  it('returns 422 before Google sign-in service code for invalid bodies', async () => {
+    const app = await buildRouteApp('auth');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/google',
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({ code: 'validation_failed' });
+    expect(signInWithGoogle).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('rate-limits repeated Google sign-in attempts with 429', async () => {
+    signInWithGoogle.mockResolvedValue(authSessionResponse());
+    const app = await buildRouteApp('auth');
+    const payload = {
+      idToken: 'google-id-token',
+    };
+
+    const responses = [];
+    for (let index = 0; index < 6; index += 1) {
+      responses.push(
+        await app.inject({
+          method: 'POST',
+          url: '/v1/auth/google',
+          payload,
+          remoteAddress: '198.51.100.20',
+        }),
+      );
+    }
+
+    expect(responses.slice(0, 5).map((response) => response.statusCode))
+      .toEqual([200, 200, 200, 200, 200]);
+    expect(responses[5]?.statusCode).toBe(429);
+    expect(signInWithGoogle).toHaveBeenCalledTimes(5);
     await app.close();
   });
 

@@ -46,6 +46,7 @@ describe('OpenAPI generation', () => {
   it('includes implemented public and versioned routes', () => {
     expect(document.paths['/health']?.get).toBeDefined();
     expect(document.paths['/v1/auth/register']?.post).toBeDefined();
+    expect(document.paths['/v1/auth/google']?.post).toBeDefined();
     expect(document.paths['/v1/workspace/']?.get).toBeDefined();
     expect(document.paths['/v1/meetings/sync']?.post).toBeDefined();
     expect(document.paths['/v1/tasks/sync']?.post).toBeDefined();
@@ -67,6 +68,7 @@ describe('OpenAPI generation', () => {
     ]);
     expect(document.paths['/v1/auth/register']?.post?.security).toBeUndefined();
     expect(document.paths['/v1/auth/sign-in']?.post?.responses).toHaveProperty('429');
+    expect(document.paths['/v1/auth/google']?.post?.responses).toHaveProperty('429');
     expect(document.paths['/v1/workspace/']?.get?.responses).toHaveProperty('401');
     expect(document.paths['/v1/workspace/']?.get?.responses).toHaveProperty('403');
     expect(document.paths['/v1/meetings/sync']?.post?.responses).toHaveProperty('409');

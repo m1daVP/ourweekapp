@@ -50,6 +50,20 @@ function createQuery(result: unknown) {
   return query;
 }
 
+function createSequentialSupabase(results: unknown[]) {
+  return {
+    from: vi.fn(() => {
+      const result = results.shift();
+
+      if (!result) {
+        throw new Error('Unexpected Supabase call');
+      }
+
+      return createQuery(result);
+    }),
+  } as unknown as SupabaseClient;
+}
+
 function createRefreshRaceSupabase(refreshTokenHash: string) {
   const session = {
     id: 'session-1',
@@ -99,6 +113,86 @@ function createRefreshRaceSupabase(refreshTokenHash: string) {
       return createQuery(result);
     }),
   } as unknown as SupabaseClient;
+}
+
+function userRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'user-1',
+    email: 'rita@example.com',
+    display_name: 'Rita',
+    password_hash: 'hash',
+    created_at: '2026-06-06T10:00:00.000Z',
+    updated_at: '2026-06-06T10:00:00.000Z',
+    deleted_at: null,
+    ...overrides,
+  };
+}
+
+function workspaceRow() {
+  return {
+    id: 'workspace-1',
+    name: "Rita's home",
+    owner_id: 'user-1',
+    created_at: '2026-06-06T10:00:00.000Z',
+    updated_at: '2026-06-06T10:00:00.000Z',
+    deleted_at: null,
+  };
+}
+
+function memberRow() {
+  return {
+    workspace_id: 'workspace-1',
+    user_id: 'user-1',
+    display_name: 'Rita',
+    email: 'rita@example.com',
+    role: 'owner',
+    status: 'active',
+    created_at: '2026-06-06T10:00:00.000Z',
+    updated_at: '2026-06-06T10:00:00.000Z',
+  };
+}
+
+function sessionRow() {
+  return {
+    id: 'session-1',
+    user_id: 'user-1',
+    refresh_token_hash: 'refresh-token-hash',
+    device_label: null,
+    created_at: '2026-06-06T10:00:00.000Z',
+    expires_at: '2026-07-06T10:00:00.000Z',
+    revoked_at: null,
+    last_used_at: null,
+  };
+}
+
+function googleIdentityRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'identity-1',
+    user_id: 'user-1',
+    provider: 'google',
+    provider_subject: 'google-subject-1',
+    email: 'rita@example.com',
+    email_normalized: 'rita@example.com',
+    email_verified: true,
+    display_name: 'Rita',
+    avatar_url: 'https://example.com/avatar.png',
+    created_at: '2026-06-06T10:00:00.000Z',
+    updated_at: '2026-06-06T10:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function googleProvider(overrides: Record<string, unknown> = {}) {
+  return {
+    configured: true,
+    verifyIdToken: vi.fn(async () => ({
+      subject: 'google-subject-1',
+      email: 'rita@example.com',
+      displayName: 'Rita',
+      avatarUrl: 'https://example.com/avatar.png',
+      ...overrides,
+    })),
+  };
 }
 
 describe('auth.service', () => {
@@ -168,6 +262,136 @@ describe('auth.service', () => {
     ).rejects.toMatchObject({
       statusCode: 503,
       code: 'password_reset_not_configured',
+    });
+  });
+
+  it('creates a user, workspace, Google identity, and session for a new Google identity', async () => {
+    const { authService } = await loadAuthModules();
+    const provider = googleProvider();
+    const supabase = createSequentialSupabase([
+      { data: null, error: null },
+      { data: null, error: null },
+      { data: userRow({ password_hash: null }), error: null },
+      { data: googleIdentityRow(), error: null },
+      { data: workspaceRow(), error: null },
+      { data: memberRow(), error: null },
+      { data: sessionRow(), error: null },
+    ]);
+
+    const response = await authService.signInWithGoogle(
+      supabase,
+      { idToken: 'google-id-token' },
+      provider,
+    );
+
+    expect(response.user).toMatchObject({
+      id: 'user-1',
+      email: 'rita@example.com',
+      displayName: 'Rita',
+      role: 'owner',
+      planType: 'free',
+    });
+    expect(response.accessToken).toEqual(expect.any(String));
+    expect(response.refreshToken).toEqual(expect.any(String));
+  });
+
+  it('signs in through an existing Google identity', async () => {
+    const { authService } = await loadAuthModules();
+    const supabase = createSequentialSupabase([
+      { data: googleIdentityRow(), error: null },
+      { data: userRow({ password_hash: null }), error: null },
+      { data: [memberRow()], error: null },
+      { data: sessionRow(), error: null },
+    ]);
+
+    const response = await authService.signInWithGoogle(
+      supabase,
+      { idToken: 'google-id-token' },
+      googleProvider(),
+    );
+
+    expect(response.user.id).toBe('user-1');
+  });
+
+  it('links a verified Google identity to an existing password account by email', async () => {
+    const { authService } = await loadAuthModules();
+    const supabase = createSequentialSupabase([
+      { data: null, error: null },
+      { data: userRow(), error: null },
+      { data: googleIdentityRow(), error: null },
+      { data: [memberRow()], error: null },
+      { data: sessionRow(), error: null },
+    ]);
+
+    const response = await authService.signInWithGoogle(
+      supabase,
+      { idToken: 'google-id-token' },
+      googleProvider(),
+    );
+
+    expect(response.user.email).toBe('rita@example.com');
+  });
+
+  it('rejects invalid Google tokens before touching account data', async () => {
+    const { authService } = await loadAuthModules();
+    const { ApiError } = await import('../src/shared/errors/index.js');
+    const provider = {
+      configured: true,
+      verifyIdToken: vi.fn(async () => {
+        throw new ApiError(
+          401,
+          'invalid_google_token',
+          'Google sign-in could not be verified.',
+        );
+      }),
+    };
+    const supabase = createSequentialSupabase([]);
+
+    await expect(
+      authService.signInWithGoogle(
+        supabase,
+        { idToken: 'google-id-token' },
+        provider,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'invalid_google_token',
+    });
+  });
+
+  it('rejects Google identities linked to deleted users', async () => {
+    const { authService } = await loadAuthModules();
+    const supabase = createSequentialSupabase([
+      { data: googleIdentityRow(), error: null },
+      { data: null, error: null },
+    ]);
+
+    await expect(
+      authService.signInWithGoogle(
+        supabase,
+        { idToken: 'google-id-token' },
+        googleProvider(),
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'invalid_google_token',
+    });
+  });
+
+  it('rejects password sign-in for Google-only accounts with the generic credentials error', async () => {
+    const { authService } = await loadAuthModules();
+    const supabase = createSequentialSupabase([
+      { data: userRow({ password_hash: null }), error: null },
+    ]);
+
+    await expect(
+      authService.signInUser(supabase, {
+        email: 'rita@example.com',
+        password: 'correct-password',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'invalid_credentials',
     });
   });
 });

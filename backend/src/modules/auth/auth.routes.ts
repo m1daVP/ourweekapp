@@ -5,6 +5,7 @@ import { errorResponseSchema } from '../../shared/schemas/index.js';
 import {
   authMeResponseSchema,
   authSessionResponseSchema,
+  googleSignInRequestSchema,
   passwordResetConfirmRequestSchema,
   passwordResetRequestResponseSchema,
   passwordResetRequestSchema,
@@ -19,6 +20,7 @@ import {
   refreshSession,
   registerUser,
   requestPasswordReset,
+  signInWithGoogle,
   signInUser,
   signOutUser,
 } from './auth.service.js';
@@ -71,6 +73,24 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   }, async (request) => {
     return signInUser(app.supabase, request.body);
+  });
+
+  app.post('/google', {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: '1 minute',
+      },
+    },
+    schema: {
+      body: googleSignInRequestSchema,
+      response: {
+        200: authSessionResponseSchema,
+        ...authRateLimitedErrorResponses,
+      },
+    },
+  }, async (request) => {
+    return signInWithGoogle(app.supabase, request.body);
   });
 
   app.post('/refresh', {

@@ -296,6 +296,30 @@ Required logic:
 - Use safe failure messages that do not reveal whether an email exists.
 - Include the user's current workspace role and current plan.
 
+### `POST /auth/google`
+
+Authenticates a native mobile Google Sign-In token and returns a backend session.
+
+Request:
+
+```json
+{
+  "idToken": "google-id-token"
+}
+```
+
+Response: same as `POST /auth/register`.
+
+Required logic:
+
+- Rate limit attempts.
+- Verify the Google ID token against `GOOGLE_SIGN_IN_CLIENT_IDS`.
+- Require a Google subject, email, and `email_verified: true`.
+- If the Google identity exists, sign in that active user.
+- If the verified email matches an active password account, link the Google identity and sign in.
+- If no account exists, create the user, default workspace, owner membership, Google identity, and session.
+- Do not expose Google tokens or provider errors to the mobile app.
+
 ### `POST /auth/refresh`
 
 Refreshes an expired or nearly expired access token.

@@ -50,6 +50,10 @@ export const signInRequestSchema = z.object({
   password: passwordSchema,
 });
 
+export const googleSignInRequestSchema = z.object({
+  idToken: authTokenSchema,
+});
+
 export const refreshTokenRequestSchema = z.object({
   refreshToken: authTokenSchema,
 });
@@ -82,6 +86,7 @@ export type AuthSessionDto = z.infer<typeof authSessionSchema>;
 export type AuthSessionResponseDto = z.infer<typeof authSessionResponseSchema>;
 export type RegisterRequestDto = z.infer<typeof registerRequestSchema>;
 export type SignInRequestDto = z.infer<typeof signInRequestSchema>;
+export type GoogleSignInRequestDto = z.infer<typeof googleSignInRequestSchema>;
 export type RefreshTokenRequestDto = z.infer<typeof refreshTokenRequestSchema>;
 export type SignOutRequestDto = z.infer<typeof signOutRequestSchema>;
 export type PasswordResetRequestDto = z.infer<typeof passwordResetRequestSchema>;

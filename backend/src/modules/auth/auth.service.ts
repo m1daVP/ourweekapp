@@ -6,6 +6,11 @@ import { ApiError } from '../../shared/errors/index.js';
 import type { PlanType, UserRole } from '../../shared/auth/index.js';
 import { AuthRepository } from './auth.repository.js';
 import {
+  googleAuthProvider,
+  type GoogleAuthProvider,
+  type VerifiedGoogleIdentity,
+} from './google-auth.client.js';
+import {
   hashRefreshToken,
   issueAccessToken,
   issueRefreshTokenSession,
@@ -15,6 +20,7 @@ import type {
   PasswordResetConfirmRequestDto,
   PasswordResetRequestDto,
   RefreshTokenRequestDto,
+  GoogleSignInRequestDto,
   RegisterRequestDto,
   SignInRequestDto,
   SignOutRequestDto,
@@ -37,7 +43,7 @@ type UserRow = {
   id: string;
   email: string;
   display_name: string | null;
-  password_hash: string;
+  password_hash: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -74,6 +80,20 @@ type SessionRow = {
   last_used_at: string | null;
 };
 
+type AuthIdentityRow = {
+  id: string;
+  user_id: string;
+  provider: 'google';
+  provider_subject: string;
+  email: string;
+  email_normalized: string;
+  email_verified: boolean;
+  display_name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type AuthUserDto = {
   id: string;
   email: string;
@@ -106,6 +126,12 @@ const invalidSessionError = new ApiError(
   'Please sign in again.',
 );
 
+const invalidGoogleTokenError = new ApiError(
+  401,
+  'invalid_google_token',
+  'Google sign-in could not be verified.',
+);
+
 const unauthenticatedError = new ApiError(
   401,
   'unauthenticated',
@@ -114,6 +140,16 @@ const unauthenticatedError = new ApiError(
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function googleDisplayName(identity: VerifiedGoogleIdentity) {
+  const displayName = identity.displayName?.trim();
+
+  if (displayName) {
+    return displayName.slice(0, 80);
+  }
+
+  return identity.email.split('@')[0]?.slice(0, 80) || 'Google user';
 }
 
 function addSeconds(date: Date, seconds: number) {
@@ -238,6 +274,83 @@ async function cleanupFailedRegistration(
   if (created.userId) {
     await supabase.from('users').delete().eq('id', created.userId);
   }
+}
+
+async function getGoogleIdentityBySubject(
+  supabase: SupabaseClient,
+  providerSubject: string,
+) {
+  const { data, error } = await supabase
+    .from('auth_identities')
+    .select(
+      'id,user_id,provider,provider_subject,email,email_normalized,email_verified,display_name,avatar_url,created_at,updated_at',
+    )
+    .eq('provider', 'google')
+    .eq('provider_subject', providerSubject)
+    .returns<AuthIdentityRow[]>()
+    .maybeSingle();
+
+  if (error) {
+    throw new ApiError(
+      500,
+      'auth_identity_lookup_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  return data;
+}
+
+async function linkGoogleIdentity(
+  supabase: SupabaseClient,
+  userId: string,
+  identity: VerifiedGoogleIdentity,
+) {
+  const email = normalizeEmail(identity.email);
+  const { data, error } = await supabase
+    .from('auth_identities')
+    .insert({
+      user_id: userId,
+      provider: 'google',
+      provider_subject: identity.subject,
+      email,
+      email_normalized: email,
+      email_verified: true,
+      display_name: identity.displayName,
+      avatar_url: identity.avatarUrl,
+    })
+    .select(
+      'id,user_id,provider,provider_subject,email,email_normalized,email_verified,display_name,avatar_url,created_at,updated_at',
+    )
+    .returns<AuthIdentityRow[]>()
+    .single();
+
+  if (!error) {
+    return data;
+  }
+
+  if (getSupabaseErrorCode(error) === '23505') {
+    const existingIdentity = await getGoogleIdentityBySubject(
+      supabase,
+      identity.subject,
+    );
+
+    if (existingIdentity?.user_id === userId) {
+      return existingIdentity;
+    }
+
+    throw new ApiError(
+      409,
+      'account_link_conflict',
+      'Google sign-in is linked to another account.',
+    );
+  }
+
+  throw new ApiError(
+    500,
+    'auth_identity_link_failed',
+    'Something went wrong. Please try again.',
+  );
 }
 
 async function createSessionResponse(
@@ -382,6 +495,138 @@ export async function registerUser(
   }
 }
 
+async function registerGoogleUser(
+  supabase: SupabaseClient,
+  identity: VerifiedGoogleIdentity,
+) {
+  const email = normalizeEmail(identity.email);
+  const displayName = googleDisplayName(identity);
+  const created: { userId?: string; workspaceId?: string } = {};
+
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .insert({
+      email,
+      email_normalized: email,
+      display_name: displayName,
+      password_hash: null,
+    })
+    .select(
+      'id,email,display_name,password_hash,created_at,updated_at,deleted_at',
+    )
+    .returns<UserRow[]>()
+    .single();
+
+  if (userError) {
+    const code = getSupabaseErrorCode(userError);
+
+    if (code === '23505') {
+      throw new ApiError(
+        409,
+        'account_create_failed',
+        'Unable to create an account with those details.',
+      );
+    }
+
+    throw new ApiError(
+      500,
+      'account_create_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  created.userId = user.id;
+
+  try {
+    await linkGoogleIdentity(supabase, user.id, identity);
+
+    const workspaceName = `${displayName}'s home`;
+    const { data: workspace, error: workspaceError } = await supabase
+      .from('workspaces')
+      .insert({
+        name: workspaceName,
+        owner_id: user.id,
+      })
+      .select('id,name,owner_id,created_at,updated_at,deleted_at')
+      .returns<WorkspaceRow[]>()
+      .single();
+
+    if (workspaceError) {
+      throw new ApiError(
+        500,
+        'workspace_create_failed',
+        'Something went wrong. Please try again.',
+      );
+    }
+
+    created.workspaceId = workspace.id;
+
+    const { data: member, error: memberError } = await supabase
+      .from('workspace_members')
+      .insert({
+        workspace_id: workspace.id,
+        user_id: user.id,
+        display_name: displayName,
+        email,
+        role: 'owner',
+        status: 'active',
+      })
+      .select(
+        'workspace_id,user_id,display_name,email,role,status,created_at,updated_at',
+      )
+      .returns<WorkspaceMemberRow[]>()
+      .single();
+
+    if (memberError) {
+      throw new ApiError(
+        500,
+        'workspace_member_create_failed',
+        'Something went wrong. Please try again.',
+      );
+    }
+
+    return await createSessionResponse(supabase, user, member);
+  } catch (error) {
+    await cleanupFailedRegistration(supabase, created);
+    throw error;
+  }
+}
+
+export async function signInWithGoogle(
+  supabase: SupabaseClient,
+  body: GoogleSignInRequestDto,
+  provider: GoogleAuthProvider = googleAuthProvider,
+): Promise<AuthSessionDto> {
+  const identity = await provider.verifyIdToken(body.idToken);
+  const existingIdentity = await getGoogleIdentityBySubject(
+    supabase,
+    identity.subject,
+  );
+  const user = existingIdentity
+    ? await getUserById(supabase, existingIdentity.user_id)
+    : await getUserByEmail(supabase, identity.email);
+
+  if (existingIdentity && !user) {
+    throw invalidGoogleTokenError;
+  }
+
+  if (user) {
+    if (!existingIdentity) {
+      await linkGoogleIdentity(supabase, user.id, identity);
+    }
+
+    const member = await getActiveMemberForUser(supabase, user.id);
+
+    if (!member) {
+      throw invalidGoogleTokenError;
+    }
+
+    return createSessionResponse(supabase, user, member);
+  }
+
+  return registerGoogleUser(supabase, identity);
+}
+
 export async function signInUser(
   supabase: SupabaseClient,
   body: SignInRequestDto,
@@ -389,6 +634,10 @@ export async function signInUser(
   const user = await getUserByEmail(supabase, body.email);
 
   if (!user) {
+    throw genericAuthFailure;
+  }
+
+  if (!user.password_hash) {
     throw genericAuthFailure;
   }
 

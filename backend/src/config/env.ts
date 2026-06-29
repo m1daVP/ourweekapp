@@ -57,10 +57,9 @@ const envInput = z
     ARGON2_TIME_COST: integerFromString.default(3),
     ARGON2_PARALLELISM: integerFromString.default(1),
 
-    AI_PROVIDER: optionalString.pipe(z.enum(['openai']).optional()),
+    AI_PROVIDER: optionalString.pipe(z.enum(['openai', 'mock']).optional()),
     AI_API_KEY: optionalString,
     AI_MODEL: optionalString,
-    OPENAI_API_KEY: optionalString,
 
     REVENUECAT_PROJECT_ID: optionalString,
     REVENUECAT_API_KEY: optionalString,
@@ -68,6 +67,7 @@ const envInput = z
     REVENUECAT_WEBHOOK_SHARED_SECRET: optionalString,
     GOOGLE_PLAY_PACKAGE_NAME: optionalString,
     GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64: optionalString,
+    GOOGLE_SIGN_IN_CLIENT_IDS: csvList,
 
     GOOGLE_OAUTH_CLIENT_ID: optionalString,
     GOOGLE_OAUTH_CLIENT_SECRET: optionalString,
@@ -81,17 +81,28 @@ const envInput = z
     EMAIL_FROM: optionalString,
   })
   .superRefine((value, context) => {
-    const aiApiKey = value.AI_API_KEY ?? value.OPENAI_API_KEY;
+    const aiApiKey = value.AI_API_KEY;
     const corsOrigins =
       value.CORS_ALLOWED_ORIGINS.length > 0
         ? value.CORS_ALLOWED_ORIGINS
         : value.CORS_ORIGINS;
 
-    if (value.AI_PROVIDER && !aiApiKey) {
+    if (value.AI_PROVIDER === 'openai' && !aiApiKey) {
       context.addIssue({
         code: 'custom',
         path: ['AI_API_KEY'],
         message: 'AI_API_KEY is required when AI_PROVIDER is configured',
+      });
+    }
+
+    if (
+      value.AI_PROVIDER === 'mock' &&
+      (value.NODE_ENV === 'production' || value.APP_ENV === 'production')
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['AI_PROVIDER'],
+        message: 'AI_PROVIDER=mock is not allowed in production',
       });
     }
 
@@ -139,7 +150,7 @@ const envInput = z
   });
 
 const envSchema = envInput.transform((value) => {
-  const aiApiKey = value.AI_API_KEY ?? value.OPENAI_API_KEY ?? '';
+  const aiApiKey = value.AI_API_KEY ?? '';
   const aiProvider = value.AI_PROVIDER ?? (aiApiKey ? 'openai' : undefined);
   const googleOAuthRedirectUri =
     value.GOOGLE_OAUTH_REDIRECT_URL ?? value.GOOGLE_OAUTH_REDIRECT_URI ?? '';
@@ -153,15 +164,17 @@ const envSchema = envInput.transform((value) => {
     CORS_ORIGINS: corsOrigins,
     CORS_ALLOWED_ORIGINS: corsOrigins,
     AI_API_KEY: aiApiKey,
-    OPENAI_API_KEY: aiApiKey,
     AI_PROVIDER: aiProvider,
-    AI_CONFIGURED: aiProvider === 'openai' && aiApiKey.length > 0,
+    AI_CONFIGURED:
+      aiProvider === 'mock' || (aiProvider === 'openai' && aiApiKey.length > 0),
     REVENUECAT_PROJECT_ID: value.REVENUECAT_PROJECT_ID ?? '',
     REVENUECAT_API_KEY: value.REVENUECAT_API_KEY ?? '',
     REVENUECAT_ENTITLEMENT_ID: value.REVENUECAT_ENTITLEMENT_ID ?? 'premium',
     REVENUECAT_WEBHOOK_SHARED_SECRET:
       value.REVENUECAT_WEBHOOK_SHARED_SECRET ?? '',
     REVENUECAT_CONFIGURED: Boolean(value.REVENUECAT_API_KEY),
+    GOOGLE_SIGN_IN_CLIENT_IDS: value.GOOGLE_SIGN_IN_CLIENT_IDS,
+    GOOGLE_SIGN_IN_CONFIGURED: value.GOOGLE_SIGN_IN_CLIENT_IDS.length > 0,
     GOOGLE_OAUTH_CLIENT_ID: value.GOOGLE_OAUTH_CLIENT_ID ?? '',
     GOOGLE_OAUTH_CLIENT_SECRET: value.GOOGLE_OAUTH_CLIENT_SECRET ?? '',
     GOOGLE_OAUTH_REDIRECT_URI: googleOAuthRedirectUri,
