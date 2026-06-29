@@ -7,6 +7,7 @@ import {
   register,
   requestPasswordReset,
   signIn,
+  signInWithGoogleIdToken,
   signOut,
 } from '@/shared/api/authApi';
 import {
@@ -82,6 +83,15 @@ describe('authApi', () => {
           password: 'password123',
           displayName: 'Rita',
         },
+      },
+    ]);
+
+    await signInWithGoogleIdToken({ idToken: 'google-id-token' });
+    expect(lastApiCall()).toEqual([
+      '/auth/google',
+      {
+        method: 'POST',
+        body: { idToken: 'google-id-token' },
       },
     ]);
 

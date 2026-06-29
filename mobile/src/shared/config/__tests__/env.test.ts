@@ -42,6 +42,8 @@ describe('createAppConfig', () => {
       VITE_REVENUECAT_CURRENT_OFFERING_ID: ' default ',
       VITE_REVENUECAT_ANDROID_MONTHLY_PRODUCT_ID: ' premium_monthly ',
       VITE_REVENUECAT_ANDROID_YEARLY_PRODUCT_ID: ' premium_yearly ',
+      VITE_GOOGLE_WEB_CLIENT_ID: ' google_web ',
+      VITE_GOOGLE_IOS_CLIENT_ID: ' google_ios ',
     });
 
     expect(config.revenueCatAndroidApiKey).toBe('test_android');
@@ -50,6 +52,8 @@ describe('createAppConfig', () => {
     expect(config.revenueCatCurrentOfferingId).toBe('default');
     expect(config.revenueCatAndroidMonthlyProductId).toBe('premium_monthly');
     expect(config.revenueCatAndroidYearlyProductId).toBe('premium_yearly');
+    expect(config.googleWebClientId).toBe('google_web');
+    expect(config.googleIosClientId).toBe('google_ios');
   });
 
   it('uses stable RevenueCat identifiers when optional overrides are absent', () => {

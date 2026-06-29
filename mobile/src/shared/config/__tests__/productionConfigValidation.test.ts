@@ -13,6 +13,7 @@ const validProductionEnv: ProductionConfigEnv = {
   VITE_REVENUECAT_CURRENT_OFFERING_ID: 'default',
   VITE_REVENUECAT_ANDROID_MONTHLY_PRODUCT_ID: 'ourweek.premium.monthly',
   VITE_REVENUECAT_ANDROID_YEARLY_PRODUCT_ID: 'ourweek.premium.yearly',
+  VITE_GOOGLE_WEB_CLIENT_ID: 'google-web-client-id',
 };
 
 describe('production configuration validation', () => {
@@ -35,6 +36,7 @@ describe('production configuration validation', () => {
         'VITE_REVENUECAT_CURRENT_OFFERING_ID',
         'VITE_REVENUECAT_ANDROID_MONTHLY_PRODUCT_ID',
         'VITE_REVENUECAT_ANDROID_YEARLY_PRODUCT_ID',
+        'VITE_GOOGLE_WEB_CLIENT_ID',
       ])
     );
     expect(issues).not.toContain(secretLikeValue);
@@ -77,11 +79,13 @@ describe('production configuration validation', () => {
       ...validProductionEnv,
       VITE_REVENUECAT_ANDROID_API_KEY: 'change-me',
       VITE_REVENUECAT_ANDROID_MONTHLY_PRODUCT_ID: 'pending',
+      VITE_GOOGLE_WEB_CLIENT_ID: 'todo',
     });
 
     expect(issues.map((issue) => issue.key)).toEqual([
       'VITE_REVENUECAT_ANDROID_API_KEY',
       'VITE_REVENUECAT_ANDROID_MONTHLY_PRODUCT_ID',
+      'VITE_GOOGLE_WEB_CLIENT_ID',
     ]);
   });
 

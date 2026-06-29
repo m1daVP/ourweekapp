@@ -9,9 +9,11 @@ const mocks = vi.hoisted(() => ({
   refreshSession: vi.fn(),
   resetSyncRuntimeState: vi.fn(),
   signIn: vi.fn(),
+  signInWithGoogleIdToken: vi.fn(),
   signOut: vi.fn(),
   writeAuthTokens: vi.fn(),
   writeOnboardingStorage: vi.fn(),
+  getNativeGoogleIdToken: vi.fn(),
 }));
 
 vi.mock('@/features/localization/i18n', () => ({
@@ -30,7 +32,12 @@ vi.mock('@/shared/api/authApi', () => ({
   refreshSession: mocks.refreshSession,
   register: vi.fn(),
   signIn: mocks.signIn,
+  signInWithGoogleIdToken: mocks.signInWithGoogleIdToken,
   signOut: mocks.signOut,
+}));
+
+vi.mock('@/features/auth/googleSignInService', () => ({
+  getNativeGoogleIdToken: mocks.getNativeGoogleIdToken,
 }));
 
 vi.mock('@/shared/services/authTokenStorageService', () => ({
@@ -80,17 +87,26 @@ beforeEach(() => {
   mocks.refreshSession.mockReset();
   mocks.resetSyncRuntimeState.mockReset();
   mocks.signIn.mockReset();
+  mocks.signInWithGoogleIdToken.mockReset();
   mocks.signOut.mockReset();
   mocks.writeAuthTokens.mockReset();
   mocks.writeOnboardingStorage.mockReset();
+  mocks.getNativeGoogleIdToken.mockReset();
 
   mocks.signIn.mockResolvedValue(session);
+  mocks.signInWithGoogleIdToken.mockResolvedValue(session);
+  mocks.getNativeGoogleIdToken.mockResolvedValue('google-id-token');
   mocks.refreshSession.mockResolvedValue({
     ...session,
     accessToken: 'rotated-access-token',
     refreshToken: 'rotated-refresh-token',
+    expiresAt: '2026-06-13T14:00:00.000Z',
   });
-  mocks.readAuthTokens.mockResolvedValue({ refreshToken: 'refresh-token' });
+  mocks.readAuthTokens.mockResolvedValue({
+    accessToken: 'access-token',
+    refreshToken: 'refresh-token',
+    expiresAt: '2026-06-13T13:00:00.000Z',
+  });
   mocks.readOnboardingStorage.mockImplementation(
     (_: string, fallback: unknown) => fallback
   );
@@ -124,6 +140,40 @@ describe('auth sync safety hooks', () => {
     expect(authStore.user?.id).toBe('user-1');
   });
 
+  it('uses native Google Sign-In and applies the backend session', async () => {
+    const authStore = useAuthStore();
+
+    const didSignIn = await authStore.signInWithGoogle();
+
+    expect(didSignIn).toBe(true);
+    expect(mocks.getNativeGoogleIdToken).toHaveBeenCalled();
+    expect(mocks.signInWithGoogleIdToken).toHaveBeenCalledWith({
+      idToken: 'google-id-token',
+    });
+    expect(mocks.writeAuthTokens).toHaveBeenCalledWith({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: '2026-06-13T13:00:00.000Z',
+    });
+    expect(mocks.prepareSyncForAuthenticatedUser).toHaveBeenCalledWith(
+      'user-1'
+    );
+    expect(authStore.authStatus).toBe('authenticated');
+  });
+
+  it('clears partial auth state when Google Sign-In fails', async () => {
+    const authStore = useAuthStore();
+
+    mocks.signInWithGoogleIdToken.mockRejectedValue(new Error('failed'));
+
+    const didSignIn = await authStore.signInWithGoogle();
+
+    expect(didSignIn).toBe(false);
+    expect(mocks.clearAuthTokens).toHaveBeenCalled();
+    expect(authStore.authStatus).toBe('error');
+    expect(authStore.user).toBeNull();
+  });
+
   it('resets sync runtime state on logout cleanup', async () => {
     const authStore = useAuthStore();
 
@@ -150,6 +200,7 @@ describe('auth sync safety hooks', () => {
     expect(mocks.writeAuthTokens).toHaveBeenCalledWith({
       accessToken: 'rotated-access-token',
       refreshToken: 'rotated-refresh-token',
+      expiresAt: '2026-06-13T14:00:00.000Z',
     });
     expect(authStore.authStatus).toBe('authenticated');
   });
