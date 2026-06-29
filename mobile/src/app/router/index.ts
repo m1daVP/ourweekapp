@@ -169,8 +169,6 @@ router.beforeEach(async (to) => {
     await authStore.verifyCurrentUser();
   }
 
-  authStore.syncAccessState();
-
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return {
       name: 'sign-in',
