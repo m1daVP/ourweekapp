@@ -6,10 +6,12 @@ import {
 const AUTH_TOKEN_STORAGE_PREFIX = 'ourweek:auth:';
 const ACCESS_TOKEN_KEY = 'access-token';
 const REFRESH_TOKEN_KEY = 'refresh-token';
+const EXPIRES_AT_KEY = 'expires-at';
 
 export interface AuthTokens {
   accessToken: string | null;
   refreshToken: string | null;
+  expiresAt: string | null;
 }
 
 let initializationPromise: Promise<void> | null = null;
@@ -47,18 +49,20 @@ async function writeToken(key: string, value: string | null | undefined) {
 }
 
 export async function readAuthTokens(): Promise<AuthTokens> {
-  const [accessToken, refreshToken] = await Promise.all([
+  const [accessToken, refreshToken, expiresAt] = await Promise.all([
     readToken(ACCESS_TOKEN_KEY),
     readToken(REFRESH_TOKEN_KEY),
+    readToken(EXPIRES_AT_KEY),
   ]);
 
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, expiresAt };
 }
 
 export async function writeAuthTokens(tokens: AuthTokens) {
   await Promise.all([
     writeToken(ACCESS_TOKEN_KEY, tokens.accessToken),
     writeToken(REFRESH_TOKEN_KEY, tokens.refreshToken),
+    writeToken(EXPIRES_AT_KEY, tokens.expiresAt),
   ]);
 }
 
@@ -68,5 +72,6 @@ export async function clearAuthTokens() {
   await Promise.all([
     SecureStorage.remove(ACCESS_TOKEN_KEY),
     SecureStorage.remove(REFRESH_TOKEN_KEY),
+    SecureStorage.remove(EXPIRES_AT_KEY),
   ]);
 }

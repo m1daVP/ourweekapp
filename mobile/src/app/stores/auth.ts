@@ -5,10 +5,12 @@ import {
   refreshSession as refreshSessionRequest,
   register as registerRequest,
   signIn as signInRequest,
+  signInWithGoogleIdToken as signInWithGoogleIdTokenRequest,
   signOut as signOutRequest,
   type AuthUserDto,
   type AuthSessionDto,
 } from '@/shared/api/authApi';
+import { getNativeGoogleIdToken } from '@/features/auth/googleSignInService';
 import { ApiClientError, setApiAuthHandlers } from '@/shared/api/httpClient';
 import {
   clearAuthTokens,
@@ -58,6 +60,7 @@ interface AuthState {
 let legacyTokensToMigrate: AuthTokens = {
   accessToken: null,
   refreshToken: null,
+  expiresAt: null,
 };
 
 function readLegacyAuthTokensFromLocalStorage(): AuthTokens {
@@ -69,13 +72,13 @@ function readLegacyAuthTokensFromLocalStorage(): AuthTokens {
     const rawValue = window.localStorage.getItem(LEGACY_AUTH_STORAGE_KEY);
 
     if (!rawValue) {
-      return { accessToken: null, refreshToken: null };
+      return { accessToken: null, refreshToken: null, expiresAt: null };
     }
 
     const parsedValue = JSON.parse(rawValue) as unknown;
 
     if (!parsedValue || typeof parsedValue !== 'object') {
-      return { accessToken: null, refreshToken: null };
+      return { accessToken: null, refreshToken: null, expiresAt: null };
     }
 
     const authState = parsedValue as Partial<StoredAuthState>;
@@ -83,10 +86,11 @@ function readLegacyAuthTokensFromLocalStorage(): AuthTokens {
     return {
       accessToken: authState.accessToken ?? null,
       refreshToken: authState.refreshToken ?? null,
+      expiresAt: null,
     };
   } catch (error) {
     warnSafely('Unable to read legacy auth token storage.', error);
-    return { accessToken: null, refreshToken: null };
+    return { accessToken: null, refreshToken: null, expiresAt: null };
   }
 }
 
@@ -138,6 +142,30 @@ async function clearRevenueCatSessionSafely() {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function getGoogleSignInErrorMessage(error: unknown) {
+  if (!(error instanceof ApiClientError)) {
+    return error instanceof Error
+      ? error.message
+      : translate('auth.googleSignInFailed');
+  }
+
+  if (error.status === 429) {
+    return translate('auth.googleTooManyAttempts');
+  }
+
+  switch (error.code) {
+    case 'account_link_conflict':
+      return translate('auth.googleAccountConflict');
+    case 'google_sign_in_not_configured':
+      return translate('auth.googleNotConfigured');
+    case 'invalid_google_token':
+    case 'validation_failed':
+      return translate('auth.googleSignInFailed');
+    default:
+      return error.message || translate('auth.googleSignInFailed');
+  }
 }
 
 function mapAuthUser(user: AuthUserDto, fallbackEmail = ''): AuthUser {
@@ -242,7 +270,11 @@ export const useAuthStore = defineStore('auth', {
       this.hasHydratedSecureTokens = true;
 
       if (this.authStatus !== 'authenticated') {
-        legacyTokensToMigrate = { accessToken: null, refreshToken: null };
+        legacyTokensToMigrate = {
+          accessToken: null,
+          refreshToken: null,
+          expiresAt: null,
+        };
         return;
       }
 
@@ -273,7 +305,11 @@ export const useAuthStore = defineStore('auth', {
         this.persist();
       }
 
-      legacyTokensToMigrate = { accessToken: null, refreshToken: null };
+      legacyTokensToMigrate = {
+        accessToken: null,
+        refreshToken: null,
+        expiresAt: null,
+      };
 
       if (!tokens.accessToken) {
         this.user = null;
@@ -289,6 +325,7 @@ export const useAuthStore = defineStore('auth', {
       await writeAuthTokens({
         accessToken: session.accessToken,
         refreshToken: session.refreshToken ?? null,
+        expiresAt: session.expiresAt,
       });
 
       const nextUser = mapSessionUser(session);
@@ -396,6 +433,25 @@ export const useAuthStore = defineStore('auth', {
           error instanceof Error
             ? error.message
             : translate('api.signInFailed');
+        this.persist();
+        return false;
+      }
+    },
+    async signInWithGoogle() {
+      this.authStatus = 'loading';
+      this.errorMessage = '';
+
+      try {
+        const idToken = await getNativeGoogleIdToken();
+        const session = await signInWithGoogleIdTokenRequest({ idToken });
+
+        await this.applySession(session);
+        return true;
+      } catch (error) {
+        await clearStoredAuthTokensSafely();
+        this.user = null;
+        this.authStatus = 'error';
+        this.errorMessage = getGoogleSignInErrorMessage(error);
         this.persist();
         return false;
       }

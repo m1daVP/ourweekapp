@@ -5,6 +5,7 @@ export interface ProductionConfigEnv {
   VITE_REVENUECAT_CURRENT_OFFERING_ID?: string;
   VITE_REVENUECAT_ANDROID_MONTHLY_PRODUCT_ID?: string;
   VITE_REVENUECAT_ANDROID_YEARLY_PRODUCT_ID?: string;
+  VITE_GOOGLE_WEB_CLIENT_ID?: string;
 }
 
 export interface ProductionConfigIssue {
@@ -72,7 +73,8 @@ function requireReleaseValue(
     | 'VITE_REVENUECAT_ENTITLEMENT_ID'
     | 'VITE_REVENUECAT_CURRENT_OFFERING_ID'
     | 'VITE_REVENUECAT_ANDROID_MONTHLY_PRODUCT_ID'
-    | 'VITE_REVENUECAT_ANDROID_YEARLY_PRODUCT_ID',
+    | 'VITE_REVENUECAT_ANDROID_YEARLY_PRODUCT_ID'
+    | 'VITE_GOOGLE_WEB_CLIENT_ID',
   label: string,
   issues: ProductionConfigIssue[]
 ) {
@@ -179,6 +181,12 @@ export function validateProductionConfig(
     env,
     'VITE_REVENUECAT_ANDROID_YEARLY_PRODUCT_ID',
     'The Google Play yearly product identifier',
+    issues
+  );
+  requireReleaseValue(
+    env,
+    'VITE_GOOGLE_WEB_CLIENT_ID',
+    'The Google Sign-In web client identifier',
     issues
   );
 

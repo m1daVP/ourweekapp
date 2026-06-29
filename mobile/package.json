@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@aparajita/capacitor-secure-storage": "8.0.0",
+    "@capgo/capacitor-social-login": "^8.3.30",
     "@capacitor/android": "8.4.0",
     "@capacitor/app": "8.1.0",
     "@capacitor/core": "8.4.0",
@@ -33,6 +34,7 @@
     "@capacitor/share": "8.0.1",
     "@capacitor/splash-screen": "8.0.1",
     "@capacitor/toast": "8.0.1",
+    "@capgo/capacitor-social-login": "^8.3.30",
     "@revenuecat/purchases-capacitor": "13.2.0",
     "@revenuecat/purchases-capacitor-ui": "13.2.0",
     "pinia": "3.0.4",

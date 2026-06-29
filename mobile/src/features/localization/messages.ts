@@ -142,6 +142,8 @@ export const messages = {
       forgotPassword: 'Forgot password?',
       signingIn: 'Signing in...',
       signIn: 'Sign in',
+      continueWithGoogle: 'Continue with Google',
+      continuingWithGoogle: 'Continuing with Google...',
       newHere: 'New to OurWeek?',
       createAccount: 'Create account',
       createAccountIntro:
@@ -174,6 +176,15 @@ export const messages = {
       passwordLength: 'Use at least 8 characters for the password.',
       signInFailed: 'Could not sign in.',
       signUpFailed: 'Could not create the account.',
+      googleSignInUnavailable:
+        'Google sign-in is not available on this device right now.',
+      googleSignInFailed: 'Could not sign in with Google. Please try again.',
+      googleAccountConflict:
+        'This Google account is already connected to another OurWeek account.',
+      googleNotConfigured:
+        'Google sign-in is not configured yet. Please use email sign-in for now.',
+      googleTooManyAttempts:
+        'Too many sign-in attempts. Please wait a moment and try again.',
       accountRequired:
         'Створіть акаунт або увійдіть, щоб користуватися цією збіркою.',
       continue: 'Continue',
@@ -1444,6 +1455,8 @@ export const messages = {
       forgotPassword: 'Забули пароль?',
       signingIn: 'Вхід...',
       signIn: 'Увійти',
+      continueWithGoogle: 'Continue with Google',
+      continuingWithGoogle: 'Continuing with Google...',
       newHere: 'Вперше у OurWeek?',
       createAccount: 'Створити акаунт',
       createAccountIntro:
@@ -1477,6 +1490,15 @@ export const messages = {
       passwordLength: 'Використайте щонайменше 8 символів для пароля.',
       signInFailed: 'Не вдалося увійти.',
       signUpFailed: 'Не вдалося створити акаунт.',
+      googleSignInUnavailable:
+        'Google sign-in is not available on this device right now.',
+      googleSignInFailed: 'Could not sign in with Google. Please try again.',
+      googleAccountConflict:
+        'This Google account is already connected to another OurWeek account.',
+      googleNotConfigured:
+        'Google sign-in is not configured yet. Please use email sign-in for now.',
+      googleTooManyAttempts:
+        'Too many sign-in attempts. Please wait a moment and try again.',
       accountRequired: 'Crea una cuenta o inicia sesión para usar esta build.',
       continue: 'Продовжити',
       emailPlaceholder: "you{'@'}example.com",
@@ -2720,6 +2742,8 @@ export const messages = {
       forgotPassword: '¿Olvidaste tu contraseña?',
       signingIn: 'Iniciando sesión...',
       signIn: 'Iniciar sesión',
+      continueWithGoogle: 'Continuar con Google',
+      continuingWithGoogle: 'Continuando con Google...',
       newHere: '¿Nuevo en OurWeek?',
       createAccount: 'Crear cuenta',
       createAccountIntro:
@@ -2755,6 +2779,16 @@ export const messages = {
       passwordLength: 'Usa al menos 8 caracteres para la contraseña.',
       signInFailed: 'No se pudo iniciar sesión.',
       signUpFailed: 'No se pudo crear la cuenta.',
+      googleSignInUnavailable:
+        'Google sign-in no esta disponible en este dispositivo ahora.',
+      googleSignInFailed:
+        'No se pudo iniciar sesion con Google. Intentalo de nuevo.',
+      googleAccountConflict:
+        'Esta cuenta de Google ya esta conectada a otra cuenta de OurWeek.',
+      googleNotConfigured:
+        'Google sign-in aun no esta configurado. Usa el inicio con correo por ahora.',
+      googleTooManyAttempts:
+        'Demasiados intentos de inicio. Espera un momento e intentalo de nuevo.',
       accountRequired: 'Crea una cuenta o inicia sesión para continuar.',
       continue: 'Continuar',
       emailPlaceholder: "tu{'@'}ejemplo.com",

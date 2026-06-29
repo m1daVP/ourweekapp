@@ -3,6 +3,8 @@ import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
+import GoogleSignInButton from '@/features/auth/GoogleSignInButton.vue';
+import { isNativeGoogleSignInSupported } from '@/features/auth/googleSignInService';
 
 const route = useRoute();
 const router = useRouter();
@@ -13,6 +15,7 @@ const form = reactive({
   email: '',
   password: '',
 });
+const showGoogleSignIn = isNativeGoogleSignInSupported();
 
 const isSubmitting = computed(() => authStore.authStatus === 'loading');
 
@@ -48,6 +51,19 @@ async function handleSubmit() {
   }
 
   formError.value = authStore.errorMessage || t('auth.signInFailed');
+}
+
+async function handleGoogleSignIn() {
+  formError.value = '';
+
+  const didSignIn = await authStore.signInWithGoogle();
+
+  if (didSignIn) {
+    void router.push(getRedirectPath());
+    return;
+  }
+
+  formError.value = authStore.errorMessage || t('auth.googleSignInFailed');
 }
 </script>
 
@@ -92,6 +108,14 @@ async function handleSubmit() {
         {{ isSubmitting ? t('auth.signingIn') : t('auth.signIn') }}
       </button>
     </form>
+
+    <div v-if="showGoogleSignIn" class="auth-social-actions">
+      <GoogleSignInButton
+        :disabled="isSubmitting"
+        :loading="isSubmitting"
+        @click="handleGoogleSignIn"
+      />
+    </div>
 
     <p class="auth-switch">
       {{ t('auth.newHere') }}

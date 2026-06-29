@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_REVENUECAT_CURRENT_OFFERING_ID?: string;
   readonly VITE_REVENUECAT_ANDROID_MONTHLY_PRODUCT_ID?: string;
   readonly VITE_REVENUECAT_ANDROID_YEARLY_PRODUCT_ID?: string;
+  readonly VITE_GOOGLE_WEB_CLIENT_ID?: string;
+  readonly VITE_GOOGLE_IOS_CLIENT_ID?: string;
 }
 
 interface ImportMeta {

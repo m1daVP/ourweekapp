@@ -23,6 +23,10 @@ export interface SignInRequestDto {
   password: string;
 }
 
+export interface GoogleSignInRequestDto {
+  idToken: string;
+}
+
 export interface RegisterRequestDto {
   email: string;
   password: string;
@@ -58,6 +62,15 @@ export async function signIn(
   payload: SignInRequestDto
 ): Promise<AuthSessionDto> {
   return apiRequest<AuthSessionDto>('/auth/sign-in', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function signInWithGoogleIdToken(
+  payload: GoogleSignInRequestDto
+): Promise<AuthSessionDto> {
+  return apiRequest<AuthSessionDto>('/auth/google', {
     method: 'POST',
     body: payload,
   });
