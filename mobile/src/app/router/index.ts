@@ -26,6 +26,8 @@ import UpgradePage from '@/pages/UpgradePage.vue';
 import WelcomePage from '@/pages/WelcomePage.vue';
 import WorkspaceSettingsPage from '@/pages/WorkspaceSettingsPage.vue';
 
+const unauthenticatedRouteNames = new Set(['welcome', 'sign-in', 'sign-up']);
+
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior() {
@@ -36,31 +38,31 @@ export const router = createRouter({
       path: '/welcome',
       name: 'welcome',
       component: WelcomePage,
-      meta: { hideNavigation: true, isPublicEntry: true },
+      meta: { hideNavigation: true, guestOnly: true },
     },
     {
       path: '/sign-up',
       name: 'sign-up',
       component: SignUpPage,
-      meta: { hideNavigation: true, guestOnly: true, isPublicEntry: true },
+      meta: { hideNavigation: true, guestOnly: true },
     },
     {
       path: '/sign-in',
       name: 'sign-in',
       component: SignInPage,
-      meta: { hideNavigation: true, guestOnly: true, isPublicEntry: true },
+      meta: { hideNavigation: true, guestOnly: true },
     },
     {
       path: '/forgot-password',
       name: 'forgot-password',
       component: ForgotPasswordPage,
-      meta: { hideNavigation: true, guestOnly: true, isPublicEntry: true },
+      meta: { hideNavigation: true },
     },
     {
       path: '/reset-password',
       name: 'reset-password',
       component: ResetPasswordPage,
-      meta: { hideNavigation: true, guestOnly: true, isPublicEntry: true },
+      meta: { hideNavigation: true },
     },
     {
       path: '/',
@@ -99,7 +101,10 @@ export const router = createRouter({
       path: '/meeting-summary/:meetingId',
       name: 'meeting-summary',
       component: MeetingSummaryPage,
-      meta: { hideNavigation: true, requiresFeature: 'limitedHistory' },
+      meta: {
+        hideNavigation: true,
+        requiresFeature: 'limitedHistory',
+      },
     },
     {
       path: '/tasks',
@@ -115,13 +120,11 @@ export const router = createRouter({
       path: '/settings/privacy',
       name: 'privacy',
       component: PrivacyPolicyPage,
-      meta: { isPublicEntry: true },
     },
     {
       path: '/settings/terms',
       name: 'terms',
       component: TermsPage,
-      meta: { isPublicEntry: true },
     },
     {
       path: '/settings/calendar-sync',
@@ -148,6 +151,7 @@ export const router = createRouter({
       path: '/settings/support',
       name: 'support-diagnostics',
       component: SupportDiagnosticsPage,
+      meta: { hideNavigation: true },
     },
     {
       path: '/logout',
@@ -162,6 +166,8 @@ router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   const subscriptionStore = useSubscriptionStore();
   const workspaceStore = useWorkspaceStore();
+  const isUnauthenticatedRoute =
+    typeof to.name === 'string' && unauthenticatedRouteNames.has(to.name);
 
   await authStore.hydrateSecureTokens();
 
@@ -169,7 +175,11 @@ router.beforeEach(async (to) => {
     await authStore.verifyCurrentUser();
   }
 
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+  if (!authStore.isAuthenticated && !isUnauthenticatedRoute) {
+    if (to.name === 'home') {
+      return { name: 'welcome' };
+    }
+
     return {
       name: 'sign-in',
       query: { redirect: to.fullPath },
@@ -178,10 +188,6 @@ router.beforeEach(async (to) => {
 
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     return { name: 'home' };
-  }
-
-  if (authStore.authStatus === 'idle' && !to.meta.isPublicEntry) {
-    return { name: 'welcome' };
   }
 
   const requiredFeature = to.meta.requiresFeature;

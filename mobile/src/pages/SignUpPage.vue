@@ -18,6 +18,23 @@ const form = reactive({
 const showGoogleSignIn = isNativeGoogleSignInSupported();
 
 const isSubmitting = computed(() => authStore.authStatus === 'loading');
+const authErrorDetails = computed(() => {
+  const error = authStore.lastAuthError;
+
+  if (!error) {
+    return '';
+  }
+
+  return [
+    error.source,
+    error.status ? String(error.status) : null,
+    error.code,
+    error.name,
+    error.hasDetails ? 'details available' : null,
+  ]
+    .filter(Boolean)
+    .join(' / ');
+});
 
 async function handleSubmit() {
   formError.value = '';
@@ -106,6 +123,9 @@ async function handleGoogleSignIn() {
       <p v-if="formError" class="meeting-error" role="alert">
         {{ formError }}
       </p>
+      <div v-if="authErrorDetails" class="auth-debug-details">
+        <p>{{ t('auth.errorDetails') }}: {{ authErrorDetails }}</p>
+      </div>
 
       <button class="meeting-primary" type="submit" :disabled="isSubmitting">
         {{ isSubmitting ? t('auth.creating') : t('auth.createAccount') }}

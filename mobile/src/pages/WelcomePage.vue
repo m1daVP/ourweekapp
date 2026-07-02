@@ -1,43 +1,60 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import welcomeHeroUrl from '@/assets/welcome-hero.png';
 
 const { t } = useI18n();
+const router = useRouter();
+
+const featureKeys = [
+  'welcome.talkThroughWeek',
+  'welcome.shareResponsibilities',
+  'welcome.clearAgreements',
+] as const;
+
+function goToSignIn() {
+  void router.push({ name: 'sign-in' });
+}
 </script>
 
 <template>
-  <section class="auth-page welcome-page">
-    <div class="auth-hero">
-      <p class="page-kicker">{{ t('app.name') }}</p>
-      <h1>{{ t('app.name') }}</h1>
-      <h2>{{ t('welcome.tagline') }}</h2>
-      <p class="page-copy">{{ t('welcome.intro') }}</p>
+  <section class="welcome-page--redesign" aria-labelledby="welcome-title">
+    <div class="welcome-page__hero" aria-hidden="true">
+      <img :src="welcomeHeroUrl" alt="" />
     </div>
 
-    <div class="auth-benefit-list" :aria-label="t('welcome.benefitsLabel')">
-      <div>
-        <strong>{{ t('welcome.syncLater') }}</strong>
-        <p>{{ t('welcome.syncLaterText') }}</p>
-      </div>
-      <div>
-        <strong>{{ t('welcome.keepHistory') }}</strong>
-        <p>{{ t('welcome.keepHistoryText') }}</p>
-      </div>
-      <div>
-        <strong>{{ t('welcome.premiumReady') }}</strong>
-        <p>{{ t('welcome.premiumReadyText') }}</p>
-      </div>
-    </div>
+    <div class="welcome-page__sheet">
+      <header class="welcome-page__header">
+        <h1 id="welcome-title">{{ t('welcome.title') }}</h1>
+        <h2>{{ t('welcome.tagline') }}</h2>
+        <p>{{ t('welcome.intro') }}</p>
+      </header>
 
-    <div class="auth-actions">
-      <RouterLink class="meeting-primary link-button" :to="{ name: 'sign-up' }">
-        {{ t('welcome.getStarted') }}
-      </RouterLink>
-      <RouterLink
-        class="secondary-button link-button"
-        :to="{ name: 'sign-in' }"
+      <ul
+        class="welcome-page__features"
+        :aria-label="t('welcome.benefitsLabel')"
       >
-        {{ t('auth.signIn') }}
-      </RouterLink>
+        <li v-for="featureKey in featureKeys" :key="featureKey">
+          <span
+            class="welcome-page__check material-symbols-outlined"
+            aria-hidden="true"
+          >
+            check
+          </span>
+          <span>{{ t(featureKey) }}</span>
+        </li>
+      </ul>
+
+      <div class="welcome-page__actions">
+        <button
+          class="welcome-page__primary-action"
+          type="button"
+          @click="goToSignIn"
+        >
+          {{ t('welcome.continueToSignIn') }}
+        </button>
+        <p>{{ t('welcome.authRequired') }}</p>
+      </div>
     </div>
   </section>
 </template>

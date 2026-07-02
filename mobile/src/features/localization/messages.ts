@@ -11,8 +11,8 @@ export const messages = {
         home: 'OurWeek',
         meeting: 'Weekly Ritual',
         resetPassword: 'Reset Password',
-        meetingTemplates: 'Choose a Template',
-        tasks: 'Household Tasks',
+        meetingTemplates: 'Scenarios',
+        tasks: 'Tasks',
         history: 'History',
         settings: 'Settings',
         upgrade: 'Premium',
@@ -61,6 +61,7 @@ export const messages = {
       status: 'Status',
       cancel: 'Cancel',
       delete: 'Delete',
+      undo: 'Undo',
       retry: 'Retry',
       cannotUndo: 'This action cannot be undone.',
       edit: 'Edit',
@@ -179,32 +180,36 @@ export const messages = {
       googleSignInUnavailable:
         'Google sign-in is not available on this device right now.',
       googleSignInFailed: 'Could not sign in with Google. Please try again.',
+      googleTokenRejected:
+        'Google accepted the account, but OurWeek could not verify it yet. Please use email sign-in for now.',
+      googleTokenMissing:
+        'Google sign-in completed, but did not return the sign-in token OurWeek needs. Please use email sign-in for now.',
       googleAccountConflict:
         'This Google account is already connected to another OurWeek account.',
       googleNotConfigured:
         'Google sign-in is not configured yet. Please use email sign-in for now.',
       googleTooManyAttempts:
         'Too many sign-in attempts. Please wait a moment and try again.',
+      errorDetails: 'Details',
+      openDiagnostics: 'Open support diagnostics',
       accountRequired:
         'Створіть акаунт або увійдіть, щоб користуватися цією збіркою.',
       continue: 'Continue',
       emailPlaceholder: "you{'@'}example.com",
     },
     welcome: {
+      title: 'Weekly Us',
       tagline: 'A calmer way to plan the week together',
       intro:
-        'A guided 15-minute weekly meeting for shared tasks, practical agreements, and fewer repeated household conversations.',
-      benefitsLabel: 'Why create an account',
-      syncLater: 'Sync across devices',
-      syncLaterText:
-        'Keep household records available across signed-in devices.',
-      keepHistory: 'Keep history',
-      keepHistoryText:
-        'Connect meetings, agreements, and unfinished follow-ups to you.',
-      premiumReady: 'Premium ready',
-      premiumReadyText:
-        'Use the same account for Premium access after store validation.',
-      getStarted: 'Get Started',
+        'Discuss tasks, money, kids, plans, and small tensions before they turn into arguments.',
+      benefitsLabel: 'What the first check-in covers',
+      talkThroughWeek: 'Talk through the week',
+      shareResponsibilities: 'Share responsibilities',
+      clearAgreements: 'Leave with clear agreements',
+      startFirstCheckIn: 'Start first check-in',
+      noAccountNeeded: 'No account needed to begin',
+      continueToSignIn: 'Sign in to continue',
+      authRequired: 'Sign in or create an account to start a check-in.',
     },
     logout: {
       kicker: 'Log out',
@@ -266,7 +271,7 @@ export const messages = {
       emptyText: 'Draft and finished meetings will appear here.',
     },
     meetingSummary: {
-      title: 'Meeting Summary',
+      title: 'Summary',
       aiInsight: 'AI Insight',
       aiDisclaimer:
         'AI summaries may be inaccurate. Review before relying on them.',
@@ -571,6 +576,9 @@ export const messages = {
       platform: 'Platform',
       online: 'Online',
       accountState: 'Account',
+      lastAuthIssue: 'Last auth issue',
+      authIssueNone: 'None recorded',
+      authIssueHasDetails: 'details available',
       plan: 'Plan',
       syncStatus: 'Sync status',
       syncHelp: 'Local changes remain saved if sync cannot finish.',
@@ -897,7 +905,9 @@ export const messages = {
       personAdded: 'Person added.',
       noteAdded: 'Note added.',
       noteUpdated: 'Note updated.',
+      noteDeleted: 'Note deleted.',
       taskAdded: 'Task added.',
+      taskDeleted: 'Task deleted.',
       agreementAdded: 'Agreement added.',
       keptForNow: 'Kept tasks for now.',
       markedDone: 'Marked tasks as done.',
@@ -918,6 +928,8 @@ export const messages = {
       confirmDeleteRitualText: 'This cannot be undone.',
       ritualDeleted: 'Ritual deleted.',
       deleteRitualFailed: 'Could not delete this ritual.',
+      deleteNoteAria: 'Delete note from {author}',
+      deleteTaskAria: 'Delete task {title}',
       taskStatus: {
         open: 'Open',
         done: 'Done',
@@ -930,6 +942,7 @@ export const messages = {
       chooseNoteAuthor: 'Choose who is adding this note.',
       noteNotEditable: 'Only notes from an active meeting can be edited.',
       noteNotFound: 'This note is no longer available.',
+      taskNotFound: 'This task is no longer available.',
       openBeforeTask: 'Open a meeting before adding a task.',
       taskTitleRequired: 'Task title is required.',
       chooseResponsible:
@@ -1323,8 +1336,8 @@ export const messages = {
         home: 'OurWeek',
         meeting: 'Щотижневий ритуал',
         resetPassword: 'Скидання пароля',
-        meetingTemplates: 'Виберіть шаблон',
-        tasks: 'Побутові завдання',
+        meetingTemplates: 'Сценарії',
+        tasks: 'Завдання',
         history: 'Історія',
         settings: 'Налаштування',
         upgrade: 'Premium',
@@ -1373,6 +1386,7 @@ export const messages = {
       status: 'Статус',
       cancel: 'Скасувати',
       delete: 'Видалити',
+      undo: 'Скасувати',
       retry: 'Retry',
       cannotUndo: 'This action cannot be undone.',
       edit: 'Редагувати',
@@ -1493,31 +1507,35 @@ export const messages = {
       googleSignInUnavailable:
         'Google sign-in is not available on this device right now.',
       googleSignInFailed: 'Could not sign in with Google. Please try again.',
+      googleTokenRejected:
+        'Google accepted the account, but OurWeek could not verify it yet. Please use email sign-in for now.',
+      googleTokenMissing:
+        'Google sign-in completed, but did not return the sign-in token OurWeek needs. Please use email sign-in for now.',
       googleAccountConflict:
         'This Google account is already connected to another OurWeek account.',
       googleNotConfigured:
         'Google sign-in is not configured yet. Please use email sign-in for now.',
       googleTooManyAttempts:
         'Too many sign-in attempts. Please wait a moment and try again.',
+      errorDetails: 'Details',
+      openDiagnostics: 'Open support diagnostics',
       accountRequired: 'Crea una cuenta o inicia sesión para usar esta build.',
       continue: 'Продовжити',
       emailPlaceholder: "you{'@'}example.com",
     },
     welcome: {
+      title: 'Weekly Us',
       tagline: 'Спокійніший спосіб планувати тиждень разом',
       intro:
-        'Керована 15-хвилинна щотижнева зустріч для спільних завдань, практичних домовленостей і меншої кількості повторних домашніх розмов.',
-      benefitsLabel: 'Навіщо створювати акаунт',
-      syncLater: 'Синхронізація між пристроями',
-      syncLaterText:
-        'Тримайте домашні записи доступними на пристроях, де ви увійшли.',
-      keepHistory: 'Зберігати історію',
-      keepHistoryText:
-        'Прив’язуйте зустрічі, домовленості й незавершені справи до себе.',
-      premiumReady: 'Готово до Premium',
-      premiumReadyText:
-        'Використовуйте той самий акаунт для Premium після перевірки підписки магазином.',
-      getStarted: 'Почати',
+        'Обговоріть завдання, гроші, дітей, плани й невеликі напруження, перш ніж вони перетворяться на суперечки.',
+      benefitsLabel: 'Що охоплює перша зустріч',
+      talkThroughWeek: 'Обговорити тиждень',
+      shareResponsibilities: 'Розділити відповідальність',
+      clearAgreements: 'Завершити з чіткими домовленостями',
+      startFirstCheckIn: 'Почати першу зустріч',
+      noAccountNeeded: 'Акаунт не потрібен, щоб почати',
+      continueToSignIn: 'Увійти, щоб продовжити',
+      authRequired: 'Увійдіть або створіть акаунт, щоб почати зустріч.',
     },
     logout: {
       kicker: 'Вийти',
@@ -1579,7 +1597,7 @@ export const messages = {
       emptyText: 'Чернетки й завершені зустрічі з’являться тут.',
     },
     meetingSummary: {
-      title: 'Підсумок зустрічі',
+      title: 'Підсумок',
       aiInsight: 'AI-висновок',
       aiGenerating: 'Готуємо AI-висновок...',
       aiFailed: 'Не вдалося підготувати AI-висновок зараз.',
@@ -1878,6 +1896,9 @@ export const messages = {
       platform: 'Platform',
       online: 'Online',
       accountState: 'Account',
+      lastAuthIssue: 'Last auth issue',
+      authIssueNone: 'None recorded',
+      authIssueHasDetails: 'details available',
       plan: 'Plan',
       syncStatus: 'Sync status',
       syncHelp: 'Local changes remain saved if sync cannot finish.',
@@ -2175,7 +2196,9 @@ export const messages = {
       personAdded: 'Людину додано.',
       noteAdded: 'Нотатку додано.',
       noteUpdated: 'Нотатку оновлено.',
+      noteDeleted: 'Нотатку видалено.',
       taskAdded: 'Завдання додано.',
+      taskDeleted: 'Завдання видалено.',
       agreementAdded: 'Домовленість додано.',
       keptForNow: 'Поки залишено.',
       markedDone: 'Позначено виконаним.',
@@ -2195,6 +2218,8 @@ export const messages = {
       confirmDeleteRitualText: 'Цю дію не можна скасувати.',
       ritualDeleted: 'Ритуал видалено.',
       deleteRitualFailed: 'Не вдалося видалити цей ритуал.',
+      deleteNoteAria: 'Видалити нотатку від {author}',
+      deleteTaskAria: 'Видалити завдання {title}',
       taskStatus: {
         open: 'Відкрито',
         done: 'Готово',
@@ -2207,6 +2232,7 @@ export const messages = {
       chooseNoteAuthor: 'Виберіть, хто додає цю нотатку.',
       noteNotEditable: 'Редагувати можна лише нотатки з активної зустрічі.',
       noteNotFound: 'Ця нотатка більше недоступна.',
+      taskNotFound: 'Це завдання більше недоступне.',
       openBeforeTask: 'Відкрийте зустріч, перш ніж додавати завдання.',
       taskTitleRequired: 'Назва завдання обов’язкова.',
       chooseResponsible:
@@ -2608,7 +2634,7 @@ export const messages = {
         home: 'OurWeek',
         meeting: 'Ritual semanal',
         resetPassword: 'Restablecer contraseña',
-        meetingTemplates: 'Elegir una plantilla',
+        meetingTemplates: 'Guiones',
         tasks: 'Tareas del hogar',
         history: 'Historial',
         settings: 'Ajustes',
@@ -2658,6 +2684,7 @@ export const messages = {
       status: 'Estado',
       cancel: 'Cancelar',
       delete: 'Eliminar',
+      undo: 'Deshacer',
       retry: 'Reintentar',
       cannotUndo: 'Esta accion no se puede deshacer.',
       edit: 'Editar',
@@ -2783,31 +2810,35 @@ export const messages = {
         'Google sign-in no esta disponible en este dispositivo ahora.',
       googleSignInFailed:
         'No se pudo iniciar sesion con Google. Intentalo de nuevo.',
+      googleTokenRejected:
+        'Google acepto la cuenta, pero OurWeek aun no pudo verificarla. Usa el inicio con correo por ahora.',
+      googleTokenMissing:
+        'Google completo el inicio, pero no devolvio el token que OurWeek necesita. Usa el inicio con correo por ahora.',
       googleAccountConflict:
         'Esta cuenta de Google ya esta conectada a otra cuenta de OurWeek.',
       googleNotConfigured:
         'Google sign-in aun no esta configurado. Usa el inicio con correo por ahora.',
       googleTooManyAttempts:
         'Demasiados intentos de inicio. Espera un momento e intentalo de nuevo.',
+      errorDetails: 'Detalles',
+      openDiagnostics: 'Abrir diagnostico de soporte',
       accountRequired: 'Crea una cuenta o inicia sesión para continuar.',
       continue: 'Continuar',
       emailPlaceholder: "tu{'@'}ejemplo.com",
     },
     welcome: {
+      title: 'Weekly Us',
       tagline: 'Una forma más tranquila de planear la semana juntos',
       intro:
-        'Una reunión semanal guiada de 15 minutos para tareas compartidas, acuerdos prácticos y menos conversaciones repetidas del hogar.',
-      benefitsLabel: 'Por qué crear una cuenta',
-      syncLater: 'Sincronizar entre dispositivos',
-      syncLaterText:
-        'Mantén los registros del hogar disponibles en los dispositivos donde inicias sesión.',
-      keepHistory: 'Guardar historial',
-      keepHistoryText:
-        'Conecta reuniones, acuerdos y seguimientos pendientes contigo.',
-      premiumReady: 'Listo para Premium',
-      premiumReadyText:
-        'Usa la misma cuenta para Premium después de la validación de la tienda.',
-      getStarted: 'Comenzar',
+        'Hablen de tareas, dinero, hijos, planes y pequeñas tensiones antes de que se conviertan en discusiones.',
+      benefitsLabel: 'Qué cubre la primera revisión',
+      talkThroughWeek: 'Hablar de la semana',
+      shareResponsibilities: 'Compartir responsabilidades',
+      clearAgreements: 'Salir con acuerdos claros',
+      startFirstCheckIn: 'Iniciar primera revisión',
+      noAccountNeeded: 'No necesitas cuenta para empezar',
+      continueToSignIn: 'Iniciar sesion para continuar',
+      authRequired: 'Inicia sesion o crea una cuenta para empezar.',
     },
     logout: {
       kicker: 'Cerrar sesión',
@@ -2869,7 +2900,7 @@ export const messages = {
       emptyText: 'Las reuniones en borrador y finalizadas aparecerán aquí.',
     },
     meetingSummary: {
-      title: 'Resumen de la reunión',
+      title: 'Resumen',
       aiInsight: 'Insight de AI',
       aiGenerating: 'Preparando el insight de AI...',
       aiFailed: 'No se pudo preparar el insight de AI ahora.',
@@ -3175,6 +3206,9 @@ export const messages = {
       platform: 'Platform',
       online: 'Online',
       accountState: 'Account',
+      lastAuthIssue: 'Last auth issue',
+      authIssueNone: 'None recorded',
+      authIssueHasDetails: 'details available',
       plan: 'Plan',
       syncStatus: 'Sync status',
       syncHelp: 'Local changes remain saved if sync cannot finish.',
@@ -3473,7 +3507,9 @@ export const messages = {
       personAdded: 'Persona agregada.',
       noteAdded: 'Nota agregada.',
       noteUpdated: 'Nota actualizada.',
+      noteDeleted: 'Nota eliminada.',
       taskAdded: 'Tarea agregada.',
+      taskDeleted: 'Tarea eliminada.',
       agreementAdded: 'Acuerdo agregado.',
       keptForNow: 'Se mantiene por ahora.',
       markedDone: 'Marcada como hecha.',
@@ -3493,6 +3529,8 @@ export const messages = {
       confirmDeleteRitualText: 'Esta acción no se puede deshacer.',
       ritualDeleted: 'Ritual eliminado.',
       deleteRitualFailed: 'No se pudo eliminar este ritual.',
+      deleteNoteAria: 'Eliminar nota de {author}',
+      deleteTaskAria: 'Eliminar tarea {title}',
       taskStatus: {
         open: 'Abierta',
         done: 'Hecha',
@@ -3505,6 +3543,7 @@ export const messages = {
       chooseNoteAuthor: 'Elige quién agrega esta nota.',
       noteNotEditable: 'Solo se pueden editar notas de una reunión activa.',
       noteNotFound: 'Esta nota ya no está disponible.',
+      taskNotFound: 'Esta tarea ya no está disponible.',
       openBeforeTask: 'Abre una reunión antes de agregar una tarea.',
       taskTitleRequired: 'El título de la tarea es obligatorio.',
       chooseResponsible:
