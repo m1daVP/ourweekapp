@@ -53,6 +53,24 @@ function healthStateLabel(state?: HealthCheckState) {
   return t(`supportDiagnostics.backendStates.${state}`);
 }
 
+function formatLastAuthError(
+  error?: SupportDiagnostics['account']['lastAuthError']
+) {
+  if (!error) {
+    return t('supportDiagnostics.authIssueNone');
+  }
+
+  const parts = [
+    error.source,
+    error.status ? String(error.status) : null,
+    error.code,
+    error.name,
+    error.hasDetails ? t('supportDiagnostics.authIssueHasDetails') : null,
+  ];
+
+  return parts.filter(Boolean).join(' / ');
+}
+
 async function refreshDiagnostics() {
   isLoading.value = true;
   loadError.value = '';
@@ -146,6 +164,10 @@ onMounted(() => {
                 : t('common.notAvailable')
             }}
           </dd>
+        </div>
+        <div>
+          <dt>{{ t('supportDiagnostics.lastAuthIssue') }}</dt>
+          <dd>{{ formatLastAuthError(diagnostics?.account.lastAuthError) }}</dd>
         </div>
         <div>
           <dt>{{ t('supportDiagnostics.plan') }}</dt>

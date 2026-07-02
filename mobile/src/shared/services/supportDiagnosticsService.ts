@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { useAuthStore } from '@/app/stores/auth';
+import { useAuthStore, type AuthErrorDiagnostics } from '@/app/stores/auth';
 import { useLocalizationStore } from '@/app/stores/localization';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
@@ -44,6 +44,7 @@ export interface SupportDiagnostics {
   account: {
     state: AccountDiagnosticsState;
     role: string | null;
+    lastAuthError: AuthErrorDiagnostics | null;
   };
   subscription: {
     plan: string;
@@ -131,6 +132,7 @@ export async function collectSupportDiagnostics(): Promise<SupportDiagnostics> {
     account: {
       state: getAccountState(),
       role: authStore.isAuthenticated ? workspaceStore.currentUserRole : null,
+      lastAuthError: authStore.lastAuthError,
     },
     subscription: {
       plan: subscriptionStore.currentPlan,
@@ -214,6 +216,7 @@ function createAllowedSupportDiagnostics(
     account: {
       state: diagnostics.account.state,
       role: diagnostics.account.role,
+      lastAuthError: diagnostics.account.lastAuthError,
     },
     subscription: {
       plan: diagnostics.subscription.plan,

@@ -20,6 +20,7 @@ const baseInput: SupportDiagnosticsInput = {
   account: {
     state: 'signed_in',
     role: 'owner',
+    lastAuthError: null,
   },
   subscription: {
     plan: 'free',
@@ -55,6 +56,7 @@ describe('supportDiagnosticsService', () => {
     expect(diagnostics.account).toEqual({
       state: 'signed_in',
       role: 'owner',
+      lastAuthError: null,
     });
     expect(diagnostics.sync).toMatchObject({
       state: 'failed',
@@ -64,6 +66,36 @@ describe('supportDiagnosticsService', () => {
       hasIssue: true,
       messageCount: 1,
       backupCount: 1,
+    });
+  });
+
+  it('includes only redacted auth error diagnostics', () => {
+    const diagnostics = createSupportDiagnosticsSnapshot({
+      ...baseInput,
+      account: {
+        ...baseInput.account,
+        lastAuthError: {
+          source: 'google',
+          status: 422,
+          code: 'invalid_google_token',
+          name: 'ApiClientError',
+          hasDetails: true,
+        },
+      },
+    });
+    const serialized = serializeSupportDiagnostics(diagnostics);
+    const parsed = JSON.parse(serialized) as {
+      account: {
+        lastAuthError: Record<string, unknown>;
+      };
+    };
+
+    expect(parsed.account.lastAuthError).toEqual({
+      source: 'google',
+      status: 422,
+      code: 'invalid_google_token',
+      name: 'ApiClientError',
+      hasDetails: true,
     });
   });
 

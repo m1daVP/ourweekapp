@@ -88,18 +88,21 @@ export async function getNativeGoogleIdToken() {
   try {
     const login = await SocialLogin.login({
       provider: 'google',
-      options: {
-        scopes: ['email', 'profile'],
-      },
+      options: {},
     });
 
     const result = login.result;
-    const idToken = result.responseType === 'online' ? result.idToken : null;
+    const idToken =
+      'idToken' in result &&
+      typeof result.idToken === 'string' &&
+      result.idToken.trim()
+        ? result.idToken
+        : null;
 
     if (!idToken) {
       throw new GoogleSignInError(
         'missing_id_token',
-        translate('auth.googleSignInFailed')
+        translate('auth.googleTokenMissing')
       );
     }
 

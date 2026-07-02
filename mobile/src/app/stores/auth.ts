@@ -22,6 +22,7 @@ import {
   readOnboardingStorage,
   writeOnboardingStorage,
 } from '@/shared/services/storageService';
+import { captureHandledError } from '@/shared/services/errorMonitoringService';
 import { warnSafely } from '@/shared/services/safeLogService';
 import {
   prepareSyncForAuthenticatedUser,
@@ -53,8 +54,17 @@ interface AuthState {
   user: AuthUser | null;
   authStatus: AuthStatus;
   errorMessage: string;
+  lastAuthError: AuthErrorDiagnostics | null;
   hasHydratedSecureTokens: boolean;
   hasVerifiedCurrentUser: boolean;
+}
+
+export interface AuthErrorDiagnostics {
+  source: 'google';
+  status?: number;
+  code?: string;
+  name?: string;
+  hasDetails?: boolean;
 }
 
 let legacyTokensToMigrate: AuthTokens = {
@@ -162,10 +172,36 @@ function getGoogleSignInErrorMessage(error: unknown) {
       return translate('auth.googleNotConfigured');
     case 'invalid_google_token':
     case 'validation_failed':
-      return translate('auth.googleSignInFailed');
+      return translate('auth.googleTokenRejected');
     default:
       return error.message || translate('auth.googleSignInFailed');
   }
+}
+
+function getGoogleSignInDebugDetails(error: unknown): AuthErrorDiagnostics {
+  if (error instanceof ApiClientError) {
+    return {
+      source: 'google',
+      status: error.status,
+      code: error.code,
+      hasDetails: error.details !== undefined,
+    };
+  }
+
+  if (error instanceof Error) {
+    const code =
+      'code' in error && typeof error.code === 'string'
+        ? error.code
+        : undefined;
+
+    return {
+      source: 'google',
+      name: error.name,
+      code,
+    };
+  }
+
+  return { source: 'google' };
 }
 
 function mapAuthUser(user: AuthUserDto, fallbackEmail = ''): AuthUser {
@@ -241,6 +277,7 @@ export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     ...getStoredState(),
     errorMessage: '',
+    lastAuthError: null,
     hasHydratedSecureTokens: false,
     hasVerifiedCurrentUser: false,
   }),
@@ -337,6 +374,7 @@ export const useAuthStore = defineStore('auth', {
       this.hasHydratedSecureTokens = true;
       this.hasVerifiedCurrentUser = true;
       this.errorMessage = '';
+      this.lastAuthError = null;
       this.persist();
     },
     async clearSessionAfterUnauthorized() {
@@ -348,6 +386,7 @@ export const useAuthStore = defineStore('auth', {
       this.hasHydratedSecureTokens = true;
       this.hasVerifiedCurrentUser = true;
       this.errorMessage = '';
+      this.lastAuthError = null;
       this.persist();
     },
     async verifyCurrentUser() {
@@ -416,6 +455,7 @@ export const useAuthStore = defineStore('auth', {
     async signIn(payload: SignInPayload) {
       this.authStatus = 'loading';
       this.errorMessage = '';
+      this.lastAuthError = null;
 
       try {
         const session = await signInRequest({
@@ -440,6 +480,7 @@ export const useAuthStore = defineStore('auth', {
     async signInWithGoogle() {
       this.authStatus = 'loading';
       this.errorMessage = '';
+      this.lastAuthError = null;
 
       try {
         const idToken = await getNativeGoogleIdToken();
@@ -448,10 +489,22 @@ export const useAuthStore = defineStore('auth', {
         await this.applySession(session);
         return true;
       } catch (error) {
+        const debugDetails = getGoogleSignInDebugDetails(error);
+        warnSafely('Google sign-in failed.', debugDetails);
+        captureHandledError(error, {
+          tags: {
+            feature: 'auth',
+            provider: 'google',
+          },
+          extra: {
+            authError: debugDetails,
+          },
+        });
         await clearStoredAuthTokensSafely();
         this.user = null;
         this.authStatus = 'error';
         this.errorMessage = getGoogleSignInErrorMessage(error);
+        this.lastAuthError = debugDetails;
         this.persist();
         return false;
       }
@@ -459,6 +512,7 @@ export const useAuthStore = defineStore('auth', {
     async signUp(payload: SignUpPayload) {
       this.authStatus = 'loading';
       this.errorMessage = '';
+      this.lastAuthError = null;
 
       try {
         const session = await registerRequest({

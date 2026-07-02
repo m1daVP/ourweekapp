@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia';
 
 const mocks = vi.hoisted(() => ({
   clearAuthTokens: vi.fn(),
+  captureHandledError: vi.fn(),
   prepareSyncForAuthenticatedUser: vi.fn(),
   readOnboardingStorage: vi.fn(),
   readAuthTokens: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signInWithGoogleIdToken: vi.fn(),
   signOut: vi.fn(),
+  warnSafely: vi.fn(),
   writeAuthTokens: vi.fn(),
   writeOnboardingStorage: vi.fn(),
   getNativeGoogleIdToken: vi.fn(),
@@ -23,6 +25,19 @@ vi.mock('@/features/localization/i18n', () => ({
 vi.mock('@/shared/api/httpClient', () => ({
   ApiClientError: class ApiClientError extends Error {
     status?: number;
+    code?: string;
+    details?: unknown;
+
+    constructor(
+      message: string,
+      options: { status?: number; code?: string; details?: unknown } = {}
+    ) {
+      super(message);
+      this.name = 'ApiClientError';
+      this.status = options.status;
+      this.code = options.code;
+      this.details = options.details;
+    }
   },
   setApiAuthHandlers: vi.fn(),
 }));
@@ -46,13 +61,17 @@ vi.mock('@/shared/services/authTokenStorageService', () => ({
   writeAuthTokens: mocks.writeAuthTokens,
 }));
 
+vi.mock('@/shared/services/errorMonitoringService', () => ({
+  captureHandledError: mocks.captureHandledError,
+}));
+
 vi.mock('@/shared/services/storageService', () => ({
   readOnboardingStorage: mocks.readOnboardingStorage,
   writeOnboardingStorage: mocks.writeOnboardingStorage,
 }));
 
 vi.mock('@/shared/services/safeLogService', () => ({
-  warnSafely: vi.fn(),
+  warnSafely: mocks.warnSafely,
 }));
 
 vi.mock('@/shared/services/syncSessionService', () => ({
@@ -61,6 +80,7 @@ vi.mock('@/shared/services/syncSessionService', () => ({
 }));
 
 import { useAuthStore } from '@/app/stores/auth';
+import { ApiClientError } from '@/shared/api/httpClient';
 
 const session = {
   user: {
@@ -81,6 +101,7 @@ beforeEach(() => {
   setActivePinia(createPinia());
 
   mocks.clearAuthTokens.mockReset();
+  mocks.captureHandledError.mockReset();
   mocks.prepareSyncForAuthenticatedUser.mockReset();
   mocks.readAuthTokens.mockReset();
   mocks.readOnboardingStorage.mockReset();
@@ -89,6 +110,7 @@ beforeEach(() => {
   mocks.signIn.mockReset();
   mocks.signInWithGoogleIdToken.mockReset();
   mocks.signOut.mockReset();
+  mocks.warnSafely.mockReset();
   mocks.writeAuthTokens.mockReset();
   mocks.writeOnboardingStorage.mockReset();
   mocks.getNativeGoogleIdToken.mockReset();
@@ -172,6 +194,52 @@ describe('auth sync safety hooks', () => {
     expect(mocks.clearAuthTokens).toHaveBeenCalled();
     expect(authStore.authStatus).toBe('error');
     expect(authStore.user).toBeNull();
+  });
+
+  it('shows a clearer message and logs debug metadata when backend rejects a Google token', async () => {
+    const authStore = useAuthStore();
+
+    mocks.signInWithGoogleIdToken.mockRejectedValue(
+      new ApiClientError('Invalid Google token', {
+        status: 422,
+        code: 'invalid_google_token',
+        details: { reason: 'audience_mismatch' },
+      })
+    );
+
+    const didSignIn = await authStore.signInWithGoogle();
+
+    expect(didSignIn).toBe(false);
+    expect(authStore.errorMessage).toBe('auth.googleTokenRejected');
+    expect(authStore.lastAuthError).toEqual({
+      source: 'google',
+      status: 422,
+      code: 'invalid_google_token',
+      hasDetails: true,
+    });
+    expect(mocks.captureHandledError).toHaveBeenCalledWith(
+      expect.any(ApiClientError),
+      {
+        tags: {
+          feature: 'auth',
+          provider: 'google',
+        },
+        extra: {
+          authError: {
+            source: 'google',
+            status: 422,
+            code: 'invalid_google_token',
+            hasDetails: true,
+          },
+        },
+      }
+    );
+    expect(mocks.warnSafely).toHaveBeenCalledWith('Google sign-in failed.', {
+      source: 'google',
+      status: 422,
+      code: 'invalid_google_token',
+      hasDetails: true,
+    });
   });
 
   it('resets sync runtime state on logout cleanup', async () => {

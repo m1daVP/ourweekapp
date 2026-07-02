@@ -87,10 +87,19 @@ describe('googleSignInService', () => {
     });
     expect(mocks.login).toHaveBeenCalledWith({
       provider: 'google',
-      options: {
-        scopes: ['email', 'profile'],
+    });
+  });
+
+  it('returns the Google ID token when the plugin omits responseType', async () => {
+    mocks.login.mockResolvedValue({
+      provider: 'google',
+      result: {
+        idToken: 'google-id-token',
       },
     });
+    const { getNativeGoogleIdToken } = await loadService();
+
+    await expect(getNativeGoogleIdToken()).resolves.toBe('google-id-token');
   });
 
   it('rejects missing Google ID tokens', async () => {

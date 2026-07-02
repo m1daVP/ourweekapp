@@ -59,6 +59,15 @@ export const endpointContracts: EndpointContract[] = [
   },
   {
     method: 'POST',
+    path: '/v1/auth/google',
+    requiresAuth: false,
+    successStatuses: [200],
+    errorStatuses: [401, 409, 422, 429, 500],
+    requiredRequestFields: ['idToken'],
+    requestExample: { idToken: 'google-id-token' },
+  },
+  {
+    method: 'POST',
     path: '/v1/auth/refresh',
     requiresAuth: false,
     successStatuses: [200],

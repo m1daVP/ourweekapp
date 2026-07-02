@@ -61,6 +61,12 @@ export const openApiSnapshot: OpenApiFixture = {
       'GET',
       operation([200, 401, 409, 422, 500], { requiresAuth: true })
     ),
+    '/v1/auth/google': pathItem(
+      'POST',
+      operation([200, 401, 409, 422, 429, 500], {
+        requiredRequestFields: ['idToken'],
+      })
+    ),
     '/v1/auth/password-reset/confirm': pathItem(
       'POST',
       operation([204, 401, 409, 422, 429, 500, 503], {
