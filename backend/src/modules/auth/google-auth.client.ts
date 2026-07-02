@@ -100,7 +100,7 @@ function googleTokenDiagnostics(idToken: string) {
   return {
     configuredClientIdCount: env.GOOGLE_SIGN_IN_CLIENT_IDS.length,
     configuredClientIdHashes: env.GOOGLE_SIGN_IN_CLIENT_IDS.map(safeHash),
-    token: payload
+    idTokenClaims: payload
       ? {
           issuer: safeIssuer(payload.iss),
           audience: safeAudience(payload.aud),

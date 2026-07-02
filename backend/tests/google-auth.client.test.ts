@@ -114,7 +114,7 @@ describe('googleAuthProvider', () => {
       googleSignIn: {
         configuredClientIdCount: 2,
         configuredClientIdHashes: [expect.any(String), expect.any(String)],
-        token: {
+        idTokenClaims: {
           issuer: 'https://accounts.google.com',
           audience: {
             hash: expect.any(String),
@@ -167,7 +167,7 @@ describe('googleAuthProvider', () => {
       reason: 'payload_invalid',
       googleSignIn: {
         configuredClientIdCount: 2,
-        token: {
+        idTokenClaims: {
           issuer: 'accounts.google.com',
           audience: {
             hash: expect.any(String),
