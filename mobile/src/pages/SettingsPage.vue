@@ -326,5 +326,13 @@ function updateLocale(event: Event) {
     <HouseholdMembersSettings />
 
     <UpgradePrompt v-if="lockedFeature" :feature="lockedFeature" />
+
+    <RouterLink
+      v-if="authStore.isAuthenticated"
+      class="base-button base-button--danger link-button"
+      :to="{ name: 'logout' }"
+    >
+      {{ t('common.logOut') }}
+    </RouterLink>
   </section>
 </template>
