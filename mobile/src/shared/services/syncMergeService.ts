@@ -22,7 +22,7 @@ function isRemoteNewer<TItem extends SyncableItem>(
   remoteItem: TItem
 ) {
   return (
-    toDateTime(getItemTimestamp(remoteItem)) >=
+    toDateTime(getItemTimestamp(remoteItem)) >
     toDateTime(getItemTimestamp(localItem))
   );
 }

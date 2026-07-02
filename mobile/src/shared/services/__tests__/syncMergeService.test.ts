@@ -74,14 +74,36 @@ describe('mergeSyncItems', () => {
     ]);
   });
 
-  it('keeps current remote-wins behavior for equal timestamps', () => {
+  it('preserves local data when timestamps are equal', () => {
     const merged = mergeSyncItems(
       [item('task-1', '2026-06-01T10:00:00.000Z', { title: 'local' })],
       [item('task-1', '2026-06-01T10:00:00.000Z', { title: 'remote' })]
     );
 
     expect(merged).toEqual([
-      expect.objectContaining({ id: 'task-1', title: 'remote' }),
+      expect.objectContaining({ id: 'task-1', title: 'local' }),
+    ]);
+  });
+
+  it('does not replace local nested content with an equal-timestamp remote item', () => {
+    const localMeeting = item('meeting-1', '2026-06-01T10:00:00.000Z', {
+      title: 'local',
+    }) as TestItem & { sections: Array<{ tasks: Array<{ id: string }> }> };
+    const remoteMeeting = item('meeting-1', '2026-06-01T10:00:00.000Z', {
+      title: 'remote',
+    }) as TestItem & { sections: Array<{ tasks: Array<{ id: string }> }> };
+
+    localMeeting.sections = [{ tasks: [{ id: 'new-task' }] }];
+    remoteMeeting.sections = [{ tasks: [] }];
+
+    const merged = mergeSyncItems([localMeeting], [remoteMeeting]);
+
+    expect(merged).toEqual([
+      expect.objectContaining({
+        id: 'meeting-1',
+        title: 'local',
+        sections: [{ tasks: [{ id: 'new-task' }] }],
+      }),
     ]);
   });
 });
