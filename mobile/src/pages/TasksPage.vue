@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
@@ -59,6 +67,11 @@ const selectedTask = ref<Task | null>(null);
 const taskPendingDelete = ref<Task | null>(null);
 const isAddTaskSheetOpen = ref(false);
 const statusMessage = ref('');
+const completingTaskIds = ref<Set<string>>(new Set());
+const taskCompletionStatusTimers = new Map<string, number>();
+const taskCompletionResetTimers = new Map<string, number>();
+const TASK_COMPLETION_SETTLE_MS = 720;
+const TASK_COMPLETION_RESET_MS = 360;
 
 const openTasks = computed(() => tasksStore.openTasks);
 const doneTasks = computed(() => tasksStore.doneTasks);
@@ -111,6 +124,16 @@ onMounted(() => {
   participantsStore.ensureDefaultParticipants();
   tasksStore.syncFromMeetings(meetingsStore.meetings);
   newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
+});
+
+onBeforeUnmount(() => {
+  for (const timer of taskCompletionStatusTimers.values()) {
+    window.clearTimeout(timer);
+  }
+
+  for (const timer of taskCompletionResetTimers.values()) {
+    window.clearTimeout(timer);
+  }
 });
 
 watch(
@@ -426,11 +449,99 @@ function setTaskStatus(task: Task, status: TaskStatus) {
     return;
   }
 
+  if (status === 'done' && task.status !== 'done') {
+    completeTaskWithAnimation(task);
+    return;
+  }
+
+  clearTaskCompletion(task.id);
   tasksStore.updateTaskStatus(task.id, status);
   meetingsStore.updateTaskStatus(task.id, status);
   statusMessage.value =
     status === 'done' ? t('tasksPage.markedDone') : t('tasksPage.updated');
   selectedTask.value = null;
+}
+
+function completeTaskWithAnimation(task: Task) {
+  if (isTaskCompleting(task.id)) {
+    return;
+  }
+
+  setTaskCompleting(task.id, true);
+  statusMessage.value = t('tasksPage.markedDone');
+  selectedTask.value = null;
+
+  void nextTick(() => {
+    const timer = window.setTimeout(
+      () => {
+        taskCompletionStatusTimers.delete(task.id);
+        tasksStore.updateTaskStatus(task.id, 'done');
+        meetingsStore.updateTaskStatus(task.id, 'done');
+        scheduleTaskCompletionReset(task.id);
+      },
+      prefersReducedMotion() ? 0 : TASK_COMPLETION_SETTLE_MS
+    );
+
+    taskCompletionStatusTimers.set(task.id, timer);
+  });
+}
+
+function scheduleTaskCompletionReset(taskId: string) {
+  const existingTimer = taskCompletionResetTimers.get(taskId);
+
+  if (existingTimer) {
+    window.clearTimeout(existingTimer);
+  }
+
+  const timer = window.setTimeout(
+    () => {
+      taskCompletionResetTimers.delete(taskId);
+      setTaskCompleting(taskId, false);
+    },
+    prefersReducedMotion() ? 0 : TASK_COMPLETION_RESET_MS
+  );
+
+  taskCompletionResetTimers.set(taskId, timer);
+}
+
+function clearTaskCompletion(taskId: string) {
+  const statusTimer = taskCompletionStatusTimers.get(taskId);
+  const resetTimer = taskCompletionResetTimers.get(taskId);
+
+  if (statusTimer) {
+    window.clearTimeout(statusTimer);
+    taskCompletionStatusTimers.delete(taskId);
+  }
+
+  if (resetTimer) {
+    window.clearTimeout(resetTimer);
+    taskCompletionResetTimers.delete(taskId);
+  }
+
+  setTaskCompleting(taskId, false);
+}
+
+function setTaskCompleting(taskId: string, isCompleting: boolean) {
+  const nextCompletingTaskIds = new Set(completingTaskIds.value);
+
+  if (isCompleting) {
+    nextCompletingTaskIds.add(taskId);
+  } else {
+    nextCompletingTaskIds.delete(taskId);
+  }
+
+  completingTaskIds.value = nextCompletingTaskIds;
+}
+
+function isTaskCompleting(taskId: string) {
+  return completingTaskIds.value.has(taskId);
+}
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
 }
 
 function toggleTaskStatus(card: TaskCardView) {
@@ -474,7 +585,7 @@ function confirmDeleteTask() {
 }
 
 function openTask(card: TaskCardView) {
-  if (card.task) {
+  if (card.task && !isTaskCompleting(card.id)) {
     selectedTask.value = card.task;
   }
 }
@@ -515,11 +626,22 @@ function openAddTaskSheet() {
       aria-labelledby="shared-tasks-title"
     >
       <h2 id="shared-tasks-title">SHARED RESPONSIBILITIES</h2>
-      <ul v-if="sharedTaskCards.length" class="task-card-list">
+      <TransitionGroup
+        v-if="sharedTaskCards.length"
+        tag="ul"
+        name="task-card-motion"
+        class="task-card-list"
+      >
         <li
           v-for="card in sharedTaskCards"
           :key="card.id"
-          class="task-card"
+          :class="[
+            'task-card',
+            {
+              'is-done': card.task?.status === 'done',
+              'is-completing': isTaskCompleting(card.id),
+            },
+          ]"
           @click="openTask(card)"
         >
           <button
@@ -527,7 +649,7 @@ function openAddTaskSheet() {
             class="task-card__checkbox"
             :class="{ 'is-checked': card.task?.status === 'done' }"
             :aria-label="getTaskToggleLabel(card)"
-            :disabled="!canEditTasks"
+            :disabled="!canEditTasks || isTaskCompleting(card.id)"
             @click.stop="toggleTaskStatus(card)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">
@@ -537,6 +659,7 @@ function openAddTaskSheet() {
           <button
             type="button"
             class="task-card__content"
+            :disabled="isTaskCompleting(card.id)"
             @click.stop="openTask(card)"
           >
             <strong>{{ card.title }}</strong>
@@ -566,7 +689,7 @@ function openAddTaskSheet() {
             </span>
           </div>
         </li>
-      </ul>
+      </TransitionGroup>
     </section>
 
     <section
@@ -575,11 +698,22 @@ function openAddTaskSheet() {
       aria-labelledby="my-tasks-title"
     >
       <h2 id="my-tasks-title">MY TASKS</h2>
-      <ul v-if="myTaskCards.length" class="task-card-list">
+      <TransitionGroup
+        v-if="myTaskCards.length"
+        tag="ul"
+        name="task-card-motion"
+        class="task-card-list"
+      >
         <li
           v-for="card in myTaskCards"
           :key="card.id"
-          class="task-card"
+          :class="[
+            'task-card',
+            {
+              'is-done': card.task?.status === 'done',
+              'is-completing': isTaskCompleting(card.id),
+            },
+          ]"
           @click="openTask(card)"
         >
           <button
@@ -587,7 +721,7 @@ function openAddTaskSheet() {
             class="task-card__checkbox"
             :class="{ 'is-checked': card.task?.status === 'done' }"
             :aria-label="getTaskToggleLabel(card)"
-            :disabled="!canEditTasks"
+            :disabled="!canEditTasks || isTaskCompleting(card.id)"
             @click.stop="toggleTaskStatus(card)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">
@@ -597,6 +731,7 @@ function openAddTaskSheet() {
           <button
             type="button"
             class="task-card__content"
+            :disabled="isTaskCompleting(card.id)"
             @click.stop="openTask(card)"
           >
             <strong>{{ card.title }}</strong>
@@ -626,7 +761,7 @@ function openAddTaskSheet() {
             </span>
           </div>
         </li>
-      </ul>
+      </TransitionGroup>
     </section>
     <p v-if="!taskCards.length" class="task-empty">{{ emptyTaskMessage }}</p>
 
