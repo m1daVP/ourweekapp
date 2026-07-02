@@ -391,10 +391,10 @@ input[type='radio'] {
   line-height: 1.1;
   text-decoration: none;
   transition:
-    color 160ms ease,
-    background-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 120ms ease;
+    color 0.22s ease-in-out,
+    background-color 0.22s ease-in-out,
+    box-shadow 0.22s ease-in-out,
+    transform 0.22s ease-in-out;
 }
 
 .bottom-navigation__item:active {
@@ -402,7 +402,11 @@ input[type='radio'] {
 }
 
 .bottom-navigation__icon {
-  font-size: 27px;
+  font-size: 25px;
+
+  transition:
+    font-size 0.22s ease-in-out,
+    color 0.22s ease-in-out;
 }
 
 .bottom-navigation__label {
@@ -412,6 +416,12 @@ input[type='radio'] {
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+  height: 0.82rem;
+
+  transition:
+    color 0.22s ease-in-out,
+    max-width 0.22s ease-in-out,
+    height 0.22s ease-in-out;
 }
 
 .bottom-navigation__item.router-link-active,
@@ -426,14 +436,19 @@ input[type='radio'] {
 
 .bottom-navigation__item.router-link-active .bottom-navigation__icon,
 .bottom-navigation__item--active .bottom-navigation__icon {
-  font-size: 29px;
+  font-size: 30px;
 }
 
 .bottom-navigation__item.router-link-active .bottom-navigation__label,
 .bottom-navigation__item--active .bottom-navigation__label {
   color: var(--color-on-primary);
-  font-size: var(--font-size-label-sm);
-  max-width: 58px;
+  /* font-size: var(--font-size-label-sm); */
+  /* max-width: 58px; */
+
+  max-width: 0;
+  height: 0;
+  padding: 0;
+  margin: 0;
 }
 
 .app-toast {
