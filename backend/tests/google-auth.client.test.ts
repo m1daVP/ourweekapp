@@ -41,6 +41,14 @@ async function loadGoogleAuthClient(
   return import('../src/modules/auth/google-auth.client.js');
 }
 
+function base64UrlJson(value: unknown) {
+  return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
+
+function googleIdToken(payload: Record<string, unknown>) {
+  return `${base64UrlJson({ alg: 'RS256', typ: 'JWT' })}.${base64UrlJson(payload)}.signature`;
+}
+
 describe('googleAuthProvider', () => {
   afterEach(() => {
     process.env = { ...originalEnv };
@@ -73,8 +81,72 @@ describe('googleAuthProvider', () => {
     });
   });
 
+  it('logs sanitized diagnostics when Google token verification fails', async () => {
+    const { googleAuthProvider } = await loadGoogleAuthClient();
+    const idToken = googleIdToken({
+      iss: 'https://accounts.google.com',
+      aud: 'android-client-id',
+      email: 'rita@example.com',
+      email_verified: true,
+      sub: 'google-subject-1',
+      picture: 'https://example.com/avatar.png',
+    });
+    const logger = { warn: vi.fn() };
+
+    verifyIdToken.mockRejectedValueOnce(
+      new Error('Token used too late'),
+    );
+
+    await expect(
+      googleAuthProvider.verifyIdToken(idToken, logger),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'invalid_google_token',
+    });
+
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    const [metadata, message] = logger.warn.mock.calls[0] ?? [];
+
+    expect(message).toBe('Google ID token verification failed');
+    expect(metadata).toMatchObject({
+      code: 'invalid_google_token',
+      reason: 'verification_failed',
+      googleSignIn: {
+        configuredClientIdCount: 2,
+        configuredClientIdHashes: [expect.any(String), expect.any(String)],
+        token: {
+          issuer: 'https://accounts.google.com',
+          audience: {
+            hash: expect.any(String),
+            masked: '[short-value]',
+          },
+          emailVerified: true,
+        },
+      },
+    });
+
+    const serialized = JSON.stringify(metadata);
+
+    expect(serialized).not.toContain(idToken);
+    expect(serialized).not.toContain('rita@example.com');
+    expect(serialized).not.toContain('google-subject-1');
+    expect(serialized).not.toContain('https://example.com/avatar.png');
+    expect(serialized).not.toContain('Token used too late');
+    expect(serialized).not.toContain('android-client-id');
+    expect(serialized).not.toContain('ios-client-id');
+  });
+
   it('rejects Google ID tokens without a verified email', async () => {
     const { googleAuthProvider } = await loadGoogleAuthClient();
+    const idToken = googleIdToken({
+      iss: 'accounts.google.com',
+      aud: 'android-client-id',
+      email: 'rita@example.com',
+      email_verified: false,
+      sub: 'google-subject-1',
+    });
+    const logger = { warn: vi.fn() };
+
     verifyIdToken.mockResolvedValueOnce({
       getPayload: () => ({
         sub: 'google-subject-1',
@@ -84,11 +156,30 @@ describe('googleAuthProvider', () => {
     });
 
     await expect(
-      googleAuthProvider.verifyIdToken('id-token'),
+      googleAuthProvider.verifyIdToken(idToken, logger),
     ).rejects.toMatchObject({
       statusCode: 401,
       code: 'invalid_google_token',
     });
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn.mock.calls[0]?.[0]).toMatchObject({
+      code: 'invalid_google_token',
+      reason: 'payload_invalid',
+      googleSignIn: {
+        configuredClientIdCount: 2,
+        token: {
+          issuer: 'accounts.google.com',
+          audience: {
+            hash: expect.any(String),
+            masked: '[short-value]',
+          },
+          emailVerified: false,
+        },
+      },
+    });
+    expect(JSON.stringify(logger.warn.mock.calls[0]?.[0])).not.toContain(
+      'rita@example.com',
+    );
   });
 
   it('fails safely when Google Sign-In is not configured', async () => {

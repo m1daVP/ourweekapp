@@ -90,7 +90,12 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
   }, async (request) => {
-    return signInWithGoogle(app.supabase, request.body);
+    return signInWithGoogle(
+      app.supabase,
+      request.body,
+      undefined,
+      request.log,
+    );
   });
 
   app.post('/refresh', {

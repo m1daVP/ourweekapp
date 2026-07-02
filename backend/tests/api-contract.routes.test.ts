@@ -560,9 +560,14 @@ describe('API route contracts', () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
-    expect(signInWithGoogle).toHaveBeenCalledWith({}, {
-      idToken: 'google-id-token',
-    });
+    expect(signInWithGoogle).toHaveBeenCalledWith(
+      {},
+      {
+        idToken: 'google-id-token',
+      },
+      undefined,
+      expect.any(Object),
+    );
     await app.close();
   });
 

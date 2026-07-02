@@ -1,4 +1,5 @@
 import argon2 from 'argon2';
+import type { FastifyBaseLogger } from 'fastify';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { env } from '../../config/env.js';
@@ -596,8 +597,9 @@ export async function signInWithGoogle(
   supabase: SupabaseClient,
   body: GoogleSignInRequestDto,
   provider: GoogleAuthProvider = googleAuthProvider,
+  logger?: Pick<FastifyBaseLogger, 'warn'>,
 ): Promise<AuthSessionDto> {
-  const identity = await provider.verifyIdToken(body.idToken);
+  const identity = await provider.verifyIdToken(body.idToken, logger);
   const existingIdentity = await getGoogleIdentityBySubject(
     supabase,
     identity.subject,
