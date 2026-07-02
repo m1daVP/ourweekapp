@@ -7,9 +7,22 @@ import { i18n } from './features/localization/i18n';
 import { initializeStorageServices } from './shared/services/storageService';
 import { hideLaunchSplash } from './shared/services/splashScreenService';
 import { configureSystemBars } from './shared/services/systemBarsService';
+import * as Sentry from '@sentry/vue';
 import './styles/main.css';
 
 const app = createApp(App);
+const sentryDsn = import.meta.env.VITE_SENTRY_DSN?.trim();
+
+if (sentryDsn) {
+  Sentry.init({
+    app,
+    dsn: sentryDsn,
+    dataCollection: {
+      userInfo: false,
+      httpBodies: [],
+    },
+  });
+}
 
 app.use(pinia);
 

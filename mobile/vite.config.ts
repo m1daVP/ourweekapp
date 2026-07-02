@@ -5,6 +5,7 @@ import {
   assertValidProductionConfig,
   assertValidRequiredApiConfig,
 } from './src/shared/config/productionConfigValidation';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
@@ -16,8 +17,25 @@ export default defineConfig(({ command, mode }) => {
     assertValidRequiredApiConfig(env);
   }
 
+  const plugins = [
+    vue(),
+    ...(isReleaseBuild
+      ? [
+          sentryVitePlugin({
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            org: 'ourweek',
+            project: 'ourweek',
+            telemetry: false,
+          }),
+        ]
+      : []),
+  ];
+
   return {
-    plugins: [vue()],
+    build: {
+      sourcemap: true, // Source map generation must be turned on
+    },
+    plugins,
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -25,6 +43,7 @@ export default defineConfig(({ command, mode }) => {
     },
     server: {
       host: '0.0.0.0',
+      port: 3007,
     },
   };
 });
