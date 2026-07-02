@@ -43,6 +43,7 @@ const {
   currentSection,
   currentStepNumber,
   currentTasks,
+  deleteNote,
   drawerFamilyMembers,
   drawerSelectedParticipantId,
   editingNoteParticipantId,
@@ -94,6 +95,7 @@ const {
   startRitual,
   statusMessage,
   taskDraft,
+  deleteTask,
   toggleCheckInParticipant,
   toggleTask,
   totalSteps,
@@ -195,6 +197,8 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
       @exit="closeMeeting"
       @finish="finishMeeting"
       @go-back="goBack"
+      @delete-note="deleteNote"
+      @delete-task="deleteTask"
       @open-menu="isRitualMenuOpen = true"
       @start-new="startNewMeeting"
       @toggle-task="toggleTask"
@@ -242,6 +246,8 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
       @add-agreement="addAgreement"
       @add-note="addNote"
       @add-task="addTask"
+      @delete-note="deleteNote"
+      @delete-task="deleteTask"
       @edit-note="openNoteEditor"
       @exit="closeMeeting"
       @finish="finishMeeting"

@@ -25,6 +25,8 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
+  'delete-note': [noteId: string];
+  'delete-task': [taskId: string];
   'edit-actions': [];
   exit: [];
   finish: [];
@@ -145,6 +147,15 @@ const { t } = useI18n();
               </span>
             </button>
             <span>{{ task.title }}</span>
+            <button
+              v-if="canEditTasks && !isCompleted"
+              type="button"
+              class="review-close-delete material-symbols-outlined"
+              :aria-label="t('meeting.deleteTaskAria', { title: task.title })"
+              @click="emit('delete-task', task.id)"
+            >
+              delete
+            </button>
           </li>
         </ul>
         <p v-else class="review-close-empty">
@@ -211,10 +222,26 @@ const { t } = useI18n();
           </span>
         </header>
 
-        <ul v-if="allNotes.length" class="review-close-text-list">
+        <ul
+          v-if="allNotes.length"
+          class="review-close-text-list review-close-text-list--actions"
+        >
           <li v-for="note in allNotes" :key="note.id">
-            <span>{{ note.participantName }}</span>
-            <p>{{ note.text }}</p>
+            <div>
+              <span>{{ note.participantName }}</span>
+              <p>{{ note.text }}</p>
+            </div>
+            <button
+              v-if="canEditMeeting && !isCompleted"
+              type="button"
+              class="review-close-delete material-symbols-outlined"
+              :aria-label="
+                t('meeting.deleteNoteAria', { author: note.participantName })
+              "
+              @click="emit('delete-note', note.id)"
+            >
+              delete
+            </button>
           </li>
         </ul>
         <p v-else class="review-close-empty">
@@ -309,7 +336,7 @@ const { t } = useI18n();
   grid-template-columns: 52px minmax(0, 1fr) 52px;
   min-height: calc(72px + env(safe-area-inset-top));
   align-items: center;
-  padding: env(safe-area-inset-top) var(--edge-margin) 0;
+  padding: env(safe-area-inset-top) 0 0;
   background: #faf9f5;
 }
 
@@ -346,7 +373,7 @@ const { t } = useI18n();
   flex: 1;
   flex-direction: column;
   gap: 24px;
-  padding: 28px var(--edge-margin) 28px;
+  padding: 28px 0;
 }
 
 .review-close-progress {
@@ -429,7 +456,7 @@ const { t } = useI18n();
   display: grid;
   gap: 22px;
   border: 1px solid color-mix(in srgb, var(--color-outline-variant) 42%, white);
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   background: var(--color-surface-lowest);
   box-shadow: 0 8px 24px rgba(47, 42, 38, 0.06);
   padding: 26px 24px;
@@ -488,7 +515,7 @@ const { t } = useI18n();
 
 .review-close-action-list li {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 14px;
   align-items: start;
   color: #30362f;
@@ -505,6 +532,14 @@ const { t } = useI18n();
 .review-close-text-list li {
   display: grid;
   gap: 4px;
+}
+
+.review-close-text-list--actions li {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.review-close-text-list--actions li > div {
+  min-width: 0;
 }
 
 .review-close-text-list span {
@@ -545,6 +580,10 @@ const { t } = useI18n();
 
 .review-close-task-toggle:disabled {
   opacity: 0.5;
+}
+
+.review-close-delete {
+  align-self: start;
 }
 
 .review-close-empty {

@@ -52,6 +52,11 @@ const pageTitle = computed(() => {
   return titles[routeName] ?? t('app.name');
 });
 
+function handleToastAction(action: () => void) {
+  action();
+  dismissToast();
+}
+
 watch(
   () => route.fullPath,
   async () => {
@@ -122,8 +127,17 @@ watch(
       >
         <span>{{ toastState.message }}</span>
         <button
+          v-if="toastState.action"
           type="button"
-          class="material-symbols-outlined"
+          class="app-toast__action"
+          @click="handleToastAction(toastState.action.onClick)"
+        >
+          {{ toastState.action.label }}
+        </button>
+        <button
+          v-else
+          type="button"
+          class="app-toast__dismiss material-symbols-outlined"
           :aria-label="t('app.dismiss')"
           @click="dismissToast"
         >

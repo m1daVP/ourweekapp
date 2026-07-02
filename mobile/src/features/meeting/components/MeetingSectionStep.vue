@@ -54,6 +54,8 @@ const emit = defineEmits<{
   'add-agreement': [];
   'add-note': [];
   'add-task': [];
+  'delete-note': [noteId: string];
+  'delete-task': [taskId: string];
   'edit-note': [note: EnrichedMeetingNote];
   exit: [];
   finish: [];
@@ -256,20 +258,34 @@ function updateAgreementParticipant(
           <span>{{ note.participantName }}</span>
           <p>{{ note.text }}</p>
         </div>
-        <button
+        <div
           v-if="canEditMeeting && !isCompleted"
-          type="button"
-          class="meeting-note-item__edit"
-          :aria-label="
-            t('meeting.editNoteAria', { author: note.participantName })
-          "
-          @click="emit('edit-note', note)"
+          class="meeting-note-item__actions"
         >
-          <span class="material-symbols-outlined" aria-hidden="true">
-            edit
-          </span>
-          {{ t('common.edit') }}
-        </button>
+          <button
+            type="button"
+            class="meeting-note-item__edit"
+            :aria-label="
+              t('meeting.editNoteAria', { author: note.participantName })
+            "
+            @click="emit('edit-note', note)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">
+              edit
+            </span>
+            {{ t('common.edit') }}
+          </button>
+          <button
+            type="button"
+            class="meeting-note-item__delete material-symbols-outlined"
+            :aria-label="
+              t('meeting.deleteNoteAria', { author: note.participantName })
+            "
+            @click="emit('delete-note', note.id)"
+          >
+            delete
+          </button>
+        </div>
       </li>
     </ul>
     <p v-else class="meeting-empty">{{ t('meeting.noNotesYet') }}</p>
@@ -362,13 +378,22 @@ function updateAgreementParticipant(
             {{ t('common.due') }} {{ task.dueDate }}
           </small>
         </div>
-        <button
-          v-if="canEditTasks"
-          type="button"
-          @click="emit('toggle-task', task.id, task.status)"
-        >
-          {{ task.status === 'done' ? t('common.done') : t('common.open') }}
-        </button>
+        <div v-if="canEditTasks && !isCompleted" class="meeting-task-actions">
+          <button
+            type="button"
+            @click="emit('toggle-task', task.id, task.status)"
+          >
+            {{ task.status === 'done' ? t('common.done') : t('common.open') }}
+          </button>
+          <button
+            type="button"
+            class="meeting-task-actions__delete material-symbols-outlined"
+            :aria-label="t('meeting.deleteTaskAria', { title: task.title })"
+            @click="emit('delete-task', task.id)"
+          >
+            delete
+          </button>
+        </div>
       </li>
     </ul>
     <p v-else class="meeting-empty">{{ t('meeting.noTasksYet') }}</p>

@@ -53,6 +53,20 @@ interface UpdateTaskPayload {
   dueDate?: string;
 }
 
+export interface DeletedMeetingNoteSnapshot {
+  meetingId: string;
+  note: MeetingNote;
+  sectionId: MeetingSectionId;
+  sectionIndex: number;
+}
+
+export interface DeletedMeetingTaskSnapshot {
+  meetingId: string;
+  sectionId: MeetingSectionId;
+  sectionIndex: number;
+  task: MeetingTask;
+}
+
 interface LegacyParticipant {
   id?: string;
   name?: string;
@@ -367,10 +381,11 @@ function findSection(meeting: Meeting, sectionId: MeetingSectionId) {
 function findTask(meetings: Meeting[], taskId: string) {
   for (const meeting of meetings) {
     for (const section of meeting.sections) {
-      const task = section.tasks.find((item) => item.id === taskId);
+      const taskIndex = section.tasks.findIndex((item) => item.id === taskId);
+      const task = section.tasks[taskIndex];
 
       if (task) {
-        return { meeting, task };
+        return { meeting, section, task, taskIndex };
       }
     }
   }
@@ -380,14 +395,26 @@ function findTask(meetings: Meeting[], taskId: string) {
 
 function findNote(meeting: Meeting, noteId: string) {
   for (const section of meeting.sections) {
-    const note = section.notes.find((item) => item.id === noteId);
+    const noteIndex = section.notes.findIndex((item) => item.id === noteId);
+    const note = section.notes[noteIndex];
 
     if (note) {
-      return note;
+      return { note, noteIndex, section };
     }
   }
 
   return null;
+}
+
+function cloneNote(note: MeetingNote): MeetingNote {
+  return { ...note };
+}
+
+function cloneTask(task: MeetingTask): MeetingTask {
+  return {
+    ...task,
+    responsibleParticipantIds: [...task.responsibleParticipantIds],
+  };
 }
 
 function meetingHasContent(meeting: Meeting) {
@@ -612,9 +639,9 @@ export const useMeetingsStore = defineStore('meetings', {
         return translate('meetingStore.noteNotEditable');
       }
 
-      const note = findNote(meeting, noteId);
+      const found = findNote(meeting, noteId);
 
-      if (!note) {
+      if (!found) {
         return translate('meetingStore.noteNotFound');
       }
 
@@ -627,11 +654,65 @@ export const useMeetingsStore = defineStore('meetings', {
       }
 
       const updatedAt = nowIso();
-      note.participantId = participantId;
-      note.text = trimmedText;
+      found.note.participantId = participantId;
+      found.note.text = trimmedText;
       meeting.updatedAt = updatedAt;
       this.persist();
       return null;
+    },
+    deleteNote(noteId: string): DeletedMeetingNoteSnapshot | null {
+      const meeting = this.activeMeeting;
+
+      if (!meeting || meeting.status === 'completed') {
+        return null;
+      }
+
+      const found = findNote(meeting, noteId);
+
+      if (!found) {
+        return null;
+      }
+
+      const snapshot: DeletedMeetingNoteSnapshot = {
+        meetingId: meeting.id,
+        note: cloneNote(found.note),
+        sectionId: found.section.id,
+        sectionIndex: found.noteIndex,
+      };
+
+      found.section.notes.splice(found.noteIndex, 1);
+      meeting.updatedAt = nowIso();
+      this.persist();
+      return snapshot;
+    },
+    restoreNote(snapshot: DeletedMeetingNoteSnapshot) {
+      const meeting = this.activeMeeting;
+
+      if (
+        !meeting ||
+        meeting.id !== snapshot.meetingId ||
+        meeting.status === 'completed'
+      ) {
+        return false;
+      }
+
+      const section = findSection(meeting, snapshot.sectionId);
+
+      if (
+        !section ||
+        section.notes.some((note) => note.id === snapshot.note.id)
+      ) {
+        return false;
+      }
+
+      section.notes.splice(
+        Math.min(snapshot.sectionIndex, section.notes.length),
+        0,
+        cloneNote(snapshot.note)
+      );
+      meeting.updatedAt = nowIso();
+      this.persist();
+      return true;
     },
     addTask(
       sectionId: MeetingSectionId,
@@ -786,24 +867,56 @@ export const useMeetingsStore = defineStore('meetings', {
         this.persist();
       }
     },
-    deleteTask(taskId: string) {
-      let changed = false;
+    deleteTask(taskId: string): DeletedMeetingTaskSnapshot | null {
+      const found = findTask(this.meetings, taskId);
 
-      for (const meeting of this.meetings) {
-        for (const section of meeting.sections) {
-          const nextTasks = section.tasks.filter((task) => task.id !== taskId);
-
-          if (nextTasks.length !== section.tasks.length) {
-            section.tasks = nextTasks;
-            meeting.updatedAt = nowIso();
-            changed = true;
-          }
-        }
+      if (!found || found.meeting.status === 'completed') {
+        return null;
       }
 
-      if (changed) {
-        this.persist();
+      const snapshot: DeletedMeetingTaskSnapshot = {
+        meetingId: found.meeting.id,
+        sectionId: found.section.id,
+        sectionIndex: found.taskIndex,
+        task: cloneTask(found.task),
+      };
+
+      found.section.tasks.splice(found.taskIndex, 1);
+      found.meeting.updatedAt = nowIso();
+      useTasksStore().deleteTask(taskId);
+      this.persist();
+      return snapshot;
+    },
+    restoreTask(snapshot: DeletedMeetingTaskSnapshot) {
+      const meeting = this.activeMeeting;
+
+      if (
+        !meeting ||
+        meeting.id !== snapshot.meetingId ||
+        meeting.status === 'completed'
+      ) {
+        return false;
       }
+
+      const section = findSection(meeting, snapshot.sectionId);
+
+      if (
+        !section ||
+        section.tasks.some((task) => task.id === snapshot.task.id)
+      ) {
+        return false;
+      }
+
+      const task = cloneTask(snapshot.task);
+      section.tasks.splice(
+        Math.min(snapshot.sectionIndex, section.tasks.length),
+        0,
+        task
+      );
+      meeting.updatedAt = nowIso();
+      useTasksStore().addTask({ ...task, sourceMeetingId: meeting.id });
+      this.persist();
+      return true;
     },
     addAgreement(
       sectionId: MeetingSectionId,

@@ -2,6 +2,10 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
+import type {
+  DeletedMeetingNoteSnapshot,
+  DeletedMeetingTaskSnapshot,
+} from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
 import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
@@ -23,6 +27,7 @@ import type {
 import type { Participant } from '@/features/participants/types';
 import type { Task, TaskResponsibilityType } from '@/features/tasks/types';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
+import { useToast } from '@/shared/composables/useToast';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 export const maxCheckInParticipants = 10;
@@ -234,6 +239,7 @@ export function useMeetingSession() {
   const { t, locale } = useI18n();
   const { can } = useWorkspacePermissions();
   const { canUseFeature } = useFeatureAccess();
+  const { showToast } = useToast();
 
   const noteText = ref('');
   const agreementText = ref('');
@@ -254,6 +260,8 @@ export function useMeetingSession() {
   const editingNoteParticipantId = ref('');
   const editingNoteText = ref('');
   const noteEditorError = ref('');
+  const latestDeletedNote = ref<DeletedMeetingNoteSnapshot | null>(null);
+  const latestDeletedTask = ref<DeletedMeetingTaskSnapshot | null>(null);
 
   const taskDraft = reactive<TaskDraftState>({
     title: '',
@@ -847,6 +855,42 @@ export function useMeetingSession() {
     statusMessage.value = t('meeting.noteUpdated');
   }
 
+  function restoreDeletedNote() {
+    const snapshot = latestDeletedNote.value;
+
+    if (!snapshot) {
+      return;
+    }
+
+    latestDeletedNote.value = null;
+    meetingsStore.restoreNote(snapshot);
+  }
+
+  function deleteNote(noteId: string) {
+    clearMessages();
+
+    if (!canEditMeeting.value || isCompleted.value) {
+      formError.value = t('meeting.roleCannotEditMeetings');
+      return;
+    }
+
+    const snapshot = meetingsStore.deleteNote(noteId);
+
+    if (!snapshot) {
+      formError.value = t('meetingStore.noteNotFound');
+      return;
+    }
+
+    latestDeletedNote.value = snapshot;
+    void showToast(t('meeting.noteDeleted'), {
+      action: {
+        label: t('common.undo'),
+        onClick: restoreDeletedNote,
+      },
+      durationMs: 5200,
+    });
+  }
+
   function addNote() {
     const section = currentSection.value;
 
@@ -907,6 +951,42 @@ export function useMeetingSession() {
 
     resetTaskForm();
     statusMessage.value = t('meeting.taskAdded');
+  }
+
+  function restoreDeletedTask() {
+    const snapshot = latestDeletedTask.value;
+
+    if (!snapshot) {
+      return;
+    }
+
+    latestDeletedTask.value = null;
+    meetingsStore.restoreTask(snapshot);
+  }
+
+  function deleteTask(taskId: string) {
+    clearMessages();
+
+    if (!canEditTasks.value || isCompleted.value) {
+      formError.value = t('meeting.roleCannotEditTasks');
+      return;
+    }
+
+    const snapshot = meetingsStore.deleteTask(taskId);
+
+    if (!snapshot) {
+      formError.value = t('meetingStore.taskNotFound');
+      return;
+    }
+
+    latestDeletedTask.value = snapshot;
+    void showToast(t('meeting.taskDeleted'), {
+      action: {
+        label: t('common.undo'),
+        onClick: restoreDeletedTask,
+      },
+      durationMs: 5200,
+    });
   }
 
   function addAgreement() {
@@ -1292,7 +1372,9 @@ export function useMeetingSession() {
     currentSection,
     currentStepNumber,
     currentTasks,
+    deleteNote,
     deleteRitual,
+    deleteTask,
     drawerFamilyMembers,
     drawerSelectedParticipantId,
     editingNoteParticipantId,
@@ -1334,6 +1416,8 @@ export function useMeetingSession() {
     progressPercent,
     reviewCounts,
     reviewTasks,
+    restoreDeletedNote,
+    restoreDeletedTask,
     sectionPrompt,
     sectionTitle,
     selectDrawerParticipant,
