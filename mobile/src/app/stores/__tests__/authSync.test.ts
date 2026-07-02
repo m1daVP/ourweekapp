@@ -79,8 +79,25 @@ vi.mock('@/shared/services/syncSessionService', () => ({
   resetSyncRuntimeState: mocks.resetSyncRuntimeState,
 }));
 
+vi.mock('@/shared/config/env', () => ({
+  appConfig: {
+    googleWebClientId: 'expected-web-client-id.apps.googleusercontent.com',
+  },
+}));
+
 import { useAuthStore } from '@/app/stores/auth';
 import { ApiClientError } from '@/shared/api/httpClient';
+
+function createJwtPayload(payload: Record<string, unknown>) {
+  return btoa(JSON.stringify(payload))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function createUnsignedJwt(payload: Record<string, unknown>) {
+  return `header.${createJwtPayload(payload)}.signature`;
+}
 
 const session = {
   user: {
@@ -198,6 +215,15 @@ describe('auth sync safety hooks', () => {
 
   it('shows a clearer message and logs debug metadata when backend rejects a Google token', async () => {
     const authStore = useAuthStore();
+    const googleIdToken = createUnsignedJwt({
+      iss: 'https://accounts.google.com',
+      aud: 'other-web-client-id.apps.googleusercontent.com',
+      exp: 2_000_000_000,
+      iat: 1_999_999_000,
+      email: 'rita@example.com',
+    });
+
+    mocks.getNativeGoogleIdToken.mockResolvedValue(googleIdToken);
 
     mocks.signInWithGoogleIdToken.mockRejectedValue(
       new ApiClientError('Invalid Google token', {
@@ -211,12 +237,34 @@ describe('auth sync safety hooks', () => {
 
     expect(didSignIn).toBe(false);
     expect(authStore.errorMessage).toBe('auth.googleTokenRejected');
-    expect(authStore.lastAuthError).toEqual({
+    const expectedAuthError = {
       source: 'google',
       status: 422,
       code: 'invalid_google_token',
       hasDetails: true,
-    });
+      googleToken: {
+        payloadReadable: true,
+        issuer: 'https://accounts.google.com',
+        audienceLength: 46,
+        audienceSuffix: 'tent.com',
+        audienceFingerprint: expect.any(String),
+        expectedAudienceLength: 49,
+        expectedAudienceSuffix: 'tent.com',
+        expectedAudienceFingerprint: expect.any(String),
+        audienceMatchesConfiguredClient: false,
+        expiresAt: '2033-05-18T03:33:20.000Z',
+        issuedAt: '2033-05-18T03:16:40.000Z',
+        isExpired: false,
+      },
+    };
+
+    expect(authStore.lastAuthError).toEqual(expectedAuthError);
+    expect(authStore.lastAuthError).not.toEqual(
+      expect.objectContaining({
+        idToken: googleIdToken,
+        email: 'rita@example.com',
+      })
+    );
     expect(mocks.captureHandledError).toHaveBeenCalledWith(
       expect.any(ApiClientError),
       {
@@ -225,21 +273,14 @@ describe('auth sync safety hooks', () => {
           provider: 'google',
         },
         extra: {
-          authError: {
-            source: 'google',
-            status: 422,
-            code: 'invalid_google_token',
-            hasDetails: true,
-          },
+          authError: expectedAuthError,
         },
       }
     );
-    expect(mocks.warnSafely).toHaveBeenCalledWith('Google sign-in failed.', {
-      source: 'google',
-      status: 422,
-      code: 'invalid_google_token',
-      hasDetails: true,
-    });
+    expect(mocks.warnSafely).toHaveBeenCalledWith(
+      'Google sign-in failed.',
+      expectedAuthError
+    );
   });
 
   it('resets sync runtime state on logout cleanup', async () => {

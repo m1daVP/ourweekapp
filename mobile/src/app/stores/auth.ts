@@ -12,6 +12,7 @@ import {
 } from '@/shared/api/authApi';
 import { getNativeGoogleIdToken } from '@/features/auth/googleSignInService';
 import { ApiClientError, setApiAuthHandlers } from '@/shared/api/httpClient';
+import { appConfig } from '@/shared/config/env';
 import {
   clearAuthTokens,
   readAuthTokens,
@@ -65,6 +66,29 @@ export interface AuthErrorDiagnostics {
   code?: string;
   name?: string;
   hasDetails?: boolean;
+  googleToken?: GoogleIdTokenDiagnostics;
+}
+
+interface GoogleIdTokenClaims {
+  iss?: unknown;
+  aud?: unknown;
+  exp?: unknown;
+  iat?: unknown;
+}
+
+interface GoogleIdTokenDiagnostics {
+  payloadReadable: boolean;
+  issuer?: string;
+  audienceLength?: number;
+  audienceSuffix?: string;
+  audienceFingerprint?: string;
+  expectedAudienceLength?: number;
+  expectedAudienceSuffix?: string;
+  expectedAudienceFingerprint?: string;
+  audienceMatchesConfiguredClient?: boolean;
+  expiresAt?: string;
+  issuedAt?: string;
+  isExpired?: boolean;
 }
 
 let legacyTokensToMigrate: AuthTokens = {
@@ -178,13 +202,110 @@ function getGoogleSignInErrorMessage(error: unknown) {
   }
 }
 
-function getGoogleSignInDebugDetails(error: unknown): AuthErrorDiagnostics {
+function getSafeStringSuffix(value: string) {
+  return value.length > 8 ? value.slice(-8) : value;
+}
+
+function getSafeStringFingerprint(value: string) {
+  let hash = 0x811c9dc5;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function readGoogleIdTokenClaims(idToken: string): GoogleIdTokenClaims | null {
+  const [, encodedPayload] = idToken.split('.');
+
+  if (!encodedPayload) {
+    return null;
+  }
+
+  try {
+    const normalizedPayload = encodedPayload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+      '='
+    );
+    const parsedPayload = JSON.parse(atob(paddedPayload)) as unknown;
+
+    return parsedPayload && typeof parsedPayload === 'object'
+      ? (parsedPayload as GoogleIdTokenClaims)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function getUnixDateTime(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined;
+  }
+
+  return new Date(value * 1000).toISOString();
+}
+
+function getGoogleIdTokenDiagnostics(
+  idToken: string
+): GoogleIdTokenDiagnostics {
+  const claims = readGoogleIdTokenClaims(idToken);
+  const expectedAudience = appConfig.googleWebClientId ?? undefined;
+
+  if (!claims) {
+    return {
+      payloadReadable: false,
+      expectedAudienceLength: expectedAudience?.length,
+      expectedAudienceSuffix: expectedAudience
+        ? getSafeStringSuffix(expectedAudience)
+        : undefined,
+      expectedAudienceFingerprint: expectedAudience
+        ? getSafeStringFingerprint(expectedAudience)
+        : undefined,
+    };
+  }
+
+  const audience = typeof claims.aud === 'string' ? claims.aud : undefined;
+  const expiresAt = getUnixDateTime(claims.exp);
+
+  return {
+    payloadReadable: true,
+    issuer: typeof claims.iss === 'string' ? claims.iss : undefined,
+    audienceLength: audience?.length,
+    audienceSuffix: audience ? getSafeStringSuffix(audience) : undefined,
+    audienceFingerprint: audience
+      ? getSafeStringFingerprint(audience)
+      : undefined,
+    expectedAudienceLength: expectedAudience?.length,
+    expectedAudienceSuffix: expectedAudience
+      ? getSafeStringSuffix(expectedAudience)
+      : undefined,
+    expectedAudienceFingerprint: expectedAudience
+      ? getSafeStringFingerprint(expectedAudience)
+      : undefined,
+    audienceMatchesConfiguredClient:
+      audience && expectedAudience ? audience === expectedAudience : undefined,
+    expiresAt,
+    issuedAt: getUnixDateTime(claims.iat),
+    isExpired: expiresAt ? Date.parse(expiresAt) <= Date.now() : undefined,
+  };
+}
+
+function getGoogleSignInDebugDetails(
+  error: unknown,
+  googleToken?: GoogleIdTokenDiagnostics
+): AuthErrorDiagnostics {
   if (error instanceof ApiClientError) {
     return {
       source: 'google',
       status: error.status,
       code: error.code,
       hasDetails: error.details !== undefined,
+      googleToken,
     };
   }
 
@@ -198,10 +319,11 @@ function getGoogleSignInDebugDetails(error: unknown): AuthErrorDiagnostics {
       source: 'google',
       name: error.name,
       code,
+      googleToken,
     };
   }
 
-  return { source: 'google' };
+  return { source: 'google', googleToken };
 }
 
 function mapAuthUser(user: AuthUserDto, fallbackEmail = ''): AuthUser {
@@ -481,15 +603,20 @@ export const useAuthStore = defineStore('auth', {
       this.authStatus = 'loading';
       this.errorMessage = '';
       this.lastAuthError = null;
+      let googleTokenDiagnostics: GoogleIdTokenDiagnostics | undefined;
 
       try {
         const idToken = await getNativeGoogleIdToken();
+        googleTokenDiagnostics = getGoogleIdTokenDiagnostics(idToken);
         const session = await signInWithGoogleIdTokenRequest({ idToken });
 
         await this.applySession(session);
         return true;
       } catch (error) {
-        const debugDetails = getGoogleSignInDebugDetails(error);
+        const debugDetails = getGoogleSignInDebugDetails(
+          error,
+          googleTokenDiagnostics
+        );
         warnSafely('Google sign-in failed.', debugDetails);
         captureHandledError(error, {
           tags: {
