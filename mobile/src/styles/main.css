@@ -1743,7 +1743,7 @@ input[type='radio'] {
 .task-item__actions,
 .meeting-review__actions,
 .participant-list__actions,
-.participant-sheet__actions,
+.participant-sheet-form__actions,
 .private-note-form__actions,
 .private-note-item__actions,
 .export-modal__actions {
@@ -2227,137 +2227,15 @@ input[type='radio'] {
   border-radius: 24px;
 }
 
-.workspace-invite-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: end center;
-}
-
-.workspace-invite-sheet__scrim {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  border: 0;
-  background: rgba(47, 42, 38, 0.38);
-}
-
-.workspace-invite-sheet__panel {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: min(100%, var(--container-max-width));
-  gap: 16px;
-  border-radius: 28px 28px 0 0;
-  background: var(--color-background);
-  padding: 20px var(--edge-margin) calc(32px + env(safe-area-inset-bottom));
-  box-shadow: 0 -16px 40px rgba(47, 42, 38, 0.14);
-}
-
-.workspace-invite-sheet__panel header {
-  display: grid;
-  grid-template-columns: 48px 1fr 48px;
-  align-items: center;
-}
-
-.workspace-invite-sheet__panel header button {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-on-surface);
-}
-
-.workspace-invite-sheet__panel h2 {
-  margin: 0;
-  color: var(--color-on-surface);
-  font-size: var(--font-size-headline-lg);
-  text-align: center;
-}
-
-.workspace-invite-sheet__panel label {
-  display: grid;
-  gap: 8px;
-  color: var(--color-on-surface);
-  font-size: var(--font-size-label-lg);
-  font-weight: 800;
-}
-
-.workspace-invite-sheet__panel p {
+.workspace-invite-sheet-form p {
   color: var(--color-on-surface-variant);
 }
 
-.participant-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: end center;
-}
-
-.participant-sheet__scrim {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  border: 0;
-  background: rgba(47, 42, 38, 0.38);
-}
-
-.participant-sheet__panel {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: min(100%, var(--container-max-width));
-  max-height: min(88dvh, 720px);
-  gap: 16px;
-  overflow-y: auto;
-  border-radius: 28px 28px 0 0;
-  background: var(--color-background);
-  padding: 20px var(--edge-margin) calc(32px + env(safe-area-inset-bottom));
-  box-shadow: 0 -16px 40px rgba(47, 42, 38, 0.14);
-}
-
-.participant-sheet__panel header {
-  display: grid;
-  grid-template-columns: 48px 1fr 48px;
-  align-items: center;
-}
-
-.participant-sheet__panel header button {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-on-surface);
-}
-
-.participant-sheet__panel h2 {
-  margin: 0;
-  color: var(--color-on-surface);
-  font-size: var(--font-size-headline-lg);
-  text-align: center;
-}
-
-.participant-sheet__panel label {
-  display: grid;
-  gap: 8px;
-  color: var(--color-on-surface);
-  font-size: var(--font-size-label-lg);
-  font-weight: 800;
-}
-
-.participant-sheet__panel .color-selector {
+.participant-sheet-form .color-selector {
   gap: 10px;
 }
 
-.participant-sheet__panel .color-selector span {
+.participant-sheet-form .color-selector span {
   width: 38px;
   height: 38px;
 }

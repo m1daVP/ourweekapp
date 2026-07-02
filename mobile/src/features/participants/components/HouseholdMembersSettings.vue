@@ -11,6 +11,7 @@ import type {
   Participant,
   ParticipantType,
 } from '@/features/participants/types';
+import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 
 type SheetMode = 'create' | 'edit';
 
@@ -364,35 +365,15 @@ function enableParticipant(participantId: string) {
       {{ participantMessage.text }}
     </p>
 
-    <div
-      v-if="isSheetOpen"
-      class="participant-sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="participant-sheet-title"
+    <BaseBottomSheet
+      :open="isSheetOpen"
+      :title="sheetTitle"
+      @close="closeSheet"
     >
-      <button
-        class="participant-sheet__scrim"
-        type="button"
-        :aria-label="t('common.close')"
-        @click="closeSheet"
-      />
       <form
-        class="participant-sheet__panel"
+        class="participant-sheet-form task-editor-form"
         @submit.prevent="saveParticipantDraft"
       >
-        <header>
-          <button
-            class="material-symbols-outlined"
-            type="button"
-            :aria-label="t('common.close')"
-            @click="closeSheet"
-          >
-            arrow_back
-          </button>
-          <h2 id="participant-sheet-title">{{ sheetTitle }}</h2>
-        </header>
-
         <label>
           <span>{{ t('settings.name') }}</span>
           <input
@@ -459,7 +440,7 @@ function enableParticipant(participantId: string) {
           {{ t('settings.pastMeetingsKeepName') }}
         </p>
 
-        <div class="participant-sheet__actions">
+        <div class="participant-sheet-form__actions">
           <button class="meeting-primary" type="submit">
             {{ t('common.save') }}
           </button>
@@ -489,6 +470,6 @@ function enableParticipant(participantId: string) {
           {{ t('settings.showInNewMeetings') }}
         </button>
       </form>
-    </div>
+    </BaseBottomSheet>
   </section>
 </template>

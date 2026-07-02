@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import type { UserRole } from '@/features/access/types';
+import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 const workspaceStore = useWorkspaceStore();
@@ -248,35 +249,15 @@ onMounted(() => {
       </button>
     </div>
 
-    <div
-      v-if="isInviteSheetOpen"
-      class="workspace-invite-sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="invite-sheet-title"
+    <BaseBottomSheet
+      :open="isInviteSheetOpen"
+      :title="t('workspace.addMember')"
+      @close="closeInviteSheet"
     >
-      <button
-        class="workspace-invite-sheet__scrim"
-        type="button"
-        :aria-label="t('workspace.closeInviteForm')"
-        @click="closeInviteSheet"
-      />
       <form
-        class="workspace-invite-sheet__panel"
+        class="workspace-invite-sheet-form task-editor-form"
         @submit.prevent="inviteMember"
       >
-        <header>
-          <button
-            class="material-symbols-outlined"
-            type="button"
-            :aria-label="t('workspace.goBack')"
-            @click="closeInviteSheet"
-          >
-            arrow_back
-          </button>
-          <h2 id="invite-sheet-title">{{ t('workspace.addMember') }}</h2>
-        </header>
-
         <label>
           <span>{{ t('workspace.contact') }}</span>
           <input
@@ -321,6 +302,6 @@ onMounted(() => {
           }}
         </button>
       </form>
-    </div>
+    </BaseBottomSheet>
   </section>
 </template>
