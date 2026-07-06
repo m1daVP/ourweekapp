@@ -35,6 +35,11 @@ export default defineConfig(({ command, mode }) => {
     build: {
       sourcemap: true, // Source map generation must be turned on
     },
+    define: {
+      __APP_VERSION__: JSON.stringify(
+        process.env.npm_package_version ?? '0.0.0'
+      ),
+    },
     plugins,
     resolve: {
       alias: {

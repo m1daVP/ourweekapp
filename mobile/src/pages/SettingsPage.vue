@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
 import { useLocalizationStore } from '@/app/stores/localization';
 import { reminderDayOptions, useRemindersStore } from '@/app/stores/reminders';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import type { FeatureKey } from '@/features/access/types';
-import type { ReminderDay } from '@/features/reminders/types';
 import {
   isSupportedLocale,
   localeNames,
   supportedLocales,
 } from '@/features/localization/locale';
+import type { SupportedLocale } from '@/features/localization/types';
 import HouseholdMembersSettings from '@/features/participants/components/HouseholdMembersSettings.vue';
-import PremiumLock from '@/shared/components/PremiumLock.vue';
+import type { ReminderDay } from '@/features/reminders/types';
+import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useNotifications } from '@/shared/composables/useNotifications';
@@ -23,8 +25,9 @@ const route = useRoute();
 const { t } = useI18n();
 const authStore = useAuthStore();
 const localizationStore = useLocalizationStore();
-const { canUseFeature } = useFeatureAccess();
 const remindersStore = useRemindersStore();
+const subscriptionStore = useSubscriptionStore();
+const { canUseFeature } = useFeatureAccess();
 const {
   disableReminders,
   enableReminders,
@@ -37,7 +40,13 @@ const {
 
 void syncPermissionStatus();
 
+const isReminderSheetOpen = ref(false);
+const isLanguageSheetOpen = ref(false);
 const timeInputStep = 300;
+const appVersion =
+  typeof __APP_VERSION__ === 'string' && __APP_VERSION__.trim()
+    ? __APP_VERSION__
+    : '';
 const localizedReminderDayOptions = computed(() =>
   reminderDayOptions.map((option) => ({
     ...option,
@@ -48,7 +57,19 @@ const localeOptions = supportedLocales.map((locale) => ({
   value: locale,
   label: localeNames[locale],
 }));
+const currentLocaleLabel = computed(
+  () => localeNames[localizationStore.locale]
+);
 const canUseReminders = computed(() => canUseFeature('agreementReminders'));
+const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
+const currentPlanLabel = computed(() =>
+  hasPremium.value ? t('settings.plan.premium') : t('settings.plan.free')
+);
+const subscriptionPlanTitle = computed(() =>
+  t('settings.currentPlanName', {
+    plan: currentPlanLabel.value,
+  })
+);
 const accountStatusText = computed(() => {
   if (authStore.isAuthenticated) {
     return t('settings.signedInAs', {
@@ -81,7 +102,6 @@ const reminderStatusText = computed(() => {
 
   return t('settings.remindersSaved');
 });
-
 const lockedFeature = computed(() => {
   const value = route.query.lockedFeature;
 
@@ -137,123 +157,246 @@ function updateUnfinishedTaskReminderTime(event: Event) {
   });
 }
 
-function updateLocale(event: Event) {
-  const value = (event.target as HTMLSelectElement).value;
+function updateLocale(locale: SupportedLocale) {
+  if (isSupportedLocale(locale)) {
+    localizationStore.setLocale(locale);
+    isLanguageSheetOpen.value = false;
+  }
+}
 
-  if (isSupportedLocale(value)) {
-    localizationStore.setLocale(value);
+function openReminderSheet() {
+  if (canUseReminders.value) {
+    isReminderSheetOpen.value = true;
   }
 }
 </script>
 
 <template>
-  <section class="page-stack">
-    <div>
-      <!-- <p class="page-kicker">{{ t('settings.kicker') }}</p> -->
-      <h1>{{ t('settings.title') }}</h1>
-      <p class="page-copy">{{ t('settings.intro') }}</p>
-    </div>
+  <section class="settings-redesign">
+    <HouseholdMembersSettings />
 
-    <section class="content-panel settings-panel">
-      <div>
-        <h2>{{ t('localization.title') }}</h2>
-        <p>{{ t('localization.description') }}</p>
-      </div>
-      <label>
-        <!--<span>{{ t('localization.label') }}</span>-->
-        <select :value="localizationStore.locale" @change="updateLocale">
-          <option
-            v-for="locale in localeOptions"
-            :key="locale.value"
-            :value="locale.value"
+    <section class="settings-redesign-section">
+      <h2 class="settings-redesign-section__title">
+        {{ t('settings.sections.preferences') }}
+      </h2>
+
+      <div class="settings-redesign-card settings-redesign-card--flush">
+        <RouterLink
+          class="settings-redesign-row"
+          :to="{ name: 'calendar-sync' }"
+        >
+          <span class="settings-redesign-row__icon material-symbols-outlined">
+            calendar_month
+          </span>
+          <span class="settings-redesign-row__body">
+            <span class="settings-redesign-row__title">
+              {{ t('settings.calendarSync') }}
+              <span class="settings-premium-badge">
+                {{ t('settings.premiumBadge') }}
+              </span>
+            </span>
+            <span class="settings-redesign-row__text">
+              {{ t('settings.calendarSyncSubtitle') }}
+            </span>
+          </span>
+          <span
+            class="settings-redesign-row__chevron material-symbols-outlined"
           >
-            {{ locale.label }}
-          </option>
-        </select>
-      </label>
-    </section>
+            chevron_right
+          </span>
+        </RouterLink>
 
-    <section class="content-panel settings-panel">
-      <div>
-        <h2>{{ t('settings.account') }}</h2>
-        <p>{{ accountStatusText }}</p>
-      </div>
-      <RouterLink
-        v-if="authStore.isAuthenticated"
-        class="secondary-button link-button"
-        :to="{ name: 'account' }"
-      >
-        {{ t('settings.accountSettings') }}
-      </RouterLink>
-      <RouterLink
-        v-else
-        class="secondary-button link-button"
-        :to="{ name: 'welcome' }"
-      >
-        {{ t('settings.accountOptions') }}
-      </RouterLink>
-      <RouterLink
-        class="secondary-button link-button"
-        :to="{ name: 'workspace-settings' }"
-      >
-        {{ t('settings.workspaceSettings') }}
-      </RouterLink>
-      <RouterLink
-        class="secondary-button link-button"
-        :to="{ name: 'calendar-sync' }"
-      >
-        {{ t('settings.calendarSync') }}
-      </RouterLink>
-    </section>
+        <div class="settings-redesign-row settings-redesign-row--control">
+          <button
+            class="settings-redesign-row__main"
+            type="button"
+            :disabled="!canUseReminders"
+            @click="openReminderSheet"
+          >
+            <span class="settings-redesign-row__icon material-symbols-outlined">
+              notifications
+            </span>
+            <span class="settings-redesign-row__body">
+              <span class="settings-redesign-row__title">
+                {{ t('settings.reminderNotifications') }}
+              </span>
+              <span class="settings-redesign-row__text">
+                {{ t('settings.reminderNotificationsSubtitle') }}
+              </span>
+            </span>
+          </button>
 
-    <section class="content-panel settings-panel">
-      <div>
-        <h2>{{ t('settings.support') }}</h2>
-        <p>{{ t('settings.supportText') }}</p>
-      </div>
-      <RouterLink
-        class="secondary-button link-button"
-        :to="{ name: 'support-diagnostics' }"
-      >
-        {{ t('settings.supportDiagnostics') }}
-      </RouterLink>
-    </section>
-
-    <section class="content-panel settings-panel">
-      <div>
-        <h2>{{ t('settings.legal') }}</h2>
-        <p>{{ t('settings.legalText') }}</p>
-      </div>
-      <RouterLink
-        class="secondary-button link-button"
-        :to="{ name: 'privacy' }"
-      >
-        {{ t('settings.privacyPolicy') }}
-      </RouterLink>
-      <RouterLink class="secondary-button link-button" :to="{ name: 'terms' }">
-        {{ t('settings.terms') }}
-      </RouterLink>
-    </section>
-
-    <PremiumLock
-      feature="agreementReminders"
-      :title="t('settings.reminderPremiumTitle')"
-      :message="t('settings.reminderPremiumMessage')"
-    >
-      <section class="content-panel settings-panel reminder-panel">
-        <div>
-          <h2>{{ t('settings.reminders') }}</h2>
-          <p>{{ t('settings.reminderIntro') }}</p>
+          <label class="settings-toggle">
+            <span class="sr-only">{{ t('settings.enableReminders') }}</span>
+            <input
+              type="checkbox"
+              :checked="remindersStore.settings.enabled"
+              :disabled="!canUseReminders"
+              @change="handleReminderEnabledChange"
+            />
+            <span aria-hidden="true" />
+          </label>
         </div>
 
-        <label class="reminder-toggle">
-          <input
-            type="checkbox"
-            :checked="remindersStore.settings.enabled"
-            @change="handleReminderEnabledChange"
-          />
-          <span>{{ t('settings.enableReminders') }}</span>
-        </label>
+        <button
+          class="settings-redesign-row"
+          type="button"
+          @click="isLanguageSheetOpen = true"
+        >
+          <span class="settings-redesign-row__icon material-symbols-outlined">
+            translate
+          </span>
+          <span class="settings-redesign-row__body">
+            <span class="settings-redesign-row__title">
+              {{ t('localization.title') }}
+            </span>
+            <span class="settings-redesign-row__text">
+              {{ currentLocaleLabel }}
+            </span>
+          </span>
+          <span
+            class="settings-redesign-row__chevron material-symbols-outlined"
+          >
+            chevron_right
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <section class="settings-redesign-section">
+      <h2 class="settings-redesign-section__title">
+        {{ t('settings.sections.subscription') }}
+      </h2>
+
+      <article class="settings-subscription-card">
+        <div class="settings-subscription-card__content">
+          <span class="settings-field-label">
+            {{ t('settings.currentPlan') }}
+          </span>
+          <h3>{{ subscriptionPlanTitle }}</h3>
+        </div>
+
+        <ul class="settings-subscription-benefits">
+          <li>
+            <span class="material-symbols-outlined" aria-hidden="true">
+              check
+            </span>
+            {{ t('settings.subscriptionBenefits.unlimitedHistory') }}
+          </li>
+          <li>
+            <span class="material-symbols-outlined" aria-hidden="true">
+              check
+            </span>
+            {{ t('settings.subscriptionBenefits.aiSummaries') }}
+          </li>
+        </ul>
+
+        <button
+          v-if="hasPremium && subscriptionStore.canManageSubscription"
+          class="settings-subscription-card__button"
+          type="button"
+          :disabled="subscriptionStore.isManaging"
+          @click="subscriptionStore.manageSubscription()"
+        >
+          {{ t('common.manageSubscription') }}
+        </button>
+        <RouterLink
+          v-else-if="!hasPremium"
+          class="settings-subscription-card__button"
+          :to="{ name: 'upgrade' }"
+        >
+          {{ t('settings.upgradeToPremium') }}
+        </RouterLink>
+      </article>
+    </section>
+
+    <section class="settings-redesign-section">
+      <h2 class="settings-redesign-section__title">
+        {{ t('settings.sections.supportLegal') }}
+      </h2>
+
+      <div class="settings-redesign-card settings-redesign-card--flush">
+        <RouterLink
+          class="settings-redesign-row"
+          :to="{ name: 'support-diagnostics' }"
+        >
+          <span class="settings-redesign-row__body">
+            <span class="settings-redesign-row__title">
+              {{ t('settings.supportDiagnostics') }}
+            </span>
+            <span class="settings-redesign-row__text">
+              {{ t('settings.supportText') }}
+            </span>
+          </span>
+          <span
+            class="settings-redesign-row__chevron material-symbols-outlined"
+          >
+            chevron_right
+          </span>
+        </RouterLink>
+        <RouterLink class="settings-redesign-row" :to="{ name: 'privacy' }">
+          <span class="settings-redesign-row__body">
+            <span class="settings-redesign-row__title">
+              {{ t('settings.privacyPolicy') }}
+            </span>
+          </span>
+          <span
+            class="settings-redesign-row__chevron material-symbols-outlined"
+          >
+            chevron_right
+          </span>
+        </RouterLink>
+        <RouterLink class="settings-redesign-row" :to="{ name: 'terms' }">
+          <span class="settings-redesign-row__body">
+            <span class="settings-redesign-row__title">
+              {{ t('settings.terms') }}
+            </span>
+          </span>
+          <span
+            class="settings-redesign-row__chevron material-symbols-outlined"
+          >
+            chevron_right
+          </span>
+        </RouterLink>
+      </div>
+    </section>
+
+    <section class="settings-account-footer">
+      <RouterLink
+        class="settings-account-link"
+        :to="
+          authStore.isAuthenticated ? { name: 'account' } : { name: 'welcome' }
+        "
+      >
+        <span>{{ t('settings.account') }}</span>
+        <small>{{ accountStatusText }}</small>
+      </RouterLink>
+
+      <RouterLink
+        v-if="authStore.isAuthenticated"
+        class="settings-sign-out-link"
+        :to="{ name: 'logout' }"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">logout</span>
+        {{ t('common.logOut') }}
+      </RouterLink>
+
+      <p v-if="appVersion" class="settings-version">
+        {{ t('settings.version', { version: appVersion }) }}
+      </p>
+    </section>
+
+    <UpgradePrompt v-if="lockedFeature" :feature="lockedFeature" />
+
+    <BaseBottomSheet
+      :open="isReminderSheetOpen"
+      :title="t('settings.reminderDetails')"
+      @close="isReminderSheetOpen = false"
+    >
+      <div class="settings-reminder-sheet">
+        <p class="settings-reminder-sheet__intro">
+          {{ t('settings.reminderIntro') }}
+        </p>
 
         <div class="reminder-grid">
           <fieldset class="reminder-fieldset">
@@ -313,26 +456,43 @@ function updateLocale(event: Event) {
           </fieldset>
         </div>
 
-        <p class="meeting-help">
-          {{ t('settings.reminderExample') }}
-        </p>
+        <p class="meeting-help">{{ t('settings.reminderExample') }}</p>
         <p class="meeting-status" role="status">{{ reminderStatusText }}</p>
         <p v-if="notificationError" class="meeting-error" role="status">
           {{ notificationError }}
         </p>
-      </section>
-    </PremiumLock>
+      </div>
+    </BaseBottomSheet>
 
-    <HouseholdMembersSettings />
-
-    <UpgradePrompt v-if="lockedFeature" :feature="lockedFeature" />
-
-    <RouterLink
-      v-if="authStore.isAuthenticated"
-      class="base-button base-button--danger link-button"
-      :to="{ name: 'logout' }"
+    <BaseBottomSheet
+      :open="isLanguageSheetOpen"
+      :title="t('settings.languageSheetTitle')"
+      @close="isLanguageSheetOpen = false"
     >
-      {{ t('common.logOut') }}
-    </RouterLink>
+      <div class="settings-language-list">
+        <button
+          v-for="locale in localeOptions"
+          :key="locale.value"
+          type="button"
+          :class="[
+            'settings-language-option',
+            {
+              'settings-language-option--active':
+                locale.value === localizationStore.locale,
+            },
+          ]"
+          @click="updateLocale(locale.value)"
+        >
+          <span>{{ locale.label }}</span>
+          <span
+            v-if="locale.value === localizationStore.locale"
+            class="material-symbols-outlined"
+            aria-hidden="true"
+          >
+            check
+          </span>
+        </button>
+      </div>
+    </BaseBottomSheet>
   </section>
 </template>

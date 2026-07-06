@@ -5,6 +5,7 @@ import {
   participantColors,
   useParticipantsStore,
 } from '@/app/stores/participants';
+import { useWorkspaceStore } from '@/app/stores/workspace';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useTasksStore } from '@/app/stores/tasks';
 import type {
@@ -17,6 +18,7 @@ type SheetMode = 'create' | 'edit';
 
 const { t } = useI18n();
 const participantsStore = useParticipantsStore();
+const workspaceStore = useWorkspaceStore();
 const meetingsStore = useMeetingsStore();
 const tasksStore = useTasksStore();
 
@@ -48,64 +50,8 @@ function getParticipantDisplayKey(participant: Participant) {
   ].join('|');
 }
 
-function isDefaultPlaceholderParticipant(participant: Participant) {
-  if (participant.type !== 'adult') {
-    return false;
-  }
-
-  const name = participant.name.trim().toLocaleLowerCase();
-
-  return (
-    name === t('settings.defaultParticipant.me').toLocaleLowerCase() ||
-    name === t('settings.defaultParticipant.partner').toLocaleLowerCase()
-  );
-}
-
-function withoutStaleDefaultPlaceholders(participants: Participant[]) {
-  const activeAdults = participants.filter(
-    (participant) => participant.isActive && participant.type === 'adult'
-  );
-  const customAdultCount = activeAdults.filter(
-    (participant) => !isDefaultPlaceholderParticipant(participant)
-  ).length;
-  const defaultPlaceholderCount = activeAdults.filter(
-    isDefaultPlaceholderParticipant
-  ).length;
-
-  if (customAdultCount < 2 || defaultPlaceholderCount < 2) {
-    return participants;
-  }
-
-  return participants.filter(
-    (participant) => !isDefaultPlaceholderParticipant(participant)
-  );
-}
-
-function uniqueParticipantsByDisplay(participants: Participant[]) {
-  return participants.filter((participant, index) => {
-    const key = getParticipantDisplayKey(participant);
-
-    return (
-      participants.findIndex(
-        (item) => getParticipantDisplayKey(item) === key
-      ) === index
-    );
-  });
-}
-
-const visibleParticipants = computed(() =>
-  withoutStaleDefaultPlaceholders(
-    uniqueParticipantsByDisplay(
-      participantsStore.participants.filter(
-        (participant) => !participant.deletedAt
-      )
-    )
-  )
-);
-const activeParticipantCount = computed(
-  () =>
-    visibleParticipants.value.filter((participant) => participant.isActive)
-      .length
+const visibleParticipants = computed(
+  () => participantsStore.activeParticipants
 );
 const selectedParticipant = computed(() =>
   selectedParticipantId.value
@@ -301,59 +247,72 @@ function enableParticipant(participantId: string) {
 </script>
 
 <template>
-  <section class="content-panel settings-panel household-members-panel">
-    <header class="household-members-header">
-      <div>
-        <h2>{{ t('settings.participants') }}</h2>
-        <p>{{ t('settings.participantsIntro') }}</p>
-      </div>
-      <strong>{{
-        t('settings.activePeopleCount', activeParticipantCount)
-      }}</strong>
-    </header>
+  <section class="settings-redesign-section household-members-panel">
+    <h2 class="settings-redesign-section__title">
+      {{ t('settings.sections.household') }}
+    </h2>
 
-    <ul class="household-member-list">
-      <li
-        v-for="participant in visibleParticipants"
-        :key="participant.id"
-        :class="{ 'is-disabled': !participant.isActive }"
-      >
-        <button
-          class="household-member-row"
-          type="button"
-          :aria-label="
-            t('settings.editParticipantLabel', { name: participant.name })
-          "
-          @click="openEditSheet(participant)"
-        >
-          <span
-            class="participant-avatar participant-avatar--large"
-            :style="{ backgroundColor: participant.avatarColor }"
+    <article class="settings-redesign-card household-settings-card">
+      <div class="household-settings-name">
+        <span class="settings-field-label">
+          {{ t('settings.householdName') }}
+        </span>
+        <div class="household-settings-name__row">
+          <strong>{{ workspaceStore.workspace.name }}</strong>
+          <RouterLink
+            class="household-settings-edit"
+            :to="{ name: 'workspace-settings' }"
+            :aria-label="t('settings.editHouseholdSettings')"
           >
-            {{ participant.initials }}
-          </span>
-          <span class="household-member-row__body">
-            <strong>{{ participant.name }}</strong>
-            <small>
-              {{ getTypeLabel(participant.type) }}
-              <template v-if="!participant.isActive">
-                · {{ t('settings.hiddenFromNewMeetings') }}
-              </template>
-            </small>
-          </span>
-          <span class="material-symbols-outlined" aria-hidden="true">
-            edit
-          </span>
-        </button>
-      </li>
-    </ul>
+            <span class="material-symbols-outlined" aria-hidden="true">
+              edit
+            </span>
+          </RouterLink>
+        </div>
+      </div>
 
-    <button class="meeting-primary" type="button" @click="openCreateSheet">
-      <span class="material-symbols-outlined" aria-hidden="true">
-        person_add
-      </span>
-      {{ t('settings.addPerson') }}
-    </button>
+      <div class="household-settings-members">
+        <span class="settings-field-label">{{ t('settings.members') }}</span>
+
+        <ul class="household-member-list">
+          <li v-for="participant in visibleParticipants" :key="participant.id">
+            <button
+              class="household-member-row"
+              type="button"
+              :aria-label="
+                t('settings.editParticipantLabel', { name: participant.name })
+              "
+              @click="openEditSheet(participant)"
+            >
+              <span
+                class="participant-avatar participant-avatar--large"
+                :style="{ backgroundColor: participant.avatarColor }"
+              >
+                {{ participant.initials }}
+              </span>
+              <span class="household-member-row__body">
+                <strong>{{ participant.name }}</strong>
+                <small>{{ getTypeLabel(participant.type) }}</small>
+                <span v-if="!participant.isActive" class="sr-only">
+                  · {{ t('settings.hiddenFromNewMeetings') }}
+                </span>
+              </span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <button
+        class="household-settings-add-button"
+        type="button"
+        @click="openCreateSheet"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">
+          person_add
+        </span>
+        {{ t('settings.addPerson') }}
+      </button>
+    </article>
 
     <p
       v-if="participantMessage.text"
