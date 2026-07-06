@@ -82,7 +82,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'couple-reset',
     name: 'Couple reset',
     description: 'A short practical reset for partners after a full week.',
-    access: 'premium',
+    // access: 'premium',
+    access: 'free',
     sections: [
       {
         id: 'appreciation',
@@ -115,7 +116,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'family-with-kids',
     name: 'Family with kids',
     description: 'A focused check-in for routines, care, and kid logistics.',
-    access: 'premium',
+    // access: 'premium',
+    access: 'free',
     sections: [
       {
         id: 'childRoutines',
@@ -153,7 +155,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'money-check-in',
     name: 'Money check-in',
     description: 'A simple agenda for household spending and money decisions.',
-    access: 'premium',
+    // access: 'premium',
+    access: 'free',
     sections: [
       {
         id: 'upcomingExpenses',
@@ -191,7 +194,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'conflict-cleanup',
     name: 'Conflict cleanup',
     description: 'A calm way to turn one unresolved issue into next steps.',
-    access: 'premium',
+    // access: 'premium',
+    access: 'free',
     sections: [
       {
         id: 'whatHappened',
@@ -224,7 +228,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'busy-week-planning',
     name: 'Busy week planning',
     description: 'A practical plan for schedule, errands, and backup options.',
-    access: 'premium',
+    // access: 'premium',
+    access: 'free',
     sections: [
       {
         id: 'scheduleOverview',
