@@ -26,6 +26,10 @@ const sortedCompletedMeetings = computed(() =>
   [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
 );
 
+const completedMeetingCount = computed(
+  () => sortedCompletedMeetings.value.length
+);
+
 const inProgressItems = computed(() =>
   meetingsStore.meetings
     .filter((meeting) => meeting.status !== 'completed' && !meeting.deletedAt)
@@ -56,7 +60,11 @@ const completedItems = computed(() =>
   })
 );
 
-const showPremiumUnlock = computed(() => !canUseFeature('unlimitedHistory'));
+const showPremiumUnlock = computed(
+  () =>
+    !canUseFeature('unlimitedHistory') &&
+    completedMeetingCount.value >= freeHistoryLimit
+);
 
 function compareMeetingsByDate(first: Meeting, second: Meeting) {
   return getMeetingDate(second).getTime() - getMeetingDate(first).getTime();
