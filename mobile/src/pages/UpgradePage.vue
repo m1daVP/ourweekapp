@@ -1,24 +1,46 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
-import FeatureList from '@/features/subscription/components/FeatureList.vue';
-import PlanCard from '@/features/subscription/components/PlanCard.vue';
-import { planComparisonItems } from '@/features/subscription/subscriptionPlans';
+import type { SubscriptionPlanOption } from '@/features/subscription/types';
 import { appConfig } from '@/shared/config/env';
-import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 
-const router = useRouter();
-const authStore = useAuthStore();
 const subscriptionStore = useSubscriptionStore();
 const { t } = useI18n();
 
-const currentPlanLabel = computed(() =>
-  subscriptionStore.currentPlan === 'premium'
-    ? t('premium.badge')
-    : t('common.free')
+const planOrder: SubscriptionPlanOption['id'][] = [
+  'premium_monthly',
+  'premium_yearly',
+];
+const benefitItems = [
+  {
+    icon: 'history',
+    titleKey: 'upgrade.benefits.unlimitedHistory.title',
+    textKey: 'upgrade.benefits.unlimitedHistory.text',
+  },
+  {
+    icon: 'auto_awesome',
+    titleKey: 'upgrade.benefits.aiSummaries.title',
+    textKey: 'upgrade.benefits.aiSummaries.text',
+  },
+  {
+    icon: 'dashboard_customize',
+    titleKey: 'upgrade.benefits.templates.title',
+    textKey: 'upgrade.benefits.templates.text',
+  },
+  {
+    icon: 'sync',
+    titleKey: 'upgrade.benefits.calendarNotes.title',
+    textKey: 'upgrade.benefits.calendarNotes.text',
+  },
+] as const;
+
+const displayPlans = computed(() =>
+  planOrder
+    .map((planId) =>
+      subscriptionStore.availablePlans.find((plan) => plan.id === planId)
+    )
+    .filter((plan): plan is SubscriptionPlanOption => Boolean(plan))
 );
 const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
 const isPurchaseUnavailable = computed(() => !appConfig.isRevenueCatEnabled);
@@ -36,42 +58,88 @@ const purchaseButtonLabel = computed(() => {
 function openPremiumOptions() {
   subscriptionStore.presentPremiumPaywall();
 }
+
+function isYearlyPlan(plan: SubscriptionPlanOption) {
+  return plan.id === 'premium_yearly';
+}
+
+function getPlanMessageKey(plan: SubscriptionPlanOption) {
+  return plan.id === 'premium_yearly'
+    ? 'upgrade.plans.premiumYearly'
+    : 'upgrade.plans.premiumMonthly';
+}
 </script>
 
 <template>
-  <section class="page-stack upgrade-page">
-    <header>
-      <p class="page-kicker">{{ t('upgrade.kicker') }}</p>
-      <h1>{{ t('upgrade.title') }}</h1>
-      <p class="page-copy">{{ t('upgrade.intro') }}</p>
-    </header>
-
-    <section class="content-panel upgrade-hero">
-      <div>
-        <PremiumBadge />
-        <h2>{{ t('upgrade.heroTitle') }}</h2>
-        <p>{{ t('upgrade.heroText') }}</p>
+  <section class="upgrade-page upgrade-page--redesign">
+    <section class="upgrade-redesign-hero" aria-labelledby="upgrade-title">
+      <div class="upgrade-redesign-hero__icon" aria-hidden="true">
+        <span class="material-symbols-outlined filled">favorite</span>
       </div>
-      <FeatureList :features="planComparisonItems[1].benefits" />
+      <p class="upgrade-redesign-hero__kicker">{{ t('upgrade.kicker') }}</p>
+      <h1 id="upgrade-title">{{ t('upgrade.heroTitle') }}</h1>
+      <p>{{ t('upgrade.heroText') }}</p>
     </section>
 
-    <section class="content-panel subscription-plans">
-      <div>
-        <h2>{{ t('upgrade.plansTitle') }}</h2>
-        <p>{{ t('upgrade.plansText') }}</p>
-      </div>
+    <section
+      class="upgrade-benefits-card"
+      aria-labelledby="upgrade-benefits-title"
+    >
+      <h2 id="upgrade-benefits-title">{{ t('upgrade.benefitsTitle') }}</h2>
+      <ul class="upgrade-benefit-list">
+        <li v-for="benefit in benefitItems" :key="benefit.titleKey">
+          <span class="material-symbols-outlined" aria-hidden="true">
+            {{ benefit.icon }}
+          </span>
+          <div>
+            <strong>{{ t(benefit.titleKey) }}</strong>
+            <p>{{ t(benefit.textKey) }}</p>
+          </div>
+        </li>
+      </ul>
+    </section>
 
-      <div class="plan-card-grid" :aria-label="t('upgrade.planOptionsLabel')">
-        <PlanCard
-          v-for="plan in subscriptionStore.availablePlans"
-          :key="plan.id"
-          :plan="plan"
-          :interactive="false"
-        />
-      </div>
+    <section
+      class="upgrade-plan-section"
+      :aria-label="t('upgrade.planOptionsLabel')"
+    >
+      <article
+        v-for="plan in displayPlans"
+        :key="plan.id"
+        :class="[
+          'upgrade-plan-card',
+          { 'upgrade-plan-card--yearly': isYearlyPlan(plan) },
+        ]"
+      >
+        <span v-if="isYearlyPlan(plan)" class="upgrade-plan-card__badge">
+          {{ t('upgrade.bestValue') }}
+        </span>
+        <div class="upgrade-plan-card__content">
+          <div>
+            <h3>{{ t(`${getPlanMessageKey(plan)}.name`) }}</h3>
+            <p class="upgrade-plan-card__price">{{ plan.priceLabel }}</p>
+            <p v-if="isYearlyPlan(plan)" class="upgrade-plan-card__note">
+              {{ t('upgrade.yearlyNote') }}
+            </p>
+          </div>
+          <span class="upgrade-plan-card__indicator" aria-hidden="true">
+            <span
+              v-if="isYearlyPlan(plan)"
+              class="material-symbols-outlined filled"
+            >
+              check
+            </span>
+          </span>
+        </div>
+      </article>
+      <p v-if="!displayPlans.length" class="upgrade-plan-section__empty">
+        {{ t('upgrade.planUnavailable') }}
+      </p>
+    </section>
 
+    <div class="upgrade-purchase-dock" :aria-label="t('upgrade.actionsLabel')">
       <button
-        class="meeting-primary"
+        class="meeting-primary upgrade-purchase-dock__primary"
         type="button"
         :disabled="
           subscriptionStore.isPurchasing ||
@@ -83,17 +151,32 @@ function openPremiumOptions() {
       >
         {{ purchaseButtonLabel }}
       </button>
-      <p class="subscription-note">
+      <p class="upgrade-purchase-dock__note">
         {{ t('upgrade.billingNote') }}
       </p>
       <button
-        class="secondary-button"
+        class="upgrade-purchase-dock__link"
         type="button"
         :disabled="subscriptionStore.isRestoring || !canRestorePurchases"
         @click="subscriptionStore.restorePurchases()"
       >
         {{ t('common.restorePurchases') }}
       </button>
+      <span class="upgrade-purchase-dock__separator" aria-hidden="true" />
+      <RouterLink class="upgrade-purchase-dock__link" :to="{ name: 'terms' }">
+        {{ t('upgrade.termsLink') }}
+      </RouterLink>
+      <template v-if="subscriptionStore.canManageSubscription">
+        <span class="upgrade-purchase-dock__separator" aria-hidden="true" />
+        <button
+          class="upgrade-purchase-dock__link"
+          type="button"
+          :disabled="subscriptionStore.isManaging"
+          @click="subscriptionStore.manageSubscription()"
+        >
+          {{ t('common.manageSubscription') }}
+        </button>
+      </template>
       <p
         v-if="subscriptionStore.statusMessage"
         class="meeting-status"
@@ -108,80 +191,6 @@ function openPremiumOptions() {
       >
         {{ subscriptionStore.errorMessage }}
       </p>
-    </section>
-
-    <section class="content-panel plan-comparison">
-      <div>
-        <h2>{{ t('upgrade.comparisonTitle') }}</h2>
-        <p>{{ t('upgrade.comparisonText') }}</p>
-      </div>
-
-      <article
-        v-for="plan in planComparisonItems"
-        :key="plan.planType"
-        class="plan-comparison__group"
-      >
-        <div class="plan-comparison__header">
-          <h3>
-            {{
-              plan.planType === 'premium'
-                ? t('premium.badge')
-                : t('common.free')
-            }}
-          </h3>
-          <PremiumBadge v-if="plan.planType === 'premium'" />
-        </div>
-        <FeatureList :features="plan.benefits" />
-      </article>
-    </section>
-
-    <section class="content-panel subscription-status-panel">
-      <div>
-        <h2>{{ t('upgrade.statusTitle') }}</h2>
-        <p>{{ t('upgrade.currentPlan', { plan: currentPlanLabel }) }}</p>
-      </div>
-      <dl class="subscription-status-list">
-        <div>
-          <dt>{{ t('upgrade.renewal') }}</dt>
-          <dd>
-            {{
-              subscriptionStore.premiumEntitlement?.expiresAt ??
-              t('upgrade.renewalUnavailable')
-            }}
-          </dd>
-        </div>
-        <div>
-          <dt>{{ t('upgrade.manageSubscription') }}</dt>
-          <dd>
-            {{
-              subscriptionStore.canManageSubscription
-                ? t('upgrade.manageAvailable')
-                : t('upgrade.manageUnavailable')
-            }}
-          </dd>
-        </div>
-        <div>
-          <dt>{{ t('upgrade.account') }}</dt>
-          <dd>
-            {{
-              authStore.isAuthenticated
-                ? authStore.user?.email
-                : t('upgrade.localDeviceMode')
-            }}
-          </dd>
-        </div>
-      </dl>
-      <button
-        class="secondary-button"
-        type="button"
-        :disabled="subscriptionStore.isManaging"
-        @click="subscriptionStore.manageSubscription()"
-      >
-        {{ t('common.manageSubscription') }}
-      </button>
-      <button class="secondary-button" type="button" @click="router.back()">
-        {{ t('common.goBack') }}
-      </button>
-    </section>
+    </div>
   </section>
 </template>

@@ -426,9 +426,32 @@ export const messages = {
       title: 'Upgrade OurWeek',
       intro:
         'Premium is for households that want a longer memory, gentle follow-up, and clean summaries after each weekly check-in.',
-      heroTitle: 'Make weekly check-ins easier to revisit',
+      heroTitle: 'Make weekly check-ins easier to keep',
       heroText:
-        'Unlock practical additions without changing OurWeek into a task tracker or a budgeting app.',
+        'Keep a longer record, use focused templates, and carry clear follow-ups into each weekly check-in.',
+      benefitsTitle: 'Premium benefits',
+      bestValue: 'Best value',
+      yearlyNote: 'Best for a steady weekly rhythm.',
+      actionsLabel: 'Premium purchase actions',
+      termsLink: 'Terms of Service',
+      benefits: {
+        unlimitedHistory: {
+          title: 'Unlimited history',
+          text: 'Review every finished check-in when an old agreement needs context.',
+        },
+        aiSummaries: {
+          title: 'AI meeting summaries',
+          text: 'Turn meeting notes into a short neutral summary and next steps.',
+        },
+        templates: {
+          title: 'All templates unlocked',
+          text: 'Use focused check-ins for couples, money, busy weeks, and family routines.',
+        },
+        calendarNotes: {
+          title: 'Calendar sync and private notes',
+          text: 'Prepare privately and keep agreed follow-ups visible between meetings.',
+        },
+      },
       plansTitle: 'Choose a Premium plan',
       plansText:
         'Premium access is checked through your account and app store subscription.',
@@ -1758,9 +1781,32 @@ export const messages = {
       title: 'Оновити OurWeek',
       intro:
         'Premium для домів, яким потрібна довша історія, м’які нагадування і чисті підсумки після кожної щотижневої зустрічі.',
-      heroTitle: 'Легше повертайтеся до щотижневих зустрічей',
+      heroTitle: 'Легше підтримувати щотижневі зустрічі',
       heroText:
-        'Відкрийте практичні доповнення, не перетворюючи OurWeek на трекер завдань або бюджетний додаток.',
+        'Зберігайте довшу історію, використовуйте фокусні шаблони й переносіть подальші кроки в кожну зустріч.',
+      benefitsTitle: 'Переваги Premium',
+      bestValue: 'Найкраща цінність',
+      yearlyNote: 'Зручно для стабільного щотижневого ритму.',
+      actionsLabel: 'Дії покупки Premium',
+      termsLink: 'Умови користування',
+      benefits: {
+        unlimitedHistory: {
+          title: 'Необмежена історія',
+          text: 'Переглядайте всі завершені зустрічі, коли потрібен контекст попередніх домовленостей.',
+        },
+        aiSummaries: {
+          title: 'AI-підсумки зустрічей',
+          text: 'Перетворюйте нотатки на короткий нейтральний підсумок і наступні кроки.',
+        },
+        templates: {
+          title: 'Усі шаблони відкриті',
+          text: 'Використовуйте фокусні зустрічі для пари, грошей, зайнятих тижнів і сімейних рутин.',
+        },
+        calendarNotes: {
+          title: 'Календар і приватні нотатки',
+          text: 'Готуйтеся приватно й тримайте домовлені подальші кроки видимими між зустрічами.',
+        },
+      },
       plansTitle: 'Оберіть Premium-план',
       plansText:
         'Premium-доступ перевіряється через ваш акаунт і підписку в магазині застосунків.',
@@ -3124,9 +3170,32 @@ export const messages = {
       title: 'Mejorar OurWeek',
       intro:
         'Premium es para hogares que quieren una memoria más larga, seguimiento suave y resúmenes claros después de cada revisión semanal.',
-      heroTitle: 'Revisa la semana con menos esfuerzo',
+      heroTitle: 'Haz más fácil mantener la revisión semanal',
       heroText:
-        'Desbloquea agregados prácticos sin convertir OurWeek en un gestor de tareas o una app de presupuesto.',
+        'Conserva más historial, usa plantillas enfocadas y lleva seguimientos claros a cada revisión.',
+      benefitsTitle: 'Beneficios Premium',
+      bestValue: 'Mejor valor',
+      yearlyNote: 'Ideal para mantener el ritmo semanal.',
+      actionsLabel: 'Acciones de compra Premium',
+      termsLink: 'Términos del servicio',
+      benefits: {
+        unlimitedHistory: {
+          title: 'Historial ilimitado',
+          text: 'Revisa cada reunión terminada cuando un acuerdo anterior necesita contexto.',
+        },
+        aiSummaries: {
+          title: 'Resúmenes de reuniones con IA',
+          text: 'Convierte notas de reunión en un resumen breve, neutral y con próximos pasos.',
+        },
+        templates: {
+          title: 'Todas las plantillas desbloqueadas',
+          text: 'Usa revisiones enfocadas para pareja, dinero, semanas ocupadas y rutinas familiares.',
+        },
+        calendarNotes: {
+          title: 'Calendario y notas privadas',
+          text: 'Prepárate en privado y mantén visibles los seguimientos acordados entre reuniones.',
+        },
+      },
       plansTitle: 'Elige un plan Premium',
       plansText:
         'El acceso Premium se revisa con tu cuenta y la suscripción de la tienda.',
