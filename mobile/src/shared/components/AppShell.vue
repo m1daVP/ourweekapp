@@ -77,6 +77,10 @@ watch(
     ]"
   >
     <header v-if="showNavigation" class="app-top-bar">
+      <span class="app-top-bar__icon">
+        <img :src="smallLogoUrl" alt="" aria-hidden="true" />
+      </span>
+      <h1>{{ pageTitle }}</h1>
       <RouterLink
         class="app-top-bar__avatar"
         :to="{ name: 'settings' }"
@@ -89,14 +93,6 @@ watch(
           {{ firstParticipant.initials }}
         </span>
         <span v-else>WU</span>
-      </RouterLink>
-      <h1>{{ pageTitle }}</h1>
-      <RouterLink
-        class="app-top-bar__icon"
-        :to="{ name: 'workspace-settings' }"
-        :aria-label="t('app.householdMembers')"
-      >
-        <img :src="smallLogoUrl" alt="" aria-hidden="true" />
       </RouterLink>
     </header>
     <main ref="mainElement" class="app-main">

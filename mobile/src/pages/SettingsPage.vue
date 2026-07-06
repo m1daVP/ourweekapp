@@ -149,7 +149,7 @@ function updateLocale(event: Event) {
 <template>
   <section class="page-stack">
     <div>
-      <p class="page-kicker">{{ t('settings.kicker') }}</p>
+      <!-- <p class="page-kicker">{{ t('settings.kicker') }}</p> -->
       <h1>{{ t('settings.title') }}</h1>
       <p class="page-copy">{{ t('settings.intro') }}</p>
     </div>
