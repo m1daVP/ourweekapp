@@ -6,7 +6,6 @@ const requiredEnv = {
   PUBLIC_API_BASE_URL: 'http://127.0.0.1:3000',
   SUPABASE_URL: 'http://127.0.0.1:54321',
   SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
-  SUPABASE_ANON_KEY: 'test-anon-key',
   ACCESS_TOKEN_SECRET: 'a'.repeat(32),
   REFRESH_TOKEN_SECRET: 'b'.repeat(32),
   PASSWORD_RESET_TOKEN_SECRET: 'c'.repeat(32),

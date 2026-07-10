@@ -47,7 +47,6 @@ const envInput = z
 
     SUPABASE_URL: supabaseUrlSchema,
     SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKeySchema,
-    SUPABASE_ANON_KEY: z.string().min(1),
 
     ACCESS_TOKEN_SECRET: z.string().min(32),
     REFRESH_TOKEN_SECRET: z.string().min(32),

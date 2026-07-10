@@ -31,7 +31,6 @@ beforeAll(async () => {
   process.env.PUBLIC_API_BASE_URL ??= 'http://localhost:3000/v1';
   process.env.SUPABASE_URL ??= 'https://example.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY ??= 'service-role-key';
-  process.env.SUPABASE_ANON_KEY ??= 'anon-key';
   process.env.ACCESS_TOKEN_SECRET ??= 'access-token-secret-with-at-least-32-bytes';
   process.env.REFRESH_TOKEN_SECRET ??= 'refresh-token-secret-with-at-least-32-bytes';
   process.env.PASSWORD_RESET_TOKEN_SECRET ??= 'password-reset-token-secret-with-32-bytes';
