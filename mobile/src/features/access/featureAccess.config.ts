@@ -37,7 +37,6 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     label: 'Local reminders',
     description: 'Use simple device reminders when supported locally.',
     plans: ['free', 'premium'],
-    lockedReason: 'Upgrade to schedule local reminders on this device.',
   },
   unlimitedHistory: {
     key: 'unlimitedHistory',
@@ -58,8 +57,6 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     label: 'Unfinished agreement reminders',
     description: 'Get reminders for agreements that still need follow-up.',
     plans: ['free', 'premium'],
-    lockedReason:
-      'Upgrade to keep unfinished agreements visible between meetings.',
   },
   additionalTemplates: {
     key: 'additionalTemplates',

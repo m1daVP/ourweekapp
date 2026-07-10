@@ -3,6 +3,8 @@ import type { PermissionState } from '@capacitor/core';
 import { useRemindersStore } from '@/app/stores/reminders';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useTasksStore } from '@/app/stores/tasks';
+import { useWorkspaceStore } from '@/app/stores/workspace';
+import { canUseFeatureWithContext } from '@/features/access/featureAccessPolicy';
 import { translate } from '@/features/localization/i18n';
 import {
   cancelReminderNotifications,
@@ -24,11 +26,19 @@ export function useNotifications() {
   const remindersStore = useRemindersStore();
   const subscriptionStore = useSubscriptionStore();
   const tasksStore = useTasksStore();
+  const workspaceStore = useWorkspaceStore();
+
+  function canUseReminderFeature() {
+    return canUseFeatureWithContext('agreementReminders', {
+      plan: subscriptionStore.currentPlan,
+      hasPremiumEntitlement: subscriptionStore.hasPremiumEntitlement,
+      role: workspaceStore.currentUserRole,
+    });
+  }
 
   const isAvailable = computed(() => localNotificationsAvailable());
   const canScheduleReminders = computed(
-    () =>
-      subscriptionStore.hasPremiumEntitlement && remindersStore.settings.enabled
+    () => canUseReminderFeature() && remindersStore.settings.enabled
   );
 
   async function syncPermissionStatus() {
@@ -46,7 +56,7 @@ export function useNotifications() {
   async function enableReminders() {
     lastError.value = null;
 
-    if (!subscriptionStore.hasPremiumEntitlement) {
+    if (!canUseReminderFeature()) {
       lastError.value = translate('notifications.premiumOnly');
       remindersStore.setEnabled(false);
       await cancelReminderNotifications();
@@ -85,10 +95,7 @@ export function useNotifications() {
     lastError.value = null;
 
     try {
-      if (
-        !subscriptionStore.hasPremiumEntitlement ||
-        !remindersStore.settings.enabled
-      ) {
+      if (!canUseReminderFeature() || !remindersStore.settings.enabled) {
         await cancelReminderNotifications();
         lastReminderResult.value = { scheduled: false, reason: 'disabled' };
         return lastReminderResult.value;
@@ -122,6 +129,7 @@ export function useNotifications() {
       () => [
         subscriptionStore.currentPlan,
         subscriptionStore.hasPremiumEntitlement,
+        workspaceStore.currentUserRole,
         remindersStore.settings.enabled,
         remindersStore.settings.weeklyMeetingReminder.day,
         remindersStore.settings.weeklyMeetingReminder.time,

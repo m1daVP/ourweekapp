@@ -39,6 +39,10 @@ export const planComparisonItems: PlanComparisonItem[] = [
       { label: 'Tasks and agreements', featureKey: 'tasksAndAgreements' },
       { label: 'Last 3 meetings history', featureKey: 'limitedHistory' },
       { label: 'Default template', featureKey: 'defaultTemplate' },
+      {
+        label: 'Unfinished agreement reminders',
+        featureKey: 'agreementReminders',
+      },
     ],
   },
   {
@@ -47,7 +51,6 @@ export const planComparisonItems: PlanComparisonItem[] = [
     benefits: [
       { label: 'Unlimited meeting history', featureKey: 'unlimitedHistory' },
       { label: 'AI summaries', featureKey: 'aiSummary' },
-      { label: 'Reminder system', featureKey: 'agreementReminders' },
       { label: 'Extra templates', featureKey: 'additionalTemplates' },
       { label: 'Private notes', featureKey: 'privateNotes' },
       { label: 'Google Calendar sync', featureKey: 'googleCalendarSync' },

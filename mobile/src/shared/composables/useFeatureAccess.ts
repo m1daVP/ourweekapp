@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
+import { canUseFeatureWithContext } from '@/features/access/featureAccessPolicy';
 import type { FeatureKey } from '@/features/access/types';
 import type { Meeting } from '@/features/meeting/types';
 
@@ -16,29 +17,11 @@ export function useFeatureAccess() {
   const isPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
 
   function canUseFeature(featureKey: FeatureKey) {
-    const access = featureAccessConfig[featureKey];
-    const effectivePlan = subscriptionStore.currentPlan;
-
-    if (!access.plans.includes(effectivePlan)) {
-      return false;
-    }
-
-    if (
-      effectivePlan === 'premium' &&
-      access.plans.length === 1 &&
-      !subscriptionStore.hasPremiumEntitlement
-    ) {
-      return false;
-    }
-
-    if (
-      access.roles &&
-      !access.roles.includes(workspaceStore.currentUserRole)
-    ) {
-      return false;
-    }
-
-    return true;
+    return canUseFeatureWithContext(featureKey, {
+      plan: subscriptionStore.currentPlan,
+      hasPremiumEntitlement: subscriptionStore.hasPremiumEntitlement,
+      role: workspaceStore.currentUserRole,
+    });
   }
 
   function canAccessMeetingHistoryItem(
