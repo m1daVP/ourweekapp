@@ -20,6 +20,10 @@ import { sensitiveLogRedaction } from './shared/logging/pino-options.js';
 
 export async function buildApp(options: FastifyServerOptions = {}) {
   const app = Fastify({
+    // Render terminates TLS at its edge proxy and forwards traffic with
+    // X-Forwarded-For set; trust it so request.ip (and rate-limit keying)
+    // reflects the real client address instead of the proxy.
+    trustProxy: true,
     logger:
       env.NODE_ENV === 'production'
         ? {
