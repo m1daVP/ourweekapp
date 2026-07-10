@@ -28,6 +28,23 @@ import WorkspaceSettingsPage from '@/pages/WorkspaceSettingsPage.vue';
 
 const unauthenticatedRouteNames = new Set(['welcome', 'sign-in', 'sign-up']);
 
+function isUnauthenticatedRouteName(routeName: unknown) {
+  return (
+    typeof routeName === 'string' && unauthenticatedRouteNames.has(routeName)
+  );
+}
+
+function getSignedOutRedirect(routeName: unknown, fullPath: string) {
+  if (routeName === 'home') {
+    return { name: 'welcome' };
+  }
+
+  return {
+    name: 'sign-in',
+    query: { redirect: fullPath },
+  };
+}
+
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior() {
@@ -162,31 +179,57 @@ export const router = createRouter({
   ],
 });
 
+function verifyCurrentUserInBackground() {
+  const authStore = useAuthStore();
+
+  void authStore
+    .verifyCurrentUser()
+    .then((isVerified) => {
+      const currentRoute = router.currentRoute.value;
+
+      if (isVerified) {
+        if (currentRoute.meta.guestOnly) {
+          void router.replace({ name: 'home' });
+        }
+
+        return;
+      }
+
+      if (
+        authStore.sessionCheckStatus !== 'unauthorized' ||
+        isUnauthenticatedRouteName(currentRoute.name)
+      ) {
+        return;
+      }
+
+      void router.replace(
+        getSignedOutRedirect(currentRoute.name, currentRoute.fullPath)
+      );
+    })
+    .catch(() => undefined);
+}
+
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   const subscriptionStore = useSubscriptionStore();
   const workspaceStore = useWorkspaceStore();
-  const isUnauthenticatedRoute =
-    typeof to.name === 'string' && unauthenticatedRouteNames.has(to.name);
+  const isUnauthenticatedRoute = isUnauthenticatedRouteName(to.name);
 
   await authStore.hydrateSecureTokens();
 
   if (authStore.authStatus === 'authenticated') {
-    await authStore.verifyCurrentUser();
+    verifyCurrentUserInBackground();
   }
 
   if (!authStore.isAuthenticated && !isUnauthenticatedRoute) {
-    if (to.name === 'home') {
-      return { name: 'welcome' };
-    }
-
-    return {
-      name: 'sign-in',
-      query: { redirect: to.fullPath },
-    };
+    return getSignedOutRedirect(to.name, to.fullPath);
   }
 
-  if (to.meta.guestOnly && authStore.isAuthenticated) {
+  if (
+    to.meta.guestOnly &&
+    authStore.isAuthenticated &&
+    authStore.sessionCheckStatus === 'verified'
+  ) {
     return { name: 'home' };
   }
 

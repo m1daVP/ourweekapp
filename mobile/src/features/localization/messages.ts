@@ -7,6 +7,7 @@ export const messages = {
       householdMembers: 'Household members',
       storageAttention: 'Some saved data needs attention',
       dismiss: 'Dismiss',
+      loadingSavedData: 'Loading saved data',
       routeTitles: {
         home: 'OurWeek',
         meeting: 'Weekly meeting',
@@ -141,6 +142,9 @@ export const messages = {
         'Pick up your weekly household check-ins where you left off.',
       forgotPassword: 'Forgot password?',
       signingIn: 'Signing in...',
+      checkingSession: 'Checking session...',
+      sessionCheckUnavailable:
+        'Could not check your session. Saved data on this device is still available.',
       signIn: 'Sign in',
       continueWithGoogle: 'Continue with Google',
       continuingWithGoogle: 'Continuing with Google...',
@@ -1380,6 +1384,7 @@ export const messages = {
       householdMembers: 'Учасники дому',
       storageAttention: 'Деякі збережені дані потребують уваги',
       dismiss: 'Закрити',
+      loadingSavedData: 'Завантаження збережених даних',
       routeTitles: {
         home: 'OurWeek',
         meeting: 'Щотижнева зустріч',
@@ -1516,6 +1521,9 @@ export const messages = {
         'Продовжуйте свій щотижневий домашній ритм із місця, де зупинилися.',
       forgotPassword: 'Забули пароль?',
       signingIn: 'Вхід...',
+      checkingSession: 'Перевіряємо сесію...',
+      sessionCheckUnavailable:
+        'Не вдалося перевірити сесію. Збережені дані на цьому пристрої залишаються доступними.',
       signIn: 'Увійти',
       continueWithGoogle: 'Continue with Google',
       continuingWithGoogle: 'Continuing with Google...',
@@ -2792,6 +2800,7 @@ export const messages = {
       householdMembers: 'Miembros del hogar',
       storageAttention: 'Algunos datos guardados necesitan atención',
       dismiss: 'Cerrar',
+      loadingSavedData: 'Cargando datos guardados',
       routeTitles: {
         home: 'OurWeek',
         meeting: 'Reunión semanal',
@@ -2930,6 +2939,9 @@ export const messages = {
         'Continúa tu ritmo semanal del hogar y retoma donde te quedaste.',
       forgotPassword: '¿Olvidaste tu contraseña?',
       signingIn: 'Iniciando sesión...',
+      checkingSession: 'Revisando sesión...',
+      sessionCheckUnavailable:
+        'No se pudo revisar la sesión. Los datos guardados en este dispositivo siguen disponibles.',
       signIn: 'Iniciar sesión',
       continueWithGoogle: 'Continuar con Google',
       continuingWithGoogle: 'Continuando con Google...',

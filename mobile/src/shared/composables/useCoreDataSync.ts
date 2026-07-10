@@ -38,7 +38,10 @@ function serializeParticipantState() {
 
 export function useCoreDataSync() {
   const authStore = useAuthStore();
-  const canSync = computed(() => authStore.isAuthenticated);
+  const canSync = computed(
+    () =>
+      authStore.isAuthenticated && authStore.sessionCheckStatus === 'verified'
+  );
   let syncTimer: ReturnType<typeof setTimeout> | null = null;
   const stopWatchers: Array<() => void> = [];
 

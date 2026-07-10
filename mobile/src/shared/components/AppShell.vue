@@ -121,7 +121,14 @@ watch(
         role="status"
         aria-live="polite"
       >
-        <span>{{ toastState.message }}</span>
+        <span class="app-toast__content">
+          <span
+            v-if="toastState.loading"
+            class="app-toast__spinner"
+            aria-hidden="true"
+          />
+          <span>{{ toastState.message }}</span>
+        </span>
         <button
           v-if="toastState.action"
           type="button"
@@ -131,7 +138,7 @@ watch(
           {{ toastState.action.label }}
         </button>
         <button
-          v-else
+          v-else-if="!toastState.persistent"
           type="button"
           class="app-toast__dismiss material-symbols-outlined"
           :aria-label="t('app.dismiss')"
