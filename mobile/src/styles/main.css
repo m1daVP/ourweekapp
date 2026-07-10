@@ -476,6 +476,23 @@ input[type='radio'] {
   transform: translateX(-50%);
 }
 
+.app-toast__content {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-toast__spinner {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 2px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-top-color: currentColor;
+  border-radius: var(--radius-pill);
+  animation: app-toast-spinner 780ms linear infinite;
+}
+
 .app-toast--error {
   border-color: color-mix(in srgb, var(--color-error) 36%, white);
   color: var(--color-error);
@@ -518,6 +535,73 @@ input[type='radio'] {
 .app-toast-leave-to {
   opacity: 0;
   transform: translate(-50%, 8px);
+}
+
+@keyframes app-toast-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-outline-variant) 28%, white);
+}
+
+.app-skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-surface-lowest) 72%, transparent),
+    transparent
+  );
+  content: '';
+  transform: translateX(-100%);
+  animation: app-skeleton-shimmer 1400ms ease-in-out infinite;
+}
+
+.app-skeleton--text {
+  width: 100%;
+  height: 0.9rem;
+}
+
+.app-skeleton--title {
+  width: min(72%, 220px);
+  height: 1.1rem;
+}
+
+.app-skeleton--short {
+  width: min(46%, 140px);
+}
+
+.app-skeleton--circle {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+}
+
+.app-skeleton-group {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+}
+
+@keyframes app-skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-toast__spinner,
+  .app-skeleton::after {
+    animation: none;
+  }
 }
 
 .storage-recovery-notice {
@@ -3816,6 +3900,15 @@ input[type='radio'] {
   z-index: 1;
 }
 
+.task-card--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.task-card--skeleton::before {
+  display: none;
+}
+
 .task-card.is-completing {
   border-color: color-mix(in srgb, var(--color-primary) 42%, #e3d9cd);
   background: color-mix(in srgb, var(--color-primary-fixed) 12%, #ffffff);
@@ -4169,6 +4262,10 @@ input[type='radio'] {
 
 .history-progress-card {
   position: relative;
+}
+
+.history-card--skeleton {
+  pointer-events: none;
 }
 
 .history-progress-card__swipe-frame {

@@ -7,8 +7,10 @@ import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
+import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
 
 const { canUseFeature, getFreeLimit } = useFeatureAccess();
+const { isStartupLoading } = useStartupLoadingState();
 const { t, locale } = useI18n();
 const router = useRouter();
 const meetingsStore = useMeetingsStore();
@@ -39,6 +41,12 @@ const greetingName = computed(
 );
 const openTaskCount = computed(() => tasksStore.openTasks.length);
 const completedCount = computed(() => meetingsStore.completedMeetings.length);
+const showTaskShortcutSkeleton = computed(
+  () => isStartupLoading.value && tasksStore.tasks.length === 0
+);
+const showHistoryShortcutSkeleton = computed(
+  () => isStartupLoading.value && meetingsStore.meetings.length === 0
+);
 
 function startMeeting() {
   router.push({ name: 'meeting-templates' });
@@ -78,7 +86,18 @@ function startMeeting() {
         <span class="section-icon material-symbols-outlined" aria-hidden="true">
           check_circle
         </span>
-        <span>
+        <span
+          v-if="showTaskShortcutSkeleton"
+          class="app-skeleton-group"
+          :aria-label="t('app.loadingSavedData')"
+        >
+          <span class="app-skeleton app-skeleton--title" aria-hidden="true" />
+          <span
+            class="app-skeleton app-skeleton--text app-skeleton--short"
+            aria-hidden="true"
+          />
+        </span>
+        <span v-else>
           <strong>{{
             t('home.tasksToReview', { count: openTaskCount })
           }}</strong>
@@ -93,7 +112,18 @@ function startMeeting() {
         <span class="section-icon material-symbols-outlined" aria-hidden="true">
           history
         </span>
-        <span>
+        <span
+          v-if="showHistoryShortcutSkeleton"
+          class="app-skeleton-group"
+          :aria-label="t('app.loadingSavedData')"
+        >
+          <span class="app-skeleton app-skeleton--title" aria-hidden="true" />
+          <span
+            class="app-skeleton app-skeleton--text app-skeleton--short"
+            aria-hidden="true"
+          />
+        </span>
+        <span v-else>
           <strong>{{
             t('home.meetingsSaved', { count: completedCount })
           }}</strong>

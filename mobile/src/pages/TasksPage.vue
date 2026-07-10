@@ -20,6 +20,7 @@ import type {
 } from '@/features/tasks/types';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
+import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 type TaskFilter = 'todo' | 'done' | 'all';
@@ -43,6 +44,7 @@ const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
 const { can } = useWorkspacePermissions();
+const { isStartupLoading } = useStartupLoadingState();
 const { t, locale } = useI18n();
 
 const taskFilters: Array<{ value: TaskFilter; label: string }> = [
@@ -104,6 +106,9 @@ const sharedTaskCards = computed(() =>
 );
 const myTaskCards = computed(() =>
   taskCards.value.filter((card) => card.group === 'mine')
+);
+const showTaskListSkeleton = computed(
+  () => isStartupLoading.value && tasksStore.tasks.length === 0
 );
 const selectedTaskDraft = computed(() =>
   selectedTask.value ? editDrafts[selectedTask.value.id] : null
@@ -763,7 +768,30 @@ function openAddTaskSheet() {
         </li>
       </TransitionGroup>
     </section>
-    <p v-if="!taskCards.length" class="task-empty">{{ emptyTaskMessage }}</p>
+    <section
+      v-if="showTaskListSkeleton"
+      class="task-card-section"
+      :aria-label="t('app.loadingSavedData')"
+    >
+      <ul class="task-card-list">
+        <li
+          v-for="item in 3"
+          :key="item"
+          class="task-card task-card--skeleton"
+          aria-hidden="true"
+        >
+          <span class="app-skeleton app-skeleton--circle" />
+          <span class="app-skeleton-group">
+            <span class="app-skeleton app-skeleton--title" />
+            <span class="app-skeleton app-skeleton--text app-skeleton--short" />
+          </span>
+          <span class="app-skeleton app-skeleton--circle" />
+        </li>
+      </ul>
+    </section>
+    <p v-else-if="!taskCards.length" class="task-empty">
+      {{ emptyTaskMessage }}
+    </p>
 
     <p v-if="statusMessage" class="meeting-status" role="status">
       {{ statusMessage }}

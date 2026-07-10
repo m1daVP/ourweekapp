@@ -14,6 +14,8 @@ interface ToastOptions {
   };
   duration?: NativeToastDuration;
   durationMs?: number;
+  loading?: boolean;
+  persistent?: boolean;
   position?: NativeToastPosition;
   tone?: ToastTone;
 }
@@ -24,7 +26,9 @@ interface ToastState {
     onClick: () => void;
   };
   id: number;
+  loading: boolean;
   message: string;
+  persistent: boolean;
   tone: ToastTone;
 }
 
@@ -47,19 +51,28 @@ function showWebToast(message: string, options: ToastOptions) {
   toastState.value = {
     action: options.action,
     id: ++toastId,
+    loading: Boolean(options.loading),
     message,
+    persistent: Boolean(options.persistent),
     tone: options.tone ?? 'status',
   };
 
-  hideTimer = setTimeout(() => {
-    toastState.value = null;
-    hideTimer = undefined;
-  }, options.durationMs ?? 2400);
+  if (!options.persistent) {
+    hideTimer = setTimeout(() => {
+      toastState.value = null;
+      hideTimer = undefined;
+    }, options.durationMs ?? 2400);
+  }
 }
 
 export function useToast() {
   async function showToast(message: string, options: ToastOptions = {}) {
-    if (!Capacitor.isNativePlatform() || options.action) {
+    if (
+      !Capacitor.isNativePlatform() ||
+      options.action ||
+      options.loading ||
+      options.persistent
+    ) {
       showWebToast(message, options);
       return;
     }
