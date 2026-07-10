@@ -96,6 +96,7 @@ let legacyTokensToMigrate: AuthTokens = {
   refreshToken: null,
   expiresAt: null,
 };
+let sessionRefreshPromise: Promise<string | null> | null = null;
 
 function readLegacyAuthTokensFromLocalStorage(): AuthTokens {
   if (typeof window === 'undefined') {
@@ -555,24 +556,36 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async refreshAuthenticatedSession() {
-      await this.hydrateSecureTokens();
-      const tokens = await readAuthTokens();
-
-      if (!tokens.refreshToken) {
-        await this.clearSessionAfterUnauthorized();
-        return null;
+      if (sessionRefreshPromise) {
+        return sessionRefreshPromise;
       }
 
-      try {
-        const session = await refreshSessionRequest({
-          refreshToken: tokens.refreshToken,
-        });
-        await this.applySession(session);
-        return session.accessToken;
-      } catch {
-        await this.clearSessionAfterUnauthorized();
-        return null;
-      }
+      sessionRefreshPromise = (async () => {
+        try {
+          await this.hydrateSecureTokens();
+          const tokens = await readAuthTokens();
+
+          if (!tokens.refreshToken) {
+            await this.clearSessionAfterUnauthorized();
+            return null;
+          }
+
+          try {
+            const session = await refreshSessionRequest({
+              refreshToken: tokens.refreshToken,
+            });
+            await this.applySession(session);
+            return session.accessToken;
+          } catch {
+            await this.clearSessionAfterUnauthorized();
+            return null;
+          }
+        } finally {
+          sessionRefreshPromise = null;
+        }
+      })();
+
+      return sessionRefreshPromise;
     },
     async signIn(payload: SignInPayload) {
       this.authStatus = 'loading';
