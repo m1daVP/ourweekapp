@@ -29,6 +29,7 @@ import {
   prepareSyncForAuthenticatedUser,
   resetSyncRuntimeState,
 } from '@/shared/services/syncSessionService';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
   logInRevenueCat,
   logOutRevenueCat,
@@ -43,6 +44,13 @@ import type {
 const STORAGE_VERSION = 3;
 const LEGACY_AUTH_STORAGE_KEY = 'ourweek:auth';
 
+type SessionCheckStatus =
+  | 'idle'
+  | 'checking'
+  | 'verified'
+  | 'failed'
+  | 'unauthorized';
+
 interface StoredAuthState {
   version: number;
   user: AuthUser | null;
@@ -55,6 +63,8 @@ interface AuthState {
   user: AuthUser | null;
   authStatus: AuthStatus;
   errorMessage: string;
+  sessionCheckErrorMessage: string;
+  sessionCheckStatus: SessionCheckStatus;
   lastAuthError: AuthErrorDiagnostics | null;
   hasHydratedSecureTokens: boolean;
   hasVerifiedCurrentUser: boolean;
@@ -96,6 +106,7 @@ let legacyTokensToMigrate: AuthTokens = {
   refreshToken: null,
   expiresAt: null,
 };
+let currentUserVerificationPromise: Promise<boolean> | null = null;
 let sessionRefreshPromise: Promise<string | null> | null = null;
 
 function readLegacyAuthTokensFromLocalStorage(): AuthTokens {
@@ -157,6 +168,10 @@ async function prepareSyncForSessionUser(userId: string) {
 
 function resetSyncAfterSessionEnd() {
   resetSyncRuntimeState();
+}
+
+function resetSubscriptionAfterSessionEnd() {
+  useSubscriptionStore().$reset();
 }
 
 async function syncRevenueCatForSessionUser(userId: string) {
@@ -400,6 +415,8 @@ export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     ...getStoredState(),
     errorMessage: '',
+    sessionCheckErrorMessage: '',
+    sessionCheckStatus: 'idle',
     lastAuthError: null,
     hasHydratedSecureTokens: false,
     hasVerifiedCurrentUser: false,
@@ -445,6 +462,8 @@ export const useAuthStore = defineStore('auth', {
       } catch {
         this.user = null;
         this.authStatus = 'idle';
+        this.sessionCheckStatus = 'unauthorized';
+        this.sessionCheckErrorMessage = '';
         this.hasVerifiedCurrentUser = false;
         this.persist();
         return;
@@ -458,6 +477,8 @@ export const useAuthStore = defineStore('auth', {
         } catch {
           this.user = null;
           this.authStatus = 'idle';
+          this.sessionCheckStatus = 'unauthorized';
+          this.sessionCheckErrorMessage = '';
           this.hasVerifiedCurrentUser = false;
           this.persist();
           return;
@@ -474,6 +495,8 @@ export const useAuthStore = defineStore('auth', {
       if (!tokens.accessToken) {
         this.user = null;
         this.authStatus = 'idle';
+        this.sessionCheckStatus = 'unauthorized';
+        this.sessionCheckErrorMessage = '';
         this.hasVerifiedCurrentUser = false;
         this.persist();
         return;
@@ -494,6 +517,8 @@ export const useAuthStore = defineStore('auth', {
 
       this.user = nextUser;
       this.authStatus = 'authenticated';
+      this.sessionCheckStatus = 'verified';
+      this.sessionCheckErrorMessage = '';
       this.hasHydratedSecureTokens = true;
       this.hasVerifiedCurrentUser = true;
       this.errorMessage = '';
@@ -504,8 +529,11 @@ export const useAuthStore = defineStore('auth', {
       await clearRevenueCatSessionSafely();
       await clearStoredAuthTokensSafely();
       await resetSyncAfterSessionEnd();
+      resetSubscriptionAfterSessionEnd();
       this.user = null;
       this.authStatus = 'idle';
+      this.sessionCheckStatus = 'unauthorized';
+      this.sessionCheckErrorMessage = '';
       this.hasHydratedSecureTokens = true;
       this.hasVerifiedCurrentUser = true;
       this.errorMessage = '';
@@ -516,44 +544,73 @@ export const useAuthStore = defineStore('auth', {
       await this.hydrateSecureTokens();
 
       if (this.authStatus !== 'authenticated') {
+        if (this.sessionCheckStatus === 'checking') {
+          this.sessionCheckStatus = 'idle';
+        }
         return false;
       }
 
       if (this.hasVerifiedCurrentUser) {
+        this.sessionCheckStatus = 'verified';
+        this.sessionCheckErrorMessage = '';
         return true;
       }
 
-      try {
-        const currentUser = await getCurrentUserRequest();
-
-        if (!currentUser) {
-          await this.clearSessionAfterUnauthorized();
-          return false;
-        }
-
-        const nextUser = mapAuthUser(currentUser, this.user?.email);
-        await prepareSyncForSessionUser(nextUser.id);
-        await syncRevenueCatForSessionUser(nextUser.id);
-
-        this.user = nextUser;
-        this.authStatus = 'authenticated';
-        this.hasVerifiedCurrentUser = true;
-        this.errorMessage = '';
-        this.persist();
-        return true;
-      } catch (error) {
-        if (error instanceof ApiClientError && error.status === 401) {
-          await this.clearSessionAfterUnauthorized();
-          return false;
-        }
-
-        this.errorMessage =
-          error instanceof Error
-            ? error.message
-            : translate('api.backendContactFailed');
-
-        return this.isAuthenticated;
+      if (currentUserVerificationPromise) {
+        return currentUserVerificationPromise;
       }
+
+      this.sessionCheckStatus = 'checking';
+      this.sessionCheckErrorMessage = '';
+      const expectedUserId = this.user?.id;
+
+      currentUserVerificationPromise = (async () => {
+        try {
+          const currentUser = await getCurrentUserRequest();
+
+          if (!currentUser) {
+            await this.clearSessionAfterUnauthorized();
+            return false;
+          }
+
+          if (
+            this.authStatus !== 'authenticated' ||
+            (expectedUserId && this.user?.id !== expectedUserId)
+          ) {
+            return false;
+          }
+
+          const nextUser = mapAuthUser(currentUser, this.user?.email);
+          await prepareSyncForSessionUser(nextUser.id);
+          await syncRevenueCatForSessionUser(nextUser.id);
+
+          this.user = nextUser;
+          this.authStatus = 'authenticated';
+          this.sessionCheckStatus = 'verified';
+          this.sessionCheckErrorMessage = '';
+          this.hasVerifiedCurrentUser = true;
+          this.errorMessage = '';
+          this.persist();
+          return true;
+        } catch (error) {
+          if (error instanceof ApiClientError && error.status === 401) {
+            await this.clearSessionAfterUnauthorized();
+            return false;
+          }
+
+          this.sessionCheckStatus = 'failed';
+          this.sessionCheckErrorMessage = translate(
+            'auth.sessionCheckUnavailable'
+          );
+          this.errorMessage = this.sessionCheckErrorMessage;
+
+          return this.isAuthenticated;
+        } finally {
+          currentUserVerificationPromise = null;
+        }
+      })();
+
+      return currentUserVerificationPromise;
     },
     async refreshAuthenticatedSession() {
       if (sessionRefreshPromise) {
@@ -589,6 +646,8 @@ export const useAuthStore = defineStore('auth', {
     },
     async signIn(payload: SignInPayload) {
       this.authStatus = 'loading';
+      this.sessionCheckStatus = 'idle';
+      this.sessionCheckErrorMessage = '';
       this.errorMessage = '';
       this.lastAuthError = null;
 
@@ -614,6 +673,8 @@ export const useAuthStore = defineStore('auth', {
     },
     async signInWithGoogle() {
       this.authStatus = 'loading';
+      this.sessionCheckStatus = 'idle';
+      this.sessionCheckErrorMessage = '';
       this.errorMessage = '';
       this.lastAuthError = null;
       let googleTokenDiagnostics: GoogleIdTokenDiagnostics | undefined;
@@ -651,6 +712,8 @@ export const useAuthStore = defineStore('auth', {
     },
     async signUp(payload: SignUpPayload) {
       this.authStatus = 'loading';
+      this.sessionCheckStatus = 'idle';
+      this.sessionCheckErrorMessage = '';
       this.errorMessage = '';
       this.lastAuthError = null;
 
