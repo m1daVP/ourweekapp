@@ -69,7 +69,7 @@ export const openApiSnapshot: OpenApiFixture = {
     ),
     '/v1/auth/password-reset/confirm': pathItem(
       'POST',
-      operation([204, 401, 409, 422, 429, 500, 503], {
+      operation([204, 401, 409, 422, 429, 500], {
         requiredRequestFields: ['token', 'password'],
       })
     ),
