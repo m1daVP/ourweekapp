@@ -97,16 +97,16 @@ const envInput = z
       });
     }
 
-    // if (
-    //   value.AI_PROVIDER === 'mock' &&
-    //   (value.NODE_ENV === 'production' || value.APP_ENV === 'production')
-    // ) {
-    //   context.addIssue({
-    //     code: 'custom',
-    //     path: ['AI_PROVIDER'],
-    //     message: 'AI_PROVIDER=mock is not allowed in production',
-    //   });
-    // }
+    if (
+      value.AI_PROVIDER === 'mock' &&
+      (value.NODE_ENV === 'production' || value.APP_ENV === 'production')
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['AI_PROVIDER'],
+        message: 'AI_PROVIDER=mock is not allowed in production',
+      });
+    }
 
     if (
       (value.NODE_ENV === 'production' || value.APP_ENV === 'production') &&
