@@ -58,6 +58,11 @@ async function handleSubmit() {
       <p v-if="statusMessage" class="meeting-status" role="status">
         {{ statusMessage }}
       </p>
+      <p v-if="statusMessage" class="auth-switch">
+        <RouterLink :to="{ name: 'reset-password' }">
+          {{ t('auth.enterResetCode') }}
+        </RouterLink>
+      </p>
       <button class="meeting-primary" type="submit" :disabled="isSubmitting">
         {{ isSubmitting ? t('auth.sendingReset') : t('auth.continue') }}
       </button>

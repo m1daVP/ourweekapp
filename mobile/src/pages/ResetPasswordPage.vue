@@ -89,6 +89,15 @@ async function handleSubmit() {
 
     <form class="auth-form" @submit.prevent="handleSubmit">
       <label>
+        <span>{{ t('auth.resetCodeLabel') }}</span>
+        <input
+          v-model.trim="token"
+          autocomplete="one-time-code"
+          type="text"
+          :placeholder="t('auth.resetCodeLabel')"
+        />
+      </label>
+      <label>
         <span>{{ t('common.password') }}</span>
         <input
           v-model="password"

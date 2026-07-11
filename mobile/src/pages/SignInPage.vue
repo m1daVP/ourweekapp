@@ -113,6 +113,12 @@ async function handleGoogleSignIn() {
         />
       </label>
 
+      <p class="auth-switch">
+        <RouterLink :to="{ name: 'forgot-password' }">
+          {{ t('auth.forgotPassword') }}
+        </RouterLink>
+      </p>
+
       <p v-if="formError" class="meeting-error" role="alert">
         {{ formError }}
       </p>
