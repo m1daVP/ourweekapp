@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import type { FastifyError, FastifyInstance } from 'fastify';
 
 import { ApiError, isApiError } from './api-error.js';
@@ -72,6 +73,14 @@ export function registerErrorHandler(app: FastifyInstance) {
         details: {},
       });
     }
+
+    // Only unexpected errors reach here; expected ApiErrors, validation
+    // 422s, and rate-limit 429s are handled above and never reported.
+    // No bodies, headers, or user data are attached.
+    Sentry.captureException(error, {
+      tags: { requestId: request.id },
+      extra: { method: request.method, url: request.url },
+    });
 
     request.log.error(
       { err: error, code: internalServerError.code, requestId: request.id },
