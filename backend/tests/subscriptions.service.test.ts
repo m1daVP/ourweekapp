@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  SubscriptionService,
-} from '../src/modules/billing/billing.service.js';
+import { SubscriptionService } from '../src/modules/billing/billing.service.js';
 import { validateSubscriptionRequestSchema } from '../src/modules/billing/billing.schema.js';
 import {
   assertPremiumEntitlement,
@@ -111,10 +109,12 @@ class FakeRevenueCatClient {
   constructor(public configured: boolean) {}
 }
 
-function serviceWith(input: {
-  repository?: FakeSubscriptionRepository;
-  client?: FakeRevenueCatClient;
-} = {}) {
+function serviceWith(
+  input: {
+    repository?: FakeSubscriptionRepository;
+    client?: FakeRevenueCatClient;
+  } = {},
+) {
   const repository = input.repository ?? new FakeSubscriptionRepository(null);
   const client = input.client ?? new FakeRevenueCatClient(false);
 
@@ -305,6 +305,72 @@ describe('SubscriptionService', () => {
   });
 });
 
+describe('syncEntitlementForWorkspace', () => {
+  const webhookNow = '2026-08-10T10:00:00.000Z';
+  const webhookFuture = '2026-09-10T10:00:00.000Z';
+
+  it('does nothing when RevenueCat is unconfigured', async () => {
+    vi.setSystemTime(new Date(webhookNow));
+    const { service, repository, client } = serviceWith();
+
+    await expect(
+      service.syncEntitlementForWorkspace('workspace-webhook'),
+    ).resolves.toBeNull();
+    expect(client.getSubscriber).not.toHaveBeenCalled();
+    expect(repository.upserts).toEqual([]);
+  });
+
+  it('stores an active premium entitlement for the supplied workspace', async () => {
+    vi.setSystemTime(new Date(webhookNow));
+    const client = new FakeRevenueCatClient(true);
+    client.getSubscriber.mockResolvedValue({
+      request_date: webhookNow,
+      subscriber: {
+        original_app_user_id: 'workspace-webhook',
+        entitlements: {
+          premium: { expires_date: webhookFuture, store: 'play_store' },
+        },
+      },
+    });
+    const { service, repository } = serviceWith({ client });
+
+    const status =
+      await service.syncEntitlementForWorkspace('workspace-webhook');
+
+    expect(status).toMatchObject({
+      planType: 'premium',
+      provider: 'google_play',
+    });
+    expect(repository.upserts[0]).toMatchObject({
+      workspaceId: 'workspace-webhook',
+      planType: 'premium',
+      status: 'active',
+    });
+  });
+
+  it('stores free status when no entitlement exists', async () => {
+    vi.setSystemTime(new Date(webhookNow));
+    const client = new FakeRevenueCatClient(true);
+    client.getSubscriber.mockResolvedValue({
+      request_date: webhookNow,
+      subscriber: {
+        original_app_user_id: 'workspace-webhook',
+        entitlements: {},
+      },
+    });
+    const { service, repository } = serviceWith({ client });
+
+    const status =
+      await service.syncEntitlementForWorkspace('workspace-webhook');
+
+    expect(status).toMatchObject({ planType: 'free', provider: null });
+    expect(repository.upserts[0]).toMatchObject({
+      workspaceId: 'workspace-webhook',
+      planType: 'free',
+      status: 'not_found',
+    });
+  });
+});
 describe('subscription request schemas', () => {
   it('rejects revenuecat as a client-submitted purchase provider', () => {
     expect(
@@ -349,7 +415,9 @@ describe('requirePremium middleware helper', () => {
 
     await expect(
       middleware(
-        { auth: { ...auth, role: 'viewer' } } as Parameters<typeof middleware>[0],
+        { auth: { ...auth, role: 'viewer' } } as Parameters<
+          typeof middleware
+        >[0],
         {} as Parameters<typeof middleware>[1],
         vi.fn(),
       ),
@@ -398,5 +466,3 @@ describe('requirePremium middleware helper', () => {
     });
   });
 });
-
-

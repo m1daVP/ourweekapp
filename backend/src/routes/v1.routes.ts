@@ -4,6 +4,7 @@ import { accountRoutes } from '../modules/account/account.routes.js';
 import { aiRoutes } from '../modules/ai/ai.routes.js';
 import { authRoutes } from '../modules/auth/auth.routes.js';
 import { billingRoutes } from '../modules/billing/billing.routes.js';
+import { revenueCatWebhookRoutes } from '../modules/billing/revenuecat-webhook.routes.js';
 import { calendarRoutes } from '../modules/calendar/calendar.routes.js';
 import { exportsRoutes } from '../modules/exports/exports.routes.js';
 import { workspaceRoutes } from '../modules/workspace/workspace.routes.js';
@@ -15,6 +16,7 @@ export const v1Routes: FastifyPluginAsyncZod = async (app) => {
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(billingRoutes, { prefix: '/subscriptions' });
   await app.register(billingRoutes, { prefix: '/billing' });
+  await app.register(revenueCatWebhookRoutes, { prefix: '/webhooks' });
   await app.register(calendarRoutes, { prefix: '/calendar' });
   await app.register(aiRoutes, { prefix: '/ai' });
   await app.register(exportsRoutes, { prefix: '/exports' });

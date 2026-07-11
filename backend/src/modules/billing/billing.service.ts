@@ -60,7 +60,10 @@ function isFuture(value: string | null | undefined, now: Date) {
 function isRecentlyChecked(subscription: SubscriptionDto, now: Date) {
   const checkedAt = Date.parse(subscription.lastCheckedAt);
 
-  return Number.isFinite(checkedAt) && now.getTime() - checkedAt <= TRUSTED_ENTITLEMENT_CACHE_MS;
+  return (
+    Number.isFinite(checkedAt) &&
+    now.getTime() - checkedAt <= TRUSTED_ENTITLEMENT_CACHE_MS
+  );
 }
 
 export function hasTrustedPremiumEntitlement(
@@ -170,9 +173,9 @@ function resolveRevenueCatEntitlement(input: {
 }): ProviderEntitlementResult {
   const subscriber = input.customerInfo.subscriber;
   const checkedAt = input.customerInfo.request_date ?? input.now.toISOString();
-  const entitlement = subscriber?.entitlements?.[
-    input.entitlementId
-  ] as RevenueCatEntitlementWithStore | undefined;
+  const entitlement = subscriber?.entitlements?.[input.entitlementId] as
+    | RevenueCatEntitlementWithStore
+    | undefined;
 
   if (!entitlement) {
     return {
@@ -186,19 +189,31 @@ function resolveRevenueCatEntitlement(input: {
     };
   }
 
-  const inGracePeriod = isFuture(entitlement.grace_period_expires_date, input.now);
-  const isActive = entitlement.expires_date === null || isFuture(entitlement.expires_date, input.now);
+  const inGracePeriod = isFuture(
+    entitlement.grace_period_expires_date,
+    input.now,
+  );
+  const isActive =
+    entitlement.expires_date === null ||
+    isFuture(entitlement.expires_date, input.now);
   const planType: PlanType = isActive || inGracePeriod ? 'premium' : 'free';
 
   return {
-    provider: providerFromRevenueCatStore(entitlement.store, input.fallbackProvider),
+    provider: providerFromRevenueCatStore(
+      entitlement.store,
+      input.fallbackProvider,
+    ),
     providerCustomerId: subscriber?.original_app_user_id ?? null,
     providerEntitlementId: input.entitlementId,
     planType,
-    status: inGracePeriod ? 'grace_period' : planType === 'premium' ? 'active' : 'expired',
+    status: inGracePeriod
+      ? 'grace_period'
+      : planType === 'premium'
+        ? 'active'
+        : 'expired',
     expiresAt: inGracePeriod
-      ? entitlement.grace_period_expires_date ?? null
-      : entitlement.expires_date ?? null,
+      ? (entitlement.grace_period_expires_date ?? null)
+      : (entitlement.expires_date ?? null),
     checkedAt,
   };
 }
@@ -216,7 +231,7 @@ export class SubscriptionService {
 
     if (this.revenueCatClient.configured) {
       try {
-        return await this.syncRevenueCatEntitlement(context, {
+        return await this.syncRevenueCatEntitlement(context.workspaceId, {
           fallbackProvider: 'revenuecat',
           now,
         });
@@ -252,7 +267,7 @@ export class SubscriptionService {
       throw mapRevenueCatValidationError(error);
     }
 
-    return this.syncRevenueCatEntitlement(context, {
+    return this.syncRevenueCatEntitlement(context.workspaceId, {
       customerInfo,
       fallbackProvider: body.provider,
       now,
@@ -271,7 +286,7 @@ export class SubscriptionService {
     }
 
     try {
-      return await this.syncRevenueCatEntitlement(context, {
+      return await this.syncRevenueCatEntitlement(context.workspaceId, {
         fallbackProvider: body.provider,
         now,
       });
@@ -311,6 +326,23 @@ export class SubscriptionService {
     };
   }
 
+  async syncEntitlementForWorkspace(
+    workspaceId: string,
+    options: {
+      fallbackProvider?: SubscriptionProviderDto;
+      now?: Date;
+    } = {},
+  ) {
+    if (!this.revenueCatClient.configured) {
+      return null;
+    }
+
+    return this.syncRevenueCatEntitlement(workspaceId, {
+      fallbackProvider: options.fallbackProvider ?? 'revenuecat',
+      now: options.now ?? new Date(),
+    });
+  }
+
   private async cachedOrFreeStatus(workspaceId: string, now: Date) {
     const subscription =
       await this.repository.findCurrentSubscriptionForWorkspace(workspaceId);
@@ -323,7 +355,7 @@ export class SubscriptionService {
   }
 
   private async syncRevenueCatEntitlement(
-    auth: AuthContext,
+    workspaceId: string,
     input: {
       customerInfo?: RevenueCatCustomerInfo;
       fallbackProvider: SubscriptionProviderDto;
@@ -333,7 +365,7 @@ export class SubscriptionService {
     const customerInfo =
       input.customerInfo ??
       (await this.revenueCatClient.getSubscriber(
-        auth.workspaceId,
+        workspaceId,
         input.fallbackProvider,
       ));
     const resolved = resolveRevenueCatEntitlement({
@@ -342,14 +374,13 @@ export class SubscriptionService {
       fallbackProvider: input.fallbackProvider,
       now: input.now,
     });
-    const existing =
-      await this.repository.findProviderSubscriptionForWorkspace(
-        auth.workspaceId,
-        resolved.provider,
-      );
+    const existing = await this.repository.findProviderSubscriptionForWorkspace(
+      workspaceId,
+      resolved.provider,
+    );
     const saved = await this.repository.upsertSubscription({
       id: existing?.id,
-      workspaceId: auth.workspaceId,
+      workspaceId,
       provider: resolved.provider,
       providerCustomerId: resolved.providerCustomerId,
       providerEntitlementId: resolved.providerEntitlementId,
