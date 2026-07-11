@@ -623,9 +623,3 @@ export function createDefaultMeetingsService(supabase: ConstructorParameters<typ
     new SubscriptionsRepository(supabase),
   );
 }
-
-
-
-
-
-
