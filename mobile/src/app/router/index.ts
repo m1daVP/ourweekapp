@@ -26,7 +26,13 @@ import UpgradePage from '@/pages/UpgradePage.vue';
 import WelcomePage from '@/pages/WelcomePage.vue';
 import WorkspaceSettingsPage from '@/pages/WorkspaceSettingsPage.vue';
 
-const unauthenticatedRouteNames = new Set(['welcome', 'sign-in', 'sign-up']);
+const unauthenticatedRouteNames = new Set([
+  'welcome',
+  'sign-in',
+  'sign-up',
+  'forgot-password',
+  'reset-password',
+]);
 
 function isUnauthenticatedRouteName(routeName: unknown) {
   return (
