@@ -165,14 +165,17 @@ export const messages = {
       resetFailed: 'Could not request a password reset right now.',
       sendingReset: 'Sending...',
       chooseNewPasswordTitle: 'Choose a new password',
-      chooseNewPasswordIntro: 'Enter a new password for your OurWeek account.',
+      chooseNewPasswordIntro:
+        'Enter the reset code from your email and choose a new password for your OurWeek account.',
+      resetCodeLabel: 'Reset code',
+      enterResetCode: 'Enter your code',
       updatePassword: 'Update password',
       updatingPassword: 'Updating...',
       resetConfirmed: 'Password updated. Sign in with your new password.',
       resetMissingToken:
-        'This reset link is missing the reset token. Request a new password reset email.',
+        "Enter the reset code from your email. If you don't have one, request a new password reset email.",
       resetConfirmFailed:
-        'Could not update the password. The link may have expired. Request a new reset email and try again.',
+        'Could not update the password. The code may have expired. Request a new reset email and try again.',
       remembered: 'Remembered it?',
       addAccountEmail: 'Add the email for your account.',
       addEmail: 'Add an email address.',
@@ -1545,14 +1548,16 @@ export const messages = {
       sendingReset: 'Надсилання...',
       chooseNewPasswordTitle: 'Оберіть новий пароль',
       chooseNewPasswordIntro:
-        'Введіть новий пароль для вашого акаунта OurWeek.',
+        'Введіть код скидання з листа та оберіть новий пароль для вашого акаунта OurWeek.',
+      resetCodeLabel: 'Код скидання',
+      enterResetCode: 'Ввести код',
       updatePassword: 'Оновити пароль',
       updatingPassword: 'Оновлення...',
       resetConfirmed: 'Пароль оновлено. Увійдіть із новим паролем.',
       resetMissingToken:
-        'У цьому посиланні немає токена скидання. Запросіть новий лист для скидання пароля.',
+        'Введіть код скидання з листа. Якщо у вас його немає, запросіть новий лист для скидання пароля.',
       resetConfirmFailed:
-        'Не вдалося оновити пароль. Посилання могло застаріти. Запросіть новий лист і спробуйте ще раз.',
+        'Не вдалося оновити пароль. Код міг застаріти. Запросіть новий лист і спробуйте ще раз.',
       remembered: 'Згадали?',
       addAccountEmail: 'Додайте електронну пошту вашого акаунта.',
       addEmail: 'Додайте адресу електронної пошти.',
@@ -2964,15 +2969,17 @@ export const messages = {
       sendingReset: 'Enviando...',
       chooseNewPasswordTitle: 'Elige una contraseña nueva',
       chooseNewPasswordIntro:
-        'Ingresa una contraseña nueva para tu cuenta de OurWeek.',
+        'Ingresa el código de restablecimiento de tu correo y elige una contraseña nueva para tu cuenta de OurWeek.',
+      resetCodeLabel: 'Código de restablecimiento',
+      enterResetCode: 'Ingresar tu código',
       updatePassword: 'Actualizar contraseña',
       updatingPassword: 'Actualizando...',
       resetConfirmed:
         'Contraseña actualizada. Inicia sesión con tu nueva contraseña.',
       resetMissingToken:
-        'A este enlace le falta el token de restablecimiento. Solicita un nuevo correo para restablecer la contraseña.',
+        'Ingresa el código de restablecimiento de tu correo. Si no tienes uno, solicita un nuevo correo para restablecer la contraseña.',
       resetConfirmFailed:
-        'No se pudo actualizar la contraseña. Es posible que el enlace haya vencido. Solicita un nuevo correo e inténtalo otra vez.',
+        'No se pudo actualizar la contraseña. Es posible que el código haya vencido. Solicita un nuevo correo e inténtalo otra vez.',
       remembered: '¿La recordaste?',
       addAccountEmail: 'Agrega el correo electrónico de tu cuenta.',
       addEmail: 'Agrega una dirección de correo electrónico.',
