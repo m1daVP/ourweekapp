@@ -37,11 +37,6 @@ const authRateLimitedErrorResponses = {
   429: errorResponseSchema,
 };
 
-const authRateLimitedRecoveryErrorResponses = {
-  ...authRateLimitedErrorResponses,
-  503: errorResponseSchema,
-};
-
 export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post('/register', {
     schema: {
@@ -160,7 +155,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
   }, async (request) => {
-    return requestPasswordReset(app.supabase, request.body);
+    return requestPasswordReset(app.supabase, request.body, request.log);
   });
 
   app.post('/password-reset/confirm', {
@@ -174,7 +169,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       body: passwordResetConfirmRequestSchema,
       response: {
         204: z.null(),
-        ...authRateLimitedRecoveryErrorResponses,
+        ...authRateLimitedErrorResponses,
       },
     },
   }, async (request, reply) => {

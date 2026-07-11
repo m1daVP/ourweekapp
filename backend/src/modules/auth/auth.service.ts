@@ -11,7 +11,10 @@ import {
   type GoogleAuthProvider,
   type VerifiedGoogleIdentity,
 } from './google-auth.client.js';
+import { sendPasswordResetEmail } from '../../shared/mailer/mailer.js';
 import {
+  generatePasswordResetCode,
+  hashPasswordResetCode,
   hashRefreshToken,
   issueAccessToken,
   issueRefreshTokenSession,
@@ -851,22 +854,154 @@ export async function getCurrentUser(
   return mapAuthUser(user, member, auth.planType, auth.role);
 }
 
+const passwordResetTtlMinutes = 30;
+
+const invalidResetCodeError = new ApiError(
+  422,
+  'invalid_reset_code',
+  'The reset code is invalid or has expired.',
+);
+
+type PasswordResetTokenRow = {
+  id: string;
+  user_id: string;
+  code_hash: string;
+  expires_at: string;
+  consumed_at: string | null;
+};
+
 export async function requestPasswordReset(
-  _supabase: SupabaseClient,
-  _body: PasswordResetRequestDto,
+  supabase: SupabaseClient,
+  body: PasswordResetRequestDto,
+  logger?: Pick<FastifyBaseLogger, 'warn' | 'error'>,
 ) {
-  // Hook for future reset-token storage and SMTP delivery. This intentionally
-  // persists no token or secret until that infrastructure exists.
+  const user = await getUserByEmail(supabase, body.email);
+
+  // Always answer with the same generic message so requests cannot be used
+  // to enumerate accounts. Google-only accounts have no password to reset.
+  if (!user || !user.password_hash) {
+    return { message: passwordResetMessage };
+  }
+
+  if (!env.SMTP_CONFIGURED) {
+    logger?.warn(
+      { userId: user.id },
+      'Password reset requested but SMTP is not configured; no email sent',
+    );
+    return { message: passwordResetMessage };
+  }
+
+  const code = generatePasswordResetCode();
+  const expiresAt = new Date(Date.now() + passwordResetTtlMinutes * 60 * 1000);
+
+  const { error: deleteError } = await supabase
+    .from('password_reset_tokens')
+    .delete()
+    .eq('user_id', user.id);
+
+  if (deleteError) {
+    throw new ApiError(
+      500,
+      'password_reset_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  const { error: insertError } = await supabase
+    .from('password_reset_tokens')
+    .insert({
+      user_id: user.id,
+      code_hash: hashPasswordResetCode(code),
+      expires_at: expiresAt.toISOString(),
+    });
+
+  if (insertError) {
+    throw new ApiError(
+      500,
+      'password_reset_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  try {
+    await sendPasswordResetEmail(user.email, code);
+  } catch (error) {
+    logger?.error(
+      { err: error, userId: user.id },
+      'Failed to send password reset email',
+    );
+  }
+
   return { message: passwordResetMessage };
 }
 
 export async function confirmPasswordReset(
-  _supabase: SupabaseClient,
-  _body: PasswordResetConfirmRequestDto,
+  supabase: SupabaseClient,
+  body: PasswordResetConfirmRequestDto,
 ) {
-  throw new ApiError(
-    503,
-    'password_reset_not_configured',
-    'Password reset is not available yet. Please try again later.',
-  );
+  const codeHash = hashPasswordResetCode(body.token);
+  const nowIso = new Date().toISOString();
+
+  const { data: token, error: tokenError } = await supabase
+    .from('password_reset_tokens')
+    .select('id,user_id,code_hash,expires_at,consumed_at')
+    .eq('code_hash', codeHash)
+    .is('consumed_at', null)
+    .gt('expires_at', nowIso)
+    .returns<PasswordResetTokenRow[]>()
+    .maybeSingle();
+
+  if (tokenError) {
+    throw new ApiError(
+      500,
+      'password_reset_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  if (!token) {
+    throw invalidResetCodeError;
+  }
+
+  const passwordHash = await hashPassword(body.password);
+
+  const { error: passwordError } = await supabase
+    .from('users')
+    .update({ password_hash: passwordHash })
+    .eq('id', token.user_id);
+
+  if (passwordError) {
+    throw new ApiError(
+      500,
+      'password_reset_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  const { error: revokeError } = await supabase
+    .from('sessions')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('user_id', token.user_id)
+    .is('revoked_at', null);
+
+  if (revokeError) {
+    throw new ApiError(
+      500,
+      'session_revoke_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  const { error: consumeError } = await supabase
+    .from('password_reset_tokens')
+    .update({ consumed_at: new Date().toISOString() })
+    .eq('id', token.id);
+
+  if (consumeError) {
+    throw new ApiError(
+      500,
+      'password_reset_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
 }

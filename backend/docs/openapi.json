@@ -1953,37 +1953,6 @@
                 }
               }
             }
-          },
-          "503": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
           }
         }
       }

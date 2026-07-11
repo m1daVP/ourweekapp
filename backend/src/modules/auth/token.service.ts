@@ -9,6 +9,11 @@ const accessTokenSecret = new TextEncoder().encode(env.ACCESS_TOKEN_SECRET);
 const accessTokenAlgorithm = 'HS256';
 const refreshTokenByteLength = 64;
 const refreshTokenHashPrefix = 'hmac-sha256:';
+// Unambiguous uppercase alphabet (A-Z, 2-9 minus I, L, O, U) so users can
+// retype the emailed code without confusing similar-looking characters.
+const passwordResetCodeAlphabet = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
+const passwordResetCodeLength = 8;
+const passwordResetCodeHashPrefix = 'hmac-sha256:';
 
 export type AccessTokenClaims = {
   sub: string;
@@ -96,6 +101,26 @@ export function hashRefreshToken(refreshToken: string) {
     .digest('base64url');
 
   return `${refreshTokenHashPrefix}${digest}`;
+}
+
+export function generatePasswordResetCode() {
+  const bytes = randomBytes(passwordResetCodeLength);
+  let code = '';
+
+  for (const byte of bytes) {
+    code += passwordResetCodeAlphabet[byte % passwordResetCodeAlphabet.length];
+  }
+
+  return code;
+}
+
+export function hashPasswordResetCode(code: string) {
+  const normalizedCode = code.trim().toUpperCase();
+  const digest = createHmac('sha256', env.PASSWORD_RESET_TOKEN_SECRET)
+    .update(normalizedCode, 'utf8')
+    .digest('base64url');
+
+  return `${passwordResetCodeHashPrefix}${digest}`;
 }
 
 export function verifyRefreshTokenHash(
