@@ -87,6 +87,7 @@ describe('googleSignInService', () => {
     });
     expect(mocks.login).toHaveBeenCalledWith({
       provider: 'google',
+      options: {},
     });
   });
 
