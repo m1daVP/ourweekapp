@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   SubscriptionService,
@@ -20,6 +20,15 @@ const now = '2026-06-06T10:00:00.000Z';
 const future = '2026-07-06T10:00:00.000Z';
 const past = '2026-05-06T10:00:00.000Z';
 const staleCheckedAt = '2026-06-04T09:59:59.000Z';
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(now));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const auth: AuthContext = {
   userId: 'user-1',
@@ -223,17 +232,10 @@ describe('SubscriptionService', () => {
       repository: new FakeSubscriptionRepository(cached),
     });
 
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(now));
+    const status = await service.getStatus(auth);
 
-    try {
-      const status = await service.getStatus(auth);
-
-      expect(status.planType).toBe('premium');
-      expect(status.enabledFeatures).toContain('unlimitedHistory');
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(status.planType).toBe('premium');
+    expect(status.enabledFeatures).toContain('unlimitedHistory');
   });
 
   it('returns free status instead of stale cached premium after the trust window', async () => {
@@ -248,17 +250,10 @@ describe('SubscriptionService', () => {
       repository: new FakeSubscriptionRepository(cached),
     });
 
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(now));
+    const status = await service.getStatus(auth);
 
-    try {
-      const status = await service.getStatus(auth);
-
-      expect(status.planType).toBe('free');
-      expect(status.enabledFeatures).not.toContain('unlimitedHistory');
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(status.planType).toBe('free');
+    expect(status.enabledFeatures).not.toContain('unlimitedHistory');
   });
 
   it('requires owner role for validation, restore, and manage actions', async () => {

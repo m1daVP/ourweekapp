@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { meetingSchema } from '../src/modules/meetings/meetings.schema.js';
 import { MeetingsService } from '../src/modules/meetings/meetings.service.js';
@@ -8,6 +8,15 @@ import type { MeetingDto } from '../src/modules/meetings/meetings.schema.js';
 
 const now = '2026-06-06T10:00:00.000Z';
 const future = '2026-07-06T10:00:00.000Z';
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(now));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 const meetingId = '11111111-1111-4111-8111-111111111111';
 const activeMeetingId = '22222222-2222-4222-8222-222222222222';
 const completedMeetingIds = [

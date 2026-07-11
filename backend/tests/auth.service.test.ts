@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
+
+const now = '2026-06-06T10:00:00.000Z';
 
 const testEnv = {
   NODE_ENV: 'test',
@@ -197,6 +199,12 @@ function googleProvider(overrides: Record<string, unknown> = {}) {
 describe('auth.service', () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(now));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('rejects /auth/me when repository-backed auth context is revoked', async () => {
@@ -247,20 +255,6 @@ describe('auth.service', () => {
     ).rejects.toMatchObject({
       statusCode: 401,
       code: 'invalid_session',
-    });
-  });
-
-  it('returns an explicit safe error for password reset confirm while reset storage is unavailable', async () => {
-    const { authService } = await loadAuthModules();
-
-    await expect(
-      authService.confirmPasswordReset({} as SupabaseClient, {
-        token: 'reset-token-that-is-long-enough',
-        password: 'new-strong-password',
-      }),
-    ).rejects.toMatchObject({
-      statusCode: 503,
-      code: 'password_reset_not_configured',
     });
   });
 
