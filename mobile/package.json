@@ -19,7 +19,7 @@
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run lint",
     "cap:sync": "npm run build && cap sync android",
-    "cap:sync:prod": "npm run build:production && cap sync android",
+    "cap:sync:prod": "npm run build:prod && node scripts/strip-sourcemaps.mjs && cap sync android",
     "cap:open": "cap open android"
   },
   "dependencies": {

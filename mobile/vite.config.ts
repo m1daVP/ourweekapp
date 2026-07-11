@@ -26,6 +26,9 @@ export default defineConfig(({ command, mode }) => {
             org: 'ourweek',
             project: 'ourweek',
             telemetry: false,
+            sourcemaps: {
+              filesToDeleteAfterUpload: ['./dist/**/*.js.map'],
+            },
           }),
         ]
       : []),
@@ -33,7 +36,9 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     build: {
-      sourcemap: true, // Source map generation must be turned on
+      // Release builds use 'hidden' maps: generated for Sentry upload
+      // (then deleted before packaging) but never referenced from the JS.
+      sourcemap: isReleaseBuild ? 'hidden' : true,
     },
     define: {
       __APP_VERSION__: JSON.stringify(
