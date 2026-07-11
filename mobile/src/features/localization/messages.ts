@@ -400,6 +400,13 @@ export const messages = {
       connect: 'Connect Google Calendar',
       disconnect: 'Disconnect',
       noTokens: 'No Google tokens are stored in this mobile app.',
+      callback: {
+        connected: 'Google Calendar is connected.',
+        failed:
+          'Google Calendar connection was not completed. Please try again.',
+        missingRefreshToken:
+          'Google did not return offline access. Remove OurWeek from your Google Account permissions and connect again.',
+      },
       optionsTitle: 'Sync options',
       optionsText: 'Choose what OurWeek should sync with Google Calendar.',
       options: {
@@ -1784,6 +1791,12 @@ export const messages = {
       connect: 'Підключити Google Calendar',
       disconnect: 'Відключити',
       noTokens: 'У цьому мобільному додатку токени Google не зберігаються.',
+      callback: {
+        connected: 'Google Calendar підключено.',
+        failed: 'Підключення Google Calendar не завершено. Спробуйте ще раз.',
+        missingRefreshToken:
+          'Google не надав офлайн-доступ. Видаліть OurWeek із дозволів облікового запису Google і підключіться знову.',
+      },
       unavailable:
         'Не вдалося зв’язатися із синхронізацією Google Calendar. Дані OurWeek залишаються збереженими без доступу до календаря.',
       optionsTitle: 'Параметри синхронізації',
@@ -3206,6 +3219,13 @@ export const messages = {
       connect: 'Conectar Google Calendar',
       disconnect: 'Desconectar',
       noTokens: 'No se guardan tokens de Google en esta app móvil.',
+      callback: {
+        connected: 'Google Calendar está conectado.',
+        failed:
+          'La conexión con Google Calendar no se completó. Inténtalo de nuevo.',
+        missingRefreshToken:
+          'Google no devolvió acceso sin conexión. Quita OurWeek de los permisos de tu cuenta de Google y vuelve a conectarlo.',
+      },
       unavailable:
         'No se pudo contactar la sincronización con Google Calendar. Tus datos de OurWeek permanecen guardados sin acceso al calendario.',
       optionsTitle: 'Opciones de sincronización',

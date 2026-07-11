@@ -1,14 +1,47 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 import { useCalendarSyncStore } from '@/app/stores/calendarSync';
+import { parseCalendarCallbackQuery } from '@/features/calendar/services/calendarCallback';
 import type { CalendarSyncSettings } from '@/features/calendar/types';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
+import { useToast } from '@/shared/composables/useToast';
 
 type CalendarSyncOptionKey = keyof Omit<CalendarSyncSettings, 'updatedAt'>;
 
 const calendarSyncStore = useCalendarSyncStore();
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
+const { showToast } = useToast();
+
+watch(
+  () => route.query,
+  (query) => {
+    const result = parseCalendarCallbackQuery(query);
+
+    if (!result) {
+      return;
+    }
+
+    if (result.status === 'connected') {
+      void showToast(t('calendar.callback.connected'));
+    } else {
+      void showToast(t(result.messageKey), {
+        tone: 'error',
+        durationMs: 3600,
+      });
+    }
+
+    void calendarSyncStore.initializeCalendarConnection();
+    const rest = { ...query };
+    delete rest.calendar;
+    delete rest.reason;
+    void router.replace({ query: rest });
+  },
+  { immediate: true }
+);
 
 void calendarSyncStore.initializeCalendarConnection();
 

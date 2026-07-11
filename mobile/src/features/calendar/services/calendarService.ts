@@ -16,8 +16,15 @@ import {
 } from '@/shared/api/calendarApi';
 import { openExternalAuthUrl } from '@/shared/services/externalAuthService';
 import { nowIso } from '@/shared/utils/dates';
+import { Capacitor } from '@capacitor/core';
 
-function getCalendarRedirectUrl() {
+export const NATIVE_CALENDAR_REDIRECT_URL = 'weeklyus://calendar-callback';
+
+export function getCalendarRedirectUrl() {
+  if (Capacitor.isNativePlatform()) {
+    return NATIVE_CALENDAR_REDIRECT_URL;
+  }
+
   if (typeof window === 'undefined') {
     return '';
   }

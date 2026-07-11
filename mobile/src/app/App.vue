@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useAndroidBackButton } from '@/app/composables/useAndroidBackButton';
+import { useDeepLinks } from '@/app/composables/useDeepLinks';
 import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import AppShell from '@/shared/components/AppShell.vue';
@@ -69,6 +70,7 @@ watch(
 initializeReminderSync();
 useCoreDataSync();
 useAndroidBackButton();
+useDeepLinks();
 </script>
 
 <template>
