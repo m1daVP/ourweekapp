@@ -68,6 +68,27 @@ export const endpointContracts: EndpointContract[] = [
   },
   {
     method: 'POST',
+    path: '/v1/auth/password-reset/request',
+    requiresAuth: false,
+    successStatuses: [200],
+    errorStatuses: [401, 409, 422, 429, 500],
+    requiredRequestFields: ['email'],
+    requestExample: { email: 'rita@example.com' },
+  },
+  {
+    method: 'POST',
+    path: '/v1/auth/password-reset/confirm',
+    requiresAuth: false,
+    successStatuses: [204],
+    errorStatuses: [401, 409, 422, 429, 500],
+    requiredRequestFields: ['token', 'password'],
+    requestExample: {
+      token: 'ABCD2345',
+      password: 'correct horse battery staple',
+    },
+  },
+  {
+    method: 'POST',
     path: '/v1/auth/refresh',
     requiresAuth: false,
     successStatuses: [200],
