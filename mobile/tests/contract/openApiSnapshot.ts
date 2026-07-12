@@ -87,7 +87,7 @@ export const openApiSnapshot: OpenApiFixture = {
     ),
     '/v1/auth/register': pathItem(
       'POST',
-      operation([201, 401, 409, 422, 500], {
+      operation([201, 401, 409, 422, 429, 500], {
         requiredRequestFields: ['email', 'password', 'displayName'],
       })
     ),

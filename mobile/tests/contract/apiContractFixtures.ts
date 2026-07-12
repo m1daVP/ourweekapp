@@ -37,7 +37,7 @@ export const endpointContracts: EndpointContract[] = [
     path: '/v1/auth/register',
     requiresAuth: false,
     successStatuses: [201],
-    errorStatuses: [401, 409, 422, 500],
+    errorStatuses: [401, 409, 422, 429, 500],
     requiredRequestFields: ['email', 'password', 'displayName'],
     requestExample: {
       email: 'rita@example.com',
