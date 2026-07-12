@@ -466,7 +466,9 @@ describe('auth sync safety hooks', () => {
     const authStore = useAuthStore();
 
     await authStore.applySession(session);
-    mocks.refreshSession.mockRejectedValue(new Error('expired'));
+    mocks.refreshSession.mockRejectedValue(
+      new ApiClientError('expired', { status: 401 })
+    );
 
     const accessToken = await authStore.refreshAuthenticatedSession();
 

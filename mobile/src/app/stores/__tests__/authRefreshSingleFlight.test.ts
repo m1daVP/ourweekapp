@@ -94,6 +94,7 @@ vi.mock('@/shared/config/env', () => ({
 }));
 
 import { useAuthStore } from '@/app/stores/auth';
+import { ApiClientError } from '@/shared/api/httpClient';
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -220,7 +221,7 @@ describe('auth refresh single-flight guard', () => {
     const first = authStore.refreshAuthenticatedSession();
     const second = authStore.refreshAuthenticatedSession();
 
-    deferred.reject(new Error('expired'));
+    deferred.reject(new ApiClientError('expired', { status: 401 }));
 
     const [firstToken, secondToken] = await Promise.all([first, second]);
 
@@ -236,10 +237,14 @@ describe('auth refresh single-flight guard', () => {
     await authStore.applySession(session);
     mocks.refreshSession.mockClear();
 
-    mocks.refreshSession.mockRejectedValueOnce(new Error('expired'));
+    mocks.refreshSession.mockRejectedValueOnce(
+      new ApiClientError('expired', { status: 401 })
+    );
     await authStore.refreshAuthenticatedSession();
 
-    mocks.refreshSession.mockRejectedValueOnce(new Error('expired again'));
+    mocks.refreshSession.mockRejectedValueOnce(
+      new ApiClientError('expired again', { status: 401 })
+    );
     await authStore.refreshAuthenticatedSession();
 
     expect(mocks.refreshSession).toHaveBeenCalledTimes(2);
