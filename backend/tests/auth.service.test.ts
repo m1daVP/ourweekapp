@@ -15,6 +15,8 @@ const testEnv = {
   TOKEN_ENCRYPTION_KEY: 'token-encryption-key-at-least-32-byte',
   ACCESS_TOKEN_TTL_SECONDS: '900',
   REFRESH_TOKEN_TTL_DAYS: '30',
+  ARGON2_MEMORY_COST: '19456',
+  ARGON2_TIME_COST: '2',
 };
 
 async function loadAuthModules() {
