@@ -235,6 +235,11 @@
                           "minLength": 1,
                           "maxLength": 128
                         },
+                        "workspaceId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
                         "email": {
                           "type": "string",
                           "format": "email",
@@ -269,6 +274,7 @@
                       },
                       "required": [
                         "id",
+                        "workspaceId",
                         "displayName",
                         "role",
                         "planType",
@@ -477,6 +483,11 @@
                           "minLength": 1,
                           "maxLength": 128
                         },
+                        "workspaceId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
                         "email": {
                           "type": "string",
                           "format": "email",
@@ -511,6 +522,7 @@
                       },
                       "required": [
                         "id",
+                        "workspaceId",
                         "displayName",
                         "role",
                         "planType",
@@ -745,6 +757,11 @@
                           "minLength": 1,
                           "maxLength": 128
                         },
+                        "workspaceId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
                         "email": {
                           "type": "string",
                           "format": "email",
@@ -779,6 +796,7 @@
                       },
                       "required": [
                         "id",
+                        "workspaceId",
                         "displayName",
                         "role",
                         "planType",
@@ -1013,6 +1031,11 @@
                           "minLength": 1,
                           "maxLength": 128
                         },
+                        "workspaceId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
                         "email": {
                           "type": "string",
                           "format": "email",
@@ -1047,6 +1070,7 @@
                       },
                       "required": [
                         "id",
+                        "workspaceId",
                         "displayName",
                         "role",
                         "planType",
@@ -1145,6 +1169,37 @@
             }
           },
           "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -1390,6 +1445,11 @@
                       "minLength": 1,
                       "maxLength": 128
                     },
+                    "workspaceId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
                     "email": {
                       "type": "string",
                       "format": "email",
@@ -1424,6 +1484,7 @@
                   },
                   "required": [
                     "id",
+                    "workspaceId",
                     "displayName",
                     "role",
                     "planType",
@@ -2207,290 +2268,6 @@
         }
       }
     },
-    "/v1/subscriptions/validate": {
-      "post": {
-        "tags": [
-          "subscriptions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "provider": {
-                    "type": "string",
-                    "enum": [
-                      "google_play",
-                      "app_store"
-                    ]
-                  },
-                  "purchaseToken": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 4096
-                  },
-                  "productId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 256
-                  }
-                },
-                "required": [
-                  "provider",
-                  "purchaseToken",
-                  "productId"
-                ]
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "planType": {
-                      "type": "string",
-                      "enum": [
-                        "free",
-                        "premium"
-                      ]
-                    },
-                    "provider": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "google_play",
-                            "app_store",
-                            "revenuecat"
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "enabledFeatures": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "basicMeetings",
-                          "defaultTemplate",
-                          "tasksAndAgreements",
-                          "manualResponsibility",
-                          "limitedHistory",
-                          "localReminders",
-                          "unlimitedHistory",
-                          "aiSummary",
-                          "agreementReminders",
-                          "additionalTemplates",
-                          "privateNotes",
-                          "googleCalendarSync",
-                          "export",
-                          "advancedStatistics"
-                        ]
-                      }
-                    },
-                    "expiresAt": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "format": "date-time",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "checkedAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-                    }
-                  },
-                  "required": [
-                    "planType",
-                    "provider",
-                    "enabledFeatures",
-                    "expiresAt",
-                    "checkedAt"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/subscriptions/restore": {
       "post": {
         "tags": [
@@ -2957,290 +2734,6 @@
         "tags": [
           "billing"
         ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "planType": {
-                      "type": "string",
-                      "enum": [
-                        "free",
-                        "premium"
-                      ]
-                    },
-                    "provider": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "google_play",
-                            "app_store",
-                            "revenuecat"
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "enabledFeatures": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "basicMeetings",
-                          "defaultTemplate",
-                          "tasksAndAgreements",
-                          "manualResponsibility",
-                          "limitedHistory",
-                          "localReminders",
-                          "unlimitedHistory",
-                          "aiSummary",
-                          "agreementReminders",
-                          "additionalTemplates",
-                          "privateNotes",
-                          "googleCalendarSync",
-                          "export",
-                          "advancedStatistics"
-                        ]
-                      }
-                    },
-                    "expiresAt": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "format": "date-time",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "checkedAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-                    }
-                  },
-                  "required": [
-                    "planType",
-                    "provider",
-                    "enabledFeatures",
-                    "expiresAt",
-                    "checkedAt"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "details": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "code",
-                    "details"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/validate": {
-      "post": {
-        "tags": [
-          "billing"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "provider": {
-                    "type": "string",
-                    "enum": [
-                      "google_play",
-                      "app_store"
-                    ]
-                  },
-                  "purchaseToken": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 4096
-                  },
-                  "productId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 256
-                  }
-                },
-                "required": [
-                  "provider",
-                  "purchaseToken",
-                  "productId"
-                ]
-              }
-            }
-          }
-        },
         "security": [
           {
             "bearerAuth": []

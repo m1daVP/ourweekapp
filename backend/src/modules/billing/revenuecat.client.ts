@@ -18,13 +18,6 @@ export type RevenueCatCustomerInfo = {
   subscriber?: RevenueCatSubscriber;
 };
 
-export type PostReceiptInput = {
-  appUserId: string;
-  fetchToken: string;
-  productId: string;
-  provider: SubscriptionProviderDto;
-};
-
 export class RevenueCatClientError extends Error {
   constructor(
     message: string,
@@ -83,18 +76,6 @@ export class RevenueCatClient {
   ): Promise<RevenueCatCustomerInfo> {
     return this.request(`subscribers/${encodeURIComponent(appUserId)}`, {
       platform: provider ? platformForProvider(provider) : undefined,
-    });
-  }
-
-  async postReceipt(input: PostReceiptInput): Promise<RevenueCatCustomerInfo> {
-    return this.request('receipts', {
-      method: 'POST',
-      platform: platformForProvider(input.provider),
-      body: {
-        app_user_id: input.appUserId,
-        fetch_token: input.fetchToken,
-        product_id: input.productId,
-      },
     });
   }
 

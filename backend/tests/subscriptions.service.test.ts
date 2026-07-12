@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SubscriptionService } from '../src/modules/billing/billing.service.js';
-import { validateSubscriptionRequestSchema } from '../src/modules/billing/billing.schema.js';
 import {
   assertPremiumEntitlement,
   requirePremiumAdultMember,
@@ -104,7 +103,6 @@ class FakeSubscriptionRepository {
 
 class FakeRevenueCatClient {
   public getSubscriber = vi.fn();
-  public postReceipt = vi.fn();
 
   constructor(public configured: boolean) {}
 }
@@ -256,21 +254,11 @@ describe('SubscriptionService', () => {
     expect(status.enabledFeatures).not.toContain('unlimitedHistory');
   });
 
-  it('requires owner role for validation, restore, and manage actions', async () => {
+  it('requires owner role for restore and manage actions', async () => {
     const { service, client } = serviceWith({
       client: new FakeRevenueCatClient(true),
     });
 
-    await expect(
-      service.validate(adultAuth, {
-        provider: 'google_play',
-        purchaseToken: 'purchase-token',
-        productId: 'weekly_us_premium_monthly',
-      }),
-    ).rejects.toMatchObject({
-      statusCode: 403,
-      code: 'subscription_owner_required',
-    });
     await expect(
       service.restore(adultAuth, { provider: 'google_play' }),
     ).rejects.toMatchObject({
@@ -281,26 +269,63 @@ describe('SubscriptionService', () => {
       statusCode: 403,
       code: 'subscription_owner_required',
     });
-    expect(client.postReceipt).not.toHaveBeenCalled();
     expect(client.getSubscriber).not.toHaveBeenCalled();
   });
 
-  it('returns a safe validation error for invalid provider receipts', async () => {
+  it('maps RevenueCat restore outages to a safe provider error', async () => {
     const client = new FakeRevenueCatClient(true);
-    client.postReceipt.mockRejectedValue(
-      new RevenueCatClientError('invalid receipt', 400),
+    client.getSubscriber.mockRejectedValue(
+      new RevenueCatClientError('provider unavailable', 500),
     );
     const { service } = serviceWith({ client });
 
     await expect(
-      service.validate(auth, {
-        provider: 'google_play',
-        purchaseToken: 'purchase-token',
-        productId: 'weekly_us_premium_monthly',
-      }),
+      service.restore(auth, { provider: 'google_play' }),
     ).rejects.toMatchObject({
-      statusCode: 422,
-      code: 'subscription_validation_failed',
+      statusCode: 502,
+      code: 'subscription_provider_unavailable',
+    });
+  });
+
+  it('returns free status when RevenueCat has no subscriber to restore', async () => {
+    const client = new FakeRevenueCatClient(true);
+    client.getSubscriber.mockRejectedValue(
+      new RevenueCatClientError('subscriber not found', 404),
+    );
+    const { service, repository } = serviceWith({ client });
+
+    await expect(
+      service.restore(auth, { provider: 'google_play' }),
+    ).resolves.toMatchObject({ planType: 'free', provider: null });
+    expect(repository.upserts).toEqual([]);
+  });
+
+  it('restores and stores premium by workspace identity', async () => {
+    const client = new FakeRevenueCatClient(true);
+    client.getSubscriber.mockResolvedValue({
+      request_date: now,
+      subscriber: {
+        original_app_user_id: 'workspace-1',
+        entitlements: {
+          premium: { expires_date: future, store: 'play_store' },
+        },
+      },
+    });
+    const { service, repository } = serviceWith({ client });
+
+    await expect(
+      service.restore(auth, { provider: 'google_play' }),
+    ).resolves.toMatchObject({
+      planType: 'premium',
+      provider: 'google_play',
+    });
+    expect(client.getSubscriber).toHaveBeenCalledWith(
+      'workspace-1',
+      'google_play',
+    );
+    expect(repository.upserts[0]).toMatchObject({
+      workspaceId: 'workspace-1',
+      planType: 'premium',
     });
   });
 });
@@ -371,18 +396,6 @@ describe('syncEntitlementForWorkspace', () => {
     });
   });
 });
-describe('subscription request schemas', () => {
-  it('rejects revenuecat as a client-submitted purchase provider', () => {
-    expect(
-      validateSubscriptionRequestSchema.safeParse({
-        provider: 'revenuecat',
-        purchaseToken: 'purchase-token',
-        productId: 'weekly_us_premium_monthly',
-      }).success,
-    ).toBe(false);
-  });
-});
-
 describe('requirePremium middleware helper', () => {
   it('allows recently verified premium entitlements', async () => {
     const repository = new FakeSubscriptionRepository(

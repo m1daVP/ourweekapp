@@ -279,6 +279,7 @@ describe('auth.service', () => {
 
     expect(response.user).toMatchObject({
       id: 'user-1',
+      workspaceId: 'workspace-1',
       email: 'rita@example.com',
       displayName: 'Rita',
       role: 'owner',
@@ -304,6 +305,7 @@ describe('auth.service', () => {
     );
 
     expect(response.user.id).toBe('user-1');
+    expect(response.user.workspaceId).toBe('workspace-1');
   });
 
   it('links a verified Google identity to an existing password account by email', async () => {
@@ -323,6 +325,7 @@ describe('auth.service', () => {
     );
 
     expect(response.user.email).toBe('rita@example.com');
+    expect(response.user.workspaceId).toBe('workspace-1');
   });
 
   it('rejects invalid Google tokens before touching account data', async () => {

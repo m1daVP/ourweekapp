@@ -15,6 +15,7 @@ export const userRoleSchema = z.enum(['owner', 'adult_member', 'viewer']);
 
 export const authUserSchema = z.object({
   id: apiIdSchema,
+  workspaceId: apiIdSchema,
   email: emailSchema.optional(),
   displayName: optionalDisplayNameSchema,
   role: userRoleSchema,

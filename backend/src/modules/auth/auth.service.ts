@@ -100,6 +100,7 @@ type AuthIdentityRow = {
 
 export type AuthUserDto = {
   id: string;
+  workspaceId: string;
   email: string;
   displayName?: string;
   role: UserRole;
@@ -170,6 +171,7 @@ function mapAuthUser(
 ): AuthUserDto {
   return {
     id: user.id,
+    workspaceId: member.workspace_id,
     email: user.email,
     displayName: user.display_name ?? member.display_name,
     role,

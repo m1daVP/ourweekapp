@@ -7,7 +7,6 @@ import {
   manageSubscriptionResponseSchema,
   restoreSubscriptionRequestSchema,
   subscriptionStatusSchema,
-  validateSubscriptionRequestSchema,
 } from './billing.schema.js';
 import { SubscriptionService } from './billing.service.js';
 import { RevenueCatClient } from './revenuecat.client.js';
@@ -42,22 +41,6 @@ export const billingRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   }, async (request) => {
     return service.getStatus(request.auth);
-  });
-
-  app.post('/validate', {
-    config: {
-      authRequired: true,
-    },
-    preHandler: authPreHandler,
-    schema: {
-      body: validateSubscriptionRequestSchema,
-      response: {
-        200: subscriptionStatusSchema,
-        ...subscriptionErrorResponses,
-      },
-    },
-  }, async (request) => {
-    return service.validate(request.auth, request.body);
   });
 
   app.post('/restore', {

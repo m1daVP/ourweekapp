@@ -174,6 +174,7 @@ describe('DTO schema validation limits', () => {
   it('strips fields that are not part of safe API DTOs', () => {
     const parsedUser = authUserSchema.parse({
       id: 'user_1',
+      workspaceId: 'workspace_1',
       email: ' RITA@EXAMPLE.COM ',
       displayName: 'Rita',
       role: 'owner',

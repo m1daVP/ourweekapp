@@ -3,8 +3,6 @@ import { z } from 'zod';
 import {
   isoDateTimeStringSchema,
   nullableIsoDateTimeStringSchema,
-  trimmedString,
-  VALIDATION_LIMITS,
 } from '../../shared/schemas/index.js';
 import { planTypeSchema } from '../auth/auth.schema.js';
 
@@ -65,12 +63,6 @@ export const subscriptionStatusSchema = z.object({
   checkedAt: isoDateTimeStringSchema,
 });
 
-export const validateSubscriptionRequestSchema = z.object({
-  provider: mobilePurchaseProviderSchema,
-  purchaseToken: trimmedString(1, VALIDATION_LIMITS.purchaseTokenMaxLength),
-  productId: trimmedString(1, VALIDATION_LIMITS.productIdMaxLength),
-});
-
 export const restoreSubscriptionRequestSchema = z.object({
   provider: mobilePurchaseProviderSchema,
 });
@@ -85,9 +77,6 @@ export type MobilePurchaseProviderDto = z.infer<
 >;
 export type SubscriptionFeatureDto = z.infer<typeof subscriptionFeatureSchema>;
 export type SubscriptionStatusDto = z.infer<typeof subscriptionStatusSchema>;
-export type ValidateSubscriptionRequestDto = z.infer<
-  typeof validateSubscriptionRequestSchema
->;
 export type RestoreSubscriptionRequestDto = z.infer<
   typeof restoreSubscriptionRequestSchema
 >;

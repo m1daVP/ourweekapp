@@ -8,7 +8,6 @@ import {
   type RestoreSubscriptionRequestDto,
   type SubscriptionProviderDto,
   type SubscriptionStatusDto,
-  type ValidateSubscriptionRequestDto,
 } from './billing.schema.js';
 import {
   type SubscriptionDto,
@@ -36,7 +35,7 @@ type SubscriptionRepository = Pick<
 
 type EntitlementProviderClient = Pick<
   RevenueCatClient,
-  'configured' | 'getSubscriber' | 'postReceipt'
+  'configured' | 'getSubscriber'
 >;
 
 type RevenueCatEntitlementWithStore = RevenueCatEntitlement & {
@@ -243,37 +242,6 @@ export class SubscriptionService {
     return this.cachedOrFreeStatus(context.workspaceId, now);
   }
 
-  async validate(
-    auth: AuthContext | undefined,
-    body: ValidateSubscriptionRequestDto,
-  ) {
-    const context = requireSubscriptionOwner(auth);
-    const now = new Date();
-
-    if (!this.revenueCatClient.configured) {
-      return freeStatus(now);
-    }
-
-    let customerInfo: RevenueCatCustomerInfo;
-
-    try {
-      customerInfo = await this.revenueCatClient.postReceipt({
-        appUserId: context.workspaceId,
-        fetchToken: body.purchaseToken,
-        productId: body.productId,
-        provider: body.provider,
-      });
-    } catch (error) {
-      throw mapRevenueCatValidationError(error);
-    }
-
-    return this.syncRevenueCatEntitlement(context.workspaceId, {
-      customerInfo,
-      fallbackProvider: body.provider,
-      now,
-    });
-  }
-
   async restore(
     auth: AuthContext | undefined,
     body: RestoreSubscriptionRequestDto,
@@ -290,8 +258,20 @@ export class SubscriptionService {
         fallbackProvider: body.provider,
         now,
       });
-    } catch {
-      return freeStatus(now);
+    } catch (error) {
+      if (error instanceof RevenueCatClientError) {
+        if (error.statusCode === 404) {
+          return freeStatus(now);
+        }
+
+        throw new ApiError(
+          502,
+          'subscription_provider_unavailable',
+          'Subscription validation is temporarily unavailable.',
+        );
+      }
+
+      throw error;
     }
   }
 
@@ -392,26 +372,4 @@ export class SubscriptionService {
 
     return subscriptionStatusFromRecord(saved, input.now);
   }
-}
-
-function mapRevenueCatValidationError(error: unknown) {
-  if (error instanceof RevenueCatClientError) {
-    if (
-      error.statusCode === 400 ||
-      error.statusCode === 404 ||
-      error.statusCode === 422
-    ) {
-      return new ApiError(
-        422,
-        'subscription_validation_failed',
-        'The subscription could not be validated.',
-      );
-    }
-  }
-
-  return new ApiError(
-    502,
-    'subscription_provider_unavailable',
-    'Subscription validation is temporarily unavailable.',
-  );
 }

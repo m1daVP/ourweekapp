@@ -41,7 +41,6 @@ const subscriptionService = vi.hoisted(() => ({
   getManageUrl: vi.fn(),
   getStatus: vi.fn(),
   restore: vi.fn(),
-  validate: vi.fn(),
 }));
 const signInUser = vi.hoisted(() => vi.fn());
 const signInWithGoogle = vi.hoisted(() => vi.fn());
@@ -252,6 +251,7 @@ function authSessionResponse() {
   return {
     user: {
       id: authContext.userId,
+      workspaceId: authContext.workspaceId,
       email: 'rita@example.com',
       displayName: 'Rita',
       role: 'owner',
@@ -281,7 +281,6 @@ describe('API route contracts', () => {
     subscriptionService.getManageUrl.mockReset();
     subscriptionService.getStatus.mockReset();
     subscriptionService.restore.mockReset();
-    subscriptionService.validate.mockReset();
     signInUser.mockReset();
     signInWithGoogle.mockReset();
     authMe.mockReset();
@@ -406,43 +405,22 @@ describe('API route contracts', () => {
 
   it('maps subscription service authorization failures to 403 responses', async () => {
     const { ApiError } = await import('../src/shared/errors/index.js');
-    subscriptionService.validate.mockRejectedValueOnce(
+    subscriptionService.restore.mockRejectedValueOnce(
       new ApiError(403, 'subscription_owner_required', 'Only workspace owners can manage subscriptions.'),
     );
     const app = await buildRouteApp('billing');
     const response = await app.inject({
       method: 'POST',
-      url: '/v1/subscriptions/validate',
+      url: '/v1/subscriptions/restore',
       headers: { authorization: 'Bearer valid-token' },
       payload: {
         provider: 'google_play',
-        purchaseToken: 'purchase-token',
-        productId: 'weekly_us_premium_monthly',
       },
     });
 
     expect(response.statusCode).toBe(403);
     expect(response.json()).toMatchObject({ code: 'subscription_owner_required' });
-    expect(subscriptionService.validate).toHaveBeenCalled();
-    await app.close();
-  });
-
-  it('returns 422 before subscription service code for invalid providers', async () => {
-    const app = await buildRouteApp('billing');
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/subscriptions/validate',
-      headers: { authorization: 'Bearer valid-token' },
-      payload: {
-        provider: 'revenuecat',
-        purchaseToken: 'purchase-token',
-        productId: 'weekly_us_premium_monthly',
-      },
-    });
-
-    expect(response.statusCode).toBe(422);
-    expect(response.json()).toMatchObject({ code: 'validation_failed' });
-    expect(subscriptionService.validate).not.toHaveBeenCalled();
+    expect(subscriptionService.restore).toHaveBeenCalled();
     await app.close();
   });
 
