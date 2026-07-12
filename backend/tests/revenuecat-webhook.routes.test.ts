@@ -9,6 +9,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { RevenueCatClientError } from '../src/modules/billing/revenuecat.client.js';
 import { registerErrorHandler } from '../src/shared/errors/error-handler.js';
 
+Object.assign(process.env, {
+  PUBLIC_API_BASE_URL: 'http://127.0.0.1:3000',
+  SUPABASE_URL: 'http://127.0.0.1:54321',
+  SUPABASE_SERVICE_ROLE_KEY: 'revenuecat-webhook-test-service-role-key',
+  ACCESS_TOKEN_SECRET: 'a'.repeat(32),
+  REFRESH_TOKEN_SECRET: 'b'.repeat(32),
+  PASSWORD_RESET_TOKEN_SECRET: 'c'.repeat(32),
+  TOKEN_ENCRYPTION_KEY: 'd'.repeat(32),
+});
+
 const secret = 'revenuecat-test-secret';
 
 function serviceThat(error?: unknown) {
