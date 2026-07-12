@@ -128,6 +128,18 @@ const envInput = z
     ];
     const smtpTouched = smtpFields.some(Boolean);
 
+    if (
+      (value.NODE_ENV === 'production' || value.APP_ENV === 'production') &&
+      !smtpFields.every(Boolean)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['SMTP_HOST'],
+        message:
+          'SMTP configuration (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM) is required in production',
+      });
+    }
+
     if (!smtpTouched) {
       return;
     }

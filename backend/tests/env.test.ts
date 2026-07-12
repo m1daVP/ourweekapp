@@ -70,4 +70,34 @@ describe('env AI provider configuration', () => {
     expect(env.GOOGLE_SIGN_IN_CONFIGURED).toBe(true);
     expect(env.GOOGLE_OAUTH_CONFIGURED).toBe(false);
   });
+
+  it('requires SMTP configuration in production', async () => {
+    await expect(
+      loadEnv({
+        NODE_ENV: 'production',
+        APP_ENV: 'production',
+        CORS_ALLOWED_ORIGINS: 'https://example.com',
+        SMTP_HOST: '',
+        SMTP_PORT: '',
+        SMTP_USER: '',
+        SMTP_PASSWORD: '',
+        EMAIL_FROM: '',
+      }),
+    ).rejects.toThrow('required in production');
+  });
+
+  it('allows a fully configured SMTP setup in production', async () => {
+    const { env } = await loadEnv({
+      NODE_ENV: 'production',
+      APP_ENV: 'production',
+      CORS_ALLOWED_ORIGINS: 'https://example.com',
+      SMTP_HOST: 'smtp.example.com',
+      SMTP_PORT: '587',
+      SMTP_USER: 'mailer@example.com',
+      SMTP_PASSWORD: 'smtp-password',
+      EMAIL_FROM: 'OurWeek <no-reply@example.com>',
+    });
+
+    expect(env.SMTP_CONFIGURED).toBe(true);
+  });
 });
