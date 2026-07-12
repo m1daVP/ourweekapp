@@ -94,11 +94,17 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.post('/refresh', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
     schema: {
       body: refreshTokenRequestSchema,
       response: {
         200: authSessionResponseSchema,
-        ...authErrorResponses,
+        ...authRateLimitedErrorResponses,
       },
     },
   }, async (request) => {

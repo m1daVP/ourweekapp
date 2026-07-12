@@ -68,6 +68,7 @@ describe('OpenAPI generation', () => {
     expect(document.paths['/v1/auth/register']?.post?.security).toBeUndefined();
     expect(document.paths['/v1/auth/sign-in']?.post?.responses).toHaveProperty('429');
     expect(document.paths['/v1/auth/google']?.post?.responses).toHaveProperty('429');
+    expect(document.paths['/v1/auth/refresh']?.post?.responses).toHaveProperty('429');
     expect(document.paths['/v1/workspace/']?.get?.responses).toHaveProperty('401');
     expect(document.paths['/v1/workspace/']?.get?.responses).toHaveProperty('403');
     expect(document.paths['/v1/meetings/sync']?.post?.responses).toHaveProperty('409');
