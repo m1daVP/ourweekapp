@@ -127,6 +127,53 @@ export const revenueCatWebhookRoutes: FastifyPluginAsyncZod<
           },
           'RevenueCat transfer received',
         );
+
+        const transferredWorkspaceIds = [
+          ...(event.transferred_to ?? []),
+          ...(event.transferred_from ?? []),
+        ];
+
+        for (const workspaceId of new Set(transferredWorkspaceIds)) {
+          try {
+            await service.syncEntitlementForWorkspace(workspaceId);
+          } catch (error) {
+            if (error instanceof RevenueCatClientError) {
+              if (error.statusCode === 404) {
+                request.log.info(
+                  { eventId: event.id, appUserId: workspaceId },
+                  'RevenueCat webhook workspace was not found by provider',
+                );
+                continue;
+              }
+
+              throw new ApiError(
+                502,
+                'subscription_provider_unavailable',
+                'Subscription validation is temporarily unavailable.',
+              );
+            }
+
+            if (databaseCode(error) === '23503') {
+              request.log.warn(
+                { eventId: event.id, appUserId: workspaceId },
+                'RevenueCat webhook referenced an unknown workspace',
+              );
+              continue;
+            }
+
+            throw error;
+          }
+        }
+
+        return { received: true as const };
+      }
+
+      if (!event.app_user_id) {
+        throw new ApiError(
+          400,
+          'validation_failed',
+          'Please check the request and try again.',
+        );
       }
 
       try {

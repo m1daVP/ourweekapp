@@ -105,7 +105,7 @@ describe('RevenueCat webhook routes', () => {
     await app.close();
   });
 
-  it('returns 400 when app_user_id is missing', async () => {
+  it('returns 400 when a non-transfer event is missing app_user_id', async () => {
     const app = await buildApp();
     const response = await app.inject({
       method: 'POST',
@@ -135,22 +135,70 @@ describe('RevenueCat webhook routes', () => {
     await app.close();
   });
 
-  it('acknowledges transfer events', async () => {
-    const app = await buildApp();
+  it('syncs deduplicated transfer targets before sources without app_user_id', async () => {
+    const service = serviceThat();
+    const app = await buildApp({ service });
     const response = await app.inject({
       method: 'POST',
       url: '/revenuecat',
       headers: { authorization: secret },
       payload: {
         event: {
-          ...body.event,
           type: 'TRANSFER',
-          transferred_from: ['old'],
-          transferred_to: ['new'],
+          transferred_from: ['old', 'shared'],
+          transferred_to: ['new', 'shared'],
         },
       },
     });
     expect(response.statusCode).toBe(200);
+    expect(service.syncEntitlementForWorkspace.mock.calls).toEqual([
+      ['new'],
+      ['shared'],
+      ['old'],
+    ]);
+    await app.close();
+  });
+
+  it('continues syncing a transfer after an unknown workspace', async () => {
+    const service = serviceThat();
+    service.syncEntitlementForWorkspace
+      .mockRejectedValueOnce({ details: { databaseCode: '23503' } })
+      .mockResolvedValueOnce(null);
+    const app = await buildApp({ service });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/revenuecat',
+      headers: { authorization: secret },
+      payload: {
+        event: {
+          type: 'TRANSFER',
+          transferred_to: ['unknown', 'workspace-2'],
+        },
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(service.syncEntitlementForWorkspace.mock.calls).toEqual([
+      ['unknown'],
+      ['workspace-2'],
+    ]);
+    await app.close();
+  });
+
+  it('returns 502 when transfer sync hits a provider network error', async () => {
+    const service = serviceThat(new RevenueCatClientError('network'));
+    const app = await buildApp({ service });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/revenuecat',
+      headers: { authorization: secret },
+      payload: {
+        event: {
+          type: 'TRANSFER',
+          transferred_to: ['workspace-1'],
+        },
+      },
+    });
+    expect(response.statusCode).toBe(502);
     await app.close();
   });
 });
