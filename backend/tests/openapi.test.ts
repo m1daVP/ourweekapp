@@ -66,6 +66,7 @@ describe('OpenAPI generation', () => {
       { bearerAuth: [] },
     ]);
     expect(document.paths['/v1/auth/register']?.post?.security).toBeUndefined();
+    expect(document.paths['/v1/auth/register']?.post?.responses).toHaveProperty('429');
     expect(document.paths['/v1/auth/sign-in']?.post?.responses).toHaveProperty('429');
     expect(document.paths['/v1/auth/google']?.post?.responses).toHaveProperty('429');
     expect(document.paths['/v1/auth/refresh']?.post?.responses).toHaveProperty('429');

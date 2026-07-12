@@ -39,11 +39,17 @@ const authRateLimitedErrorResponses = {
 
 export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post('/register', {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: '15 minutes',
+      },
+    },
     schema: {
       body: registerRequestSchema,
       response: {
         201: authSessionResponseSchema,
-        ...authErrorResponses,
+        ...authRateLimitedErrorResponses,
       },
     },
   }, async (request, reply) => {
