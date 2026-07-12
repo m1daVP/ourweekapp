@@ -92,7 +92,7 @@ export const endpointContracts: EndpointContract[] = [
     path: '/v1/auth/refresh',
     requiresAuth: false,
     successStatuses: [200],
-    errorStatuses: [401, 409, 422, 500],
+    errorStatuses: [401, 409, 422, 429, 500],
     requiredRequestFields: ['refreshToken'],
     requestExample: { refreshToken: 'refresh-token' },
   },
@@ -201,19 +201,6 @@ export const endpointContracts: EndpointContract[] = [
     requiresAuth: true,
     successStatuses: [200],
     errorStatuses: [401, 403, 422, 500, 502],
-  },
-  {
-    method: 'POST',
-    path: '/v1/subscriptions/validate',
-    requiresAuth: true,
-    successStatuses: [200],
-    errorStatuses: [401, 403, 422, 500, 502],
-    requiredRequestFields: ['provider', 'purchaseToken', 'productId'],
-    requestExample: {
-      provider: 'google_play',
-      purchaseToken: 'purchase-token',
-      productId: 'monthly',
-    },
   },
   {
     method: 'POST',

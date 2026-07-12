@@ -81,7 +81,7 @@ export const openApiSnapshot: OpenApiFixture = {
     ),
     '/v1/auth/refresh': pathItem(
       'POST',
-      operation([200, 401, 409, 422, 500], {
+      operation([200, 401, 409, 422, 429, 500], {
         requiredRequestFields: ['refreshToken'],
       })
     ),
@@ -115,13 +115,6 @@ export const openApiSnapshot: OpenApiFixture = {
     '/v1/billing/status': pathItem(
       'GET',
       operation([200, 401, 403, 422, 500, 502], { requiresAuth: true })
-    ),
-    '/v1/billing/validate': pathItem(
-      'POST',
-      operation([200, 401, 403, 422, 500, 502], {
-        requiresAuth: true,
-        requiredRequestFields: ['provider', 'purchaseToken', 'productId'],
-      })
     ),
     '/v1/calendar/google/callback': pathItem('GET', operation([422, 500])),
     '/v1/calendar/google/connect': pathItem(
@@ -213,13 +206,6 @@ export const openApiSnapshot: OpenApiFixture = {
     '/v1/subscriptions/status': pathItem(
       'GET',
       operation([200, 401, 403, 422, 500, 502], { requiresAuth: true })
-    ),
-    '/v1/subscriptions/validate': pathItem(
-      'POST',
-      operation([200, 401, 403, 422, 500, 502], {
-        requiresAuth: true,
-        requiredRequestFields: ['provider', 'purchaseToken', 'productId'],
-      })
     ),
     '/v1/tasks/': pathItem(
       'GET',

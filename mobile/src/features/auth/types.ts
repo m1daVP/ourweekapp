@@ -4,6 +4,7 @@ export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'error';
 
 export interface AuthUser {
   id: string;
+  workspaceId?: string;
   email: string;
   displayName: string;
   plan: PlanType;

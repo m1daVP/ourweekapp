@@ -88,13 +88,6 @@ export async function logOutRevenueCat() {
   await Purchases.logOut();
 }
 
-export async function getRevenueCatAppUserID() {
-  assertRevenueCatAvailable();
-  await configureRevenueCat();
-
-  return Purchases.getAppUserID();
-}
-
 export async function getRevenueCatCustomerInfo() {
   assertRevenueCatAvailable();
   await configureRevenueCat();

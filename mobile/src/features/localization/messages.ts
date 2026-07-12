@@ -493,6 +493,7 @@ export const messages = {
       planUnavailable: 'This Premium plan is not available.',
       premiumEnabled: 'Premium is active for this account.',
       premiumRestored: 'Premium was restored for this account.',
+      activationPending: 'Purchase received — Premium will activate shortly',
       noPremiumFound: 'No active Premium subscription was found.',
       managementLater:
         'Subscription management opens in Google Play or App Store settings when a store subscription is available.',
@@ -1887,6 +1888,7 @@ export const messages = {
       planUnavailable: 'Цей Premium-план недоступний.',
       premiumEnabled: 'Premium активний для цього акаунта.',
       premiumRestored: 'Premium відновлено для цього акаунта.',
+      activationPending: 'Покупку отримано — Premium незабаром активується',
       noPremiumFound: 'Активну Premium-підписку не знайдено.',
       managementLater:
         'Керування підпискою відкривається через налаштування Google Play або App Store, коли доступна підписка магазину.',
@@ -3319,6 +3321,7 @@ export const messages = {
       planUnavailable: 'Este plan Premium no está disponible.',
       premiumEnabled: 'Premium está activo para esta cuenta.',
       premiumRestored: 'Premium se restauró para esta cuenta.',
+      activationPending: 'Compra recibida — Premium se activará en breve',
       noPremiumFound: 'No se encontró ninguna suscripción Premium activa.',
       managementLater:
         'La gestión de suscripción se abre en Google Play o App Store cuando hay una suscripción de tienda disponible.',

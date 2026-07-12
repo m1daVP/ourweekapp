@@ -20,7 +20,6 @@ describe('API endpoint contract fixture', () => {
     const paths = endpointContracts.map((contract) => contract.path);
 
     expect(paths).toContain('/v1/subscriptions/status');
-    expect(paths).toContain('/v1/subscriptions/validate');
     expect(paths).toContain('/v1/subscriptions/restore');
     expect(paths).toContain('/v1/subscriptions/manage');
     expect(paths.some((path) => path.startsWith('/v1/billing/'))).toBe(false);

@@ -4,13 +4,12 @@ import { createRevenueCatSubscriptionProvider } from '@/features/subscription/se
 import {
   getSubscriptionManagementUrl,
   getSubscriptionStatus,
-  validateRevenueCatSubscription,
+  restoreSubscriptionStatus,
   type SubscriptionStatusDto,
 } from '@/shared/api/subscriptionsApi';
 import {
   findPackageByProductId,
   getCurrentOffering,
-  getRevenueCatAppUserID,
   getRevenueCatCustomerInfo,
   hasOurWeekPremium,
   isRevenueCatAvailable,
@@ -42,7 +41,7 @@ vi.mock('@/shared/api/subscriptionsApi', async () => {
   return {
     ...actual,
     getSubscriptionStatus: vi.fn(),
-    validateRevenueCatSubscription: vi.fn(),
+    restoreSubscriptionStatus: vi.fn(),
     getSubscriptionManagementUrl: vi.fn(),
   };
 });
@@ -53,7 +52,6 @@ vi.mock('@/features/subscription/services/revenueCatService', () => ({
   findPackageByProductId: vi.fn(),
   purchasePackage: vi.fn(),
   restoreRevenueCatPurchases: vi.fn(),
-  getRevenueCatAppUserID: vi.fn(),
   getRevenueCatCustomerInfo: vi.fn(),
   hasOurWeekPremium: vi.fn(),
   presentPremiumPaywall: vi.fn(),
@@ -90,9 +88,7 @@ const premiumStatus: SubscriptionStatusDto = {
 };
 
 const mockedGetSubscriptionStatus = vi.mocked(getSubscriptionStatus);
-const mockedValidateRevenueCatSubscription = vi.mocked(
-  validateRevenueCatSubscription
-);
+const mockedRestoreSubscriptionStatus = vi.mocked(restoreSubscriptionStatus);
 const mockedGetSubscriptionManagementUrl = vi.mocked(
   getSubscriptionManagementUrl
 );
@@ -101,7 +97,6 @@ const mockedGetCurrentOffering = vi.mocked(getCurrentOffering);
 const mockedFindPackageByProductId = vi.mocked(findPackageByProductId);
 const mockedPurchasePackage = vi.mocked(purchasePackage);
 const mockedRestoreRevenueCatPurchases = vi.mocked(restoreRevenueCatPurchases);
-const mockedGetRevenueCatAppUserID = vi.mocked(getRevenueCatAppUserID);
 const mockedGetRevenueCatCustomerInfo = vi.mocked(getRevenueCatCustomerInfo);
 const mockedHasOurWeekPremium = vi.mocked(hasOurWeekPremium);
 const mockedPresentPremiumPaywall = vi.mocked(presentPremiumPaywall);
@@ -131,12 +126,11 @@ describe('RevenueCat subscription configuration', () => {
 
 describe('createRevenueCatSubscriptionProvider', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockedIsRevenueCatAvailable.mockReturnValue(true);
     mockedGetSubscriptionStatus.mockResolvedValue(freeStatus);
-    mockedValidateRevenueCatSubscription.mockResolvedValue(premiumStatus);
+    mockedRestoreSubscriptionStatus.mockResolvedValue(premiumStatus);
     mockedGetSubscriptionManagementUrl.mockResolvedValue({ url: '' });
-    mockedGetRevenueCatAppUserID.mockResolvedValue({ appUserID: 'user-1' });
     mockedGetRevenueCatCustomerInfo.mockResolvedValue({
       customerInfo: {
         entitlements: {
@@ -196,25 +190,42 @@ describe('createRevenueCatSubscriptionProvider', () => {
     expect(plans[1]?.priceLabel).toBe('Price pending');
   });
 
-  it('does not unlock Premium after purchase until backend validation returns Premium', async () => {
+  it('keeps a completed purchase pending after repeated free backend snapshots', async () => {
     mockedFindPackageByProductId.mockResolvedValue({
       product: { identifier: 'monthly' },
     } as Awaited<ReturnType<typeof findPackageByProductId>>);
-    mockedValidateRevenueCatSubscription.mockResolvedValue(freeStatus);
+    mockedRestoreSubscriptionStatus.mockResolvedValue(freeStatus);
 
     const provider = createRevenueCatSubscriptionProvider();
     const result = await provider.purchasePlan('premium_monthly');
 
     expect(mockedPurchasePackage).toHaveBeenCalled();
-    expect(mockedValidateRevenueCatSubscription).toHaveBeenCalledWith({
-      provider: 'revenuecat',
-      appUserID: 'user-1',
-      productId: 'monthly',
-      entitlementId: 'OurWeek Premium',
-    });
-    expect(result.status).toBe('cancelled');
+    expect(mockedRestoreSubscriptionStatus).toHaveBeenCalledTimes(2);
+    expect(result.status).toBe('completed');
+    expect(result.message).toBe(
+      'Purchase received — Premium will activate shortly'
+    );
     expect(result.snapshot.currentPlan).toBe('free');
     expect(result.snapshot.entitlements.premium.isActive).toBe(false);
+  });
+
+  it('retries a free backend snapshot and activates Premium on the second sync', async () => {
+    mockedFindPackageByProductId.mockResolvedValue({
+      product: { identifier: 'monthly' },
+    } as Awaited<ReturnType<typeof findPackageByProductId>>);
+    mockedRestoreSubscriptionStatus
+      .mockResolvedValueOnce(freeStatus)
+      .mockResolvedValueOnce(premiumStatus);
+
+    const provider = createRevenueCatSubscriptionProvider();
+    const result = await provider.purchasePlan('premium_monthly');
+
+    expect(mockedPurchasePackage).toHaveBeenCalled();
+    expect(mockedRestoreSubscriptionStatus).toHaveBeenCalledTimes(2);
+    expect(result.status).toBe('completed');
+    expect(result.message).toBe('Premium is active for this account.');
+    expect(result.snapshot.currentPlan).toBe('premium');
+    expect(result.snapshot.entitlements.premium.isActive).toBe(true);
   });
 
   it('keeps the backend snapshot when the user cancels purchase', async () => {
@@ -228,20 +239,18 @@ describe('createRevenueCatSubscriptionProvider', () => {
 
     expect(result.status).toBe('cancelled');
     expect(result.snapshot.currentPlan).toBe('free');
-    expect(mockedValidateRevenueCatSubscription).not.toHaveBeenCalled();
+    expect(mockedRestoreSubscriptionStatus).not.toHaveBeenCalled();
   });
 
-  it('validates restored purchases through the backend', async () => {
-    mockedValidateRevenueCatSubscription.mockResolvedValue(freeStatus);
+  it('syncs restored purchases through the backend', async () => {
+    mockedRestoreSubscriptionStatus.mockResolvedValue(freeStatus);
 
     const provider = createRevenueCatSubscriptionProvider();
     const result = await provider.restorePurchases();
 
     expect(mockedRestoreRevenueCatPurchases).toHaveBeenCalled();
-    expect(mockedValidateRevenueCatSubscription).toHaveBeenCalledWith({
-      provider: 'revenuecat',
-      appUserID: 'user-1',
-      entitlementId: 'OurWeek Premium',
+    expect(mockedRestoreSubscriptionStatus).toHaveBeenCalledWith({
+      provider: 'google_play',
     });
     expect(result.status).toBe('cancelled');
     expect(result.snapshot.currentPlan).toBe('free');
@@ -256,17 +265,35 @@ describe('createRevenueCatSubscriptionProvider', () => {
     expect(mockedPurchasePackage).not.toHaveBeenCalled();
   });
 
-  it('validates after a paywall purchase result before unlocking Premium', async () => {
+  it('syncs after a paywall purchase result before unlocking Premium', async () => {
     const provider = createRevenueCatSubscriptionProvider();
     const result = await provider.presentPremiumPaywall?.();
 
     expect(mockedPresentPremiumPaywall).toHaveBeenCalled();
-    expect(mockedValidateRevenueCatSubscription).toHaveBeenCalledWith({
-      provider: 'revenuecat',
-      appUserID: 'user-1',
-      entitlementId: 'OurWeek Premium',
+    expect(mockedRestoreSubscriptionStatus).toHaveBeenCalledWith({
+      provider: 'google_play',
     });
     expect(result?.status).toBe('completed');
     expect(result?.snapshot.entitlements.premium.isActive).toBe(true);
+  });
+
+  it('keeps a completed purchase pending after two backend sync failures', async () => {
+    mockedFindPackageByProductId.mockResolvedValue({
+      product: { identifier: 'monthly' },
+    } as Awaited<ReturnType<typeof findPackageByProductId>>);
+    mockedRestoreSubscriptionStatus.mockRejectedValue(
+      new Error('provider unavailable')
+    );
+
+    const provider = createRevenueCatSubscriptionProvider();
+    const result = await provider.purchasePlan('premium_monthly');
+
+    expect(mockedPurchasePackage).toHaveBeenCalled();
+    expect(mockedRestoreSubscriptionStatus).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({
+      status: 'completed',
+      message: 'Purchase received — Premium will activate shortly',
+      snapshot: { currentPlan: 'free' },
+    });
   });
 });

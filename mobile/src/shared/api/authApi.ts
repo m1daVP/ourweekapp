@@ -3,6 +3,7 @@ import { apiRequest } from './httpClient';
 
 export interface AuthUserDto {
   id: string;
+  workspaceId?: string;
   email?: string;
   displayName?: string;
   role: UserRole;

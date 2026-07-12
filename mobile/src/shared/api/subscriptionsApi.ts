@@ -15,11 +15,8 @@ export interface SubscriptionStatusDto {
   checkedAt: string;
 }
 
-export interface ValidateRevenueCatSubscriptionRequestDto {
-  provider: 'revenuecat';
-  appUserID: string;
-  productId?: string;
-  entitlementId: string;
+export interface RestoreSubscriptionStatusRequestDto {
+  provider: 'google_play' | 'app_store';
 }
 
 export interface ManageSubscriptionResponseDto {
@@ -32,10 +29,10 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatusDto> {
   });
 }
 
-export async function validateRevenueCatSubscription(
-  payload: ValidateRevenueCatSubscriptionRequestDto
+export async function restoreSubscriptionStatus(
+  payload: RestoreSubscriptionStatusRequestDto
 ): Promise<SubscriptionStatusDto> {
-  return apiRequest<SubscriptionStatusDto>('/subscriptions/validate', {
+  return apiRequest<SubscriptionStatusDto>('/subscriptions/restore', {
     method: 'POST',
     body: payload,
     requiresAuth: true,

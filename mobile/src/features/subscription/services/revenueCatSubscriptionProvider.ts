@@ -3,16 +3,14 @@ import { translate } from '@/features/localization/i18n';
 import {
   getSubscriptionManagementUrl,
   getSubscriptionStatus,
-  validateRevenueCatSubscription,
+  restoreSubscriptionStatus,
 } from '@/shared/api/subscriptionsApi';
-import { appConfig } from '@/shared/config/env';
 import { warnSafely } from '@/shared/services/safeLogService';
 import { premiumPlanOptions } from '../subscriptionPlans';
 import { createSubscriptionSnapshotFromStatus } from './backendSubscriptionProvider';
 import {
   findPackageByProductId,
   getCurrentOffering,
-  getRevenueCatAppUserID,
   getRevenueCatCustomerInfo,
   hasOurWeekPremium,
   isRevenueCatAvailable,
@@ -65,17 +63,46 @@ async function getBackendSnapshot() {
   return createSubscriptionSnapshotFromStatus(await getSubscriptionStatus());
 }
 
-async function validateCurrentRevenueCatCustomer(productId?: string) {
-  const { appUserID } = await getRevenueCatAppUserID();
+async function syncSubscriptionWithBackend() {
+  const platform = getCurrentPlatformKey();
+
+  if (!platform) {
+    throw new Error(translate('upgrade.billingUnavailable'));
+  }
 
   return createSubscriptionSnapshotFromStatus(
-    await validateRevenueCatSubscription({
-      provider: 'revenuecat',
-      appUserID,
-      productId,
-      entitlementId: appConfig.revenueCatEntitlementId,
+    await restoreSubscriptionStatus({
+      provider: platform === 'android' ? 'google_play' : 'app_store',
     })
   );
+}
+
+async function syncPurchasedSubscriptionWithBackend() {
+  const snapshot = await syncSubscriptionWithBackend();
+
+  if (snapshot.currentPlan !== 'premium') {
+    throw new Error('Premium activation is not available yet.');
+  }
+
+  return snapshot;
+}
+
+function createPendingActivationSnapshot() {
+  const checkedAt = new Date().toISOString();
+
+  return createSubscriptionSnapshotFromStatus({
+    planType: 'free',
+    provider: null,
+    enabledFeatures: [
+      'basicMeetings',
+      'defaultTemplate',
+      'tasksAndAgreements',
+      'manualResponsibility',
+      'limitedHistory',
+    ],
+    expiresAt: null,
+    checkedAt,
+  });
 }
 
 function createActionResult(
@@ -133,7 +160,7 @@ async function handlePaywallOrCustomerInfoResult(activeMessage: string) {
     hasOurWeekPremium(customerInfoResult.customerInfo)
   ) {
     return createActionResult(
-      await validateCurrentRevenueCatCustomer(),
+      await syncSubscriptionWithBackend(),
       activeMessage
     );
   }
@@ -185,10 +212,35 @@ export function createRevenueCatSubscriptionProvider(): SubscriptionProvider {
         throw error;
       }
 
-      return createActionResult(
-        await validateCurrentRevenueCatCustomer(productId),
-        translate('upgrade.premiumEnabled')
-      );
+      try {
+        return createActionResult(
+          await syncPurchasedSubscriptionWithBackend(),
+          translate('upgrade.premiumEnabled')
+        );
+      } catch (firstError) {
+        warnSafely(
+          'Unable to activate RevenueCat purchase on the first attempt.',
+          firstError
+        );
+
+        try {
+          return createActionResult(
+            await syncPurchasedSubscriptionWithBackend(),
+            translate('upgrade.premiumEnabled')
+          );
+        } catch (retryError) {
+          warnSafely(
+            'RevenueCat purchase activation is pending backend sync.',
+            retryError
+          );
+
+          return {
+            status: 'completed',
+            snapshot: createPendingActivationSnapshot(),
+            message: translate('upgrade.activationPending'),
+          };
+        }
+      }
     },
     async restorePurchases() {
       if (!isRevenueCatAvailable()) {
@@ -202,7 +254,7 @@ export function createRevenueCatSubscriptionProvider(): SubscriptionProvider {
       await restoreRevenueCatPurchases();
 
       return createActionResult(
-        await validateCurrentRevenueCatCustomer(),
+        await syncSubscriptionWithBackend(),
         translate('upgrade.premiumRestored')
       );
     },
@@ -243,7 +295,7 @@ export function createRevenueCatSubscriptionProvider(): SubscriptionProvider {
 
       if (didPurchaseOrRestore) {
         return createActionResult(
-          await validateCurrentRevenueCatCustomer(),
+          await syncSubscriptionWithBackend(),
           translate('upgrade.premiumEnabled')
         );
       }

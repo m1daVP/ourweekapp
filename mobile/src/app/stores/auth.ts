@@ -174,9 +174,13 @@ function resetSubscriptionAfterSessionEnd() {
   useSubscriptionStore().$reset();
 }
 
-async function syncRevenueCatForSessionUser(userId: string) {
+async function syncRevenueCatForSessionUser(workspaceId: string | undefined) {
+  if (!workspaceId) {
+    return;
+  }
+
   try {
-    await logInRevenueCat(userId);
+    await logInRevenueCat(workspaceId);
   } catch (error) {
     warnSafely('Unable to sync RevenueCat user identity.', error);
   }
@@ -345,6 +349,7 @@ function getGoogleSignInDebugDetails(
 function mapAuthUser(user: AuthUserDto, fallbackEmail = ''): AuthUser {
   return {
     id: user.id,
+    workspaceId: user.workspaceId,
     email: normalizeEmail(user.email ?? fallbackEmail),
     displayName: user.displayName?.trim() || translate('common.weeklyUsUser'),
     plan: user.planType,
@@ -513,7 +518,7 @@ export const useAuthStore = defineStore('auth', {
 
       const nextUser = mapSessionUser(session);
       await prepareSyncForSessionUser(nextUser.id);
-      await syncRevenueCatForSessionUser(nextUser.id);
+      await syncRevenueCatForSessionUser(nextUser.workspaceId);
 
       this.user = nextUser;
       this.authStatus = 'authenticated';
@@ -582,7 +587,7 @@ export const useAuthStore = defineStore('auth', {
 
           const nextUser = mapAuthUser(currentUser, this.user?.email);
           await prepareSyncForSessionUser(nextUser.id);
-          await syncRevenueCatForSessionUser(nextUser.id);
+          await syncRevenueCatForSessionUser(nextUser.workspaceId);
 
           this.user = nextUser;
           this.authStatus = 'authenticated';
@@ -633,9 +638,16 @@ export const useAuthStore = defineStore('auth', {
             });
             await this.applySession(session);
             return session.accessToken;
-          } catch {
-            await this.clearSessionAfterUnauthorized();
-            return null;
+          } catch (error) {
+            if (
+              error instanceof ApiClientError &&
+              (error.status === 401 || error.status === 422)
+            ) {
+              await this.clearSessionAfterUnauthorized();
+              return null;
+            }
+
+            throw error;
           }
         } finally {
           sessionRefreshPromise = null;

@@ -19,7 +19,7 @@ import { listTasks, syncTasksApi } from '@/shared/api/tasksApi';
 import {
   getSubscriptionManagementUrl,
   getSubscriptionStatus,
-  validateRevenueCatSubscription,
+  restoreSubscriptionStatus,
 } from '@/shared/api/subscriptionsApi';
 import { generateAiMeetingSummary } from '@/shared/api/aiApi';
 import {
@@ -295,22 +295,12 @@ describe('subscriptionsApi', () => {
       { requiresAuth: true },
     ]);
 
-    await validateRevenueCatSubscription({
-      provider: 'revenuecat',
-      appUserID: 'user-1',
-      productId: 'monthly',
-      entitlementId: 'OurWeek Premium',
-    });
+    await restoreSubscriptionStatus({ provider: 'google_play' });
     expect(lastApiCall()).toEqual([
-      '/subscriptions/validate',
+      '/subscriptions/restore',
       {
         method: 'POST',
-        body: {
-          provider: 'revenuecat',
-          appUserID: 'user-1',
-          productId: 'monthly',
-          entitlementId: 'OurWeek Premium',
-        },
+        body: { provider: 'google_play' },
         requiresAuth: true,
       },
     ]);
