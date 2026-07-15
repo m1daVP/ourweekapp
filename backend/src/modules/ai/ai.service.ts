@@ -356,20 +356,11 @@ export class AiSummaryService {
       ),
     ]);
 
-    if (
-      workspaceCount >= AI_RATE_LIMIT_PER_WORKSPACE ||
-      userCount >= AI_RATE_LIMIT_PER_USER
-    ) {
-      throw new ApiError(
-        429,
-        'ai_summary_rate_limited',
-        'Please wait before generating another AI summary.',
-        {
-          userLimit: AI_RATE_LIMIT_PER_USER,
-          workspaceLimit: AI_RATE_LIMIT_PER_WORKSPACE,
-          windowSeconds: AI_RATE_LIMIT_WINDOW_MS / 1000,
-        },
-      );
+    const userExceeded = userCount >= AI_RATE_LIMIT_PER_USER;
+    const workspaceExceeded = workspaceCount >= AI_RATE_LIMIT_PER_WORKSPACE;
+
+    if (userExceeded || workspaceExceeded) {
+      throw this.buildRateLimitError(now, { userExceeded, workspaceExceeded });
     }
   }
 
@@ -387,14 +378,23 @@ export class AiSummaryService {
       ),
     ]);
 
-    if (
-      workspaceCount <= AI_RATE_LIMIT_PER_WORKSPACE &&
-      userCount <= AI_RATE_LIMIT_PER_USER
-    ) {
+    const userExceeded = userCount > AI_RATE_LIMIT_PER_USER;
+    const workspaceExceeded = workspaceCount > AI_RATE_LIMIT_PER_WORKSPACE;
+
+    if (!userExceeded && !workspaceExceeded) {
       return;
     }
 
-    throw new ApiError(
+    throw this.buildRateLimitError(now, { userExceeded, workspaceExceeded });
+  }
+
+  private buildRateLimitError(
+    now: Date,
+    { userExceeded }: { userExceeded: boolean; workspaceExceeded: boolean },
+  ) {
+    const scope: 'user' | 'workspace' = userExceeded ? 'user' : 'workspace';
+
+    return new ApiError(
       429,
       'ai_summary_rate_limited',
       'Please wait before generating another AI summary.',
@@ -402,6 +402,9 @@ export class AiSummaryService {
         userLimit: AI_RATE_LIMIT_PER_USER,
         workspaceLimit: AI_RATE_LIMIT_PER_WORKSPACE,
         windowSeconds: AI_RATE_LIMIT_WINDOW_MS / 1000,
+        scope,
+        remaining: 0,
+        resetAt: new Date(now.getTime() + AI_RATE_LIMIT_WINDOW_MS).toISOString(),
       },
     );
   }

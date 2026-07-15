@@ -567,6 +567,11 @@ describe('AiSummaryService', () => {
     ).rejects.toMatchObject({
       statusCode: 429,
       code: 'ai_summary_rate_limited',
+      details: {
+        scope: 'user',
+        remaining: 0,
+        resetAt: '2026-06-06T11:00:00.000Z',
+      },
     });
     expect(ai.countRecentSummaryRequestsForWorkspace).toHaveBeenCalled();
     expect(ai.countRecentSummaryRequestsForUserInWorkspace).toHaveBeenCalled();
@@ -576,6 +581,22 @@ describe('AiSummaryService', () => {
     );
     expect(participants.listParticipantNamesForWorkspace).not.toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+  });
+
+  it('reports the workspace scope when only the workspace pre-check limit is exceeded', async () => {
+    const { service } = createHarness({ workspaceCount: 20, userCount: 0 });
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({
+      statusCode: 429,
+      code: 'ai_summary_rate_limited',
+      details: {
+        scope: 'workspace',
+        remaining: 0,
+        resetAt: '2026-06-06T11:00:00.000Z',
+      },
+    });
   });
 
   it('rechecks rate limits after reserving a request before calling the provider', async () => {
@@ -592,6 +613,11 @@ describe('AiSummaryService', () => {
     ).rejects.toMatchObject({
       statusCode: 429,
       code: 'ai_summary_rate_limited',
+      details: {
+        scope: 'workspace',
+        remaining: 0,
+        resetAt: '2026-06-06T11:00:00.000Z',
+      },
     });
     expect(ai.createSummaryRequest).toHaveBeenCalled();
     expect(ai.markSummaryRequestFailed).toHaveBeenCalledWith(
@@ -600,6 +626,30 @@ describe('AiSummaryService', () => {
       now,
       'ai_summary_rate_limited',
     );
+    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+  });
+
+  it('reports the user scope when only the user recheck limit is exceeded', async () => {
+    const { ai, provider, service } = createHarness();
+    ai.countRecentSummaryRequestsForWorkspace
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    ai.countRecentSummaryRequestsForUserInWorkspace
+      .mockResolvedValueOnce(4)
+      .mockResolvedValueOnce(6);
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({
+      statusCode: 429,
+      code: 'ai_summary_rate_limited',
+      details: {
+        scope: 'user',
+        remaining: 0,
+        resetAt: '2026-06-06T11:00:00.000Z',
+      },
+    });
+    expect(ai.createSummaryRequest).toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
   });
 
