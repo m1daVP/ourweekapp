@@ -31,6 +31,7 @@ type AiRepositoryPort = Pick<
   | 'markSummaryRequestFailed'
   | 'countRecentSummaryRequestsForWorkspace'
   | 'countRecentSummaryRequestsForUserInWorkspace'
+  | 'findCompletedSummaryRequestByInputHash'
 >;
 
 type MeetingsRepositoryPort = Pick<
@@ -192,13 +193,47 @@ export class AiSummaryService {
     }
     const systemPrompt = buildSummarySystemPrompt(meeting.templateId);
     const createdAt = now.toISOString();
+    const inputHash = shortHash([systemPrompt, promptPayload, model].join('\n\n'));
+
+    const cachedRequest = await this.aiRepository.findCompletedSummaryRequestByInputHash(
+      auth.workspaceId,
+      meeting.id,
+      inputHash,
+    );
+
+    if (cachedRequest) {
+      const parsedCachedSummary = meetingSummarySchema.safeParse(meeting.aiSummary);
+
+      if (parsedCachedSummary.success) {
+        this.options.logger?.info({
+          event: 'ai_summary_generation_cache_hit',
+          status: 'completed',
+          requestId: cachedRequest.id,
+          workspaceId: auth.workspaceId,
+          meetingId: meeting.id,
+          templateId: meeting.templateId,
+          provider: providerName,
+          model,
+          durationMs: durationMsSince(startedAtMs),
+        }, 'AI summary generation served from cache');
+
+        return {
+          summary: parsedCachedSummary.data,
+          disclaimer: AI_SUMMARY_DISCLAIMER,
+          generatedAt: parsedCachedSummary.data.createdAt,
+        };
+      }
+      // Cached row exists but meeting.aiSummary doesn't validate (shouldn't happen
+      // given the write-then-mark-completed ordering) — fall through and regenerate.
+    }
+
     const summaryRequest = await this.aiRepository.createSummaryRequest({
       workspaceId: auth.workspaceId,
       userId: auth.userId,
       meetingId: meeting.id,
       provider: providerName,
       status: 'pending',
-      inputHash: shortHash([systemPrompt, promptPayload, model].join('\n\n')),
+      inputHash,
     });
 
     this.options.logger?.info({
@@ -220,7 +255,7 @@ export class AiSummaryService {
         now,
       );
 
-      const providerOutput = await this.provider.generateMeetingSummary({
+      const { output: providerOutput, usage } = await this.provider.generateMeetingSummary({
         systemPrompt,
         userPrompt: promptPayload,
         model,
@@ -250,6 +285,7 @@ export class AiSummaryService {
         auth.workspaceId,
         summaryRequest.id,
         now.toISOString(),
+        usage,
       );
 
       this.options.logger?.info({
@@ -261,6 +297,9 @@ export class AiSummaryService {
         templateId: meeting.templateId,
         provider: providerName,
         model,
+        inputTokens: usage?.inputTokens ?? null,
+        outputTokens: usage?.outputTokens ?? null,
+        totalTokens: usage?.totalTokens ?? null,
         durationMs: durationMsSince(startedAtMs),
       }, 'AI summary generation completed');
 

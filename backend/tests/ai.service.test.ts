@@ -102,12 +102,14 @@ function providerOutput(overrides: Record<string, unknown> = {}) {
 function createHarness(input: {
   meeting?: MeetingRepositoryDto | null;
   providerOutput?: unknown;
+  providerUsage?: { inputTokens: number; outputTokens: number; totalTokens: number } | null;
   providerError?: unknown;
   userCount?: number;
   workspaceCount?: number;
   updatedMeeting?: MeetingRepositoryDto | null;
   aiConfigured?: boolean;
   participants?: Array<{ id: string; name: string }>;
+  cachedRequest?: { id: string; completedAt?: string | null } | null;
   logger?: {
     info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -119,7 +121,10 @@ function createHarness(input: {
         throw input.providerError;
       }
 
-      return input.providerOutput ?? providerOutput();
+      return {
+        output: input.providerOutput ?? providerOutput(),
+        usage: input.providerUsage ?? null,
+      };
     }),
   };
   const meetings = {
@@ -136,6 +141,9 @@ function createHarness(input: {
     markSummaryRequestFailed: vi.fn().mockResolvedValue({ id: 'request_1' }),
     countRecentSummaryRequestsForWorkspace: vi.fn().mockResolvedValue(input.workspaceCount ?? 0),
     countRecentSummaryRequestsForUserInWorkspace: vi.fn().mockResolvedValue(input.userCount ?? 0),
+    findCompletedSummaryRequestByInputHash: vi.fn().mockResolvedValue(
+      input.cachedRequest === undefined ? null : input.cachedRequest,
+    ),
   };
   const participants = {
     listParticipantNamesForWorkspace: vi.fn().mockResolvedValue(
@@ -192,6 +200,34 @@ describe('AiSummaryService', () => {
       workspaceId,
       'request_1',
       now,
+      null,
+    );
+  });
+
+  it('persists and logs token usage returned by the provider', async () => {
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+    };
+    const usage = { inputTokens: 320, outputTokens: 90, totalTokens: 410 };
+    const { ai, service } = createHarness({ providerUsage: usage, logger });
+
+    await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+
+    expect(ai.markSummaryRequestCompleted).toHaveBeenCalledWith(
+      workspaceId,
+      'request_1',
+      now,
+      usage,
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'ai_summary_generation_completed',
+        inputTokens: 320,
+        outputTokens: 90,
+        totalTokens: 410,
+      }),
+      'AI summary generation completed',
     );
   });
 
@@ -565,6 +601,63 @@ describe('AiSummaryService', () => {
       'ai_summary_rate_limited',
     );
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+  });
+
+  it('returns a cached summary without calling the provider when the input hash matches', async () => {
+    const cachedSummary = {
+      id: 'summary_cached_1',
+      meetingId,
+      shortSummary: 'Cached summary text.',
+      mainTopics: ['Cached topic'],
+      keyTensions: [],
+      agreements: [],
+      tasks: [],
+      suggestedNextMeetingFocus: [],
+      createdAt: '2026-06-01T00:00:00.000Z',
+    };
+    const { ai, meetings, provider, service } = createHarness({
+      meeting: meeting({ aiSummary: cachedSummary }),
+      cachedRequest: { id: 'cached_request_1' },
+    });
+
+    const response = await service.generateMeetingSummary(
+      auth,
+      { meetingId },
+      new Date(now),
+    );
+
+    expect(response.summary).toMatchObject({ shortSummary: 'Cached summary text.' });
+    expect(response.generatedAt).toBe('2026-06-01T00:00:00.000Z');
+    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+    expect(ai.createSummaryRequest).not.toHaveBeenCalled();
+    expect(meetings.updateMeetingSummary).not.toHaveBeenCalled();
+    expect(ai.findCompletedSummaryRequestByInputHash).toHaveBeenCalledWith(
+      workspaceId,
+      meetingId,
+      expect.any(String),
+    );
+  });
+
+  it('falls through to a fresh generation when no cached request matches the input hash', async () => {
+    const { ai, provider, service } = createHarness({ cachedRequest: null });
+
+    await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+
+    expect(ai.findCompletedSummaryRequestByInputHash).toHaveBeenCalled();
+    expect(provider.generateMeetingSummary).toHaveBeenCalled();
+    expect(ai.createSummaryRequest).toHaveBeenCalled();
+  });
+
+  it('falls through to a fresh generation when the cached meeting summary fails validation', async () => {
+    const { ai, provider, service } = createHarness({
+      meeting: meeting({ aiSummary: { shortSummary: 'not a valid cached summary shape' } }),
+      cachedRequest: { id: 'cached_request_1' },
+    });
+
+    await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+
+    expect(provider.generateMeetingSummary).toHaveBeenCalled();
+    expect(ai.createSummaryRequest).toHaveBeenCalled();
   });
 
   it('blocks viewers before checking rate limits or loading meeting text', async () => {

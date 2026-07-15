@@ -1,6 +1,7 @@
 import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
+import type { AiSummaryTokenUsage } from './openai.client.js';
 
 const AI_SUMMARY_REQUEST_COLUMNS =
   'id,workspace_id,user_id,meeting_id,provider,status,input_hash,created_at,completed_at,error_code' as const;
@@ -103,10 +104,43 @@ export class AiRepository {
     return data ? mapAiSummaryRequestRowToDto(data) : null;
   }
 
-  async markSummaryRequestCompleted(workspaceId: string, requestId: string, completedAt: string) {
+  async findCompletedSummaryRequestByInputHash(
+    workspaceId: string,
+    meetingId: string,
+    inputHash: string,
+  ) {
     const { data, error } = await this.supabase
       .from('ai_summary_requests')
-      .update({ status: 'completed', completed_at: completedAt, error_code: null })
+      .select(PUBLIC_AI_SUMMARY_REQUEST_COLUMNS)
+      .eq('workspace_id', workspaceId)
+      .eq('meeting_id', meetingId)
+      .eq('input_hash', inputHash)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<PublicAiSummaryRequestRow>();
+
+    throwOnSupabaseError(error, 'ai_summary_request_lookup_failed', 'Unable to load AI summary request.');
+
+    return data ? mapAiSummaryRequestRowToDto(data) : null;
+  }
+
+  async markSummaryRequestCompleted(
+    workspaceId: string,
+    requestId: string,
+    completedAt: string,
+    usage?: AiSummaryTokenUsage | null,
+  ) {
+    const { data, error } = await this.supabase
+      .from('ai_summary_requests')
+      .update({
+        status: 'completed',
+        completed_at: completedAt,
+        error_code: null,
+        input_tokens: usage?.inputTokens ?? null,
+        output_tokens: usage?.outputTokens ?? null,
+        total_tokens: usage?.totalTokens ?? null,
+      })
       .eq('workspace_id', workspaceId)
       .eq('id', requestId)
       .select(PUBLIC_AI_SUMMARY_REQUEST_COLUMNS)
