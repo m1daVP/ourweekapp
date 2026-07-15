@@ -67,7 +67,7 @@ export const aiRoutes: FastifyPluginAsyncZod = async (app) => {
       config: {
         authRequired: true,
         rateLimit: {
-          max: 10,
+          max: 25,
           timeWindow: '1 hour',
         },
       },
