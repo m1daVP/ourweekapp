@@ -3,7 +3,10 @@ import { generateAiMeetingSummary } from '@/shared/api/aiApi';
 import type { AiMeetingSummaryDto } from '@/shared/api/aiApi';
 import { i18n } from '@/features/localization/i18n';
 
-const backendAiSummaryTimeoutMs = 20000;
+// Backend's OpenAI call worst-case is ~30-32s (15s timeout x 2 attempts +
+// backoff, see openai.client.ts) — keep this above that so the backend
+// always gives up before the client does.
+const backendAiSummaryTimeoutMs = 45000;
 
 export function getAiSummaryPromptContract() {
   return i18n.global.tm('ai.promptContract') as string[];
