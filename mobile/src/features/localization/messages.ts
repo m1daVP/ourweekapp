@@ -1337,6 +1337,10 @@ export const messages = {
       agreementOther: 'agreements',
       taskOne: 'task',
       taskOther: 'tasks',
+      quotaUserLimitReached:
+        "You've used all {count} AI summaries you get this hour. Try again after {resetTime}.",
+      quotaWorkspaceLimitReached:
+        "Your household has used all {count} AI summaries it gets this hour. Try again after {resetTime}.",
     },
     storage: {
       blocked:
@@ -2762,6 +2766,10 @@ export const messages = {
       agreementOther: 'домовленостей',
       taskOne: 'завдання',
       taskOther: 'завдань',
+      quotaUserLimitReached:
+        'Ви використали всі {count} AI-підсумків, доступних вам цієї години. Спробуйте ще раз після {resetTime}.',
+      quotaWorkspaceLimitReached:
+        'Ваша родина використала всі {count} AI-підсумків, доступних цієї години. Спробуйте ще раз після {resetTime}.',
     },
     storage: {
       blocked:
@@ -4205,6 +4213,10 @@ export const messages = {
       agreementOther: 'acuerdos',
       taskOne: 'tarea',
       taskOther: 'tareas',
+      quotaUserLimitReached:
+        'Ya usaste tus {count} resúmenes de IA de esta hora. Vuelve a intentarlo después de las {resetTime}.',
+      quotaWorkspaceLimitReached:
+        'Tu hogar ya usó sus {count} resúmenes de IA de esta hora. Vuelve a intentarlo después de las {resetTime}.',
     },
     storage: {
       blocked:
