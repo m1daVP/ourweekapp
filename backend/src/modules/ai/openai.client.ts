@@ -53,20 +53,34 @@ const MEETING_SUMMARY_OUTPUT_SCHEMA = {
   ],
 } as const;
 
+export type AiSummaryTokenUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+};
+
+export type AiSummaryProviderResult = {
+  output: unknown;
+  usage: AiSummaryTokenUsage | null;
+};
+
 export type AiSummaryProvider = {
   generateMeetingSummary(input: {
     systemPrompt: string;
     userPrompt: string;
     model: string;
     maxOutputTokens: number;
-  }): Promise<unknown>;
+  }): Promise<AiSummaryProviderResult>;
 };
 
 export class OpenAiSummaryProvider implements AiSummaryProvider {
   private readonly client: OpenAI;
 
   constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey });
+    // Worst case with retries (~2 x timeout + backoff, ~30-32s) must stay
+    // under the frontend's abort window (aiSummaryService.ts, currently 45s)
+    // so the backend always gives up before the client does.
+    this.client = new OpenAI({ apiKey, timeout: 15_000, maxRetries: 1 });
   }
 
   async generateMeetingSummary(input: {
@@ -91,11 +105,17 @@ export class OpenAiSummaryProvider implements AiSummaryProvider {
       },
     });
     const content = response.output_text;
+    const usage = response.usage
+      ? {
+          inputTokens: response.usage.input_tokens,
+          outputTokens: response.usage.output_tokens,
+          totalTokens: response.usage.total_tokens,
+        }
+      : null;
 
-    if (!content) {
-      return null;
-    }
-
-    return JSON.parse(content) as unknown;
+    return {
+      output: content ? (JSON.parse(content) as unknown) : null,
+      usage,
+    };
   }
 }
