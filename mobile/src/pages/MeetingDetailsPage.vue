@@ -12,7 +12,10 @@ import {
   shareExportFile,
   type MeetingExportFormat,
 } from '@/features/export/services/exportService';
-import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
+import {
+  generateMeetingSummary,
+  getAiQuotaMessage,
+} from '@/features/meeting/aiSummaryService';
 import {
   getMeetingSectionPrompt,
   getMeetingSectionTitle,
@@ -326,8 +329,8 @@ async function generateSummary() {
   try {
     const summary = await generateMeetingSummary(meeting.value);
     meetingsStore.saveAiSummary(meeting.value.id, summary);
-  } catch {
-    aiSummaryError.value = t('meeting.generateFailed');
+  } catch (error) {
+    aiSummaryError.value = getAiQuotaMessage(error) ?? t('meeting.generateFailed');
   } finally {
     isGeneratingSummary.value = false;
   }

@@ -4,7 +4,13 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
-import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
+import {
+  generateMeetingSummary,
+  getAiQuotaMessage,
+  formatAiQuotaMessage,
+  type AiQuotaInfo,
+  type AiQuotaScope,
+} from '@/features/meeting/aiSummaryService';
 import { getMeetingTemplateName } from '@/features/meeting/meetingTemplates';
 import type {
   Meeting,
@@ -142,6 +148,31 @@ const canGenerateAiSummary = computed(() =>
 
 const aiSummaryRouteStatus = computed(() =>
   String(route.query.aiSummary ?? '')
+);
+
+const aiSummaryRouteQuotaInfo = computed<AiQuotaInfo | null>(() => {
+  const scope = route.query.aiSummaryScope;
+  const resetAt = route.query.aiSummaryReset;
+  const limit = Number(route.query.aiSummaryLimit);
+
+  if (
+    (scope === 'user' || scope === 'workspace') &&
+    typeof resetAt === 'string' &&
+    Number.isFinite(limit)
+  ) {
+    return { scope: scope as AiQuotaScope, limit, resetAt };
+  }
+
+  return null;
+});
+
+const aiSummaryErrorMessage = computed(
+  () =>
+    aiSummaryError.value ||
+    (aiSummaryRouteQuotaInfo.value
+      ? formatAiQuotaMessage(aiSummaryRouteQuotaInfo.value)
+      : '') ||
+    meetingSummaryText('aiFailed')
 );
 
 const aiInsightState = computed<AiInsightState>(() => {
@@ -411,8 +442,8 @@ async function handleGenerateSummary() {
   try {
     const summary = await generateMeetingSummary(accessibleMeeting.value);
     meetingsStore.saveAiSummary(accessibleMeeting.value.id, summary);
-  } catch {
-    aiSummaryError.value = meetingSummaryText('aiFailed');
+  } catch (error) {
+    aiSummaryError.value = getAiQuotaMessage(error) ?? meetingSummaryText('aiFailed');
   } finally {
     isGeneratingSummary.value = false;
   }
@@ -499,7 +530,7 @@ function goBack() {
           </RouterLink>
         </template>
         <p v-else-if="aiInsightState === 'error'">
-          {{ meetingSummaryText('aiFailed') }}
+          {{ aiSummaryErrorMessage }}
         </p>
         <p v-else>{{ meetingSummaryText('aiEmpty') }}</p>
         <button

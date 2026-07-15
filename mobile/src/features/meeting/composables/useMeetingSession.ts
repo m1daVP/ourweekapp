@@ -8,7 +8,10 @@ import type {
 } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
-import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
+import {
+  generateMeetingSummary,
+  parseAiQuotaError,
+} from '@/features/meeting/aiSummaryService';
 import {
   agreementSectionIds,
   getMeetingSectionPrompt,
@@ -1228,6 +1231,7 @@ export function useMeetingSession() {
 
     try {
       let aiSummaryFailed = false;
+      let aiQuotaInfo: ReturnType<typeof parseAiQuotaError> = null;
 
       if (canUseFeature('aiSummary')) {
         const completedMeeting = meetingsStore.meetings.find(
@@ -1238,8 +1242,9 @@ export function useMeetingSession() {
           try {
             const summary = await generateMeetingSummary(completedMeeting);
             meetingsStore.saveAiSummary(meetingId, summary);
-          } catch {
+          } catch (error) {
             aiSummaryFailed = true;
+            aiQuotaInfo = parseAiQuotaError(error);
           }
         }
       }
@@ -1247,7 +1252,18 @@ export function useMeetingSession() {
       await router.push({
         name: 'meeting-summary',
         params: { meetingId },
-        query: aiSummaryFailed ? { aiSummary: 'failed' } : {},
+        query: aiSummaryFailed
+          ? {
+              aiSummary: 'failed',
+              ...(aiQuotaInfo
+                ? {
+                    aiSummaryScope: aiQuotaInfo.scope,
+                    aiSummaryLimit: String(aiQuotaInfo.limit),
+                    aiSummaryReset: aiQuotaInfo.resetAt,
+                  }
+                : {}),
+            }
+          : {},
       });
     } finally {
       isFinishingMeeting.value = false;
