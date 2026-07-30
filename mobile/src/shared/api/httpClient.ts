@@ -1,5 +1,6 @@
 import { appConfig } from '@/shared/config/env';
 import { translate } from '@/features/localization/i18n';
+import { debugSafely } from '@/shared/services/safeLogService';
 
 const API_VERSION_PREFIX = '/v1';
 
@@ -97,13 +98,16 @@ async function sendApiRequest<TResponse>(
   path: string,
   options: ApiRequestOptions = {}
 ) {
+  const requestPath = createVersionedPath(path);
+  const requestMethod = options.method ?? 'GET';
+  const startedAt = Date.now();
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...options.headers,
   };
 
   const requestOptions: RequestInit = {
-    method: options.method ?? 'GET',
+    method: requestMethod,
     headers,
     signal: options.signal,
   };
@@ -119,7 +123,30 @@ async function sendApiRequest<TResponse>(
     requestOptions.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(createUrl(path), requestOptions);
+  debugSafely('API request started.', {
+    path: requestPath,
+  });
+
+  let response: Response;
+
+  try {
+    response = await fetch(createUrl(path), requestOptions);
+  } catch (error) {
+    debugSafely('API request failed.', {
+      durationMs: Date.now() - startedAt,
+      errorCategory: error instanceof Error ? error.name : 'UnknownError',
+      path: requestPath,
+    });
+    throw error;
+  }
+
+  debugSafely('API request finished.', {
+    durationMs: Date.now() - startedAt,
+    errorCategory: response.ok ? 'none' : 'http_error',
+    path: requestPath,
+    status: response.status,
+  });
+
   const responseBody = await readResponseBody(response);
 
   if (!response.ok) {

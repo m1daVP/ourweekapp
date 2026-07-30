@@ -120,6 +120,22 @@ Run quality checks:
 npm run check
 ```
 
+Enable the mobile vConsole debug panel only for local or staging builds:
+
+```txt
+VITE_VCONSOLE_ENABLED=true
+```
+
+Use `npm run build:staging` or `npm run cap:sync:staging` when testing a
+staging bundle. An enabled staging panel opens before router startup, and its
+floating switch is kept above the Android system navigation area. Authentication
+requests are excluded from vConsole's network panel; app diagnostics log only
+redacted stages, paths, statuses, durations, and error categories. Release and
+production modes always disable vConsole, even if the flag is set. Because the
+remaining console and network details may still contain sensitive debugging
+information, use it only with non-production data and never enable it for a
+public release.
+
 Format files:
 
 ```bash

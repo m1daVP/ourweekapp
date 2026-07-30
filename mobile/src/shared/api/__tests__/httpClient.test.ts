@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AppConfig } from '@/shared/config/env';
 
+const debugSafely = vi.hoisted(() => vi.fn());
+
 const enabledConfig: AppConfig = {
   apiBaseUrl: 'http://api.test',
   appEnvironment: 'local',
@@ -30,11 +32,15 @@ async function loadHttpClient(config: AppConfig = enabledConfig) {
   vi.doMock('@/features/localization/i18n', () => ({
     translate: (key: string) => key,
   }));
+  vi.doMock('@/shared/services/safeLogService', () => ({
+    debugSafely,
+  }));
 
   return import('@/shared/api/httpClient');
 }
 
 afterEach(() => {
+  debugSafely.mockReset();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -60,6 +66,20 @@ describe('apiRequest', () => {
           'Content-Type': 'application/json',
         }),
       })
+    );
+    expect(debugSafely).toHaveBeenCalledWith('API request started.', {
+      path: '/v1/auth/sign-in',
+    });
+    expect(debugSafely).toHaveBeenCalledWith(
+      'API request finished.',
+      expect.objectContaining({
+        errorCategory: 'none',
+        path: '/v1/auth/sign-in',
+        status: 200,
+      })
+    );
+    expect(JSON.stringify(debugSafely.mock.calls)).not.toContain(
+      'rita@example.com'
     );
   });
 

@@ -7,6 +7,7 @@ import { i18n } from './features/localization/i18n';
 import { initializeStorageServices } from './shared/services/storageService';
 import { hideLaunchSplash } from './shared/services/splashScreenService';
 import { configureSystemBars } from './shared/services/systemBarsService';
+import { initializeVConsole } from './shared/services/vconsoleService';
 import * as Sentry from '@sentry/vue';
 import './styles/main.css';
 
@@ -26,16 +27,21 @@ if (sentryDsn) {
 
 app.use(pinia);
 
-void initializeStorageServices().then(() => {
+async function bootstrapApp() {
+  await initializeVConsole();
+  await initializeStorageServices();
+
   useLocalizationStore().applyLocale();
 
   app.use(i18n).use(router);
 
-  void router.isReady().then(() => {
-    app.mount('#app');
-    void configureSystemBars().then(async () => {
-      await hideLaunchSplash();
-      await configureSystemBars();
-    });
+  await router.isReady();
+  app.mount('#app');
+
+  void configureSystemBars().then(async () => {
+    await hideLaunchSplash();
+    await configureSystemBars();
   });
-});
+}
+
+void bootstrapApp();
