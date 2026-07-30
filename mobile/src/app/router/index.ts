@@ -3,6 +3,7 @@ import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
+import { createBackgroundAuthVerificationCoordinator } from '@/app/router/backgroundAuthVerification';
 import AccountPage from '@/pages/AccountPage.vue';
 import CalendarSyncPage from '@/pages/CalendarSyncPage.vue';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
@@ -185,35 +186,13 @@ export const router = createRouter({
   ],
 });
 
-function verifyCurrentUserInBackground() {
-  const authStore = useAuthStore();
-
-  void authStore
-    .verifyCurrentUser()
-    .then((isVerified) => {
-      const currentRoute = router.currentRoute.value;
-
-      if (isVerified) {
-        if (currentRoute.meta.guestOnly) {
-          void router.replace({ name: 'home' });
-        }
-
-        return;
-      }
-
-      if (
-        authStore.sessionCheckStatus !== 'unauthorized' ||
-        isUnauthenticatedRouteName(currentRoute.name)
-      ) {
-        return;
-      }
-
-      void router.replace(
-        getSignedOutRedirect(currentRoute.name, currentRoute.fullPath)
-      );
-    })
-    .catch(() => undefined);
-}
+const backgroundAuthVerification = createBackgroundAuthVerificationCoordinator({
+  getAuthStore: useAuthStore,
+  getCurrentRoute: () => router.currentRoute.value,
+  getSignedOutRedirect,
+  isUnauthenticatedRouteName,
+  replace: (target) => router.replace(target),
+});
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
@@ -224,7 +203,7 @@ router.beforeEach(async (to) => {
   await authStore.hydrateSecureTokens();
 
   if (authStore.authStatus === 'authenticated') {
-    verifyCurrentUserInBackground();
+    void backgroundAuthVerification.requestVerification();
   }
 
   if (!authStore.isAuthenticated && !isUnauthenticatedRoute) {
