@@ -1,20 +1,44 @@
 import { Capacitor } from '@capacitor/core';
-import { SocialLogin } from '@capgo/capacitor-social-login';
+import { ErrorCode, GoogleSignIn } from '@capawesome/capacitor-google-sign-in';
 import { appConfig } from '@/shared/config/env';
 import { translate } from '@/features/localization/i18n';
 
 let initializationPromise: Promise<void> | null = null;
+const GOOGLE_INITIALIZATION_TIMEOUT_MS = 10_000;
+const GOOGLE_LOGIN_TIMEOUT_MS = 60_000;
 
 export class GoogleSignInError extends Error {
-  code: 'unavailable' | 'missing_id_token' | 'cancelled';
+  code: 'unavailable' | 'missing_id_token' | 'cancelled' | 'timed_out';
 
   constructor(
-    code: 'unavailable' | 'missing_id_token' | 'cancelled',
+    code: 'unavailable' | 'missing_id_token' | 'cancelled' | 'timed_out',
     message: string
   ) {
     super(message);
     this.name = 'GoogleSignInError';
     this.code = code;
+  }
+}
+
+async function withGoogleTimeout<T>(operation: Promise<T>, timeoutMs: number) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutId = globalThis.setTimeout(() => {
+      reject(
+        new GoogleSignInError(
+          'timed_out',
+          translate('auth.googleProviderTimedOut')
+        )
+      );
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([operation, timeout]);
+  } finally {
+    if (timeoutId !== undefined) {
+      globalThis.clearTimeout(timeoutId);
+    }
   }
 }
 
@@ -26,19 +50,11 @@ function getGoogleClientConfig() {
   const platform = Capacitor.getPlatform();
 
   if (platform === 'android') {
-    return appConfig.googleWebClientId
-      ? { webClientId: appConfig.googleWebClientId, mode: 'online' as const }
-      : null;
+    return appConfig.googleWebClientId ?? null;
   }
 
   if (platform === 'ios') {
-    return appConfig.googleIosClientId
-      ? {
-          iOSClientId: appConfig.googleIosClientId,
-          iOSServerClientId: appConfig.googleWebClientId ?? undefined,
-          mode: 'online' as const,
-        }
-      : null;
+    return appConfig.googleWebClientId ?? null;
   }
 
   return null;
@@ -62,9 +78,14 @@ async function initializeGoogleSignIn() {
   }
 
   if (!initializationPromise) {
-    initializationPromise = SocialLogin.initialize({
-      google: googleConfig,
-    }).catch((error: unknown) => {
+    initializationPromise = withGoogleTimeout(
+      GoogleSignIn.initialize({
+        clientId: googleConfig,
+        // Do not request OAuth scopes. Our backend only needs the ID token,
+        // and scopes would start a second native authorization flow.
+      }),
+      GOOGLE_INITIALIZATION_TIMEOUT_MS
+    ).catch((error: unknown) => {
       initializationPromise = null;
       throw error;
     });
@@ -78,7 +99,7 @@ function isUserCancelledError(error: unknown) {
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
-    (error as { code?: unknown }).code === 'USER_CANCELLED'
+    (error as { code?: unknown }).code === ErrorCode.SignInCanceled
   );
 }
 
@@ -86,17 +107,14 @@ export async function getNativeGoogleIdToken() {
   await initializeGoogleSignIn();
 
   try {
-    const login = await SocialLogin.login({
-      provider: 'google',
-      options: {},
-    });
+    const login = await withGoogleTimeout(
+      GoogleSignIn.signIn(),
+      GOOGLE_LOGIN_TIMEOUT_MS
+    );
 
-    const result = login.result;
     const idToken =
-      'idToken' in result &&
-      typeof result.idToken === 'string' &&
-      result.idToken.trim()
-        ? result.idToken
+      typeof login.idToken === 'string' && login.idToken.trim()
+        ? login.idToken
         : null;
 
     if (!idToken) {

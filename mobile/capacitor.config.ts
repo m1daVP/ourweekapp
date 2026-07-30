@@ -20,15 +20,6 @@ const config: CapacitorConfig = {
     LocalNotifications: {
       presentationOptions: ['badge', 'sound', 'banner', 'list'],
     },
-    SocialLogin: {
-      providers: {
-        google: true,
-        facebook: false,
-        apple: false,
-        twitter: false,
-      },
-      logLevel: 1,
-    },
   },
 };
 
