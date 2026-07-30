@@ -186,6 +186,8 @@ export const messages = {
       googleSignInUnavailable:
         'Google sign-in is not available on this device right now.',
       googleSignInFailed: 'Could not sign in with Google. Please try again.',
+      secureSessionSaveFailed:
+        'We could not save your sign-in securely. Please try again.',
       googleTokenRejected:
         'Google accepted the account, but OurWeek could not verify it yet. Please use email sign-in for now.',
       googleTokenMissing:
@@ -196,6 +198,12 @@ export const messages = {
         'Google sign-in is not configured yet. Please use email sign-in for now.',
       googleTooManyAttempts:
         'Too many sign-in attempts. Please wait a moment and try again.',
+      googleRequestTimedOut:
+        'Google sign-in took too long to finish. Please try again.',
+      googleProviderTimedOut:
+        'Google sign-in took too long to finish. Please return to OurWeek and try again.',
+      navigationFailed:
+        'You are signed in, but OurWeek could not open the app. Please try again.',
       errorDetails: 'Details',
       openDiagnostics: 'Open support diagnostics',
       accountRequired: 'Create an account or sign in to use this feature.',
@@ -643,6 +651,7 @@ export const messages = {
       online: 'Online',
       accountState: 'Account',
       lastAuthIssue: 'Last auth issue',
+      authStage: 'Auth stage',
       authIssueNone: 'None recorded',
       authIssueHasDetails: 'details available',
       plan: 'Plan',
@@ -1340,7 +1349,7 @@ export const messages = {
       quotaUserLimitReached:
         "You've used all {count} AI summaries you get this hour. Try again after {resetTime}.",
       quotaWorkspaceLimitReached:
-        "Your household has used all {count} AI summaries it gets this hour. Try again after {resetTime}.",
+        'Your household has used all {count} AI summaries it gets this hour. Try again after {resetTime}.',
     },
     storage: {
       blocked:
@@ -1580,6 +1589,8 @@ export const messages = {
       googleSignInUnavailable:
         'Вхід через Google зараз недоступний на цьому пристрої.',
       googleSignInFailed: 'Не вдалося увійти через Google. Спробуйте ще раз.',
+      secureSessionSaveFailed:
+        'Не вдалося безпечно зберегти дані входу. Спробуйте ще раз.',
       googleTokenRejected:
         'Google прийняв акаунт, але OurWeek ще не зміг його перевірити. Поки увійдіть через електронну пошту.',
       googleTokenMissing:
@@ -1590,6 +1601,12 @@ export const messages = {
         'Вхід через Google ще не налаштовано. Поки увійдіть через електронну пошту.',
       googleTooManyAttempts:
         'Забагато спроб входу. Зачекайте трохи й спробуйте ще раз.',
+      googleRequestTimedOut:
+        'Вхід через Google тривав надто довго. Спробуйте ще раз.',
+      googleProviderTimedOut:
+        'Вхід через Google тривав надто довго. Поверніться до OurWeek і спробуйте ще раз.',
+      navigationFailed:
+        'Ви увійшли, але OurWeek не зміг відкрити застосунок. Спробуйте ще раз.',
       errorDetails: 'Деталі',
       openDiagnostics: 'Відкрити діагностику підтримки',
       accountRequired:
@@ -2043,6 +2060,7 @@ export const messages = {
       online: 'Онлайн',
       accountState: 'Акаунт',
       lastAuthIssue: 'Остання проблема входу',
+      authStage: 'Етап входу',
       authIssueNone: 'Нічого не записано',
       authIssueHasDetails: 'є деталі',
       plan: 'План',
@@ -3014,6 +3032,8 @@ export const messages = {
         'El inicio con Google no está disponible en este dispositivo ahora.',
       googleSignInFailed:
         'No se pudo iniciar sesión con Google. Inténtalo de nuevo.',
+      secureSessionSaveFailed:
+        'No pudimos guardar tu inicio de sesión de forma segura. Inténtalo de nuevo.',
       googleTokenRejected:
         'Google aceptó la cuenta, pero OurWeek aún no pudo verificarla. Usa el inicio con correo por ahora.',
       googleTokenMissing:
@@ -3024,6 +3044,12 @@ export const messages = {
         'El inicio con Google aún no está configurado. Usa el inicio con correo por ahora.',
       googleTooManyAttempts:
         'Demasiados intentos de inicio. Espera un momento e inténtalo de nuevo.',
+      googleRequestTimedOut:
+        'El inicio con Google tardó demasiado. Inténtalo de nuevo.',
+      googleProviderTimedOut:
+        'El inicio con Google tardó demasiado. Vuelve a OurWeek e inténtalo de nuevo.',
+      navigationFailed:
+        'Iniciaste sesión, pero OurWeek no pudo abrir la app. Inténtalo de nuevo.',
       errorDetails: 'Detalles',
       openDiagnostics: 'Abrir diagnóstico de soporte',
       accountRequired: 'Crea una cuenta o inicia sesión para continuar.',
@@ -3484,6 +3510,7 @@ export const messages = {
       online: 'En línea',
       accountState: 'Cuenta',
       lastAuthIssue: 'Último problema de inicio',
+      authStage: 'Etapa de inicio',
       authIssueNone: 'Nada registrado',
       authIssueHasDetails: 'detalles disponibles',
       plan: 'Plan',

@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
 import GoogleSignInButton from '@/features/auth/GoogleSignInButton.vue';
 import { isNativeGoogleSignInSupported } from '@/features/auth/googleSignInService';
+import { navigateAfterAuthentication } from '@/features/auth/postAuthNavigation';
+import { captureHandledError } from '@/shared/services/errorMonitoringService';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const { t } = useI18n();
 const formError = ref('');
+const isNavigating = ref(false);
 const form = reactive({
   displayName: '',
   email: '',
@@ -17,7 +20,15 @@ const form = reactive({
 });
 const showGoogleSignIn = isNativeGoogleSignInSupported();
 
-const isSubmitting = computed(() => authStore.authStatus === 'loading');
+const isSubmitting = computed(
+  () => authStore.authStatus === 'loading' || isNavigating.value
+);
+const isGoogleSignInPending = computed(
+  () =>
+    authStore.authStatus === 'loading' &&
+    authStore.authOperationStage !== 'idle' &&
+    authStore.authOperationStage !== 'navigation'
+);
 const authErrorDetails = computed(() => {
   const error = authStore.lastAuthError;
 
@@ -27,6 +38,7 @@ const authErrorDetails = computed(() => {
 
   return [
     error.source,
+    error.stage,
     error.status ? String(error.status) : null,
     error.code,
     error.name,
@@ -35,6 +47,29 @@ const authErrorDetails = computed(() => {
     .filter(Boolean)
     .join(' / ');
 });
+
+async function openAuthenticatedApp(provider: 'google' | 'password') {
+  authStore.setAuthOperationStage('navigation');
+  isNavigating.value = true;
+
+  try {
+    await navigateAfterAuthentication(router);
+    authStore.setAuthOperationStage('idle');
+    return true;
+  } catch (error) {
+    captureHandledError(error, {
+      tags: {
+        feature: 'auth',
+        provider,
+        stage: 'navigation',
+      },
+    });
+    formError.value = t('auth.navigationFailed');
+    return false;
+  } finally {
+    isNavigating.value = false;
+  }
+}
 
 async function handleSubmit() {
   formError.value = '';
@@ -61,7 +96,7 @@ async function handleSubmit() {
   });
 
   if (didSignUp) {
-    void router.push({ name: 'home' });
+    await openAuthenticatedApp('password');
     return;
   }
 
@@ -74,12 +109,26 @@ async function handleGoogleSignIn() {
   const didSignIn = await authStore.signInWithGoogle();
 
   if (didSignIn) {
-    void router.push({ name: 'home' });
+    await openAuthenticatedApp('google');
+    return;
+  }
+
+  if (authStore.authStatus === 'idle' && !authStore.errorMessage) {
     return;
   }
 
   formError.value = authStore.errorMessage || t('auth.googleSignInFailed');
 }
+
+function cancelGoogleSignIn() {
+  formError.value = '';
+  authStore.cancelPendingGoogleSignIn();
+}
+
+onBeforeRouteLeave(() => {
+  authStore.cancelPendingGoogleSignIn();
+  return true;
+});
 </script>
 
 <template>
@@ -138,11 +187,21 @@ async function handleGoogleSignIn() {
         :loading="isSubmitting"
         @click="handleGoogleSignIn"
       />
+      <button
+        v-if="isGoogleSignInPending"
+        class="base-button base-button--ghost"
+        type="button"
+        @click="cancelGoogleSignIn"
+      >
+        {{ t('common.cancel') }}
+      </button>
     </div>
 
     <p class="auth-switch">
       {{ t('auth.alreadyHaveAccount') }}
-      <RouterLink :to="{ name: 'sign-in' }">{{ t('auth.signIn') }}</RouterLink>
+      <RouterLink :to="{ name: 'sign-in' }" @click="cancelGoogleSignIn">
+        {{ t('auth.signIn') }}
+      </RouterLink>
     </p>
   </section>
 </template>

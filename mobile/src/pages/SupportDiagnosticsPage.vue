@@ -62,6 +62,7 @@ function formatLastAuthError(
 
   const parts = [
     error.source,
+    error.stage,
     error.status ? String(error.status) : null,
     error.code,
     error.name,
@@ -168,6 +169,12 @@ onMounted(() => {
         <div>
           <dt>{{ t('supportDiagnostics.lastAuthIssue') }}</dt>
           <dd>{{ formatLastAuthError(diagnostics?.account.lastAuthError) }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('supportDiagnostics.authStage') }}</dt>
+          <dd>
+            {{ diagnostics?.account.authStage ?? t('common.notAvailable') }}
+          </dd>
         </div>
         <div>
           <dt>{{ t('supportDiagnostics.plan') }}</dt>

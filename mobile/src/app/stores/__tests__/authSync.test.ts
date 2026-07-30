@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signInWithGoogleIdToken: vi.fn(),
   signOut: vi.fn(),
+  debugSafely: vi.fn(),
   warnSafely: vi.fn(),
   writeAuthTokens: vi.fn(),
   writeOnboardingStorage: vi.fn(),
@@ -74,6 +75,7 @@ vi.mock('@/shared/services/storageService', () => ({
 }));
 
 vi.mock('@/shared/services/safeLogService', () => ({
+  debugSafely: mocks.debugSafely,
   warnSafely: mocks.warnSafely,
 }));
 
@@ -181,6 +183,7 @@ beforeEach(() => {
   mocks.signIn.mockReset();
   mocks.signInWithGoogleIdToken.mockReset();
   mocks.signOut.mockReset();
+  mocks.debugSafely.mockReset();
   mocks.warnSafely.mockReset();
   mocks.writeAuthTokens.mockReset();
   mocks.writeOnboardingStorage.mockReset();
@@ -243,9 +246,12 @@ describe('auth sync safety hooks', () => {
 
     expect(didSignIn).toBe(true);
     expect(mocks.getNativeGoogleIdToken).toHaveBeenCalled();
-    expect(mocks.signInWithGoogleIdToken).toHaveBeenCalledWith({
-      idToken: 'google-id-token',
-    });
+    expect(mocks.signInWithGoogleIdToken).toHaveBeenCalledWith(
+      {
+        idToken: 'google-id-token',
+      },
+      expect.any(AbortSignal)
+    );
     expect(mocks.writeAuthTokens).toHaveBeenCalledWith({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
@@ -255,6 +261,7 @@ describe('auth sync safety hooks', () => {
       'user-1'
     );
     expect(authStore.authStatus).toBe('authenticated');
+    expect(authStore.authOperationStage).toBe('session_commit');
   });
 
   it('clears partial auth state when Google Sign-In fails', async () => {
@@ -268,6 +275,24 @@ describe('auth sync safety hooks', () => {
     expect(mocks.clearAuthTokens).toHaveBeenCalled();
     expect(authStore.authStatus).toBe('error');
     expect(authStore.user).toBeNull();
+  });
+
+  it('exits loading when the native Google provider times out', async () => {
+    const authStore = useAuthStore();
+    const timeoutError = Object.assign(
+      new Error('auth.googleProviderTimedOut'),
+      {
+        code: 'timed_out',
+        name: 'GoogleSignInError',
+      }
+    );
+    mocks.getNativeGoogleIdToken.mockRejectedValue(timeoutError);
+
+    await expect(authStore.signInWithGoogle()).resolves.toBe(false);
+    expect(authStore.authStatus).toBe('error');
+    expect(authStore.authOperationStage).toBe('google_provider');
+    expect(authStore.errorMessage).toBe('auth.googleProviderTimedOut');
+    expect(mocks.signInWithGoogleIdToken).not.toHaveBeenCalled();
   });
 
   it('shows a clearer message and logs debug metadata when backend rejects a Google token', async () => {
@@ -296,6 +321,7 @@ describe('auth sync safety hooks', () => {
     expect(authStore.errorMessage).toBe('auth.googleTokenRejected');
     const expectedAuthError = {
       source: 'google',
+      stage: 'backend_exchange',
       status: 422,
       code: 'invalid_google_token',
       hasDetails: true,
@@ -328,16 +354,188 @@ describe('auth sync safety hooks', () => {
         tags: {
           feature: 'auth',
           provider: 'google',
+          stage: 'backend_exchange',
         },
         extra: {
           authError: expectedAuthError,
         },
       }
     );
-    expect(mocks.warnSafely).toHaveBeenCalledWith(
-      'Google sign-in failed.',
-      expectedAuthError
+    expect(mocks.warnSafely).toHaveBeenCalledWith('Google sign-in failed.', {
+      errorCategory: 'invalid_google_token',
+      stage: 'backend_exchange',
+      status: 422,
+    });
+  });
+
+  it('returns the failed stage without waiting for secure-token cleanup', async () => {
+    const authStore = useAuthStore();
+    const cleanup = createDeferred<void>();
+    mocks.signInWithGoogleIdToken.mockRejectedValue(new Error('failed'));
+    mocks.clearAuthTokens.mockReturnValue(cleanup.promise);
+
+    const signInPromise = authStore.signInWithGoogle();
+
+    await waitUntil(() => {
+      expect(authStore.authStatus).toBe('error');
+    });
+    expect(authStore.authOperationStage).toBe('backend_exchange');
+
+    await expect(signInPromise).resolves.toBe(false);
+    cleanup.resolve();
+  });
+
+  it('aborts a Google backend exchange after 20 seconds', async () => {
+    vi.useFakeTimers();
+    const authStore = useAuthStore();
+
+    mocks.signInWithGoogleIdToken.mockImplementation(
+      (_payload: unknown, signal: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => {
+            reject(
+              new DOMException('The operation was aborted.', 'AbortError')
+            );
+          });
+        })
     );
+
+    try {
+      const signInPromise = authStore.signInWithGoogle();
+      await vi.advanceTimersByTimeAsync(20_000);
+
+      await expect(signInPromise).resolves.toBe(false);
+      expect(authStore.authStatus).toBe('error');
+      expect(authStore.authOperationStage).toBe('backend_exchange');
+      expect(authStore.errorMessage).toBe('auth.googleRequestTimedOut');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('cancels provider selection and ignores its late response', async () => {
+    const authStore = useAuthStore();
+    const providerResult = createDeferred<string>();
+    mocks.getNativeGoogleIdToken.mockReturnValue(providerResult.promise);
+
+    const signInPromise = authStore.signInWithGoogle();
+    await waitUntil(() => {
+      expect(authStore.authOperationStage).toBe('google_provider');
+    });
+
+    expect(authStore.cancelPendingGoogleSignIn()).toBe(true);
+    expect(authStore.authStatus).toBe('idle');
+
+    providerResult.resolve('late-google-id-token');
+    await expect(signInPromise).resolves.toBe(false);
+    expect(mocks.signInWithGoogleIdToken).not.toHaveBeenCalled();
+    expect(mocks.writeAuthTokens).not.toHaveBeenCalled();
+  });
+
+  it('aborts the backend exchange when Google sign-in is cancelled', async () => {
+    const authStore = useAuthStore();
+    let backendSignal: AbortSignal | undefined;
+    mocks.signInWithGoogleIdToken.mockImplementation(
+      (_payload: unknown, signal: AbortSignal) => {
+        backendSignal = signal;
+        return new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => {
+            reject(
+              new DOMException('The operation was aborted.', 'AbortError')
+            );
+          });
+        });
+      }
+    );
+
+    const signInPromise = authStore.signInWithGoogle();
+    await waitUntil(() => {
+      expect(authStore.authOperationStage).toBe('backend_exchange');
+    });
+
+    expect(authStore.cancelPendingGoogleSignIn()).toBe(true);
+    expect(backendSignal?.aborted).toBe(true);
+    await expect(signInPromise).resolves.toBe(false);
+    expect(authStore.authStatus).toBe('idle');
+    expect(mocks.writeAuthTokens).not.toHaveBeenCalled();
+  });
+
+  it('prevents a session commit when cancelled during token storage', async () => {
+    const authStore = useAuthStore();
+    const tokenWrite = createDeferred<void>();
+    mocks.writeAuthTokens.mockReturnValue(tokenWrite.promise);
+
+    const signInPromise = authStore.signInWithGoogle();
+    await waitUntil(() => {
+      expect(authStore.authOperationStage).toBe('token_storage');
+    });
+
+    expect(authStore.cancelPendingGoogleSignIn()).toBe(true);
+    tokenWrite.resolve();
+
+    await expect(signInPromise).resolves.toBe(false);
+    expect(authStore.authStatus).toBe('idle');
+    expect(authStore.user).toBeNull();
+    expect(mocks.prepareSyncForAuthenticatedUser).not.toHaveBeenCalled();
+    expect(mocks.clearAuthTokens).toHaveBeenCalled();
+  });
+
+  it('exits loading when secure token persistence rejects', async () => {
+    const authStore = useAuthStore();
+    mocks.writeAuthTokens.mockRejectedValue(new Error('storage failed'));
+
+    const didSignIn = await authStore.signInWithGoogle();
+
+    expect(didSignIn).toBe(false);
+    expect(authStore.authStatus).toBe('error');
+    expect(authStore.authOperationStage).toBe('token_storage');
+    expect(authStore.lastAuthError).toMatchObject({
+      source: 'google',
+      stage: 'token_storage',
+      name: 'Error',
+    });
+  });
+
+  it('shows a secure-session message for categorized storage failures', async () => {
+    const authStore = useAuthStore();
+    mocks.writeAuthTokens.mockRejectedValue(
+      Object.assign(new Error('internal storage error'), {
+        code: 'secure_storage_timeout',
+        name: 'AuthTokenStorageError',
+      })
+    );
+
+    const didSignIn = await authStore.signInWithGoogle();
+
+    expect(didSignIn).toBe(false);
+    expect(authStore.authStatus).toBe('error');
+    expect(authStore.authOperationStage).toBe('token_storage');
+    expect(authStore.errorMessage).toBe('auth.secureSessionSaveFailed');
+    expect(authStore.lastAuthError).toMatchObject({
+      code: 'secure_storage_timeout',
+      name: 'AuthTokenStorageError',
+      source: 'google',
+      stage: 'token_storage',
+    });
+  });
+
+  it('uses the secure-session message for password sign-in storage failures', async () => {
+    const authStore = useAuthStore();
+    mocks.writeAuthTokens.mockRejectedValue(
+      Object.assign(new Error('internal storage error'), {
+        code: 'secure_storage_native_error',
+        name: 'AuthTokenStorageError',
+      })
+    );
+
+    const didSignIn = await authStore.signIn({
+      email: 'rita@example.com',
+      password: 'password123',
+    });
+
+    expect(didSignIn).toBe(false);
+    expect(authStore.authStatus).toBe('error');
+    expect(authStore.errorMessage).toBe('auth.secureSessionSaveFailed');
   });
 
   it('resets sync runtime state on logout cleanup', async () => {

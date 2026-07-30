@@ -40,6 +40,15 @@ import {
 import { deleteAccount, exportAccountData } from '@/shared/api/accountApi';
 
 vi.mock('@/shared/api/httpClient', () => ({
+  ApiClientError: class ApiClientError extends Error {
+    code?: string;
+
+    constructor(message: string, options: { code?: string } = {}) {
+      super(message);
+      this.name = 'ApiClientError';
+      this.code = options.code;
+    }
+  },
   apiRequest: vi.fn(),
 }));
 
@@ -86,12 +95,34 @@ describe('authApi', () => {
       },
     ]);
 
-    await signInWithGoogleIdToken({ idToken: 'google-id-token' });
+    const googleSession = {
+      user: {
+        id: 'user-1',
+        workspaceId: 'workspace-1',
+        email: 'rita@example.com',
+        displayName: 'Rita',
+        role: 'owner',
+        planType: 'free',
+        createdAt: '2026-07-21T12:00:00.000Z',
+        updatedAt: '2026-07-21T12:00:00.000Z',
+      },
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: '2026-07-21T13:00:00.000Z',
+    };
+    const googleRequestController = new AbortController();
+    apiRequestMock.mockResolvedValueOnce(googleSession);
+
+    await signInWithGoogleIdToken(
+      { idToken: 'google-id-token' },
+      googleRequestController.signal
+    );
     expect(lastApiCall()).toEqual([
       '/auth/google',
       {
         method: 'POST',
         body: { idToken: 'google-id-token' },
+        signal: googleRequestController.signal,
       },
     ]);
 
@@ -139,6 +170,20 @@ describe('authApi', () => {
         body: { token: 'reset-token', password: 'newpass123' },
       },
     ]);
+  });
+
+  it('rejects malformed Google session responses', async () => {
+    apiRequestMock.mockResolvedValueOnce({
+      user: { id: 'user-1' },
+      accessToken: 'access-token',
+    });
+
+    await expect(
+      signInWithGoogleIdToken({ idToken: 'google-id-token' })
+    ).rejects.toMatchObject({
+      name: 'ApiClientError',
+      code: 'invalid_auth_response',
+    });
   });
 });
 

@@ -67,6 +67,7 @@ vi.mock('@/shared/services/storageService', () => ({
 }));
 
 vi.mock('@/shared/services/safeLogService', () => ({
+  debugSafely: vi.fn(),
   warnSafely: vi.fn(),
 }));
 

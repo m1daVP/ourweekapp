@@ -20,6 +20,7 @@ const baseInput: SupportDiagnosticsInput = {
   account: {
     state: 'signed_in',
     role: 'owner',
+    authStage: 'idle',
     lastAuthError: null,
   },
   subscription: {
@@ -56,6 +57,7 @@ describe('supportDiagnosticsService', () => {
     expect(diagnostics.account).toEqual({
       state: 'signed_in',
       role: 'owner',
+      authStage: 'idle',
       lastAuthError: null,
     });
     expect(diagnostics.sync).toMatchObject({
@@ -76,6 +78,7 @@ describe('supportDiagnosticsService', () => {
         ...baseInput.account,
         lastAuthError: {
           source: 'google',
+          stage: 'backend_exchange',
           status: 422,
           code: 'invalid_google_token',
           name: 'ApiClientError',
@@ -92,6 +95,7 @@ describe('supportDiagnosticsService', () => {
 
     expect(parsed.account.lastAuthError).toEqual({
       source: 'google',
+      stage: 'backend_exchange',
       status: 422,
       code: 'invalid_google_token',
       name: 'ApiClientError',

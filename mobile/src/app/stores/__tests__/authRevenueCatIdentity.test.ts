@@ -45,6 +45,7 @@ vi.mock('@/shared/services/errorMonitoringService', () => ({
 }));
 
 vi.mock('@/shared/services/safeLogService', () => ({
+  debugSafely: vi.fn(),
   warnSafely: vi.fn(),
 }));
 
@@ -83,6 +84,15 @@ function session(workspaceId?: string): AuthSessionDto {
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+
+  return { promise, resolve };
+}
+
 describe('RevenueCat auth identity', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -108,5 +118,18 @@ describe('RevenueCat auth identity', () => {
     expect(mocks.prepareSyncForAuthenticatedUser).toHaveBeenCalledWith(
       'user-1'
     );
+  });
+
+  it('does not block authentication on a pending RevenueCat login', async () => {
+    const revenueCatLogin = createDeferred<void>();
+    mocks.logInRevenueCat.mockReturnValue(revenueCatLogin.promise);
+    const authStore = useAuthStore();
+
+    await authStore.applySession(session('workspace-1'));
+
+    expect(authStore.authStatus).toBe('authenticated');
+    expect(authStore.isAuthenticated).toBe(true);
+
+    revenueCatLogin.resolve();
   });
 });

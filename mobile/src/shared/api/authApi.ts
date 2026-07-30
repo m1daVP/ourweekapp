@@ -1,5 +1,6 @@
 import type { PlanType, UserRole } from '@/features/access/types';
-import { apiRequest } from './httpClient';
+import { translate } from '@/features/localization/i18n';
+import { ApiClientError, apiRequest } from './httpClient';
 
 export interface AuthUserDto {
   id: string;
@@ -53,6 +54,48 @@ export interface PasswordResetConfirmRequestDto {
 
 export type CurrentUserResponseDto = AuthUserDto | null;
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && Boolean(value.trim());
+}
+
+function isAuthUserDto(value: unknown): value is AuthUserDto {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<AuthUserDto>;
+
+  return (
+    isNonEmptyString(candidate.id) &&
+    (candidate.workspaceId === undefined ||
+      isNonEmptyString(candidate.workspaceId)) &&
+    (candidate.email === undefined || typeof candidate.email === 'string') &&
+    (candidate.displayName === undefined ||
+      typeof candidate.displayName === 'string') &&
+    (candidate.role === 'owner' ||
+      candidate.role === 'adult_member' ||
+      candidate.role === 'viewer') &&
+    (candidate.planType === 'free' || candidate.planType === 'premium') &&
+    isNonEmptyString(candidate.createdAt) &&
+    isNonEmptyString(candidate.updatedAt)
+  );
+}
+
+export function isAuthSessionDto(value: unknown): value is AuthSessionDto {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<AuthSessionDto>;
+
+  return (
+    isAuthUserDto(candidate.user) &&
+    isNonEmptyString(candidate.accessToken) &&
+    isNonEmptyString(candidate.refreshToken) &&
+    isNonEmptyString(candidate.expiresAt)
+  );
+}
+
 export async function getCurrentUser(): Promise<CurrentUserResponseDto> {
   return apiRequest<CurrentUserResponseDto>('/auth/me', {
     requiresAuth: true,
@@ -69,12 +112,22 @@ export async function signIn(
 }
 
 export async function signInWithGoogleIdToken(
-  payload: GoogleSignInRequestDto
+  payload: GoogleSignInRequestDto,
+  signal?: AbortSignal
 ): Promise<AuthSessionDto> {
-  return apiRequest<AuthSessionDto>('/auth/google', {
+  const response = await apiRequest<unknown>('/auth/google', {
     method: 'POST',
     body: payload,
+    signal,
   });
+
+  if (!isAuthSessionDto(response)) {
+    throw new ApiClientError(translate('api.backendContactFailed'), {
+      code: 'invalid_auth_response',
+    });
+  }
+
+  return response;
 }
 
 export async function register(

@@ -24,7 +24,7 @@ import {
   writeOnboardingStorage,
 } from '@/shared/services/storageService';
 import { captureHandledError } from '@/shared/services/errorMonitoringService';
-import { warnSafely } from '@/shared/services/safeLogService';
+import { debugSafely, warnSafely } from '@/shared/services/safeLogService';
 import {
   prepareSyncForAuthenticatedUser,
   resetSyncRuntimeState,
@@ -43,6 +43,15 @@ import type {
 
 const STORAGE_VERSION = 3;
 const LEGACY_AUTH_STORAGE_KEY = 'ourweek:auth';
+const GOOGLE_SIGN_IN_REQUEST_TIMEOUT_MS = 20_000;
+
+export type AuthOperationStage =
+  | 'idle'
+  | 'google_provider'
+  | 'backend_exchange'
+  | 'token_storage'
+  | 'session_commit'
+  | 'navigation';
 
 type SessionCheckStatus =
   | 'idle'
@@ -65,6 +74,7 @@ interface AuthState {
   errorMessage: string;
   sessionCheckErrorMessage: string;
   sessionCheckStatus: SessionCheckStatus;
+  authOperationStage: AuthOperationStage;
   lastAuthError: AuthErrorDiagnostics | null;
   hasHydratedSecureTokens: boolean;
   hasVerifiedCurrentUser: boolean;
@@ -72,6 +82,7 @@ interface AuthState {
 
 export interface AuthErrorDiagnostics {
   source: 'google';
+  stage: AuthOperationStage;
   status?: number;
   code?: string;
   name?: string;
@@ -108,6 +119,43 @@ let legacyTokensToMigrate: AuthTokens = {
 };
 let currentUserVerificationPromise: Promise<boolean> | null = null;
 let sessionRefreshPromise: Promise<string | null> | null = null;
+let googleSignInAttemptSequence = 0;
+let activeGoogleSignInAttemptId: number | null = null;
+let activeGoogleExchange:
+  | {
+      attemptId: number;
+      abortController: AbortController;
+    }
+  | undefined;
+
+function beginGoogleSignInAttempt() {
+  activeGoogleExchange?.abortController.abort();
+  activeGoogleExchange = undefined;
+  googleSignInAttemptSequence += 1;
+  activeGoogleSignInAttemptId = googleSignInAttemptSequence;
+
+  return googleSignInAttemptSequence;
+}
+
+function isActiveGoogleSignInAttempt(attemptId: number) {
+  return activeGoogleSignInAttemptId === attemptId;
+}
+
+function invalidateGoogleSignInAttempt(attemptId?: number) {
+  if (attemptId !== undefined && activeGoogleSignInAttemptId !== attemptId) {
+    return;
+  }
+
+  activeGoogleSignInAttemptId = null;
+
+  if (
+    activeGoogleExchange &&
+    (attemptId === undefined || activeGoogleExchange.attemptId === attemptId)
+  ) {
+    activeGoogleExchange.abortController.abort();
+    activeGoogleExchange = undefined;
+  }
+}
 
 function readLegacyAuthTokensFromLocalStorage(): AuthTokens {
   if (typeof window === 'undefined') {
@@ -152,12 +200,14 @@ function clearLegacyAuthTokensFromLocalStorage() {
   }
 }
 
-async function clearStoredAuthTokensSafely() {
-  try {
-    await clearAuthTokens();
-  } catch (error) {
-    warnSafely('Unable to clear secure auth token storage.', error);
-  }
+function clearStoredAuthTokensSafely() {
+  void Promise.resolve()
+    .then(() => clearAuthTokens())
+    .catch((error: unknown) => {
+      warnSafely('Unable to clear secure auth token storage.', {
+        errorCategory: getSafeErrorCategory(error),
+      });
+    });
 
   clearLegacyAuthTokensFromLocalStorage();
 }
@@ -198,7 +248,22 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-function getGoogleSignInErrorMessage(error: unknown) {
+function getGoogleSignInErrorMessage(
+  error: unknown,
+  stage: AuthOperationStage
+) {
+  if (error instanceof Error && error.name === 'AbortError') {
+    return translate('auth.googleRequestTimedOut');
+  }
+
+  if (stage === 'token_storage' && isSecureStorageError(error)) {
+    return translate('auth.secureSessionSaveFailed');
+  }
+
+  if (stage === 'token_storage' || stage === 'session_commit') {
+    return translate('auth.googleSignInFailed');
+  }
+
   if (!(error instanceof ApiClientError)) {
     return error instanceof Error
       ? error.message
@@ -220,6 +285,40 @@ function getGoogleSignInErrorMessage(error: unknown) {
     default:
       return error.message || translate('auth.googleSignInFailed');
   }
+}
+
+function getSafeErrorCategory(error: unknown) {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof error.code === 'string'
+  ) {
+    return error.code;
+  }
+
+  return error instanceof Error ? error.name : typeof error;
+}
+
+function isSecureStorageError(error: unknown) {
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof error.code === 'string' &&
+    error.code.startsWith('secure_storage_')
+  );
+}
+
+function getSessionApplicationErrorMessage(
+  error: unknown,
+  fallbackKey: string
+) {
+  if (isSecureStorageError(error)) {
+    return translate('auth.secureSessionSaveFailed');
+  }
+
+  return error instanceof Error ? error.message : translate(fallbackKey);
 }
 
 function getSafeStringSuffix(value: string) {
@@ -317,11 +416,13 @@ function getGoogleIdTokenDiagnostics(
 
 function getGoogleSignInDebugDetails(
   error: unknown,
+  stage: AuthOperationStage,
   googleToken?: GoogleIdTokenDiagnostics
 ): AuthErrorDiagnostics {
   if (error instanceof ApiClientError) {
     return {
       source: 'google',
+      stage,
       status: error.status,
       code: error.code,
       hasDetails: error.details !== undefined,
@@ -337,13 +438,32 @@ function getGoogleSignInDebugDetails(
 
     return {
       source: 'google',
+      stage,
       name: error.name,
       code,
       googleToken,
     };
   }
 
-  return { source: 'google', googleToken };
+  return { source: 'google', stage, googleToken };
+}
+
+async function exchangeGoogleIdToken(
+  idToken: string,
+  abortController: AbortController
+) {
+  const timeoutId = globalThis.setTimeout(() => {
+    abortController.abort();
+  }, GOOGLE_SIGN_IN_REQUEST_TIMEOUT_MS);
+
+  try {
+    return await signInWithGoogleIdTokenRequest(
+      { idToken },
+      abortController.signal
+    );
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
 }
 
 function mapAuthUser(user: AuthUserDto, fallbackEmail = ''): AuthUser {
@@ -422,6 +542,7 @@ export const useAuthStore = defineStore('auth', {
     errorMessage: '',
     sessionCheckErrorMessage: '',
     sessionCheckStatus: 'idle',
+    authOperationStage: 'idle',
     lastAuthError: null,
     hasHydratedSecureTokens: false,
     hasVerifiedCurrentUser: false,
@@ -509,16 +630,42 @@ export const useAuthStore = defineStore('auth', {
 
       clearLegacyAuthTokensFromLocalStorage();
     },
-    async applySession(session: AuthSessionDto) {
+    setAuthOperationStage(stage: AuthOperationStage) {
+      this.authOperationStage = stage;
+      debugSafely('Authentication stage changed.', { stage });
+    },
+    async applySession(
+      session: AuthSessionDto,
+      trackGoogleAuthStage = false,
+      isSessionCurrent: () => boolean = () => true
+    ) {
+      if (trackGoogleAuthStage) {
+        this.setAuthOperationStage('token_storage');
+      }
+
       await writeAuthTokens({
         accessToken: session.accessToken,
         refreshToken: session.refreshToken ?? null,
         expiresAt: session.expiresAt,
       });
 
+      if (!isSessionCurrent()) {
+        await clearStoredAuthTokensSafely();
+        return false;
+      }
+
+      if (trackGoogleAuthStage) {
+        this.setAuthOperationStage('session_commit');
+      }
+
       const nextUser = mapSessionUser(session);
       await prepareSyncForSessionUser(nextUser.id);
-      await syncRevenueCatForSessionUser(nextUser.workspaceId);
+
+      if (!isSessionCurrent()) {
+        await clearStoredAuthTokensSafely();
+        await resetSyncAfterSessionEnd();
+        return false;
+      }
 
       this.user = nextUser;
       this.authStatus = 'authenticated';
@@ -529,6 +676,33 @@ export const useAuthStore = defineStore('auth', {
       this.errorMessage = '';
       this.lastAuthError = null;
       this.persist();
+
+      // RevenueCat identity sync is helpful for billing, but it must not block
+      // authentication when the native billing SDK or network is unavailable.
+      void syncRevenueCatForSessionUser(nextUser.workspaceId);
+
+      return true;
+    },
+    cancelPendingGoogleSignIn() {
+      const canCancel =
+        this.authStatus === 'loading' && activeGoogleSignInAttemptId !== null;
+
+      if (!canCancel) {
+        return false;
+      }
+
+      const cancelledStage = this.authOperationStage;
+      invalidateGoogleSignInAttempt();
+      this.authStatus = this.user ? 'authenticated' : 'idle';
+      this.authOperationStage = 'idle';
+      this.sessionCheckStatus = 'idle';
+      this.sessionCheckErrorMessage = '';
+      this.errorMessage = '';
+      this.lastAuthError = null;
+      this.persist();
+      debugSafely('Google sign-in cancelled.', { stage: cancelledStage });
+
+      return true;
     },
     async clearSessionAfterUnauthorized() {
       await clearRevenueCatSessionSafely();
@@ -539,6 +713,7 @@ export const useAuthStore = defineStore('auth', {
       this.authStatus = 'idle';
       this.sessionCheckStatus = 'unauthorized';
       this.sessionCheckErrorMessage = '';
+      this.authOperationStage = 'idle';
       this.hasHydratedSecureTokens = true;
       this.hasVerifiedCurrentUser = true;
       this.errorMessage = '';
@@ -658,6 +833,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async signIn(payload: SignInPayload) {
       this.authStatus = 'loading';
+      this.authOperationStage = 'idle';
       this.sessionCheckStatus = 'idle';
       this.sessionCheckErrorMessage = '';
       this.errorMessage = '';
@@ -672,19 +848,21 @@ export const useAuthStore = defineStore('auth', {
         await this.applySession(session);
         return true;
       } catch (error) {
-        await clearStoredAuthTokensSafely();
         this.user = null;
         this.authStatus = 'error';
-        this.errorMessage =
-          error instanceof Error
-            ? error.message
-            : translate('api.signInFailed');
+        this.errorMessage = getSessionApplicationErrorMessage(
+          error,
+          'api.signInFailed'
+        );
         this.persist();
+        await clearStoredAuthTokensSafely();
         return false;
       }
     },
     async signInWithGoogle() {
+      const attemptId = beginGoogleSignInAttempt();
       this.authStatus = 'loading';
+      this.setAuthOperationStage('google_provider');
       this.sessionCheckStatus = 'idle';
       this.sessionCheckErrorMessage = '';
       this.errorMessage = '';
@@ -693,37 +871,77 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const idToken = await getNativeGoogleIdToken();
-        googleTokenDiagnostics = getGoogleIdTokenDiagnostics(idToken);
-        const session = await signInWithGoogleIdTokenRequest({ idToken });
 
-        await this.applySession(session);
-        return true;
+        if (!isActiveGoogleSignInAttempt(attemptId)) {
+          return false;
+        }
+
+        googleTokenDiagnostics = getGoogleIdTokenDiagnostics(idToken);
+        this.setAuthOperationStage('backend_exchange');
+        const abortController = new AbortController();
+        activeGoogleExchange = { abortController, attemptId };
+        const session = await exchangeGoogleIdToken(idToken, abortController);
+
+        if (!isActiveGoogleSignInAttempt(attemptId)) {
+          return false;
+        }
+
+        activeGoogleExchange = undefined;
+
+        return await this.applySession(session, true, () =>
+          isActiveGoogleSignInAttempt(attemptId)
+        );
       } catch (error) {
+        if (!isActiveGoogleSignInAttempt(attemptId)) {
+          return false;
+        }
+
         const debugDetails = getGoogleSignInDebugDetails(
           error,
+          this.authOperationStage,
           googleTokenDiagnostics
         );
-        warnSafely('Google sign-in failed.', debugDetails);
+        warnSafely('Google sign-in failed.', {
+          errorCategory: debugDetails.name ?? debugDetails.code ?? 'unknown',
+          stage: debugDetails.stage,
+          status: debugDetails.status,
+        });
         captureHandledError(error, {
           tags: {
             feature: 'auth',
             provider: 'google',
+            stage: this.authOperationStage,
           },
           extra: {
             authError: debugDetails,
           },
         });
-        await clearStoredAuthTokensSafely();
         this.user = null;
         this.authStatus = 'error';
-        this.errorMessage = getGoogleSignInErrorMessage(error);
+        this.errorMessage = getGoogleSignInErrorMessage(
+          error,
+          this.authOperationStage
+        );
         this.lastAuthError = debugDetails;
         this.persist();
+        await clearStoredAuthTokensSafely();
         return false;
+      } finally {
+        if (
+          isActiveGoogleSignInAttempt(attemptId) &&
+          this.authStatus === 'loading'
+        ) {
+          this.authStatus = 'error';
+          this.errorMessage = translate('auth.googleSignInFailed');
+          this.persist();
+        }
+
+        invalidateGoogleSignInAttempt(attemptId);
       }
     },
     async signUp(payload: SignUpPayload) {
       this.authStatus = 'loading';
+      this.authOperationStage = 'idle';
       this.sessionCheckStatus = 'idle';
       this.sessionCheckErrorMessage = '';
       this.errorMessage = '';
@@ -739,14 +957,14 @@ export const useAuthStore = defineStore('auth', {
         await this.applySession(session);
         return true;
       } catch (error) {
-        await clearStoredAuthTokensSafely();
         this.user = null;
         this.authStatus = 'error';
-        this.errorMessage =
-          error instanceof Error
-            ? error.message
-            : translate('api.signUpFailed');
+        this.errorMessage = getSessionApplicationErrorMessage(
+          error,
+          'api.signUpFailed'
+        );
         this.persist();
+        await clearStoredAuthTokensSafely();
         return false;
       }
     },

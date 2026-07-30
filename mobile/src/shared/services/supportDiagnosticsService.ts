@@ -44,6 +44,7 @@ export interface SupportDiagnostics {
   account: {
     state: AccountDiagnosticsState;
     role: string | null;
+    authStage: AuthErrorDiagnostics['stage'] | 'idle';
     lastAuthError: AuthErrorDiagnostics | null;
   };
   subscription: {
@@ -132,6 +133,7 @@ export async function collectSupportDiagnostics(): Promise<SupportDiagnostics> {
     account: {
       state: getAccountState(),
       role: authStore.isAuthenticated ? workspaceStore.currentUserRole : null,
+      authStage: authStore.authOperationStage,
       lastAuthError: authStore.lastAuthError,
     },
     subscription: {
@@ -216,6 +218,7 @@ function createAllowedSupportDiagnostics(
     account: {
       state: diagnostics.account.state,
       role: diagnostics.account.role,
+      authStage: diagnostics.account.authStage,
       lastAuthError: diagnostics.account.lastAuthError,
     },
     subscription: {

@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signInWithGoogleIdToken: vi.fn(),
   signOut: vi.fn(),
+  debugSafely: vi.fn(),
   warnSafely: vi.fn(),
   writeAuthTokens: vi.fn(),
   writeOnboardingStorage: vi.fn(),
@@ -74,6 +75,7 @@ vi.mock('@/shared/services/storageService', () => ({
 }));
 
 vi.mock('@/shared/services/safeLogService', () => ({
+  debugSafely: mocks.debugSafely,
   warnSafely: mocks.warnSafely,
 }));
 
@@ -138,6 +140,7 @@ beforeEach(() => {
   mocks.signIn.mockReset();
   mocks.signInWithGoogleIdToken.mockReset();
   mocks.signOut.mockReset();
+  mocks.debugSafely.mockReset();
   mocks.warnSafely.mockReset();
   mocks.writeAuthTokens.mockReset();
   mocks.writeOnboardingStorage.mockReset();
