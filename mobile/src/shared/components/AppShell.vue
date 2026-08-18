@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch, type CSSProperties } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import BottomNavigation from '@/shared/components/BottomNavigation.vue';
@@ -10,6 +10,12 @@ import {
   storageRecoveryState,
 } from '@/shared/services/storageService';
 import { useToast } from '@/shared/composables/useToast';
+import { usePullToRefresh } from '@/shared/composables/usePullToRefresh';
+import {
+  PageRefreshError,
+  isPullToRefreshRoute,
+  refreshPageData,
+} from '@/shared/services/pageRefreshService';
 
 withDefaults(
   defineProps<{
@@ -24,11 +30,12 @@ const route = useRoute();
 const { t } = useI18n();
 const mainElement = ref<HTMLElement | null>(null);
 const participantsStore = useParticipantsStore();
-const { dismissToast, toastState } = useToast();
+const { dismissToast, showToast, toastState } = useToast();
 const recoveryMessages = computed(() => storageRecoveryState.value.messages);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
 const firstParticipant = computed(() => activeParticipants.value[0] ?? null);
 const isMeetingRoute = computed(() => route.name === 'meeting');
+const pullToRefreshEnabled = computed(() => isPullToRefreshRoute(route.name));
 const pageTitle = computed(() => {
   const routeName = String(route.name ?? '');
 
@@ -42,7 +49,6 @@ const pageTitle = computed(() => {
     upgrade: t('app.routeTitles.upgrade'),
     'private-notes': t('app.routeTitles.privateNotes'),
     'calendar-sync': t('app.routeTitles.calendarSync'),
-    'workspace-settings': t('app.routeTitles.workspaceSettings'),
     account: t('app.routeTitles.account'),
     'support-diagnostics': t('app.routeTitles.supportDiagnostics'),
     'meeting-details': t('app.routeTitles.meetingDetails'),
@@ -51,6 +57,46 @@ const pageTitle = computed(() => {
 
   return titles[routeName] ?? t('app.name');
 });
+
+async function handlePageRefresh() {
+  if (!isPullToRefreshRoute(route.name)) {
+    return;
+  }
+
+  try {
+    await refreshPageData(route.name);
+    await showToast(t('app.refresh.updated'));
+  } catch (error) {
+    const message =
+      error instanceof PageRefreshError && error.reason === 'offline'
+        ? t('sync.offline')
+        : t('sync.failed');
+
+    await showToast(message, { tone: 'error', durationMs: 3600 });
+  }
+}
+
+const { phase: pullPhase, pullDistance } = usePullToRefresh({
+  container: mainElement,
+  enabled: pullToRefreshEnabled,
+  onRefresh: handlePageRefresh,
+});
+
+const pullStatusText = computed(() => {
+  if (pullPhase.value === 'ready') {
+    return t('app.refresh.release');
+  }
+
+  if (pullPhase.value === 'refreshing') {
+    return t('app.refresh.updating');
+  }
+
+  return t('app.refresh.pull');
+});
+
+const pullIndicatorStyle = computed(
+  () => ({ '--pull-distance': `${pullDistance.value}px` }) as CSSProperties
+);
 
 function handleToastAction(action: () => void) {
   action();
@@ -96,6 +142,25 @@ watch(
       </RouterLink>
     </header>
     <main ref="mainElement" class="app-main">
+      <div
+        v-if="pullToRefreshEnabled"
+        :class="['pull-to-refresh', `pull-to-refresh--${pullPhase}`]"
+        :style="pullIndicatorStyle"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <span
+          :class="[
+            'material-symbols-outlined',
+            { 'pull-to-refresh__spinner': pullPhase === 'refreshing' },
+          ]"
+          aria-hidden="true"
+        >
+          refresh
+        </span>
+        <span v-if="pullPhase !== 'idle'">{{ pullStatusText }}</span>
+      </div>
       <aside
         v-if="recoveryMessages.length"
         class="storage-recovery-notice"
