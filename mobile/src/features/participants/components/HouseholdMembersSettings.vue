@@ -12,15 +12,23 @@ import type {
   Participant,
   ParticipantType,
 } from '@/features/participants/types';
+import {
+  canOfferParticipantInvitation,
+  canRevokeParticipantInvitation,
+  shouldShowParticipantAccessStatus,
+} from '@/features/participants/participantInvitationEligibility';
+import type { ParticipantAccessState } from '@/features/workspace/types';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
+import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
-type SheetMode = 'create' | 'edit';
+type SheetMode = 'create' | 'edit' | 'invite' | 'revoke';
 
 const { t } = useI18n();
 const participantsStore = useParticipantsStore();
 const workspaceStore = useWorkspaceStore();
 const meetingsStore = useMeetingsStore();
 const tasksStore = useTasksStore();
+const { can } = useWorkspacePermissions();
 
 participantsStore.ensureDefaultParticipants();
 
@@ -29,6 +37,12 @@ const sheetMode = ref<SheetMode>('create');
 const selectedParticipantId = ref<string | null>(null);
 const originalParticipantDisplayKey = ref<string | null>(null);
 const isInitialsEditorOpen = ref(false);
+const isHouseholdNameSheetOpen = ref(false);
+const householdNameDraft = ref('');
+const householdNameError = ref('');
+const inviteEmail = ref('');
+const inviteError = ref('');
+const revokeError = ref('');
 const participantMessage = reactive({
   text: '',
   tone: 'status' as 'status' | 'error',
@@ -51,17 +65,44 @@ function getParticipantDisplayKey(participant: Participant) {
 }
 
 const visibleParticipants = computed(
-  () => participantsStore.activeParticipants
+  () => participantsStore.householdParticipants
 );
 const selectedParticipant = computed(() =>
   selectedParticipantId.value
     ? participantsStore.getParticipantById(selectedParticipantId.value)
     : null
 );
-const sheetTitle = computed(() =>
-  sheetMode.value === 'create'
+const sheetTitle = computed(() => {
+  if (sheetMode.value === 'revoke') {
+    return t('settings.revokeInvitationTitle');
+  }
+
+  if (sheetMode.value === 'invite') {
+    return t('settings.invitePerson', {
+      name: selectedParticipant.value?.name ?? '',
+    });
+  }
+
+  return sheetMode.value === 'create'
     ? t('settings.addPerson')
-    : t('settings.editPerson')
+    : t('settings.editPerson');
+});
+const selectedParticipantAccess = computed<ParticipantAccessState>(() =>
+  selectedParticipantId.value
+    ? workspaceStore.getParticipantAccessState(selectedParticipantId.value)
+    : { status: 'none' }
+);
+const selectedPendingInvitation = computed(() =>
+  selectedParticipantId.value
+    ? workspaceStore.getParticipantPendingInvitation(
+        selectedParticipantId.value
+      )
+    : null
+);
+const showSelectedParticipantAccess = computed(() =>
+  shouldShowParticipantAccessStatus(
+    getInvitationEligibilityInput(selectedParticipant.value)
+  )
 );
 const typeOptions = computed<Array<{ label: string; value: ParticipantType }>>(
   () => [
@@ -112,14 +153,18 @@ function resetDraftForCreate() {
 }
 
 function openCreateSheet() {
+  participantMessage.text = '';
   sheetMode.value = 'create';
   selectedParticipantId.value = null;
   originalParticipantDisplayKey.value = null;
+  inviteError.value = '';
+  revokeError.value = '';
   resetDraftForCreate();
   isSheetOpen.value = true;
 }
 
 function openEditSheet(participant: Participant) {
+  participantMessage.text = '';
   sheetMode.value = 'edit';
   selectedParticipantId.value = participant.id;
   originalParticipantDisplayKey.value = getParticipantDisplayKey(participant);
@@ -128,12 +173,189 @@ function openEditSheet(participant: Participant) {
   participantDraft.initialName = participant.name;
   participantDraft.avatarColor = participant.avatarColor;
   participantDraft.type = participant.type;
+  inviteError.value = '';
+  revokeError.value = '';
   isInitialsEditorOpen.value = false;
   isSheetOpen.value = true;
 }
 
 function closeSheet() {
+  if (
+    (sheetMode.value === 'invite' || sheetMode.value === 'revoke') &&
+    workspaceStore.isSaving
+  ) {
+    return;
+  }
+
+  if (sheetMode.value === 'revoke') {
+    revokeError.value = '';
+    sheetMode.value = 'edit';
+    return;
+  }
+
+  inviteError.value = '';
+  revokeError.value = '';
   isSheetOpen.value = false;
+}
+
+function getInvitationEligibilityInput(participant: Participant | null) {
+  const accessStatus = participant
+    ? workspaceStore.getParticipantAccessState(participant.id).status
+    : 'none';
+
+  return {
+    participant,
+    isCurrentParticipant: participant
+      ? participantsStore.isCurrentParticipant(participant.id)
+      : false,
+    canInviteMembers: can('inviteMembers'),
+    accessStatus,
+  };
+}
+
+function canInviteParticipant(participant: Participant | null) {
+  return canOfferParticipantInvitation(
+    getInvitationEligibilityInput(participant)
+  );
+}
+
+function canRevokeSelectedInvitation() {
+  return canRevokeParticipantInvitation({
+    ...getInvitationEligibilityInput(selectedParticipant.value),
+    hasPendingInvitation: Boolean(selectedPendingInvitation.value),
+  });
+}
+
+function openInviteStep(participant: Participant) {
+  if (!canInviteParticipant(participant)) {
+    return;
+  }
+
+  selectedParticipantId.value = participant.id;
+  sheetMode.value = 'invite';
+  inviteEmail.value = '';
+  inviteError.value = '';
+  isSheetOpen.value = true;
+}
+
+function skipInvite() {
+  inviteError.value = '';
+  closeSheet();
+}
+
+function isEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+async function sendInvite() {
+  const participant = selectedParticipant.value;
+  const email = inviteEmail.value.trim();
+
+  if (!participant) {
+    inviteError.value = t('settings.invitePersonMissing');
+    return;
+  }
+
+  if (!isEmail(email)) {
+    inviteError.value = t('workspace.addEmailFirst');
+    return;
+  }
+
+  inviteError.value = '';
+  const accessRecord = await workspaceStore.inviteParticipant(
+    participant.id,
+    participant.name,
+    email
+  );
+
+  if (!accessRecord) {
+    inviteError.value =
+      workspaceStore.errorMessage || t('workspace.saveInviteFailed');
+    return;
+  }
+
+  setParticipantMessage(
+    accessRecord.status === 'active'
+      ? t('settings.appAccessLinked')
+      : t('settings.invitationSent')
+  );
+  closeSheet();
+}
+
+function openRevokeStep() {
+  if (!canRevokeSelectedInvitation()) {
+    return;
+  }
+
+  revokeError.value = '';
+  sheetMode.value = 'revoke';
+}
+
+function cancelRevoke() {
+  if (workspaceStore.isSaving) {
+    return;
+  }
+
+  revokeError.value = '';
+  sheetMode.value = 'edit';
+}
+
+async function confirmRevoke() {
+  const participant = selectedParticipant.value;
+
+  if (!participant) {
+    cancelRevoke();
+    return;
+  }
+
+  revokeError.value = '';
+  const revoked = await workspaceStore.revokeParticipantInvitation(
+    participant.id
+  );
+
+  if (revoked) {
+    setParticipantMessage(t('settings.invitationRevoked'));
+    sheetMode.value = 'edit';
+    return;
+  }
+
+  if (!workspaceStore.getParticipantPendingInvitation(participant.id)) {
+    setParticipantMessage(t('workspace.invitationNoLongerPending'));
+    sheetMode.value = 'edit';
+    return;
+  }
+
+  revokeError.value =
+    workspaceStore.errorMessage || t('workspace.revokeInvitationFailed');
+}
+
+function openHouseholdNameSheet() {
+  householdNameDraft.value = workspaceStore.workspace.name;
+  householdNameError.value = '';
+  isHouseholdNameSheetOpen.value = true;
+}
+
+function closeHouseholdNameSheet() {
+  isHouseholdNameSheetOpen.value = false;
+  householdNameError.value = '';
+}
+
+async function saveHouseholdName() {
+  if (!householdNameDraft.value.trim()) {
+    householdNameError.value = t('settings.addHouseholdName');
+    return;
+  }
+
+  const saved = await workspaceStore.saveWorkspaceName(
+    householdNameDraft.value
+  );
+
+  if (!saved) {
+    householdNameError.value = workspaceStore.errorMessage;
+    return;
+  }
+
+  closeHouseholdNameSheet();
 }
 
 function getSelectedDuplicateGroup() {
@@ -174,7 +396,12 @@ function saveParticipantDraft() {
 
     meetingsStore.syncActiveMeetingParticipants();
     setParticipantMessage(t('settings.participantAdded'));
-    closeSheet();
+
+    if (canInviteParticipant(participant)) {
+      openInviteStep(participant);
+    } else {
+      closeSheet();
+    }
     return;
   }
 
@@ -182,6 +409,9 @@ function saveParticipantDraft() {
     return;
   }
 
+  const shouldOfferInviteAfterSave =
+    selectedParticipant.value?.type !== 'adult' &&
+    participantDraft.type === 'adult';
   const participants = getSelectedDuplicateGroup();
   const updatedParticipants = participants.map((participant) =>
     participantsStore.updateParticipant(participant.id, payload)
@@ -193,7 +423,13 @@ function saveParticipantDraft() {
   }
 
   setParticipantMessage(t('settings.participantUpdated'));
-  closeSheet();
+  const updatedParticipant = selectedParticipant.value;
+
+  if (shouldOfferInviteAfterSave && canInviteParticipant(updatedParticipant)) {
+    openInviteStep(updatedParticipant);
+  } else {
+    closeSheet();
+  }
 }
 
 function participantIsUsed(participantId: string) {
@@ -259,15 +495,16 @@ function enableParticipant(participantId: string) {
         </span>
         <div class="household-settings-name__row">
           <strong>{{ workspaceStore.workspace.name }}</strong>
-          <RouterLink
+          <button
             class="household-settings-edit"
-            :to="{ name: 'workspace-settings' }"
-            :aria-label="t('settings.editHouseholdSettings')"
+            type="button"
+            :aria-label="t('settings.editHouseholdName')"
+            @click="openHouseholdNameSheet"
           >
             <span class="material-symbols-outlined" aria-hidden="true">
               edit
             </span>
-          </RouterLink>
+          </button>
         </div>
       </div>
 
@@ -275,7 +512,11 @@ function enableParticipant(participantId: string) {
         <span class="settings-field-label">{{ t('settings.members') }}</span>
 
         <ul class="household-member-list">
-          <li v-for="participant in visibleParticipants" :key="participant.id">
+          <li
+            v-for="participant in visibleParticipants"
+            :key="participant.id"
+            :class="{ 'is-disabled': !participant.isActive }"
+          >
             <button
               class="household-member-row"
               type="button"
@@ -293,9 +534,9 @@ function enableParticipant(participantId: string) {
               <span class="household-member-row__body">
                 <strong>{{ participant.name }}</strong>
                 <small>{{ getTypeLabel(participant.type) }}</small>
-                <span v-if="!participant.isActive" class="sr-only">
-                  · {{ t('settings.hiddenFromNewMeetings') }}
-                </span>
+                <small v-if="!participant.isActive">
+                  {{ t('settings.hiddenFromNewMeetings') }}
+                </small>
               </span>
             </button>
           </li>
@@ -315,7 +556,7 @@ function enableParticipant(participantId: string) {
     </article>
 
     <p
-      v-if="participantMessage.text"
+      v-if="participantMessage.text && !isSheetOpen"
       :class="
         participantMessage.tone === 'error' ? 'meeting-error' : 'meeting-status'
       "
@@ -330,9 +571,122 @@ function enableParticipant(participantId: string) {
       @close="closeSheet"
     >
       <form
+        v-if="sheetMode === 'invite'"
+        class="participant-invite-form task-editor-form"
+        @submit.prevent="sendInvite"
+      >
+        <p class="meeting-help">
+          {{
+            t('settings.invitePersonHelp', {
+              name: selectedParticipant?.name ?? '',
+            })
+          }}
+        </p>
+
+        <label>
+          <span>{{ t('workspace.contact') }}</span>
+          <input
+            v-model="inviteEmail"
+            autocomplete="email"
+            inputmode="email"
+            type="email"
+            :aria-describedby="
+              inviteError ? 'participant-invite-error' : undefined
+            "
+            :aria-invalid="Boolean(inviteError)"
+            :placeholder="t('workspace.contactPlaceholder')"
+          />
+        </label>
+
+        <p
+          v-if="inviteError"
+          id="participant-invite-error"
+          class="meeting-error"
+          role="alert"
+        >
+          {{ inviteError }}
+        </p>
+
+        <div class="participant-sheet-form__actions">
+          <button
+            class="meeting-primary"
+            type="submit"
+            :disabled="workspaceStore.isSaving"
+          >
+            {{
+              workspaceStore.isSaving
+                ? t('workspace.sendingInvitation')
+                : t('workspace.sendInvitation')
+            }}
+          </button>
+          <button
+            class="secondary-button"
+            type="button"
+            :disabled="workspaceStore.isSaving"
+            @click="skipInvite"
+          >
+            {{ t('settings.notNow') }}
+          </button>
+        </div>
+      </form>
+
+      <form
+        v-else-if="sheetMode === 'revoke'"
+        class="participant-revoke-form task-editor-form"
+        @submit.prevent="confirmRevoke"
+      >
+        <p class="meeting-help">
+          {{
+            t('settings.revokeInvitationMessage', {
+              email: selectedPendingInvitation?.email ?? '',
+            })
+          }}
+        </p>
+
+        <p v-if="revokeError" class="meeting-error" role="alert">
+          {{ revokeError }}
+        </p>
+
+        <div class="participant-sheet-form__actions">
+          <button
+            class="base-button base-button--danger"
+            type="submit"
+            :disabled="workspaceStore.isSaving"
+          >
+            {{
+              workspaceStore.isSaving
+                ? t('settings.revokingInvitation')
+                : t('settings.revokeInvitation')
+            }}
+          </button>
+          <button
+            class="secondary-button"
+            type="button"
+            :disabled="workspaceStore.isSaving"
+            @click="cancelRevoke"
+          >
+            {{ t('settings.keepInvitation') }}
+          </button>
+        </div>
+      </form>
+
+      <form
+        v-else
         class="participant-sheet-form task-editor-form"
         @submit.prevent="saveParticipantDraft"
       >
+        <p
+          v-if="participantMessage.text"
+          :class="
+            participantMessage.tone === 'error'
+              ? 'meeting-error'
+              : 'meeting-status'
+          "
+          role="status"
+        >
+          {{ participantMessage.text }}
+        </p>
+
         <label>
           <span>{{ t('settings.name') }}</span>
           <input
@@ -409,6 +763,42 @@ function enableParticipant(participantId: string) {
         </div>
 
         <button
+          v-if="canInviteParticipant(selectedParticipant)"
+          class="participant-access-action"
+          type="button"
+          @click="selectedParticipant && openInviteStep(selectedParticipant)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">
+            person_add
+          </span>
+          {{ t('settings.giveAppAccess') }}
+        </button>
+
+        <div
+          v-else-if="showSelectedParticipantAccess"
+          class="participant-access-status"
+        >
+          <p role="status">
+            <strong>
+              {{
+                selectedParticipantAccess.status === 'active'
+                  ? t('settings.hasAppAccess')
+                  : t('settings.invitationPending')
+              }}
+            </strong>
+            <span>{{ selectedParticipantAccess.email }}</span>
+          </p>
+          <button
+            v-if="canRevokeSelectedInvitation()"
+            class="participant-secondary-action"
+            type="button"
+            @click="openRevokeStep"
+          >
+            {{ t('settings.revokeInvitation') }}
+          </button>
+        </div>
+
+        <button
           v-if="selectedParticipant?.isActive"
           class="participant-secondary-action"
           type="button"
@@ -428,6 +818,54 @@ function enableParticipant(participantId: string) {
         >
           {{ t('settings.showInNewMeetings') }}
         </button>
+      </form>
+    </BaseBottomSheet>
+
+    <BaseBottomSheet
+      :open="isHouseholdNameSheetOpen"
+      :title="t('settings.householdName')"
+      @close="closeHouseholdNameSheet"
+    >
+      <form class="task-editor-form" @submit.prevent="saveHouseholdName">
+        <label>
+          <span>{{ t('settings.householdName') }}</span>
+          <input
+            v-model="householdNameDraft"
+            autocomplete="organization"
+            type="text"
+            :aria-describedby="
+              householdNameError ? 'household-name-error' : undefined
+            "
+            :aria-invalid="Boolean(householdNameError)"
+          />
+        </label>
+
+        <p
+          v-if="householdNameError"
+          id="household-name-error"
+          class="meeting-error"
+          role="alert"
+        >
+          {{ householdNameError }}
+        </p>
+
+        <div class="participant-sheet-form__actions">
+          <button
+            class="meeting-primary"
+            type="submit"
+            :disabled="workspaceStore.isSaving"
+          >
+            {{ t('common.save') }}
+          </button>
+          <button
+            class="secondary-button"
+            type="button"
+            :disabled="workspaceStore.isSaving"
+            @click="closeHouseholdNameSheet"
+          >
+            {{ t('common.cancel') }}
+          </button>
+        </div>
       </form>
     </BaseBottomSheet>
   </section>

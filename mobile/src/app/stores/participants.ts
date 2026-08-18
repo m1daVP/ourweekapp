@@ -22,6 +22,7 @@ export const participantColors = [
 
 interface ParticipantsState {
   participants: Participant[];
+  currentParticipantId: string | null;
 }
 
 interface CreateParticipantPayload {
@@ -142,15 +143,57 @@ function createParticipant(
   };
 }
 
-function createDefaultParticipants() {
-  return [
-    createParticipant(translate('settings.defaultParticipant.me'), 'adult', 0),
-    createParticipant(
-      translate('settings.defaultParticipant.partner'),
-      'adult',
-      1
-    ),
-  ];
+function createDefaultParticipantsState(): ParticipantsState {
+  const me = createParticipant(
+    translate('settings.defaultParticipant.me'),
+    'adult',
+    0
+  );
+  const partner = createParticipant(
+    translate('settings.defaultParticipant.partner'),
+    'adult',
+    1
+  );
+
+  return {
+    participants: [me, partner],
+    currentParticipantId: me.id,
+  };
+}
+
+function selectCurrentParticipantId(
+  participants: Participant[],
+  storedParticipantId?: string | null
+) {
+  const availableParticipants = participants.filter(
+    (participant) => !participant.deletedAt
+  );
+  const storedParticipant = availableParticipants.find(
+    (participant) => participant.id === storedParticipantId
+  );
+
+  if (storedParticipant) {
+    return storedParticipant.id;
+  }
+
+  const meLabel = translate('settings.defaultParticipant.me')
+    .trim()
+    .toLocaleLowerCase();
+  const namedMe = availableParticipants.find(
+    (participant) =>
+      participant.type === 'adult' &&
+      participant.name.trim().toLocaleLowerCase() === meLabel
+  );
+
+  return (
+    namedMe?.id ??
+    availableParticipants.find(
+      (participant) => participant.type === 'adult' && participant.isActive
+    )?.id ??
+    availableParticipants.find((participant) => participant.type === 'adult')
+      ?.id ??
+    null
+  );
 }
 
 function normalizeParticipant(
@@ -213,10 +256,13 @@ function getStoredState(): ParticipantsState {
         Boolean(participant)
       );
 
+    if (!legacyParticipants.length) {
+      return createDefaultParticipantsState();
+    }
+
     return {
-      participants: legacyParticipants.length
-        ? legacyParticipants
-        : createDefaultParticipants(),
+      participants: legacyParticipants,
+      currentParticipantId: selectCurrentParticipantId(legacyParticipants),
     };
   }
 
@@ -228,16 +274,32 @@ function getStoredState(): ParticipantsState {
         )
     : [];
 
+  if (!participants.length) {
+    return createDefaultParticipantsState();
+  }
+
   return {
-    participants: participants.length
-      ? participants
-      : createDefaultParticipants(),
+    participants,
+    currentParticipantId: selectCurrentParticipantId(
+      participants,
+      storedState.currentParticipantId
+    ),
   };
 }
 
 export const useParticipantsStore = defineStore('participants', {
   state: (): ParticipantsState => getStoredState(),
   getters: {
+    householdParticipants: (state) => {
+      const participants = state.participants.filter(
+        (participant) => !participant.deletedAt
+      );
+
+      return [
+        ...participants.filter((participant) => participant.isActive),
+        ...participants.filter((participant) => !participant.isActive),
+      ];
+    },
     activeParticipants: (state) =>
       withoutStaleDefaultPlaceholders(
         uniqueParticipantsByDisplay(
@@ -254,15 +316,25 @@ export const useParticipantsStore = defineStore('participants', {
   },
   actions: {
     persist() {
-      writeStorageSlice('participants', { participants: this.participants });
+      writeStorageSlice('participants', {
+        participants: this.participants,
+        currentParticipantId: this.currentParticipantId,
+      });
     },
     ensureDefaultParticipants() {
       if (this.participants.length) {
         return;
       }
 
-      this.participants = createDefaultParticipants();
+      const defaults = createDefaultParticipantsState();
+      this.participants = defaults.participants;
+      this.currentParticipantId = defaults.currentParticipantId;
       this.persist();
+    },
+    isCurrentParticipant(participantId: string) {
+      return (
+        Boolean(participantId) && this.currentParticipantId === participantId
+      );
     },
     createParticipant(payload: CreateParticipantPayload) {
       const name = payload.name.trim();

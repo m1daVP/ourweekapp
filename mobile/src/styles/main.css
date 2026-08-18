@@ -339,6 +339,48 @@ input[type='radio'] {
     calc(var(--edge-margin) + env(safe-area-inset-bottom));
 }
 
+.pull-to-refresh {
+  display: flex;
+  height: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  overflow: visible;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-label-sm);
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(var(--pull-distance, 0px) - 48px));
+  transition:
+    transform 160ms ease,
+    opacity 120ms ease;
+}
+
+.pull-to-refresh .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.pull-to-refresh--pulling,
+.pull-to-refresh--ready,
+.pull-to-refresh--refreshing {
+  opacity: 1;
+}
+
+.pull-to-refresh--ready {
+  color: var(--color-primary);
+}
+
+.pull-to-refresh__spinner {
+  animation: pull-to-refresh-spin 700ms linear infinite;
+}
+
+@keyframes pull-to-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .app-shell--with-navigation .app-main {
   padding-bottom: calc(136px + env(safe-area-inset-bottom));
 }
@@ -599,8 +641,13 @@ input[type='radio'] {
 
 @media (prefers-reduced-motion: reduce) {
   .app-toast__spinner,
+  .pull-to-refresh__spinner,
   .app-skeleton::after {
     animation: none;
+  }
+
+  .pull-to-refresh {
+    transition: none;
   }
 }
 
@@ -976,8 +1023,6 @@ input[type='radio'] {
 .meeting-review__actions button,
 .participant-list__actions button,
 .participant-form button,
-.workspace-member-list button,
-.workspace-invite-form button,
 .settings-panel > .meeting-primary,
 .export-modal__actions button,
 .private-note-form__actions button,
@@ -1043,7 +1088,6 @@ input[type='radio'] {
 .task-item__actions .task-item__done,
 .meeting-review__actions .meeting-primary,
 .participant-form .meeting-primary,
-.workspace-invite-form .meeting-primary,
 .settings-panel > .meeting-primary,
 .export-modal__actions .meeting-primary,
 .private-note-form__actions .meeting-primary,
@@ -1184,9 +1228,6 @@ input[type='radio'] {
 .meeting-list,
 .household-member-list,
 .participant-list,
-.workspace-invite-form,
-.workspace-member-list,
-.workspace-permission-list,
 .template-card__sections,
 .private-note-list {
   padding: 0;
@@ -1197,7 +1238,6 @@ input[type='radio'] {
 .feature-list li,
 .household-member-list li,
 .participant-list li,
-.workspace-member-list li,
 .plan-comparison__group,
 .subscription-status-list div,
 .account-summary div,
@@ -1227,7 +1267,6 @@ input[type='radio'] {
 .feature-list li:first-child,
 .household-member-list li:first-child,
 .participant-list li:first-child,
-.workspace-member-list li:first-child,
 .plan-comparison__group:first-of-type,
 .subscription-status-list div:first-child,
 .account-summary div:first-child,
@@ -1405,8 +1444,7 @@ input[type='radio'] {
   padding: 20px 0;
 }
 
-.template-card__sections li,
-.workspace-permission-list li {
+.template-card__sections li {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1446,8 +1484,6 @@ input[type='radio'] {
 .task-item__fields label,
 .participant-form label,
 .participant-list__fields label,
-.workspace-field,
-.workspace-invite-form label,
 .private-note-form label,
 .reminder-fieldset label,
 .auth-form label,
@@ -1903,9 +1939,11 @@ input[type='radio'] {
   width: 44px;
   height: 44px;
   place-items: center;
+  border: 0;
   border-radius: var(--radius-pill);
+  background: transparent;
   color: var(--color-primary);
-  text-decoration: none;
+  cursor: pointer;
 }
 
 .household-settings-edit .material-symbols-outlined {
@@ -2281,6 +2319,44 @@ input[type='radio'] {
   color: var(--color-on-surface-variant);
 }
 
+.participant-invite-form,
+.participant-access-status {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.participant-access-action {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-fixed);
+  padding: 0 var(--space-4);
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.participant-access-status {
+  margin: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-low);
+  padding: var(--space-3);
+}
+
+.participant-access-status p {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.participant-access-status span {
+  color: var(--color-on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
 .task-item__fields,
 .participant-list__fields,
 .private-note-item__body {
@@ -2602,181 +2678,6 @@ input[type='radio'] {
 
 .participant-list__actions {
   grid-column: 1 / -1;
-}
-
-.segmented-control,
-.role-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.segmented-control__button,
-.role-option {
-  min-height: var(--touch-target-min);
-  border: 1px solid
-    color-mix(in srgb, var(--color-outline-variant) 44%, transparent);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-lowest);
-  color: var(--color-on-surface);
-  font-weight: 800;
-  text-transform: capitalize;
-}
-
-.segmented-control__button.is-active,
-.role-option.is-active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-fixed);
-  color: var(--color-primary);
-}
-
-.workspace-member-list__actions {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-}
-
-.workspace-members-page {
-  padding-bottom: 80px;
-}
-
-.workspace-members-hero {
-  display: grid;
-  gap: 8px;
-}
-
-.workspace-members-hero h1 {
-  max-width: none;
-  margin: 0;
-  font-size: var(--font-size-headline-lg);
-}
-
-.workspace-member-cards,
-.workspace-pending-invites {
-  display: grid;
-  gap: 16px;
-}
-
-.workspace-pending-invites {
-  border-top: 1px solid
-    color-mix(in srgb, var(--color-outline-variant) 56%, transparent);
-  padding-top: 16px;
-}
-
-.workspace-pending-invites h2 {
-  margin: 0;
-  font-size: var(--font-size-headline-lg);
-}
-
-.workspace-member-card,
-.workspace-invite-card {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 16px;
-  align-items: center;
-  border: 1px solid
-    color-mix(in srgb, var(--color-outline-variant) 34%, transparent);
-  border-radius: 20px;
-  background: var(--color-surface-lowest);
-  padding: 16px;
-}
-
-.workspace-member-card__avatar,
-.workspace-invite-card__icon {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  border-radius: var(--radius-pill);
-  color: var(--color-on-primary);
-  flex-shrink: 0;
-  font-weight: 850;
-}
-
-.workspace-member-card__avatar {
-  border: 2px solid var(--color-primary-fixed);
-}
-
-.workspace-member-card__body,
-.workspace-invite-card__body {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
-.workspace-member-card__body strong,
-.workspace-invite-card__body strong {
-  overflow: hidden;
-  color: var(--color-on-surface);
-  font-size: var(--font-size-body-md);
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-member-card__body small,
-.workspace-invite-card__body small {
-  color: var(--color-on-surface-variant);
-  font-size: var(--font-size-label-sm);
-  font-weight: 700;
-}
-
-.workspace-member-card:first-child .workspace-member-card__body small {
-  color: var(--color-primary);
-}
-
-.workspace-member-card__remove {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-on-surface-variant);
-}
-
-.workspace-invite-card {
-  background: #f3eee7;
-  border-color: transparent;
-}
-
-.workspace-invite-card__icon {
-  width: 40px;
-  height: 40px;
-  background: var(--color-surface-highest);
-  color: var(--color-on-surface-variant);
-}
-
-.workspace-invite-card button {
-  min-height: 36px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: var(--color-secondary-fixed);
-  padding: 0 16px;
-  color: var(--color-secondary);
-  font-size: var(--font-size-label-sm);
-  font-weight: 800;
-}
-
-.workspace-invite-dock {
-  position: fixed;
-  bottom: calc(88px + env(safe-area-inset-bottom));
-  left: 50%;
-  z-index: 32;
-  width: min(100vw, var(--container-max-width));
-  padding: 0 var(--edge-margin);
-  transform: translateX(-50%);
-}
-
-.workspace-invite-dock .meeting-primary {
-  width: 100%;
-  min-height: 56px;
-  border-radius: 24px;
-}
-
-.workspace-invite-sheet-form p {
-  color: var(--color-on-surface-variant);
 }
 
 .participant-sheet-form .color-selector {
@@ -3787,8 +3688,8 @@ input[type='radio'] {
 
 .task-filter-tabs__button {
   display: inline-flex;
-  min-width: 112px;
-  min-height: 58px;
+  /* min-width: 112px;
+  min-height: 58px; */
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -3797,9 +3698,9 @@ input[type='radio'] {
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--color-surface-low) 42%, transparent);
   color: #30362f;
-  padding: 0 26px;
-  font-size: var(--font-size-body-md);
-  font-weight: 800;
+  padding: 9px 20px;
+  font-size: var(--font-size-label-lg);
+  font-weight: 700;
   line-height: 1;
   white-space: nowrap;
   box-shadow: none;

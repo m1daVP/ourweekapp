@@ -1,5 +1,9 @@
 import type { UserRole } from '@/features/access/types';
-import type { Workspace, WorkspaceMember } from '@/features/workspace/types';
+import type {
+  Workspace,
+  WorkspaceInvitation,
+  WorkspaceMember,
+} from '@/features/workspace/types';
 import { apiRequest } from './httpClient';
 
 export type WorkspaceDto = Workspace;
@@ -15,15 +19,7 @@ export interface CreateWorkspaceInvitationRequestDto {
   role: Exclude<UserRole, 'owner'>;
 }
 
-export interface WorkspaceInvitationDto {
-  invitationId: string;
-  email: string;
-  displayName?: string;
-  role: Exclude<UserRole, 'owner'>;
-  status: 'pending' | 'accepted' | 'revoked' | 'expired';
-  createdAt: string;
-  expiresAt: string;
-}
+export type WorkspaceInvitationDto = WorkspaceInvitation;
 
 export interface UpdateWorkspaceMemberRequestDto {
   role?: Exclude<UserRole, 'owner'>;
@@ -72,4 +68,16 @@ export async function removeWorkspaceMember(userId: string): Promise<void> {
     method: 'DELETE',
     requiresAuth: true,
   });
+}
+
+export async function revokeWorkspaceInvitation(
+  invitationId: string
+): Promise<void> {
+  await apiRequest<void>(
+    `/workspace/invitations/${encodeURIComponent(invitationId)}`,
+    {
+      method: 'DELETE',
+      requiresAuth: true,
+    }
+  );
 }

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import { createBackgroundAuthVerificationCoordinator } from '@/app/router/backgroundAuthVerification';
+import { legacySettingsRoutes } from '@/app/router/legacySettingsRoutes';
 import AccountPage from '@/pages/AccountPage.vue';
 import CalendarSyncPage from '@/pages/CalendarSyncPage.vue';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
@@ -25,7 +26,6 @@ import TasksPage from '@/pages/TasksPage.vue';
 import TermsPage from '@/pages/TermsPage.vue';
 import UpgradePage from '@/pages/UpgradePage.vue';
 import WelcomePage from '@/pages/WelcomePage.vue';
-import WorkspaceSettingsPage from '@/pages/WorkspaceSettingsPage.vue';
 
 const unauthenticatedRouteNames = new Set([
   'welcome',
@@ -140,6 +140,7 @@ export const router = createRouter({
       name: 'settings',
       component: SettingsPage,
     },
+    ...legacySettingsRoutes,
     {
       path: '/settings/privacy',
       name: 'privacy',
@@ -159,11 +160,6 @@ export const router = createRouter({
       path: '/settings/upgrade',
       name: 'upgrade',
       component: UpgradePage,
-    },
-    {
-      path: '/settings/workspace',
-      name: 'workspace-settings',
-      component: WorkspaceSettingsPage,
     },
     {
       path: '/settings/account',

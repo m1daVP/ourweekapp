@@ -4,6 +4,7 @@ import {
   createWorkspaceInvitation,
   getWorkspace,
   removeWorkspaceMember as removeWorkspaceMemberRequest,
+  revokeWorkspaceInvitation,
   updateWorkspace,
   updateWorkspaceMember,
 } from '@/shared/api/workspaceApi';
@@ -11,22 +12,28 @@ import {
   readSettingsStorage,
   writeSettingsStorage,
 } from '@/shared/services/storageService';
+import { ApiClientError } from '@/shared/api/httpClient';
 import { nowIso } from '@/shared/utils/dates';
 import { createPrefixedId } from '@/shared/utils/ids';
 import type { UserRole } from '@/features/access/types';
 import type {
+  ParticipantAccessState,
+  ParticipantInvitationLink,
   Workspace,
+  WorkspaceInvitation,
+  WorkspaceInvitationStatus,
   WorkspaceMember,
   WorkspaceMemberStatus,
 } from '@/features/workspace/types';
 
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 3;
 const LOCAL_OWNER_ID = 'local-owner';
 
 interface WorkspaceState {
   version: number;
   currentUserId: string;
   workspace: Workspace;
+  participantInvitationLinks: Record<string, ParticipantInvitationLink>;
   isLoading: boolean;
   isSaving: boolean;
   errorMessage: string;
@@ -36,15 +43,43 @@ interface WorkspaceState {
 interface StoredWorkspaceState {
   version: number;
   currentUserId?: string;
-  workspace?: Partial<Workspace> & {
+  workspace?: Omit<Partial<Workspace>, 'members' | 'invitations'> & {
     members?: Partial<WorkspaceMember>[];
+    invitations?: Partial<WorkspaceInvitation>[];
   };
+  participantInvitationLinks?: unknown;
 }
 
-interface InviteMemberPayload {
-  displayName: string;
-  email?: string;
-  role: Exclude<UserRole, 'owner'>;
+function normalizeEmail(email: string) {
+  return email.trim().toLocaleLowerCase();
+}
+
+function normalizeParticipantInvitationLinks(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {} as Record<string, ParticipantInvitationLink>;
+  }
+
+  return Object.values(value as Record<string, unknown>).reduce<
+    Record<string, ParticipantInvitationLink>
+  >((links, candidate) => {
+    if (!candidate || typeof candidate !== 'object') {
+      return links;
+    }
+
+    const link = candidate as Partial<ParticipantInvitationLink>;
+    const participantId = link.participantId?.trim();
+    const email = link.email ? normalizeEmail(link.email) : '';
+
+    if (participantId && email) {
+      links[participantId] = {
+        participantId,
+        email,
+        invitationId: link.invitationId?.trim() || undefined,
+      };
+    }
+
+    return links;
+  }, {});
 }
 
 function normalizeRole(role: unknown): UserRole {
@@ -65,6 +100,60 @@ function normalizeStatus(status: unknown): WorkspaceMemberStatus {
   }
 
   return 'active';
+}
+
+function normalizeInvitationRole(
+  role: unknown
+): Exclude<UserRole, 'owner'> | null {
+  if (role === 'adult_member' || role === 'viewer') {
+    return role;
+  }
+
+  if (role === 'partner') {
+    return 'adult_member';
+  }
+
+  return null;
+}
+
+function normalizeInvitationStatus(
+  status: unknown
+): WorkspaceInvitationStatus | null {
+  if (
+    status === 'pending' ||
+    status === 'accepted' ||
+    status === 'revoked' ||
+    status === 'expired'
+  ) {
+    return status;
+  }
+
+  return null;
+}
+
+function normalizeInvitation(
+  invitation: Partial<WorkspaceInvitation>
+): WorkspaceInvitation | null {
+  const invitationId = invitation.invitationId?.trim();
+  const email = invitation.email ? normalizeEmail(invitation.email) : '';
+  const createdAt = invitation.createdAt?.trim();
+  const expiresAt = invitation.expiresAt?.trim();
+  const role = normalizeInvitationRole(invitation.role);
+  const status = normalizeInvitationStatus(invitation.status);
+
+  if (!invitationId || !email || !createdAt || !expiresAt || !role || !status) {
+    return null;
+  }
+
+  return {
+    invitationId,
+    email,
+    displayName: invitation.displayName?.trim() || undefined,
+    role,
+    status,
+    createdAt,
+    expiresAt,
+  };
 }
 
 function createDefaultWorkspace(): Workspace {
@@ -88,6 +177,7 @@ function createDefaultWorkspace(): Workspace {
         status: 'active',
       },
     ],
+    invitations: [],
     createdAt,
     updatedAt: createdAt,
   };
@@ -108,6 +198,7 @@ function createAuthenticatedPlaceholderWorkspace(userId: string): Workspace {
         status: 'active',
       },
     ],
+    invitations: [],
     createdAt,
     updatedAt: createdAt,
   };
@@ -137,6 +228,12 @@ function normalizeWorkspace(
     workspace?.members
       ?.map(normalizeMember)
       .filter((member): member is WorkspaceMember => Boolean(member)) ?? [];
+  const invitations =
+    workspace?.invitations
+      ?.map(normalizeInvitation)
+      .filter((invitation): invitation is WorkspaceInvitation =>
+        Boolean(invitation)
+      ) ?? [];
   const ownerId =
     workspace?.ownerId &&
     members.some((member) => member.userId === workspace.ownerId)
@@ -161,6 +258,7 @@ function normalizeWorkspace(
     name: workspace?.name?.trim() || fallback.name,
     ownerId,
     members,
+    invitations,
     createdAt: workspace?.createdAt ?? fallback.createdAt,
     updatedAt: workspace?.updatedAt ?? fallback.updatedAt,
   };
@@ -178,6 +276,7 @@ function getStoredState(): WorkspaceState {
       version: STORAGE_VERSION,
       currentUserId: LOCAL_OWNER_ID,
       workspace: fallbackWorkspace,
+      participantInvitationLinks: {},
       isLoading: false,
       isSaving: false,
       errorMessage: '',
@@ -198,6 +297,9 @@ function getStoredState(): WorkspaceState {
     version: STORAGE_VERSION,
     currentUserId,
     workspace,
+    participantInvitationLinks: normalizeParticipantInvitationLinks(
+      storedState.participantInvitationLinks
+    ),
     isLoading: false,
     isSaving: false,
     errorMessage: '',
@@ -234,10 +336,28 @@ export const useWorkspaceStore = defineStore('workspace', {
         version: STORAGE_VERSION,
         currentUserId: this.currentUserId,
         workspace: this.workspace,
+        participantInvitationLinks: this.participantInvitationLinks,
       });
     },
     applyWorkspace(workspace: Workspace) {
       this.workspace = normalizeWorkspace(workspace);
+
+      const accessibleEmails = new Set([
+        ...this.workspace.members
+          .filter(
+            (member) => member.status !== 'removed' && Boolean(member.email)
+          )
+          .map((member) => normalizeEmail(member.email ?? '')),
+        ...this.workspace.invitations
+          .filter((invitation) => invitation.status === 'pending')
+          .map((invitation) => invitation.email),
+      ]);
+
+      this.participantInvitationLinks = Object.fromEntries(
+        Object.entries(this.participantInvitationLinks).filter(([, link]) =>
+          accessibleEmails.has(link.email)
+        )
+      );
 
       if (
         !this.workspace.members.some(
@@ -253,6 +373,7 @@ export const useWorkspaceStore = defineStore('workspace', {
     resetForAuthenticatedUser(userId: string) {
       this.workspace = createAuthenticatedPlaceholderWorkspace(userId);
       this.currentUserId = userId;
+      this.participantInvitationLinks = {};
       this.isLoading = false;
       this.isSaving = false;
       this.errorMessage = '';
@@ -322,34 +443,185 @@ export const useWorkspaceStore = defineStore('workspace', {
         this.isSaving = false;
       }
     },
-    async inviteWorkspaceMember(payload: InviteMemberPayload) {
-      const displayName = payload.displayName.trim();
-      const email = payload.email?.trim();
+    getParticipantAccessState(participantId: string): ParticipantAccessState {
+      const link = this.participantInvitationLinks[participantId];
 
-      if (!displayName || !email) {
+      if (!link) {
+        return { status: 'none' };
+      }
+
+      const member = this.workspace.members.find(
+        (candidate) =>
+          candidate.status !== 'removed' &&
+          candidate.email &&
+          normalizeEmail(candidate.email) === link.email
+      );
+
+      if (!member) {
+        const invitation = this.workspace.invitations.find(
+          (candidate) =>
+            candidate.status === 'pending' && candidate.email === link.email
+        );
+
+        return invitation
+          ? { status: 'pending', email: link.email }
+          : { status: 'none' };
+      }
+
+      return {
+        status: member.status === 'active' ? 'active' : 'pending',
+        email: link.email,
+      };
+    },
+    getParticipantPendingInvitation(
+      participantId: string
+    ): WorkspaceInvitation | null {
+      const link = this.participantInvitationLinks[participantId.trim()];
+
+      if (!link) {
         return null;
+      }
+
+      const invitationById = link.invitationId
+        ? this.workspace.invitations.find(
+            (invitation) =>
+              invitation.status === 'pending' &&
+              invitation.invitationId === link.invitationId
+          )
+        : undefined;
+
+      if (invitationById) {
+        return invitationById;
+      }
+
+      const email = normalizeEmail(link.email);
+      return (
+        this.workspace.invitations.find(
+          (invitation) =>
+            invitation.status === 'pending' && invitation.email === email
+        ) ?? null
+      );
+    },
+    async revokeParticipantInvitation(participantId: string) {
+      const normalizedParticipantId = participantId.trim();
+      const invitation = this.getParticipantPendingInvitation(
+        normalizedParticipantId
+      );
+
+      if (!invitation) {
+        this.errorMessage = translate('workspace.invitationNoLongerPending');
+        return false;
       }
 
       this.isSaving = true;
       this.errorMessage = '';
 
       try {
-        const invitation = await createWorkspaceInvitation({
-          displayName,
+        await revokeWorkspaceInvitation(invitation.invitationId);
+        this.workspace.invitations = this.workspace.invitations.filter(
+          (candidate) => candidate.invitationId !== invitation.invitationId
+        );
+        delete this.participantInvitationLinks[normalizedParticipantId];
+        this.workspace.updatedAt = nowIso();
+        this.lastSyncedAt = nowIso();
+        this.persist();
+        return true;
+      } catch (error) {
+        if (error instanceof ApiClientError && error.status === 404) {
+          const didLoadWorkspace = await this.loadWorkspace();
+
+          if (didLoadWorkspace) {
+            this.errorMessage = translate(
+              'workspace.invitationNoLongerPending'
+            );
+          }
+
+          return false;
+        }
+
+        this.errorMessage = translate('workspace.revokeInvitationFailed');
+        return false;
+      } finally {
+        this.isSaving = false;
+      }
+    },
+    async inviteParticipant(
+      participantId: string,
+      displayName: string,
+      emailValue: string
+    ): Promise<WorkspaceMember | WorkspaceInvitation | null> {
+      const normalizedParticipantId = participantId.trim();
+      const normalizedDisplayName = displayName.trim();
+      const email = normalizeEmail(emailValue);
+
+      if (!normalizedParticipantId || !normalizedDisplayName || !email) {
+        return null;
+      }
+
+      this.errorMessage = '';
+
+      const conflictingLink = Object.values(
+        this.participantInvitationLinks
+      ).find(
+        (link) =>
+          link.participantId !== normalizedParticipantId && link.email === email
+      );
+
+      if (conflictingLink) {
+        this.errorMessage = translate('workspace.emailAlreadyLinked');
+        return null;
+      }
+
+      const existingMember = this.workspace.members.find(
+        (member) =>
+          member.status !== 'removed' &&
+          member.email &&
+          normalizeEmail(member.email) === email
+      );
+
+      if (existingMember) {
+        this.participantInvitationLinks[normalizedParticipantId] = {
+          participantId: normalizedParticipantId,
           email,
-          role: payload.role,
-        });
-
-        const member: WorkspaceMember = {
-          userId: invitation.invitationId,
-          displayName: invitation.displayName?.trim() || displayName,
-          email: invitation.email,
-          role: invitation.role,
-          status: 'invited',
         };
+        this.persist();
+        return existingMember;
+      }
 
-        this.applyMember(member);
-        return member;
+      this.isSaving = true;
+
+      try {
+        const invitationResponse = await createWorkspaceInvitation({
+          displayName: normalizedDisplayName,
+          email,
+          role: 'adult_member',
+        });
+        const invitation = normalizeInvitation(invitationResponse);
+
+        if (!invitation) {
+          this.errorMessage = translate('workspace.saveInviteFailed');
+          return null;
+        }
+
+        const invitationIndex = this.workspace.invitations.findIndex(
+          (candidate) => candidate.invitationId === invitation.invitationId
+        );
+
+        if (invitationIndex >= 0) {
+          this.workspace.invitations[invitationIndex] = invitation;
+        } else {
+          this.workspace.invitations.push(invitation);
+        }
+
+        this.workspace.updatedAt = nowIso();
+        this.lastSyncedAt = nowIso();
+        this.participantInvitationLinks[normalizedParticipantId] = {
+          participantId: normalizedParticipantId,
+          email: invitation.email,
+          invitationId: invitation.invitationId,
+        };
+        this.persist();
+        return invitation;
       } catch (error) {
         this.errorMessage = getErrorMessage(
           error,

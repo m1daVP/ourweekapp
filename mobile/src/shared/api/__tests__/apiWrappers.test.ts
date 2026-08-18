@@ -34,6 +34,7 @@ import {
   createWorkspaceInvitation,
   getWorkspace,
   removeWorkspaceMember,
+  revokeWorkspaceInvitation,
   updateWorkspace,
   updateWorkspaceMember,
 } from '@/shared/api/workspaceApi';
@@ -492,6 +493,12 @@ describe('workspaceApi', () => {
     await removeWorkspaceMember('user-1');
     expect(lastApiCall()).toEqual([
       '/workspace/members/user-1',
+      { method: 'DELETE', requiresAuth: true },
+    ]);
+
+    await revokeWorkspaceInvitation('invite /1');
+    expect(lastApiCall()).toEqual([
+      '/workspace/invitations/invite%20%2F1',
       { method: 'DELETE', requiresAuth: true },
     ]);
   });

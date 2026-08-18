@@ -63,6 +63,7 @@ vi.mock('@/shared/api/workspaceApi', () => ({
 }));
 
 import { useMeetingsStore } from '@/app/stores/meetings';
+import { useParticipantsStore } from '@/app/stores/participants';
 import { usePrivateNotesStore } from '@/app/stores/privateNotes';
 import { useTasksStore } from '@/app/stores/tasks';
 import { useWorkspaceStore } from '@/app/stores/workspace';
@@ -147,6 +148,7 @@ beforeEach(() => {
         status: 'active',
       },
     ],
+    invitations: [],
     createdAt,
     updatedAt,
   });
@@ -264,6 +266,7 @@ describe('syncService', () => {
 
   it('clears active synced stores when preparing sync for a different account', () => {
     const meetingsStore = useMeetingsStore();
+    const participantsStore = useParticipantsStore();
     const tasksStore = useTasksStore();
     const privateNotesStore = usePrivateNotesStore();
     const workspaceStore = useWorkspaceStore();
@@ -271,6 +274,7 @@ describe('syncService', () => {
     meetingsStore.meetings = [meeting('meeting-1')];
     meetingsStore.activeMeetingId = 'meeting-1';
     tasksStore.tasks = [task('task-1')];
+    participantsStore.currentParticipantId = 'old-participant';
     workspaceStore.workspace = {
       id: 'old-workspace',
       name: 'Old household',
@@ -317,6 +321,7 @@ describe('syncService', () => {
     expect(meetingsStore.meetings).toEqual([]);
     expect(meetingsStore.activeMeetingId).toBeNull();
     expect(tasksStore.tasks).toEqual([]);
+    expect(participantsStore.currentParticipantId).toBeNull();
     expect(workspaceStore.workspace.ownerId).toBe('new-user');
     expect(workspaceStore.currentUserId).toBe('new-user');
     expect(workspaceStore.currentUserRole).toBe('viewer');

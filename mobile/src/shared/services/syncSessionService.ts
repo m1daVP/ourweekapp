@@ -33,6 +33,7 @@ export function prepareSyncForAuthenticatedUser(userId: string) {
   tasksStore.agreements = [];
   tasksStore.reviewDecisions = [];
   participantsStore.participants = [];
+  participantsStore.currentParticipantId = null;
   workspaceStore.resetForAuthenticatedUser(userId);
 
   return { didResetSyncedData: true };
