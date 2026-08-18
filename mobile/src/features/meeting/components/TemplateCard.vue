@@ -37,16 +37,6 @@ const templateToneMap: Record<string, string> = {
   'busy-week-planning': 'lavender',
 };
 
-const templateDescriptionMap: Record<string, string> = {
-  'weekly-family-check-in':
-    'A simple 15-minute review of the week, celebrating wins and setting intentions.',
-  'couple-reset': 'Deepen connection and align on relationship goals.',
-  'family-with-kids': 'Kid-friendly prompts for young families.',
-  'money-check-in': 'Align on finances and budgeting calmly.',
-  'conflict-cleanup': 'Structured mediation after a disagreement.',
-  'busy-week-planning': 'Plan schedule, errands, and backup options.',
-};
-
 function getTemplateIcon(template: MeetingTemplate) {
   return templateIconMap[template.id] ?? 'forum';
 }
@@ -56,10 +46,7 @@ function getTemplateTone(template: MeetingTemplate) {
 }
 
 function getTemplateDescription(template: MeetingTemplate) {
-  return (
-    templateDescriptionMap[template.id] ??
-    getMeetingTemplateDescription(template.id, template.description)
-  );
+  return getMeetingTemplateDescription(template.id, template.description);
 }
 </script>
 
