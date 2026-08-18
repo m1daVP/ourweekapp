@@ -4,6 +4,8 @@ import { ApiError } from '../errors/index.js';
 
 export type SupabaseRepositoryClient = SupabaseClient;
 
+const MAX_PROVIDER_DIAGNOSTIC_LENGTH = 256;
+
 export type JsonValue =
   | string
   | number
@@ -11,6 +13,20 @@ export type JsonValue =
   | null
   | JsonValue[]
   | { [key: string]: JsonValue };
+
+function sanitizeProviderDiagnostic(value: string | null | undefined) {
+  if (!value) {
+    return undefined;
+  }
+
+  const sanitized = value
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_PROVIDER_DIAGNOSTIC_LENGTH);
+
+  return sanitized || undefined;
+}
 
 export function throwOnSupabaseError(
   error: PostgrestError | null,
@@ -21,8 +37,15 @@ export function throwOnSupabaseError(
     return;
   }
 
+  const databaseMessage =
+    error.code === 'PGRST303' ? sanitizeProviderDiagnostic(error.message) : undefined;
+  const databaseHint =
+    error.code === 'PGRST303' ? sanitizeProviderDiagnostic(error.hint) : undefined;
+
   throw new ApiError(500, code, message, {
     databaseCode: error.code,
+    ...(databaseMessage ? { databaseMessage } : {}),
+    ...(databaseHint ? { databaseHint } : {}),
   });
 }
 

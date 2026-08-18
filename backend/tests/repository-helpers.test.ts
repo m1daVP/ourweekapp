@@ -169,10 +169,37 @@ describe('repository helpers', () => {
     });
     const repository = new AuthRepository(client);
 
-    await expect(repository.findActiveUser('user-1')).rejects.toMatchObject({
+    const error = await repository.findActiveUser('user-1').catch((caught) => caught);
+
+    expect(error).toMatchObject({
       statusCode: 500,
       code: 'auth_user_lookup_failed',
-      details: { databaseCode: 'PGRST999' },
+    });
+    expect(error.details).toEqual({ databaseCode: 'PGRST999' });
+  });
+
+  it('retains only sanitized PGRST303 diagnostics for internal logging', async () => {
+    const { client } = createSessionClient({
+      data: null,
+      error: {
+        code: 'PGRST303',
+        message: ' JWT\nissued\tat future ',
+        details: 'must never be retained',
+        hint: ' Retry\r\nafter clocks synchronize. ',
+      },
+    });
+    const repository = new AuthRepository(client);
+
+    const error = await repository.findActiveUser('user-1').catch((caught) => caught);
+
+    expect(error).toMatchObject({
+      statusCode: 500,
+      code: 'auth_user_lookup_failed',
+    });
+    expect(error.details).toEqual({
+      databaseCode: 'PGRST303',
+      databaseMessage: 'JWT issued at future',
+      databaseHint: 'Retry after clocks synchronize.',
     });
   });
 

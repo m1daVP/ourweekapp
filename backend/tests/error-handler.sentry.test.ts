@@ -26,6 +26,19 @@ async function buildAppWithErrorHandler() {
     throw new ApiError(404, 'not_found', 'That was not found.');
   });
 
+  app.get('/expected-server', async () => {
+    throw new ApiError(500, 'database_failed', 'Unable to load data.', {
+      databaseCode: 'PGRST303',
+      databaseMessage: 'JWT issued at future',
+    });
+  });
+
+  app.get('/expected-client', async () => {
+    throw new ApiError(409, 'update_conflict', 'The record changed.', {
+      serverRevision: 2,
+    });
+  });
+
   return app;
 }
 
@@ -59,6 +72,36 @@ describe('error handler Sentry reporting', () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.json()).toMatchObject({ code: 'not_found' });
+    expect(captureException).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it('removes internal details from 5xx ApiError responses', async () => {
+    const app = await buildAppWithErrorHandler();
+    const response = await app.inject({ method: 'GET', url: '/expected-server' });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({
+      message: 'Unable to load data.',
+      code: 'database_failed',
+      details: {},
+    });
+    expect(captureException).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it('preserves safe details in 4xx ApiError responses', async () => {
+    const app = await buildAppWithErrorHandler();
+    const response = await app.inject({ method: 'GET', url: '/expected-client' });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      message: 'The record changed.',
+      code: 'update_conflict',
+      details: { serverRevision: 2 },
+    });
     expect(captureException).not.toHaveBeenCalled();
 
     await app.close();

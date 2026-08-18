@@ -7,7 +7,10 @@ import type {
 
 import { ApiError, isApiError } from '../../shared/errors/index.js';
 import { AuthRepository } from './auth.repository.js';
-import { verifyAccessToken } from './token.service.js';
+import { verifyAccessToken, type AccessTokenClaims } from './token.service.js';
+
+const AUTH_CONTEXT_RETRY_MIN_DELAY_MS = 150;
+const AUTH_CONTEXT_RETRY_MAX_DELAY_MS = 300;
 
 const unauthorizedError = new ApiError(
   401,
@@ -20,6 +23,78 @@ const authContextLookupError = new ApiError(
   'auth_context_lookup_failed',
   'Something went wrong. Please try again.',
 );
+
+type AuthContextLoader = Pick<AuthRepository, 'getAuthenticatedContext'>;
+
+type AuthContextRetryOptions = {
+  sleep?: (delayMs: number) => Promise<void>;
+  getDelayMs?: () => number;
+};
+
+type DatabaseDiagnostics = {
+  databaseCode?: string;
+  databaseMessage?: string;
+  databaseHint?: string;
+};
+
+function stringDetail(value: unknown) {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function databaseDiagnostics(error: unknown): DatabaseDiagnostics {
+  if (!isApiError(error)) {
+    return {};
+  }
+
+  return {
+    databaseCode: stringDetail(error.details.databaseCode),
+    databaseMessage: stringDetail(error.details.databaseMessage),
+    databaseHint: stringDetail(error.details.databaseHint),
+  };
+}
+
+function isRetryableAuthContextError(error: unknown) {
+  return databaseDiagnostics(error).databaseCode === 'PGRST303';
+}
+
+function sleep(delayMs: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+}
+
+function authContextRetryDelayMs() {
+  const delayRange =
+    AUTH_CONTEXT_RETRY_MAX_DELAY_MS - AUTH_CONTEXT_RETRY_MIN_DELAY_MS + 1;
+
+  return AUTH_CONTEXT_RETRY_MIN_DELAY_MS + Math.floor(Math.random() * delayRange);
+}
+
+async function loadAuthenticatedContextWithRetry(
+  request: FastifyRequest,
+  repository: AuthContextLoader,
+  claims: AccessTokenClaims,
+  options: AuthContextRetryOptions,
+) {
+  try {
+    return await repository.getAuthenticatedContext(claims);
+  } catch (error) {
+    if (!isRetryableAuthContextError(error)) {
+      throw error;
+    }
+
+    request.log.warn(
+      {
+        code: 'auth_context_retry',
+        ...databaseDiagnostics(error),
+        requestId: request.id,
+      },
+      'Retrying authentication context lookup',
+    );
+
+    await (options.sleep ?? sleep)((options.getDelayMs ?? authContextRetryDelayMs)());
+
+    return repository.getAuthenticatedContext(claims);
+  }
+}
 
 function parseBearerToken(authorization: unknown) {
   if (typeof authorization !== 'string') {
@@ -38,7 +113,8 @@ function parseBearerToken(authorization: unknown) {
 export async function authenticateRequest(
   request: FastifyRequest,
   _reply: FastifyReply,
-  repository = new AuthRepository(request.server.supabase),
+  repository: AuthContextLoader = new AuthRepository(request.server.supabase),
+  retryOptions: AuthContextRetryOptions = {},
 ) {
   const token = parseBearerToken(request.headers.authorization);
 
@@ -66,12 +142,18 @@ export async function authenticateRequest(
   let auth;
 
   try {
-    auth = await repository.getAuthenticatedContext(claims);
+    auth = await loadAuthenticatedContextWithRetry(
+      request,
+      repository,
+      claims,
+      retryOptions,
+    );
   } catch (error) {
     request.log.error(
       {
         err: error,
         code: isApiError(error) ? error.code : authContextLookupError.code,
+        ...databaseDiagnostics(error),
         requestId: request.id,
       },
       'Authentication context lookup failed',
