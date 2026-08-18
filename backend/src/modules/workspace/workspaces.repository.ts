@@ -340,6 +340,33 @@ export class WorkspacesRepository {
     return (data ?? []).map(mapWorkspaceInvitationRowToDto);
   }
 
+  async revokePendingInvitation(workspaceId: string, invitationId: string) {
+    const { data, error } = await this.supabase
+      .from('workspace_invitations')
+      .update({ status: 'revoked' })
+      .eq('workspace_id', workspaceId)
+      .eq('id', invitationId)
+      .eq('status', 'pending')
+      .select(INVITATION_COLUMNS)
+      .maybeSingle<WorkspaceInvitationRow>();
+
+    throwOnSupabaseError(
+      error,
+      'workspace_invitation_revoke_failed',
+      'Unable to revoke the workspace invitation.',
+    );
+
+    if (!data) {
+      throw new ApiError(
+        404,
+        'workspace_invitation_not_found',
+        'Pending workspace invitation not found.',
+      );
+    }
+
+    return mapWorkspaceInvitationRowToDto(data);
+  }
+
   async listActiveOwnersForWorkspace(workspaceId: string) {
     const { data, error } = await this.supabase
       .from('workspace_members')

@@ -8,6 +8,7 @@ import {
   createWorkspaceInvitationResponseSchema,
   updateWorkspaceMemberRequestSchema,
   updateWorkspaceRequestSchema,
+  workspaceInvitationParamsSchema,
   workspaceMemberParamsSchema,
   workspaceMemberSchema,
   workspaceSchema,
@@ -74,6 +75,24 @@ export const workspaceRoutes: FastifyPluginAsyncZod = async (app) => {
     const invitation = await service.createInvitation(request.auth, request.body);
 
     return reply.status(201).send(invitation);
+  });
+
+  app.delete('/invitations/:invitationId', {
+    config: {
+      authRequired: true,
+    },
+    preHandler: authPreHandler,
+    schema: {
+      params: workspaceInvitationParamsSchema,
+      response: {
+        204: z.null(),
+        ...workspaceErrorResponses,
+      },
+    },
+  }, async (request, reply) => {
+    await service.revokeInvitation(request.auth, request.params.invitationId);
+
+    return reply.status(204).send(null);
   });
 
   app.put('/members/:userId', {

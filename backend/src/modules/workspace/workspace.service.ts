@@ -214,6 +214,15 @@ export class WorkspaceService {
     });
   }
 
+  async revokeInvitation(auth: AuthContext | undefined, invitationId: string) {
+    const context = requireManageWorkspace(auth);
+
+    await this.repository.revokePendingInvitation(
+      context.workspaceId,
+      invitationId,
+    );
+  }
+
   private async loadWorkspace(context: AuthContext) {
     const { workspaceId } = context;
     const workspace = await this.repository.findWorkspaceById(workspaceId);

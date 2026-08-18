@@ -47,18 +47,32 @@ class FakeRpcQuery {
 class FakeFromQuery {
   constructor(
     private readonly result: { data: unknown; error: unknown },
+    private readonly calls: Array<Record<string, unknown>>,
   ) {}
 
   select() {
     return this;
   }
 
-  eq() {
+  update(value: Record<string, unknown>) {
+    this.calls.push({ update: value });
+    return this;
+  }
+
+  eq(column: string, value: unknown) {
+    this.calls.push({ eq: [column, value] });
     return this;
   }
 
   order() {
     return this;
+  }
+
+  maybeSingle<T>() {
+    return Promise.resolve({
+      data: this.result.data as T,
+      error: this.result.error,
+    });
   }
 
   returns<T>() {
@@ -82,11 +96,11 @@ function createRpcClient(result: { data: unknown; error: unknown }) {
 }
 
 function createFromClient(result: { data: unknown; error: unknown }) {
-  const calls: Array<{ table: string }> = [];
+  const calls: Array<Record<string, unknown>> = [];
   const client = {
     from(table: string) {
       calls.push({ table });
-      return new FakeFromQuery(result);
+      return new FakeFromQuery(result, calls);
     },
   } as unknown as SupabaseRepositoryClient;
 
@@ -206,7 +220,11 @@ describe('WorkspacesRepository', () => {
 
     const result = await repository.listPendingInvitationsForWorkspace('workspace-1');
 
-    expect(calls).toEqual([{ table: 'workspace_invitations' }]);
+    expect(calls).toEqual([
+      { table: 'workspace_invitations' },
+      { eq: ['workspace_id', 'workspace-1'] },
+      { eq: ['status', 'pending'] },
+    ]);
     expect(result).toEqual([
       {
         id: 'invitation-1',
@@ -221,5 +239,44 @@ describe('WorkspacesRepository', () => {
       },
     ]);
     expect(result[0]).not.toHaveProperty('tokenHash');
+  });
+
+  it('revokes a pending invitation within its workspace', async () => {
+    const { calls, client } = createFromClient({
+      data: { ...invitationRow, status: 'revoked' },
+      error: null,
+    });
+    const repository = new WorkspacesRepository(client);
+
+    const result = await repository.revokePendingInvitation(
+      'workspace-1',
+      'invitation-1',
+    );
+
+    expect(calls).toEqual([
+      { table: 'workspace_invitations' },
+      { update: { status: 'revoked' } },
+      { eq: ['workspace_id', 'workspace-1'] },
+      { eq: ['id', 'invitation-1'] },
+      { eq: ['status', 'pending'] },
+    ]);
+    expect(result).toMatchObject({
+      id: 'invitation-1',
+      workspaceId: 'workspace-1',
+      status: 'revoked',
+    });
+  });
+
+  it('returns a safe not-found error when no pending invitation matches', async () => {
+    const { client } = createFromClient({ data: null, error: null });
+    const repository = new WorkspacesRepository(client);
+
+    await expect(
+      repository.revokePendingInvitation('workspace-1', 'invitation-1'),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'workspace_invitation_not_found',
+      details: {},
+    });
   });
 });

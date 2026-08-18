@@ -34,6 +34,7 @@ const workspaceService = vi.hoisted(() => ({
   createInvitation: vi.fn(),
   getWorkspace: vi.fn(),
   removeMember: vi.fn(),
+  revokeInvitation: vi.fn(),
   updateMember: vi.fn(),
   updateWorkspace: vi.fn(),
 }));
@@ -276,6 +277,7 @@ describe('API route contracts', () => {
     workspaceService.createInvitation.mockReset();
     workspaceService.getWorkspace.mockReset();
     workspaceService.removeMember.mockReset();
+    workspaceService.revokeInvitation.mockReset();
     workspaceService.updateMember.mockReset();
     workspaceService.updateWorkspace.mockReset();
     subscriptionService.getManageUrl.mockReset();
@@ -487,6 +489,37 @@ describe('API route contracts', () => {
     expect(response.statusCode).toBe(422);
     expect(response.json()).toMatchObject({ code: 'validation_failed' });
     expect(workspaceService.removeMember).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('returns 422 before invitation revoke service code for invalid invitation IDs', async () => {
+    const app = await buildRouteApp('workspace');
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/v1/workspace/invitations/not-a-uuid',
+      headers: { authorization: 'Bearer valid-token' },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({ code: 'validation_failed' });
+    expect(workspaceService.revokeInvitation).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('returns 204 after revoking a workspace invitation', async () => {
+    workspaceService.revokeInvitation.mockResolvedValueOnce(undefined);
+    const app = await buildRouteApp('workspace');
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/v1/workspace/invitations/44444444-4444-4444-8444-444444444444',
+      headers: { authorization: 'Bearer valid-token' },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(workspaceService.revokeInvitation).toHaveBeenCalledWith(
+      authContext,
+      '44444444-4444-4444-8444-444444444444',
+    );
     await app.close();
   });
 

@@ -96,6 +96,7 @@ function createRepository(input: {
       ...targetMember,
       ...update,
     })),
+    revokePendingInvitation: vi.fn(async () => invitation({ status: 'revoked' })),
     findActiveMemberByEmailForWorkspace: vi.fn(async () => null),
     createInvitation: vi.fn(async () => ({
       ...invitation(),
@@ -200,6 +201,29 @@ describe('WorkspaceService member management', () => {
       'owner-1',
       { status: 'removed' },
     );
+  });
+
+  it('revokes a pending invitation through the workspace-scoped repository path', async () => {
+    const { repository, service } = createRepository();
+
+    await service.revokeInvitation(ownerAuth, 'invitation-1');
+
+    expect(repository.revokePendingInvitation).toHaveBeenCalledWith(
+      'workspace-1',
+      'invitation-1',
+    );
+  });
+
+  it('allows only owners to revoke pending invitations', async () => {
+    const { repository, service } = createRepository();
+
+    await expect(
+      service.revokeInvitation(adultAuth, 'invitation-1'),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'forbidden',
+    });
+    expect(repository.revokePendingInvitation).not.toHaveBeenCalled();
   });
 
   it('does not update removed members', async () => {

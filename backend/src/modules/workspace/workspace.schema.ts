@@ -82,6 +82,10 @@ export const workspaceMemberParamsSchema = z.object({
   userId: z.uuid(),
 });
 
+export const workspaceInvitationParamsSchema = z.object({
+  invitationId: z.uuid(),
+});
+
 export type WorkspaceMemberStatusDto = z.infer<
   typeof workspaceMemberStatusSchema
 >;
@@ -102,4 +106,7 @@ export type CreateWorkspaceInvitationResponseDto = z.infer<
 >;
 export type UpdateWorkspaceMemberRequestDto = z.infer<
   typeof updateWorkspaceMemberRequestSchema
+>;
+export type WorkspaceInvitationParamsDto = z.infer<
+  typeof workspaceInvitationParamsSchema
 >;
