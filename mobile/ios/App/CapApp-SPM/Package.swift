@@ -11,7 +11,7 @@ let package = Package(
             targets: ["CapApp-SPM"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.4.2"),
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.5.0"),
         .package(name: "AparajitaCapacitorSecureStorage", path: "..\..\..\node_modules\@aparajita\capacitor-secure-storage"),
         .package(name: "CapacitorApp", path: "..\..\..\node_modules\@capacitor\app"),
         .package(name: "CapacitorFilesystem", path: "..\..\..\node_modules\@capacitor\filesystem"),
@@ -20,7 +20,7 @@ let package = Package(
         .package(name: "CapacitorShare", path: "..\..\..\node_modules\@capacitor\share"),
         .package(name: "CapacitorSplashScreen", path: "..\..\..\node_modules\@capacitor\splash-screen"),
         .package(name: "CapacitorToast", path: "..\..\..\node_modules\@capacitor\toast"),
-        .package(name: "CapgoCapacitorSocialLogin", path: "..\..\..\node_modules\@capgo\capacitor-social-login"),
+        .package(name: "CapawesomeCapacitorGoogleSignIn", path: "..\..\..\node_modules\@capawesome\capacitor-google-sign-in"),
         .package(name: "RevenuecatPurchasesCapacitor", path: "..\..\..\node_modules\@revenuecat\purchases-capacitor"),
         .package(name: "RevenuecatPurchasesCapacitorUi", path: "..\..\..\node_modules\@revenuecat\purchases-capacitor-ui")
     ],
@@ -38,7 +38,7 @@ let package = Package(
                 .product(name: "CapacitorShare", package: "CapacitorShare"),
                 .product(name: "CapacitorSplashScreen", package: "CapacitorSplashScreen"),
                 .product(name: "CapacitorToast", package: "CapacitorToast"),
-                .product(name: "CapgoCapacitorSocialLogin", package: "CapgoCapacitorSocialLogin"),
+                .product(name: "CapawesomeCapacitorGoogleSignIn", package: "CapawesomeCapacitorGoogleSignIn"),
                 .product(name: "RevenuecatPurchasesCapacitor", package: "RevenuecatPurchasesCapacitor"),
                 .product(name: "RevenuecatPurchasesCapacitorUi", package: "RevenuecatPurchasesCapacitorUi")
             ]
