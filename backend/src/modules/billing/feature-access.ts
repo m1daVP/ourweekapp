@@ -108,7 +108,7 @@ export const featureCatalog = {
     key: 'export', tier: 'premium', lifecycle: 'available', eligibleRoles: adultRoles, enforcement: 'server',
   },
   advancedStatistics: {
-    key: 'advancedStatistics', tier: 'premium', lifecycle: 'planned', eligibleRoles: adultRoles, enforcement: 'server',
+    key: 'advancedStatistics', tier: 'premium', lifecycle: 'available', eligibleRoles: adultRoles, enforcement: 'server',
   },
 } as const satisfies Record<SubscriptionFeatureKey, FeatureCatalogEntry>;
 

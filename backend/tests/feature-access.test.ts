@@ -12,12 +12,21 @@ describe('feature access catalog', () => {
     expect(Object.keys(featureCatalog).sort()).toEqual([...subscriptionFeatureKeys].sort());
   });
 
-  it('does not offer an upgrade for a planned Premium feature', () => {
+  it('makes advanced statistics available to Premium adults and owners only', () => {
     expect(resolveFeatureAccess(featureCatalog.advancedStatistics, {
-      planType: 'free',
-      role: 'owner',
+      planType: 'premium',
+      role: 'adult_member',
     })).toMatchObject({
-      state: 'notYetAvailable',
+      lifecycle: 'available',
+      state: 'available',
+      upgradeEligible: false,
+    });
+    expect(resolveFeatureAccess(featureCatalog.advancedStatistics, {
+      planType: 'premium',
+      role: 'viewer',
+    })).toMatchObject({
+      lifecycle: 'available',
+      state: 'roleRestricted',
       upgradeEligible: false,
     });
   });

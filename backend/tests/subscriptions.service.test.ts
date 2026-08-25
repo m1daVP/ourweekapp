@@ -150,8 +150,8 @@ describe('SubscriptionService', () => {
       upgradeEligible: true,
     });
     expect(status.features.advancedStatistics).toMatchObject({
-      state: 'notYetAvailable',
-      upgradeEligible: false,
+      state: 'upgradeRequired',
+      upgradeEligible: true,
     });
     expect(status.enabledFeatures).not.toContain('aiSummary');
   });
