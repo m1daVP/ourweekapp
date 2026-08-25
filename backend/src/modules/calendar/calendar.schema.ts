@@ -25,6 +25,48 @@ export const calendarSyncSkippedReasonSchema = z.enum([
   'provider-error',
 ]);
 
+export const calendarWeekdaySchema = z.enum([
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+]);
+
+export const calendarPreferencesSchema = z.object({
+  weeklyMeetingSyncEnabled: z.boolean(),
+  assignedTaskSyncEnabled: z.boolean(),
+  weeklyMeetingDay: calendarWeekdaySchema,
+  weeklyMeetingTime: z.string().regex(/^\d{2}:\d{2}$/),
+  timeZone: z.string().trim().min(1).max(100),
+  lastSyncErrorCode: z.literal('provider-error').optional(),
+  lastSyncAttemptedAt: isoDateTimeStringSchema.optional(),
+});
+
+export const updateCalendarPreferencesSchema = z.object({
+  weeklyMeetingSyncEnabled: z.boolean().optional(),
+  assignedTaskSyncEnabled: z.boolean().optional(),
+  weeklyMeetingDay: calendarWeekdaySchema.optional(),
+  weeklyMeetingTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  timeZone: z.string().trim().min(1).max(100).optional(),
+}).superRefine((value, ctx) => {
+  const scheduleFields = [
+    value.weeklyMeetingDay,
+    value.weeklyMeetingTime,
+    value.timeZone,
+  ];
+
+  if (scheduleFields.some((field) => field !== undefined) && scheduleFields.some((field) => field === undefined)) {
+    ctx.addIssue({ code: 'custom', message: 'Weekly meeting schedule must be updated together.' });
+  }
+
+  if (Object.keys(value).length === 0) {
+    ctx.addIssue({ code: 'custom', message: 'At least one calendar setting is required.' });
+  }
+});
+
 export const calendarMessageSchema = trimmedString(
   1,
   VALIDATION_LIMITS.summaryTextMaxLength,
@@ -37,6 +79,7 @@ export const calendarConnectionStatusSchema = z.object({
   connectedAccountEmail: emailSchema.nullable(),
   lastCheckedAt: isoDateTimeStringSchema,
   message: calendarMessageSchema,
+  preferences: calendarPreferencesSchema,
   authorizationUrl: z.string().url().optional(),
 });
 
@@ -89,6 +132,8 @@ export type CalendarConnectionStateDto = z.infer<
 export type CalendarConnectionStatusDto = z.infer<
   typeof calendarConnectionStatusSchema
 >;
+export type CalendarPreferencesDto = z.infer<typeof calendarPreferencesSchema>;
+export type UpdateCalendarPreferencesDto = z.infer<typeof updateCalendarPreferencesSchema>;
 export type CalendarSyncSkippedReasonDto = z.infer<
   typeof calendarSyncSkippedReasonSchema
 >;

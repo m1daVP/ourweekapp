@@ -13,6 +13,7 @@ import {
   calendarMeetingReminderRequestSchema,
   calendarSyncResultSchema,
   calendarTaskDueDateRequestSchema,
+  updateCalendarPreferencesSchema,
 } from './calendar.schema.js';
 import { createDefaultCalendarService } from './calendar.service.js';
 import { googleCalendarProvider } from './google-oauth.client.js';
@@ -94,6 +95,38 @@ export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
   }, async (request) => calendarService.disconnectGoogle(
+    requireAuthenticatedContext(request.auth),
+  ));
+
+  app.put('/google/settings', {
+    config: {
+      authRequired: true,
+    },
+    preHandler: [requireAuth, requirePremiumWorkspace],
+    schema: {
+      body: updateCalendarPreferencesSchema,
+      response: {
+        200: calendarConnectionStatusSchema,
+        ...calendarErrorResponses,
+      },
+    },
+  }, async (request) => calendarService.updateGoogleSettings(
+    requireAuthenticatedContext(request.auth),
+    request.body,
+  ));
+
+  app.post('/google/retry', {
+    config: {
+      authRequired: true,
+    },
+    preHandler: [requireAuth, requirePremiumWorkspace],
+    schema: {
+      response: {
+        200: calendarSyncResultSchema,
+        ...calendarErrorResponses,
+      },
+    },
+  }, async (request) => calendarService.syncWeeklyMeetingForUser(
     requireAuthenticatedContext(request.auth),
   ));
 

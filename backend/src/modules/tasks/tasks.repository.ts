@@ -3,7 +3,7 @@ import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositor
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
 const TASK_COLUMNS =
-  'id,workspace_id,title,description,responsibility_type,responsible_participant_ids,due_date,status,source_meeting_id,server_revision,created_at,updated_at,deleted_at' as const;
+  'id,workspace_id,title,description,responsibility_type,responsible_participant_ids,responsible_user_ids,due_date,status,source_meeting_id,server_revision,created_at,updated_at,deleted_at' as const;
 const AGREEMENT_COLUMNS =
   'id,workspace_id,title,description,participant_ids,related_task_ids,source_meeting_id,server_revision,created_at,updated_at,deleted_at' as const;
 const REVIEW_DECISION_COLUMNS = 'workspace_id,meeting_id,source_meeting_id,decided_at' as const;
@@ -15,6 +15,7 @@ type TaskRow = {
   description: string | null;
   responsibility_type: 'participant' | 'shared' | 'needsDiscussion';
   responsible_participant_ids: JsonValue;
+  responsible_user_ids: JsonValue;
   due_date: string | null;
   status: 'open' | 'done' | 'skipped';
   source_meeting_id: string | null;
@@ -52,6 +53,7 @@ export type TaskDto = {
   description: string | null;
   responsibilityType: TaskRow['responsibility_type'];
   responsibleParticipantIds: string[];
+  responsibleUserIds: string[];
   dueDate: string | null;
   status: TaskRow['status'];
   sourceMeetingId: string | null;
@@ -89,6 +91,7 @@ export type UpsertTaskInput = {
   description?: string | null;
   responsibilityType: TaskRow['responsibility_type'];
   responsibleParticipantIds: string[];
+  responsibleUserIds: string[];
   dueDate?: string | null;
   status: TaskRow['status'];
   sourceMeetingId?: string | null;
@@ -140,6 +143,7 @@ export function mapTaskRowToDto(row: TaskRow): TaskDto {
     description: row.description,
     responsibilityType: row.responsibility_type,
     responsibleParticipantIds: stringArrayFromJson(row.responsible_participant_ids),
+    responsibleUserIds: stringArrayFromJson(row.responsible_user_ids),
     dueDate: row.due_date,
     status: row.status,
     sourceMeetingId: row.source_meeting_id,
@@ -225,6 +229,7 @@ export class TasksRepository {
           description: input.description ?? null,
           responsibility_type: input.responsibilityType,
           responsible_participant_ids: input.responsibleParticipantIds,
+          responsible_user_ids: input.responsibleUserIds,
           due_date: input.dueDate ?? null,
           status: input.status,
           source_meeting_id: input.sourceMeetingId ?? null,
@@ -251,6 +256,7 @@ export class TasksRepository {
         description: input.description ?? null,
         responsibility_type: input.responsibilityType,
         responsible_participant_ids: input.responsibleParticipantIds,
+        responsible_user_ids: input.responsibleUserIds,
         due_date: input.dueDate ?? null,
         status: input.status,
         source_meeting_id: input.sourceMeetingId ?? null,
@@ -275,6 +281,7 @@ export class TasksRepository {
         description: input.description ?? null,
         responsibility_type: input.responsibilityType,
         responsible_participant_ids: input.responsibleParticipantIds,
+        responsible_user_ids: input.responsibleUserIds,
         due_date: input.dueDate ?? null,
         status: input.status,
         source_meeting_id: input.sourceMeetingId ?? null,

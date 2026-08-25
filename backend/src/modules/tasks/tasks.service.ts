@@ -4,6 +4,7 @@ import type { SupabaseRepositoryClient } from '../../shared/repositories/index.j
 import type { SyncConflictDto } from '../../shared/sync/index.js';
 import { MeetingsRepository } from '../meetings/meetings.repository.js';
 import { ParticipantsRepository } from '../participants/participants.repository.js';
+import { WorkspacesRepository } from '../workspace/workspaces.repository.js';
 import {
   TasksRepository,
   type AgreementDto as AgreementRepositoryDto,
@@ -58,6 +59,16 @@ type MeetingRepositoryPort = {
   findMeetingByIdForWorkspace(workspaceId: string, meetingId: string): Promise<unknown | null>;
 };
 
+type WorkspaceMembersPort = Pick<WorkspacesRepository, 'listActiveMembersForWorkspace'>;
+
+type CalendarTaskSyncPort = {
+  syncAssignedTaskForUser(input: {
+    workspaceId: string;
+    userId: string;
+    task: Pick<TaskRepositoryDto, 'id' | 'title' | 'dueDate' | 'status' | 'deletedAt'>;
+  }): Promise<unknown>;
+};
+
 function taskRepositoryDtoToApiDto(row: TaskRepositoryDto): TaskDto {
   return taskSchema.parse({
     id: row.id,
@@ -65,6 +76,7 @@ function taskRepositoryDtoToApiDto(row: TaskRepositoryDto): TaskDto {
     ...(row.description ? { description: row.description } : {}),
     responsibilityType: row.responsibilityType,
     responsibleParticipantIds: row.responsibleParticipantIds,
+    responsibleUserIds: row.responsibleUserIds,
     ...(row.dueDate ? { dueDate: row.dueDate } : {}),
     status: row.status,
     ...(row.sourceMeetingId ? { sourceMeetingId: row.sourceMeetingId } : {}),
@@ -134,6 +146,7 @@ function taskToUpsertInput(task: TaskDto, workspaceId: string): UpsertTaskInput 
     description: task.description ?? null,
     responsibilityType: task.responsibilityType,
     responsibleParticipantIds: [...task.responsibleParticipantIds],
+    responsibleUserIds: [...(task.responsibleUserIds ?? [])],
     dueDate: task.dueDate ?? null,
     status: task.status,
     sourceMeetingId: task.sourceMeetingId ?? null,
@@ -170,6 +183,7 @@ function taskToUpdateInput(
     description: task.description ?? null,
     responsibilityType: task.responsibilityType,
     responsibleParticipantIds: [...task.responsibleParticipantIds],
+    responsibleUserIds: [...(task.responsibleUserIds ?? [])],
     dueDate: task.dueDate ?? null,
     status: task.status,
     sourceMeetingId: task.sourceMeetingId ?? null,
@@ -204,6 +218,7 @@ function hasTaskContentChanged(client: TaskDto, server: TaskRepositoryDto) {
     (client.description ?? null) !== server.description ||
     client.responsibilityType !== server.responsibilityType ||
     !sameStringArray(client.responsibleParticipantIds, server.responsibleParticipantIds) ||
+    !sameStringArray(client.responsibleUserIds ?? [], server.responsibleUserIds) ||
     (client.dueDate ?? null) !== server.dueDate ||
     client.status !== server.status ||
     (client.sourceMeetingId ?? null) !== server.sourceMeetingId
@@ -309,6 +324,8 @@ export class TasksService {
     private readonly tasksRepository: TaskRepositoryPort,
     private readonly participantsRepository: ParticipantRepositoryPort,
     private readonly meetingsRepository: MeetingRepositoryPort,
+    private readonly calendarSync?: CalendarTaskSyncPort,
+    private readonly workspaceMembersRepository?: WorkspaceMembersPort,
   ) {}
 
   async listTasks(auth: AuthContext, now = new Date()): Promise<SyncTasksResponseDto> {
@@ -348,6 +365,14 @@ export class TasksService {
       auth.workspaceId,
     );
     const validParticipantIds = new Set(participants.map((participant) => participant.id));
+    const activeMembers = this.workspaceMembersRepository
+      ? await this.workspaceMembersRepository.listActiveMembersForWorkspace(auth.workspaceId)
+      : [];
+    const validResponsibleUserIds = new Set(
+      activeMembers
+        .filter((member) => member.role === 'owner' || member.role === 'adult_member')
+        .map((member) => member.userId),
+    );
     const existingTasks = await this.tasksRepository.listTasksForWorkspace(auth.workspaceId);
     const validTaskIds = new Set(existingTasks.map((task) => task.id));
     const conflicts: TaskOrAgreementConflict[] = [];
@@ -359,6 +384,7 @@ export class TasksService {
         auth.workspaceId,
         task,
         validParticipantIds,
+        validResponsibleUserIds,
         sourceMeetingCache,
       );
 
@@ -381,6 +407,25 @@ export class TasksService {
 
       if (accepted.state === 'active') {
         validTaskIds.add(task.id);
+        if ((task.responsibleUserIds ?? []).length > 0 && this.calendarSync) {
+          try {
+            await Promise.all((task.responsibleUserIds ?? []).map((userId) =>
+              this.calendarSync!.syncAssignedTaskForUser({
+                workspaceId: auth.workspaceId,
+                userId,
+                task: {
+                  id: task.id,
+                  title: task.title,
+                  dueDate: task.dueDate ?? null,
+                  status: task.status,
+                  deletedAt: task.deletedAt ?? null,
+                },
+              }),
+            ));
+          } catch {
+            // Calendar is an optional integration; a sync failure cannot reject a task save.
+          }
+        }
       }
 
       if (accepted.state === 'deleted') {
@@ -440,6 +485,7 @@ export class TasksService {
     workspaceId: string,
     task: TaskDto,
     validParticipantIds: Set<string>,
+    validResponsibleUserIds: Set<string>,
     sourceMeetingCache: Map<string, boolean>,
   ) {
     if (task.deletedAt) {
@@ -447,6 +493,10 @@ export class TasksService {
     }
 
     if (missingIds(task.responsibleParticipantIds, validParticipantIds).length > 0) {
+      return false;
+    }
+
+    if (missingIds(task.responsibleUserIds ?? [], validResponsibleUserIds).length > 0) {
       return false;
     }
 
@@ -783,14 +833,27 @@ export function createTasksService(
   tasksRepository: TaskRepositoryPort,
   participantsRepository: ParticipantRepositoryPort,
   meetingsRepository: MeetingRepositoryPort,
+  calendarSync?: CalendarTaskSyncPort,
+  workspaceMembersRepository?: WorkspaceMembersPort,
 ) {
-  return new TasksService(tasksRepository, participantsRepository, meetingsRepository);
+  return new TasksService(
+    tasksRepository,
+    participantsRepository,
+    meetingsRepository,
+    calendarSync,
+    workspaceMembersRepository,
+  );
 }
 
-export function createDefaultTasksService(supabase: SupabaseRepositoryClient) {
+export function createDefaultTasksService(
+  supabase: SupabaseRepositoryClient,
+  calendarSync?: CalendarTaskSyncPort,
+) {
   return new TasksService(
     new TasksRepository(supabase),
     new ParticipantsRepository(supabase),
     new MeetingsRepository(supabase),
+    calendarSync,
+    new WorkspacesRepository(supabase),
   );
 }

@@ -8,6 +8,7 @@ import type {
   UpsertCalendarConnectionInput,
   UpsertCalendarEventInput,
 } from '../src/modules/calendar/calendar.repository.js';
+import type { CalendarPreferencesDto } from '../src/modules/calendar/calendar.schema.js';
 import type {
   GoogleCalendarProvider,
   GoogleCalendarTokens,
@@ -76,6 +77,7 @@ function task(overrides: Partial<TaskDto> = {}): TaskDto {
     description: null,
     responsibilityType: 'shared',
     responsibleParticipantIds: [],
+    responsibleUserIds: [userId],
     dueDate: '2026-06-10',
     status: 'open',
     sourceMeetingId: meetingId,
@@ -110,6 +112,14 @@ class FakeCalendarRepository {
   public connectionUpserts: UpsertCalendarConnectionInput[] = [];
   public eventUpserts: UpsertCalendarEventInput[] = [];
   public disconnects: Array<{ workspaceId: string; userId: string; disconnectedAt: string }> = [];
+  public preferences: CalendarPreferencesDto | null = {
+    weeklyMeetingSyncEnabled: false,
+    assignedTaskSyncEnabled: true,
+    weeklyMeetingDay: 'sunday',
+    weeklyMeetingTime: '18:00',
+    timeZone: 'UTC',
+  };
+  public clearedMappings: Array<{ workspaceId: string; userId: string }> = [];
 
   async findConnectionForUser(_workspaceId: string, _userId: string) {
     return this.connection;
@@ -157,6 +167,23 @@ class FakeCalendarRepository {
     };
 
     return this.connection;
+  }
+
+  async findPreferencesForUser(_workspaceId: string, _userId: string) {
+    return this.preferences;
+  }
+
+  async upsertPreferences(input: {
+    workspaceId: string;
+    userId: string;
+    preferences: CalendarPreferencesDto;
+  }) {
+    this.preferences = input.preferences;
+    return input.preferences;
+  }
+
+  async clearEventMappingsForUser(workspaceId: string, userId: string) {
+    this.clearedMappings.push({ workspaceId, userId });
   }
 
   async findEventBySource(

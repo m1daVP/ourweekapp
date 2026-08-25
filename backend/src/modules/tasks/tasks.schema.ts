@@ -43,6 +43,7 @@ export const taskSchema = z.object({
   description: taskDescriptionSchema,
   responsibilityType: taskResponsibilityTypeSchema,
   responsibleParticipantIds: z.array(apiIdSchema),
+  responsibleUserIds: z.array(apiIdSchema).default([]),
   dueDate: isoDateStringSchema.optional(),
   status: taskStatusSchema,
   sourceMeetingId: apiIdSchema.optional(),

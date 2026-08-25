@@ -130,6 +130,7 @@ function toExportTask(task: AccountTaskRecord) {
     description: optional(task.description),
     responsibilityType: task.responsibilityType,
     responsibleParticipantIds: task.responsibleParticipantIds,
+    responsibleUserIds: task.responsibleUserIds,
     dueDate: optional(task.dueDate),
     status: task.status,
     sourceMeetingId: optional(task.sourceMeetingId),
@@ -205,6 +206,13 @@ function toCalendarStatus(
       connection.state === 'connected'
         ? 'Google Calendar is connected.'
         : 'Google Calendar is not connected.',
+    preferences: {
+      weeklyMeetingSyncEnabled: false,
+      assignedTaskSyncEnabled: false,
+      weeklyMeetingDay: 'sunday',
+      weeklyMeetingTime: '18:00',
+      timeZone: 'UTC',
+    },
   };
 }
 

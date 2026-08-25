@@ -18,6 +18,8 @@ export type GoogleCalendarEventInput = {
   title: string;
   date?: string;
   dateTime?: string;
+  timeZone?: string;
+  recurrence?: string[];
 };
 
 export type GoogleCalendarProvider = {
@@ -72,8 +74,9 @@ function toGoogleEvent(event: GoogleCalendarEventInput): calendar_v3.Schema$Even
   if (event.dateTime) {
     return {
       summary: event.title,
-      start: { dateTime: event.dateTime },
-      end: { dateTime: addHours(event.dateTime, 1) },
+      start: { dateTime: event.dateTime, timeZone: event.timeZone },
+      end: { dateTime: addHours(event.dateTime, 1), timeZone: event.timeZone },
+      ...(event.recurrence ? { recurrence: event.recurrence } : {}),
     };
   }
 

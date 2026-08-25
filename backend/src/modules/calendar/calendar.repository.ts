@@ -1,6 +1,7 @@
 import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
+import type { CalendarPreferencesDto } from './calendar.schema.js';
 
 const CONNECTION_COLUMNS =
   'id,workspace_id,user_id,provider,connected_account_email,access_token_encrypted,refresh_token_encrypted,token_expires_at,state,created_at,updated_at,disconnected_at' as const;
@@ -8,10 +9,12 @@ const PUBLIC_CONNECTION_COLUMNS =
   'id,workspace_id,user_id,provider,connected_account_email,token_expires_at,state,created_at,updated_at,disconnected_at' as const;
 const EVENT_COLUMNS =
   'id,workspace_id,user_id,provider,source_type,source_id,provider_event_id,created_at,updated_at' as const;
+const PREFERENCE_COLUMNS =
+  'workspace_id,user_id,provider,weekly_meeting_sync_enabled,assigned_task_sync_enabled,weekly_meeting_day,weekly_meeting_time,time_zone,last_sync_error_code,last_sync_attempted_at' as const;
 
 type CalendarProvider = 'google';
 type CalendarConnectionState = 'disconnected' | 'connected' | 'setup_required';
-export type CalendarSourceType = 'meeting_reminder' | 'task_due_date' | 'follow_up_date';
+export type CalendarSourceType = 'meeting_reminder' | 'task_due_date' | 'follow_up_date' | 'weekly_meeting';
 
 type CalendarConnectionRow = {
   id: string;
@@ -43,6 +46,19 @@ type CalendarEventRow = {
   provider_event_id: string;
   created_at: string;
   updated_at: string;
+};
+
+type CalendarPreferencesRow = {
+  workspace_id: string;
+  user_id: string;
+  provider: CalendarProvider;
+  weekly_meeting_sync_enabled: boolean;
+  assigned_task_sync_enabled: boolean;
+  weekly_meeting_day: CalendarPreferencesDto['weeklyMeetingDay'];
+  weekly_meeting_time: string;
+  time_zone: string;
+  last_sync_error_code: 'provider-error' | null;
+  last_sync_attempted_at: string | null;
 };
 
 export type CalendarConnectionDto = {
@@ -92,6 +108,24 @@ export type UpsertCalendarEventInput = {
   sourceId: string;
   providerEventId: string;
 };
+
+export type UpsertCalendarPreferencesInput = {
+  workspaceId: string;
+  userId: string;
+  preferences: CalendarPreferencesDto;
+};
+
+function mapCalendarPreferencesRowToDto(row: CalendarPreferencesRow): CalendarPreferencesDto {
+  return {
+    weeklyMeetingSyncEnabled: row.weekly_meeting_sync_enabled,
+    assignedTaskSyncEnabled: row.assigned_task_sync_enabled,
+    weeklyMeetingDay: row.weekly_meeting_day,
+    weeklyMeetingTime: row.weekly_meeting_time.slice(0, 5),
+    timeZone: row.time_zone,
+    ...(row.last_sync_error_code ? { lastSyncErrorCode: row.last_sync_error_code } : {}),
+    ...(row.last_sync_attempted_at ? { lastSyncAttemptedAt: formatApiDateTime(row.last_sync_attempted_at) } : {}),
+  };
+}
 
 export function mapCalendarConnectionRowToDto(row: PublicCalendarConnectionRow): CalendarConnectionDto {
   return {
@@ -205,6 +239,54 @@ export class CalendarRepository {
     return mapCalendarConnectionRowToDto(
       requireRow(data, error, 'calendar_connection_update_failed', 'Unable to update calendar connection.'),
     );
+  }
+
+  async findPreferencesForUser(workspaceId: string, userId: string) {
+    const { data, error } = await this.supabase
+      .from('calendar_preferences')
+      .select(PREFERENCE_COLUMNS)
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .eq('provider', 'google')
+      .maybeSingle<CalendarPreferencesRow>();
+
+    throwOnSupabaseError(error, 'calendar_preferences_lookup_failed', 'Unable to load calendar settings.');
+    return data ? mapCalendarPreferencesRowToDto(data) : null;
+  }
+
+  async upsertPreferences(input: UpsertCalendarPreferencesInput) {
+    const preferences = input.preferences;
+    const { data, error } = await this.supabase
+      .from('calendar_preferences')
+      .upsert({
+        workspace_id: input.workspaceId,
+        user_id: input.userId,
+        provider: 'google',
+        weekly_meeting_sync_enabled: preferences.weeklyMeetingSyncEnabled,
+        assigned_task_sync_enabled: preferences.assignedTaskSyncEnabled,
+        weekly_meeting_day: preferences.weeklyMeetingDay,
+        weekly_meeting_time: preferences.weeklyMeetingTime,
+        time_zone: preferences.timeZone,
+        last_sync_error_code: preferences.lastSyncErrorCode ?? null,
+        last_sync_attempted_at: preferences.lastSyncAttemptedAt ?? null,
+      }, { onConflict: 'workspace_id,user_id,provider' })
+      .select(PREFERENCE_COLUMNS)
+      .single<CalendarPreferencesRow>();
+
+    return mapCalendarPreferencesRowToDto(
+      requireRow(data, error, 'calendar_preferences_upsert_failed', 'Unable to save calendar settings.'),
+    );
+  }
+
+  async clearEventMappingsForUser(workspaceId: string, userId: string) {
+    const { error } = await this.supabase
+      .from('calendar_events')
+      .delete()
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .eq('provider', 'google');
+
+    throwOnSupabaseError(error, 'calendar_event_delete_failed', 'Unable to disconnect calendar events.');
   }
 
   async findEventBySource(

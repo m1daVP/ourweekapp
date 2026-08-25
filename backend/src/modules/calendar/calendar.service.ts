@@ -4,7 +4,7 @@ import { env } from '../../config/env.js';
 import { requireMinimumRole, type AuthContext } from '../../shared/auth/index.js';
 import { ApiError } from '../../shared/errors/index.js';
 import { MeetingsRepository } from '../meetings/meetings.repository.js';
-import { TasksRepository } from '../tasks/tasks.repository.js';
+import { TasksRepository, type TaskDto as TaskRepositoryDto } from '../tasks/tasks.repository.js';
 import {
   CalendarRepository,
   type CalendarConnectionRecord,
@@ -14,11 +14,13 @@ import {
 import type {
   CalendarConnectRequestDto,
   CalendarConnectionStatusDto,
+  CalendarPreferencesDto,
   CalendarFollowUpDateRequestDto,
   CalendarGoogleCallbackQueryDto,
   CalendarMeetingReminderRequestDto,
   CalendarSyncResultDto,
   CalendarTaskDueDateRequestDto,
+  UpdateCalendarPreferencesDto,
 } from './calendar.schema.js';
 import type {
   GoogleCalendarEventInput,
@@ -35,6 +37,9 @@ type CalendarRepositoryPort = Pick<
   | 'findPublicConnectionForUser'
   | 'upsertConnection'
   | 'disconnectConnection'
+  | 'findPreferencesForUser'
+  | 'upsertPreferences'
+  | 'clearEventMappingsForUser'
   | 'findEventBySource'
   | 'upsertEvent'
 >;
@@ -57,6 +62,24 @@ type CalendarServiceOptions = {
   tokenEncryptionKey?: string;
   allowedRedirectOrigins?: string[];
   allowedRedirectSchemes?: string[];
+};
+
+const defaultPreferences: CalendarPreferencesDto = {
+  weeklyMeetingSyncEnabled: false,
+  assignedTaskSyncEnabled: false,
+  weeklyMeetingDay: 'sunday',
+  weeklyMeetingTime: '18:00',
+  timeZone: 'UTC',
+};
+
+const googleWeekday: Record<CalendarPreferencesDto['weeklyMeetingDay'], string> = {
+  sunday: 'SU',
+  monday: 'MO',
+  tuesday: 'TU',
+  wednesday: 'WE',
+  thursday: 'TH',
+  friday: 'FR',
+  saturday: 'SA',
 };
 
 function base64Url(input: Buffer | string) {
@@ -115,9 +138,28 @@ function missingDateResult(attemptedAt: string): CalendarSyncResultDto {
   };
 }
 
+function nextWeeklyOccurrence(preferences: CalendarPreferencesDto, now: Date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: preferences.timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const currentDate = `${values.year}-${values.month}-${values.day}`;
+  const targetDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    .indexOf(preferences.weeklyMeetingDay);
+  const currentDay = new Date(`${currentDate}T00:00:00.000Z`).getUTCDay();
+  const targetDate = new Date(`${currentDate}T00:00:00.000Z`);
+  targetDate.setUTCDate(targetDate.getUTCDate() + ((targetDay - currentDay + 7) % 7));
+
+  return `${targetDate.toISOString().slice(0, 10)}T${preferences.weeklyMeetingTime}:00`;
+}
+
 function setupRequiredStatus(
   message: string,
   now: Date,
+  preferences: CalendarPreferencesDto,
   authorizationUrl?: string,
 ): CalendarConnectionStatusDto {
   return {
@@ -127,11 +169,12 @@ function setupRequiredStatus(
     connectedAccountEmail: null,
     lastCheckedAt: now.toISOString(),
     message,
+    preferences,
     ...(authorizationUrl ? { authorizationUrl } : {}),
   };
 }
 
-function disconnectedStatus(now: Date): CalendarConnectionStatusDto {
+function disconnectedStatus(now: Date, preferences: CalendarPreferencesDto): CalendarConnectionStatusDto {
   return {
     provider: 'google',
     state: 'disconnected',
@@ -139,12 +182,14 @@ function disconnectedStatus(now: Date): CalendarConnectionStatusDto {
     connectedAccountEmail: null,
     lastCheckedAt: now.toISOString(),
     message: 'Google Calendar is not connected.',
+    preferences,
   };
 }
 
 function connectedStatus(
   connection: CalendarConnectionRecord,
   now: Date,
+  preferences: CalendarPreferencesDto,
 ): CalendarConnectionStatusDto {
   return {
     provider: 'google',
@@ -153,6 +198,7 @@ function connectedStatus(
     connectedAccountEmail: connection.connectedAccountEmail,
     lastCheckedAt: now.toISOString(),
     message: 'Google Calendar is connected.',
+    preferences,
   };
 }
 
@@ -167,11 +213,13 @@ export class CalendarService {
 
   async getGoogleStatus(auth: AuthContext, now = new Date()) {
     requireMinimumRole(auth, 'adult_member');
+    const preferences = await this.getPreferences(auth);
 
     if (!this.googleOAuthConfigured()) {
       return setupRequiredStatus(
         'Google Calendar setup is not configured yet.',
         now,
+        preferences,
       );
     }
 
@@ -181,16 +229,17 @@ export class CalendarService {
     );
 
     if (!connection) {
-      return disconnectedStatus(now);
+      return disconnectedStatus(now, preferences);
     }
 
     if (this.connectionReady(connection)) {
-      return connectedStatus(connection, now);
+      return connectedStatus(connection, now, preferences);
     }
 
     return setupRequiredStatus(
       'Google Calendar consent is incomplete. Please reconnect Google Calendar.',
       now,
+      preferences,
     );
   }
 
@@ -200,11 +249,13 @@ export class CalendarService {
     now = new Date(),
   ) {
     requireMinimumRole(auth, 'adult_member');
+    const preferences = await this.getPreferences(auth);
 
     if (!this.googleOAuthConfigured()) {
       return setupRequiredStatus(
         'Google Calendar setup is not configured yet.',
         now,
+        preferences,
       );
     }
 
@@ -220,6 +271,7 @@ export class CalendarService {
     return setupRequiredStatus(
       'Google Calendar authorization is required.',
       now,
+      preferences,
       this.googleProvider.buildAuthorizationUrl(state),
     );
   }
@@ -305,9 +357,76 @@ export class CalendarService {
         auth.userId,
         now.toISOString(),
       );
+      await this.calendarRepository.clearEventMappingsForUser(
+        auth.workspaceId,
+        auth.userId,
+      );
     }
 
-    return disconnectedStatus(now);
+    return disconnectedStatus(now, await this.getPreferences(auth));
+  }
+
+  async updateGoogleSettings(
+    auth: AuthContext,
+    input: UpdateCalendarPreferencesDto,
+    now = new Date(),
+  ) {
+    requireMinimumRole(auth, 'adult_member');
+    const current = await this.getPreferences(auth);
+    const scheduleChanged = input.weeklyMeetingDay !== undefined;
+    const preferences: CalendarPreferencesDto = {
+      ...current,
+      ...input,
+      ...(scheduleChanged ? {
+        weeklyMeetingDay: input.weeklyMeetingDay!,
+        weeklyMeetingTime: input.weeklyMeetingTime!,
+        timeZone: input.timeZone!,
+      } : {}),
+      lastSyncErrorCode: undefined,
+      lastSyncAttemptedAt: undefined,
+    };
+
+    await this.calendarRepository.upsertPreferences({
+      workspaceId: auth.workspaceId,
+      userId: auth.userId,
+      preferences,
+    });
+
+    if (preferences.weeklyMeetingSyncEnabled) {
+      await this.syncWeeklyMeetingForUser(auth, now);
+    }
+
+    return this.getGoogleStatus(auth, now);
+  }
+
+  async syncWeeklyMeetingForUser(
+    auth: AuthContext,
+    now = new Date(),
+  ): Promise<CalendarSyncResultDto> {
+    requireMinimumRole(auth, 'adult_member');
+    const preferences = await this.getPreferences(auth);
+
+    if (!preferences.weeklyMeetingSyncEnabled) {
+      return {
+        provider: 'google' as const,
+        synced: false,
+        attemptedAt: now.toISOString(),
+        skippedReason: 'not-connected' as const,
+        message: 'Weekly meeting sync is turned off.',
+      };
+    }
+
+    return this.syncEvent(auth, {
+      sourceType: 'weekly_meeting',
+      sourceId: 'personal-weekly-meeting',
+      event: {
+        title: 'OurWeek weekly meeting',
+        dateTime: nextWeeklyOccurrence(preferences, now),
+        timeZone: preferences.timeZone,
+        recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${googleWeekday[preferences.weeklyMeetingDay]}`],
+      },
+      now,
+    });
   }
 
   async syncMeetingReminder(
@@ -342,7 +461,7 @@ export class CalendarService {
     auth: AuthContext,
     request: CalendarTaskDueDateRequestDto,
     now = new Date(),
-  ) {
+  ): Promise<CalendarSyncResultDto> {
     requireMinimumRole(auth, 'adult_member');
 
     if (!request.dueDate) {
@@ -358,10 +477,50 @@ export class CalendarService {
       throw new ApiError(404, 'task_not_found', 'Task not found.');
     }
 
-    return this.syncEvent(auth, {
+    if (task.responsibleUserIds && !task.responsibleUserIds.includes(auth.userId)) {
+      throw new ApiError(404, 'task_not_found', 'Task not found.');
+    }
+
+    return this.syncAssignedTaskForUser({
+      workspaceId: auth.workspaceId,
+      userId: auth.userId,
+      task,
+    }, now);
+  }
+
+  async syncAssignedTaskForUser(
+    input: {
+      workspaceId: string;
+      userId: string;
+      task: Pick<TaskRepositoryDto, 'id' | 'title' | 'dueDate' | 'status' | 'deletedAt'>;
+    },
+    now = new Date(),
+  ): Promise<CalendarSyncResultDto> {
+    const task = input.task;
+    const preferences = await this.calendarRepository.findPreferencesForUser(
+      input.workspaceId,
+      input.userId,
+    );
+
+    if (!preferences?.assignedTaskSyncEnabled || task.status !== 'open' || task.deletedAt || !task.dueDate) {
+      return {
+        provider: 'google',
+        synced: false,
+        attemptedAt: now.toISOString(),
+        skippedReason: !task.dueDate ? 'missing-calendar-date' : 'not-connected',
+        message: !task.dueDate
+          ? 'No calendar date was provided for this item.'
+          : 'Task calendar sync is turned off.',
+      };
+    }
+
+    return this.syncEvent({
+      workspaceId: input.workspaceId,
+      userId: input.userId,
+    } as AuthContext, {
       sourceType: 'task_due_date',
-      sourceId: request.taskId,
-      event: { title: request.title, date: request.dueDate },
+      sourceId: task.id,
+      event: { title: task.title, date: task.dueDate },
       now,
     });
   }
@@ -489,6 +648,13 @@ export class CalendarService {
         : 'Google Calendar event was created.',
       providerEventId: savedEvent.providerEventId,
     };
+  }
+
+  private async getPreferences(auth: AuthContext) {
+    return (await this.calendarRepository.findPreferencesForUser(
+      auth.workspaceId,
+      auth.userId,
+    )) ?? defaultPreferences;
   }
 
   private googleOAuthConfigured() {

@@ -4,6 +4,8 @@ import { requireAuthenticatedContext } from '../../shared/auth/index.js';
 import { errorResponseSchema } from '../../shared/schemas/index.js';
 import { requireAuth } from '../auth/auth.middleware.js';
 import { createDefaultTasksService } from './tasks.service.js';
+import { createDefaultCalendarService } from '../calendar/calendar.service.js';
+import { googleCalendarProvider } from '../calendar/google-oauth.client.js';
 import {
   syncTasksRequestSchema,
   syncTasksResponseSchema,
@@ -19,6 +21,7 @@ const taskErrorResponses = {
 };
 
 export const tasksRoutes: FastifyPluginAsyncZod = async (app) => {
+  const calendarService = createDefaultCalendarService(app.supabase, googleCalendarProvider);
   app.get('/', {
     config: {
       authRequired: true,
@@ -32,7 +35,7 @@ export const tasksRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   }, async (request) => {
     const auth = requireAuthenticatedContext(request.auth);
-    const service = createDefaultTasksService(app.supabase);
+    const service = createDefaultTasksService(app.supabase, calendarService);
 
     return service.listTasks(auth);
   });
@@ -51,7 +54,7 @@ export const tasksRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   }, async (request) => {
     const auth = requireAuthenticatedContext(request.auth);
-    const service = createDefaultTasksService(app.supabase);
+    const service = createDefaultTasksService(app.supabase, calendarService);
 
     return service.syncTasks(auth, request.body);
   });
