@@ -1,4 +1,4 @@
-import { premiumFeatureKeys } from '@/features/access/featureAccess.config';
+import { createLegacyFeatureAccessMap } from '@/features/access/legacyFeatureAccess';
 import { translate } from '@/features/localization/i18n';
 import {
   getSubscriptionManagementUrl,
@@ -22,14 +22,12 @@ function mapProviderKind(
 }
 
 function createPremiumEntitlement(
-  status: SubscriptionStatusDto
+  status: SubscriptionStatusDto,
+  featureAccess: ReturnType<typeof createLegacyFeatureAccessMap>
 ): SubscriptionEntitlementStatus {
-  const unlockedFeatures =
-    status.planType === 'premium'
-      ? status.enabledFeatures.filter((featureKey) =>
-          premiumFeatureKeys.includes(featureKey)
-        )
-      : [];
+  const unlockedFeatures = Object.values(featureAccess)
+    .filter((feature) => feature.tier === 'premium' && feature.state === 'available')
+    .map((feature) => feature.key);
 
   return {
     key: 'premium',
@@ -44,11 +42,14 @@ function createPremiumEntitlement(
 export function createSubscriptionSnapshotFromStatus(
   status: SubscriptionStatusDto
 ): SubscriptionSnapshot {
+  const featureAccess = status.features ?? createLegacyFeatureAccessMap(status);
+
   return {
     currentPlan: status.planType,
+    featureAccess,
     provider: mapProviderKind(status.provider),
     entitlements: {
-      premium: createPremiumEntitlement(status),
+      premium: createPremiumEntitlement(status, featureAccess),
     },
     management: {
       supported: status.provider !== null,

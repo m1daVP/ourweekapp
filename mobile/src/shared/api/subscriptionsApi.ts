@@ -1,4 +1,8 @@
-import type { FeatureKey, PlanType } from '@/features/access/types';
+import type {
+  FeatureAccessMap,
+  FeatureKey,
+  PlanType,
+} from '@/features/access/types';
 import { apiRequest } from './httpClient';
 
 export type SubscriptionProviderDto =
@@ -11,6 +15,7 @@ export interface SubscriptionStatusDto {
   planType: PlanType;
   provider: SubscriptionProviderDto;
   enabledFeatures: FeatureKey[];
+  features?: FeatureAccessMap;
   expiresAt: string | null;
   checkedAt: string;
 }

@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
-import { useWorkspaceStore } from '@/app/stores/workspace';
 import { createBackgroundAuthVerificationCoordinator } from '@/app/router/backgroundAuthVerification';
 import { legacySettingsRoutes } from '@/app/router/legacySettingsRoutes';
 import AccountPage from '@/pages/AccountPage.vue';
@@ -193,7 +191,6 @@ const backgroundAuthVerification = createBackgroundAuthVerificationCoordinator({
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   const subscriptionStore = useSubscriptionStore();
-  const workspaceStore = useWorkspaceStore();
   const isUnauthenticatedRoute = isUnauthenticatedRouteName(to.name);
 
   await authStore.hydrateSecureTokens();
@@ -221,16 +218,9 @@ router.beforeEach(async (to) => {
     return true;
   }
 
-  const featureAccess = requiredFeature
-    ? featureAccessConfig[requiredFeature]
-    : undefined;
   const effectivePlan = subscriptionStore.currentPlan;
-  const hasRequiredFeature = featureAccess
-    ? featureAccess.plans.includes(effectivePlan) &&
-      (effectivePlan !== 'premium' ||
-        subscriptionStore.hasPremiumEntitlement) &&
-      (!featureAccess.roles ||
-        featureAccess.roles.includes(workspaceStore.currentUserRole))
+  const hasRequiredFeature = requiredFeature
+    ? subscriptionStore.getFeatureAccess(requiredFeature).state === 'available'
     : true;
   const hasPremiumPlan = requiresPremium
     ? effectivePlan === 'premium' && subscriptionStore.hasPremiumEntitlement

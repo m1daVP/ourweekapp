@@ -18,10 +18,13 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const { t } = useI18n();
-const { getFeatureAccess } = useFeatureAccess();
+const { getFeatureAccess, getFeatureAccessState } = useFeatureAccess();
 
 const featureAccess = computed(() =>
   props.feature ? getFeatureAccess(props.feature) : undefined
+);
+const canOfferUpgrade = computed(
+  () => !props.feature || getFeatureAccessState(props.feature) === 'upgradeRequired'
 );
 const promptTitle = computed(
   () =>
@@ -48,7 +51,12 @@ function openUpgrade() {
       <h2>{{ promptTitle }}</h2>
       <p>{{ promptMessage }}</p>
     </div>
-    <button class="secondary-button" type="button" @click="openUpgrade">
+    <button
+      v-if="canOfferUpgrade"
+      class="secondary-button"
+      type="button"
+      @click="openUpgrade"
+    >
       {{ t('premium.viewPremium') }}
     </button>
   </div>

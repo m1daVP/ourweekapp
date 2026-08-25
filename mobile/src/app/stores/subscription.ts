@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import { translate } from '@/features/localization/i18n';
 import { subscriptionsService } from '@/features/subscription/services/subscriptionService';
 import type { FeatureKey, PlanType } from '@/features/access/types';
+import { createLegacyFeatureAccessMap } from '@/features/access/legacyFeatureAccess';
+import type { FeatureAccessMap } from '@/features/access/types';
 import type {
   ManageSubscriptionResult,
   SubscriptionEntitlementStatus,
@@ -12,6 +14,7 @@ import type {
 
 interface SubscriptionState {
   currentPlan: PlanType;
+  featureAccess: FeatureAccessMap;
   provider: SubscriptionProviderKind;
   premiumEntitlement: SubscriptionEntitlementStatus | null;
   availablePlans: SubscriptionPlanOption[];
@@ -29,6 +32,7 @@ interface SubscriptionState {
 export const useSubscriptionStore = defineStore('subscription', {
   state: (): SubscriptionState => ({
     currentPlan: 'free',
+    featureAccess: createLegacyFeatureAccessMap({ planType: 'free' }),
     provider: 'backend',
     premiumEntitlement: null,
     availablePlans: [],
@@ -47,12 +51,15 @@ export const useSubscriptionStore = defineStore('subscription', {
       Boolean(state.premiumEntitlement?.isActive),
     enabledFeatureKeys: (state): FeatureKey[] =>
       state.premiumEntitlement?.unlockedFeatures ?? [],
+    getFeatureAccess: (state) => (featureKey: FeatureKey) =>
+      state.featureAccess[featureKey],
   },
   actions: {
     applySnapshot(
       snapshot: Awaited<ReturnType<typeof subscriptionsService.getCurrentPlan>>
     ) {
       this.currentPlan = snapshot.currentPlan;
+      this.featureAccess = snapshot.featureAccess;
       this.provider = snapshot.provider;
       this.premiumEntitlement = snapshot.entitlements.premium;
       this.lastCheckedAt = snapshot.checkedAt;

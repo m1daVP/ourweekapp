@@ -4,7 +4,7 @@ import { useRemindersStore } from '@/app/stores/reminders';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useTasksStore } from '@/app/stores/tasks';
 import { useWorkspaceStore } from '@/app/stores/workspace';
-import { canUseFeatureWithContext } from '@/features/access/featureAccessPolicy';
+import { canUseFeatureAccess } from '@/features/access/featureAccessPolicy';
 import { translate } from '@/features/localization/i18n';
 import {
   cancelReminderNotifications,
@@ -29,11 +29,9 @@ export function useNotifications() {
   const workspaceStore = useWorkspaceStore();
 
   function canUseReminderFeature() {
-    return canUseFeatureWithContext('agreementReminders', {
-      plan: subscriptionStore.currentPlan,
-      hasPremiumEntitlement: subscriptionStore.hasPremiumEntitlement,
-      role: workspaceStore.currentUserRole,
-    });
+    return canUseFeatureAccess(
+      subscriptionStore.getFeatureAccess('agreementReminders')
+    );
   }
 
   const isAvailable = computed(() => localNotificationsAvailable());

@@ -1205,6 +1205,9 @@ export const messages = {
       viewPremium: 'View Premium',
       locked: 'Locked premium feature',
       unlock: 'Unlock',
+      roleRestricted: 'Your household role cannot use this feature.',
+      notYetAvailable: 'This feature is coming soon.',
+      unavailable: 'This feature is not available right now.',
     },
     features: {
       basicMeetings: {
@@ -2635,6 +2638,9 @@ export const messages = {
       viewPremium: 'Переглянути Premium',
       locked: 'Закрита Premium-функція',
       unlock: 'Розблокувати',
+      roleRestricted: 'Ваша роль у сім’ї не може користуватися цією функцією.',
+      notYetAvailable: 'Ця функція скоро з’явиться.',
+      unavailable: 'Ця функція зараз недоступна.',
     },
     features: {
       basicMeetings: {
@@ -4089,6 +4095,9 @@ export const messages = {
       viewPremium: 'Ver Premium',
       locked: 'Función Premium bloqueada',
       unlock: 'Desbloquear',
+      roleRestricted: 'Tu rol en el hogar no puede usar esta función.',
+      notYetAvailable: 'Esta función estará disponible próximamente.',
+      unavailable: 'Esta función no está disponible ahora mismo.',
     },
     features: {
       basicMeetings: {

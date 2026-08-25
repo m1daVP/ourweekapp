@@ -19,11 +19,23 @@ const props = withDefaults(
   }
 );
 
-const { canUseFeature, getFeatureAccess } = useFeatureAccess();
+const { canUseFeature, getFeatureAccess, getFeatureAccessState } = useFeatureAccess();
 const { t } = useI18n();
 
 const canUse = computed(() => canUseFeature(props.feature));
 const featureAccess = computed(() => getFeatureAccess(props.feature));
+const accessState = computed(() => getFeatureAccessState(props.feature));
+const blockedMessage = computed(() => {
+  if (accessState.value === 'roleRestricted') {
+    return t('premium.roleRestricted');
+  }
+
+  if (accessState.value === 'notYetAvailable') {
+    return t('premium.notYetAvailable');
+  }
+
+  return t('premium.unavailable');
+});
 </script>
 
 <template>
@@ -43,10 +55,12 @@ const featureAccess = computed(() => getFeatureAccess(props.feature));
       <slot />
     </div>
     <UpgradePrompt
+      v-if="accessState === 'upgradeRequired'"
       class="premium-lock__prompt"
       :feature="feature"
       :title="title"
       :message="message"
     />
+    <p v-else class="premium-lock__prompt">{{ blockedMessage }}</p>
   </div>
 </template>

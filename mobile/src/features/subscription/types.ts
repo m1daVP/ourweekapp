@@ -1,4 +1,8 @@
-import type { FeatureKey, PlanType } from '@/features/access/types';
+import type {
+  FeatureAccessMap,
+  FeatureKey,
+  PlanType,
+} from '@/features/access/types';
 
 export type BillingCadence = 'monthly' | 'yearly';
 export type SubscriptionPlanId = 'premium_monthly' | 'premium_yearly';
@@ -49,6 +53,7 @@ export interface SubscriptionManagementInfo {
 
 export interface SubscriptionSnapshot {
   currentPlan: PlanType;
+  featureAccess: FeatureAccessMap;
   provider: SubscriptionProviderKind;
   entitlements: Record<
     SubscriptionEntitlementKey,
