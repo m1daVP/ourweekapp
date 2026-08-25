@@ -42,6 +42,7 @@ interface AddTaskPayload {
   description?: string;
   responsibilityType: TaskResponsibilityType;
   responsibleParticipantIds: string[];
+  responsibleUserIds?: string[];
   dueDate?: string;
 }
 
@@ -50,6 +51,7 @@ interface UpdateTaskPayload {
   description?: string;
   responsibilityType?: TaskResponsibilityType;
   responsibleParticipantIds?: string[];
+  responsibleUserIds?: string[];
   dueDate?: string;
 }
 
@@ -812,7 +814,8 @@ export const useMeetingsStore = defineStore('meetings', {
 
       if (
         payload.responsibilityType !== undefined ||
-        payload.responsibleParticipantIds !== undefined
+        payload.responsibleParticipantIds !== undefined ||
+        payload.responsibleUserIds !== undefined
       ) {
         const responsibilityType =
           payload.responsibilityType ?? found.task.responsibilityType;
@@ -830,6 +833,9 @@ export const useMeetingsStore = defineStore('meetings', {
 
         found.task.responsibilityType = responsibilityType;
         found.task.responsibleParticipantIds = responsibleParticipantIds;
+        found.task.responsibleUserIds = uniqueStrings(
+          payload.responsibleUserIds ?? []
+        );
       }
 
       if (payload.dueDate !== undefined) {

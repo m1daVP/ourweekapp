@@ -12,6 +12,7 @@ import { useI18n } from 'vue-i18n';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
+import { useWorkspaceStore } from '@/app/stores/workspace';
 import type { Participant } from '@/features/participants/types';
 import type {
   Task,
@@ -43,6 +44,7 @@ interface TaskCardView {
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
+const workspaceStore = useWorkspaceStore();
 const { can } = useWorkspacePermissions();
 const { isStartupLoading } = useStartupLoadingState();
 const { t, locale } = useI18n();
@@ -56,13 +58,19 @@ const taskFilters: Array<{ value: TaskFilter; label: string }> = [
 const editDrafts = reactive<
   Record<
     string,
-    { title: string; dueDate: string; responsibilityChoice: string }
+    {
+      title: string;
+      dueDate: string;
+      responsibilityChoice: string;
+      responsibleUserIds: string[];
+    }
   >
 >({});
 const newTaskDraft = reactive({
   title: '',
   dueDate: '',
   responsibilityChoice: 'needsDiscussion',
+  responsibleUserIds: [] as string[],
 });
 const selectedFilter = ref<TaskFilter>('todo');
 const selectedTask = ref<Task | null>(null);
@@ -79,6 +87,11 @@ const openTasks = computed(() => tasksStore.openTasks);
 const doneTasks = computed(() => tasksStore.doneTasks);
 const skippedTasks = computed(() => tasksStore.skippedTasks);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
+const activeAdultMembers = computed(() =>
+  workspaceStore.activeMembers.filter(
+    (member) => member.role === 'owner' || member.role === 'adult_member'
+  )
+);
 const firstParticipant = computed(() => activeParticipants.value[0] ?? null);
 const canEditTasks = computed(() => can('editTasks'));
 const canDeleteTasks = computed(() => can('deleteTasks'));
@@ -157,6 +170,7 @@ function syncDrafts() {
         title: task.title,
         dueDate: task.dueDate ?? '',
         responsibilityChoice: getResponsibilityChoice(task),
+        responsibleUserIds: [...task.responsibleUserIds],
       };
     }
   }
@@ -404,11 +418,13 @@ function saveTask(task: Task) {
   tasksStore.updateTask(task.id, {
     title: draft.title,
     dueDate: draft.dueDate,
+    responsibleUserIds: draft.responsibleUserIds,
     ...responsibility,
   });
   meetingsStore.updateTaskDetails(task.id, {
     title: draft.title,
     dueDate: draft.dueDate,
+    responsibleUserIds: draft.responsibleUserIds,
     ...responsibility,
   });
   statusMessage.value = t('tasksPage.taskUpdated');
@@ -433,6 +449,7 @@ function addTask() {
   const createdTask = tasksStore.addTask({
     title: newTaskDraft.title,
     dueDate: newTaskDraft.dueDate,
+    responsibleUserIds: newTaskDraft.responsibleUserIds,
     ...responsibility,
   });
 
@@ -444,6 +461,7 @@ function addTask() {
   newTaskDraft.title = '';
   newTaskDraft.dueDate = '';
   newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
+  newTaskDraft.responsibleUserIds = [];
   isAddTaskSheetOpen.value = false;
   statusMessage.value = t('tasksPage.updated');
 }
@@ -836,6 +854,18 @@ function openAddTaskSheet() {
           <span>{{ t('tasksPage.stillRelevant') }}</span>
           <input v-model="newTaskDraft.dueDate" type="date" />
         </label>
+        <label>
+          <span>{{ t('tasksPage.responsibleAdults') }}</span>
+          <select v-model="newTaskDraft.responsibleUserIds" multiple>
+            <option
+              v-for="member in activeAdultMembers"
+              :key="member.userId"
+              :value="member.userId"
+            >
+              {{ member.displayName }}
+            </option>
+          </select>
+        </label>
         <button type="submit" class="meeting-primary">
           {{ t('common.save') }}
         </button>
@@ -889,6 +919,22 @@ function openAddTaskSheet() {
             type="date"
             :disabled="!canEditTasks"
           />
+        </label>
+        <label>
+          <span>{{ t('tasksPage.responsibleAdults') }}</span>
+          <select
+            v-model="selectedTaskDraft.responsibleUserIds"
+            multiple
+            :disabled="!canEditTasks"
+          >
+            <option
+              v-for="member in activeAdultMembers"
+              :key="member.userId"
+              :value="member.userId"
+            >
+              {{ member.displayName }}
+            </option>
+          </select>
         </label>
         <p v-if="selectedTask.description" class="task-editor-form__note">
           {{ selectedTask.description }}

@@ -1,9 +1,7 @@
 export type TaskStatus = 'open' | 'done' | 'skipped';
 
 export type TaskResponsibilityType =
-  | 'participant'
-  | 'shared'
-  | 'needsDiscussion';
+  'participant' | 'shared' | 'needsDiscussion';
 
 export interface Task {
   id: string;
@@ -11,6 +9,7 @@ export interface Task {
   description?: string;
   responsibilityType: TaskResponsibilityType;
   responsibleParticipantIds: string[];
+  responsibleUserIds: string[];
   dueDate?: string;
   status: TaskStatus;
   sourceMeetingId?: string;

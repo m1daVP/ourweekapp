@@ -2,11 +2,7 @@ import type { Participant } from '@/features/participants/types';
 import type { TaskResponsibilityType } from '@/features/tasks/types';
 
 export type MeetingStatus =
-  | 'draft'
-  | 'in_progress'
-  | 'paused'
-  | 'incomplete'
-  | 'completed';
+  'draft' | 'in_progress' | 'paused' | 'incomplete' | 'completed';
 
 export type MeetingTaskStatus = 'open' | 'done' | 'skipped';
 
@@ -73,6 +69,7 @@ export interface MeetingTask {
   description?: string;
   responsibilityType: TaskResponsibilityType;
   responsibleParticipantIds: string[];
+  responsibleUserIds?: string[];
   dueDate?: string;
   status: MeetingTaskStatus;
   carriedFromTaskId?: string;

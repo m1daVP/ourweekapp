@@ -65,6 +65,7 @@ export function toTaskDto(task: Task): TaskDto {
     description: task.description,
     responsibilityType: task.responsibilityType,
     responsibleParticipantIds: task.responsibleParticipantIds,
+    responsibleUserIds: task.responsibleUserIds,
     dueDate: task.dueDate,
     status: task.status,
     sourceMeetingId: task.sourceMeetingId,

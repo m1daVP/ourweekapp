@@ -27,6 +27,7 @@ interface AddTaskPayload {
   description?: string;
   responsibilityType?: TaskResponsibilityType;
   responsibleParticipantIds?: string[];
+  responsibleUserIds?: string[];
   responsiblePersonId?: string;
   dueDate?: string;
   status?: TaskStatus;
@@ -41,6 +42,7 @@ interface UpdateTaskPayload {
   description?: string;
   responsibilityType?: TaskResponsibilityType;
   responsibleParticipantIds?: string[];
+  responsibleUserIds?: string[];
   responsiblePersonId?: string;
   dueDate?: string;
   sourceMeetingId?: string;
@@ -63,6 +65,7 @@ interface LegacyTask {
   description?: string;
   responsibilityType?: TaskResponsibilityType;
   responsibleParticipantIds?: string[];
+  responsibleUserIds?: string[];
   responsiblePersonId?: string;
   dueDate?: string;
   status?: TaskStatus;
@@ -99,6 +102,7 @@ function normalizeTask(task: LegacyTask): Task | null {
     ...(task.responsibleParticipantIds ?? []),
     task.responsiblePersonId,
   ]);
+  const responsibleUserIds = uniqueStrings(task.responsibleUserIds ?? []);
   const responsibilityType =
     task.responsibilityType ??
     (responsibleParticipantIds.length ? 'participant' : 'needsDiscussion');
@@ -111,6 +115,7 @@ function normalizeTask(task: LegacyTask): Task | null {
     responsibilityType,
     responsibleParticipantIds:
       responsibilityType === 'needsDiscussion' ? [] : responsibleParticipantIds,
+    responsibleUserIds,
     dueDate: task.dueDate?.trim() || undefined,
     status: task.status ?? 'open',
     sourceMeetingId: task.sourceMeetingId,
@@ -165,6 +170,7 @@ function resolveTaskResponsibility(
     responsibilityType,
     responsibleParticipantIds:
       responsibilityType === 'needsDiscussion' ? [] : responsibleParticipantIds,
+    responsibleUserIds: uniqueStrings(payload.responsibleUserIds ?? []),
   };
 }
 
@@ -265,6 +271,7 @@ export const useTasksStore = defineStore('tasks', {
               description: meetingTask.description,
               responsibilityType: meetingTask.responsibilityType,
               responsibleParticipantIds: meetingTask.responsibleParticipantIds,
+              responsibleUserIds: meetingTask.responsibleUserIds ?? [],
               dueDate: meetingTask.dueDate,
               status: meetingTask.status,
               sourceMeetingId: meeting.id,
@@ -306,8 +313,11 @@ export const useTasksStore = defineStore('tasks', {
     },
     addTask(payload: AddTaskPayload) {
       const title = payload.title.trim();
-      const { responsibilityType, responsibleParticipantIds } =
-        resolveTaskResponsibility(payload);
+      const {
+        responsibilityType,
+        responsibleParticipantIds,
+        responsibleUserIds,
+      } = resolveTaskResponsibility(payload);
 
       if (
         !title ||
@@ -324,6 +334,7 @@ export const useTasksStore = defineStore('tasks', {
         description: payload.description?.trim() || undefined,
         responsibilityType,
         responsibleParticipantIds,
+        responsibleUserIds,
         dueDate: payload.dueDate?.trim() || undefined,
         status: payload.status ?? 'open',
         sourceMeetingId: payload.sourceMeetingId,
@@ -368,10 +379,14 @@ export const useTasksStore = defineStore('tasks', {
       if (
         payload.responsibilityType !== undefined ||
         payload.responsibleParticipantIds !== undefined ||
+        payload.responsibleUserIds !== undefined ||
         payload.responsiblePersonId !== undefined
       ) {
-        const { responsibilityType, responsibleParticipantIds } =
-          resolveTaskResponsibility(payload);
+        const {
+          responsibilityType,
+          responsibleParticipantIds,
+          responsibleUserIds,
+        } = resolveTaskResponsibility(payload);
 
         if (
           responsibilityType === 'participant' &&
@@ -382,6 +397,7 @@ export const useTasksStore = defineStore('tasks', {
 
         task.responsibilityType = responsibilityType;
         task.responsibleParticipantIds = responsibleParticipantIds;
+        task.responsibleUserIds = responsibleUserIds;
       }
 
       if (payload.dueDate !== undefined) {
