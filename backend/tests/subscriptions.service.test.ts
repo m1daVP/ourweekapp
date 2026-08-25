@@ -139,8 +139,10 @@ describe('SubscriptionService', () => {
       'defaultTemplate',
       'tasksAndAgreements',
       'manualResponsibility',
+      'meetingHistory',
       'limitedHistory',
       'localReminders',
+      'unlimitedHistory',
       'agreementReminders',
     ]);
     expect(status.features.aiSummary).toMatchObject({
@@ -243,7 +245,7 @@ describe('SubscriptionService', () => {
     const status = await service.getStatus(auth);
 
     expect(status.planType).toBe('premium');
-    expect(status.enabledFeatures).toContain('unlimitedHistory');
+    expect(status.enabledFeatures).toContain('aiSummary');
   });
 
   it('returns free status instead of stale cached premium after the trust window', async () => {
@@ -261,7 +263,11 @@ describe('SubscriptionService', () => {
     const status = await service.getStatus(auth);
 
     expect(status.planType).toBe('free');
-    expect(status.enabledFeatures).not.toContain('unlimitedHistory');
+    expect(status.enabledFeatures).toEqual(expect.arrayContaining([
+      'meetingHistory',
+      'limitedHistory',
+      'unlimitedHistory',
+    ]));
   });
 
   it('requires owner role for restore and manage actions', async () => {

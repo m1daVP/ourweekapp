@@ -111,40 +111,6 @@ export class MeetingsRepository {
     return (data ?? []).map(mapMeetingRowToDto);
   }
 
-  async listCompletedMeetingsForFreePlan(workspaceId: string, limit = 3) {
-    const { data, error } = await this.supabase
-      .from('meetings')
-      .select(MEETING_COLUMNS)
-      .eq('workspace_id', workspaceId)
-      .eq('status', 'completed')
-      .is('deleted_at', null)
-      .order('completed_at', { ascending: false, nullsFirst: false })
-      .limit(limit)
-      .returns<MeetingRow[]>();
-
-    throwOnSupabaseError(error, 'meeting_list_failed', 'Unable to list meetings.');
-
-    return (data ?? []).map(mapMeetingRowToDto);
-  }
-
-  async listMeetingsByStatusesForWorkspace(
-    workspaceId: string,
-    statuses: MeetingRow['status'][],
-  ) {
-    const { data, error } = await this.supabase
-      .from('meetings')
-      .select(MEETING_COLUMNS)
-      .eq('workspace_id', workspaceId)
-      .in('status', statuses)
-      .is('deleted_at', null)
-      .order('updated_at', { ascending: false })
-      .returns<MeetingRow[]>();
-
-    throwOnSupabaseError(error, 'meeting_list_failed', 'Unable to list meetings.');
-
-    return (data ?? []).map(mapMeetingRowToDto);
-  }
-
   async findMeetingByIdForWorkspace(
     workspaceId: string,
     meetingId: string,

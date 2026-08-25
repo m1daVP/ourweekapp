@@ -29,7 +29,6 @@ import {
   type SyncMeetingsResponseDto,
 } from './meetings.schema.js';
 
-const FREE_COMPLETED_MEETING_LIMIT = 3;
 const ACTIVE_MEETING_STATUSES = ['draft', 'in_progress', 'paused', 'incomplete'] as const;
 const FREE_TEMPLATE_IDS = new Set(['weekly-family-check-in']);
 const PREMIUM_TEMPLATE_IDS = new Set([
@@ -47,8 +46,6 @@ type MeetingConflict = SyncConflictDto<MeetingDto> & { resourceType: 'meeting' }
 type MeetingRepositoryPort = Pick<
   MeetingsRepository,
   | 'listMeetingsForWorkspace'
-  | 'listCompletedMeetingsForFreePlan'
-  | 'listMeetingsByStatusesForWorkspace'
   | 'findMeetingByIdForWorkspace'
   | 'insertMeeting'
   | 'updateMeeting'
@@ -118,16 +115,6 @@ function meetingRepositoryDtoToApiDto(row: MeetingRepositoryDto): MeetingDto {
     serverRevision: row.serverRevision,
     ...(row.deletedAt ? { deletedAt: row.deletedAt } : {}),
   });
-}
-
-function uniqueById(rows: MeetingRepositoryDto[]) {
-  const byId = new Map<string, MeetingRepositoryDto>();
-
-  for (const row of rows) {
-    byId.set(row.id, row);
-  }
-
-  return [...byId.values()];
 }
 
 function latestDraftSavedAt(meetings: MeetingDto[]) {
@@ -453,22 +440,11 @@ export class MeetingsService {
   private async listVisibleMeetingRows(auth: AuthContext, now: Date) {
     const access = await this.getWorkspaceFeatureAccess(auth, now);
 
-    if (access.unlimitedHistory.state === 'available') {
-      return this.meetingsRepository.listMeetingsForWorkspace(auth.workspaceId, 1000);
+    if (access.meetingHistory.state !== 'available') {
+      throw new ApiError(403, 'history_not_available', 'Meeting history is not available.');
     }
 
-    const [activeMeetings, completedMeetings] = await Promise.all([
-      this.meetingsRepository.listMeetingsByStatusesForWorkspace(
-        auth.workspaceId,
-        [...ACTIVE_MEETING_STATUSES],
-      ),
-      this.meetingsRepository.listCompletedMeetingsForFreePlan(
-        auth.workspaceId,
-        FREE_COMPLETED_MEETING_LIMIT,
-      ),
-    ]);
-
-    return uniqueById([...activeMeetings, ...completedMeetings]);
+    return this.meetingsRepository.listMeetingsForWorkspace(auth.workspaceId, 1000);
   }
 
   private async getWorkspaceFeatureAccess(auth: AuthContext, now: Date) {

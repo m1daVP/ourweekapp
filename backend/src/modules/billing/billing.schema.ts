@@ -28,14 +28,15 @@ export const freeSubscriptionFeatures = [
   'defaultTemplate',
   'tasksAndAgreements',
   'manualResponsibility',
+  'meetingHistory',
   'limitedHistory',
   'localReminders',
+  'unlimitedHistory',
   'agreementReminders',
 ] as const satisfies Array<z.infer<typeof subscriptionFeatureSchema>>;
 
 export const premiumSubscriptionFeatures = [
   ...freeSubscriptionFeatures,
-  'unlimitedHistory',
   'aiSummary',
   'additionalTemplates',
   'privateNotes',

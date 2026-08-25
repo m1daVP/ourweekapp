@@ -39,6 +39,24 @@ describe('feature access catalog', () => {
     }).agreementReminders).toMatchObject({ state: 'available' });
   });
 
+  it.each(['owner', 'adult_member', 'viewer'] as const)(
+    'keeps complete meeting history available for a free %s',
+    (role) => {
+      const access = resolveFeatureAccessMap({ planType: 'free', role });
+
+      expect(access.meetingHistory).toMatchObject({
+        tier: 'free',
+        state: 'available',
+        upgradeEligible: false,
+      });
+      expect(access.limitedHistory.state).toBe('available');
+      expect(access.unlimitedHistory).toMatchObject({
+        tier: 'free',
+        state: 'available',
+      });
+    },
+  );
+
   it('unlocks available Premium features only for eligible members', () => {
     expect(resolveFeatureAccessMap({
       planType: 'premium',

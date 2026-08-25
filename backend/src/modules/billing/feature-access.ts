@@ -18,6 +18,7 @@ export const subscriptionFeatureKeys = [
   'defaultTemplate',
   'tasksAndAgreements',
   'manualResponsibility',
+  'meetingHistory',
   'limitedHistory',
   'localReminders',
   'unlimitedHistory',
@@ -70,14 +71,19 @@ export const featureCatalog = {
   manualResponsibility: {
     key: 'manualResponsibility', tier: 'free', lifecycle: 'available', eligibleRoles: allRoles, enforcement: 'both',
   },
+  meetingHistory: {
+    key: 'meetingHistory', tier: 'free', lifecycle: 'available', eligibleRoles: allRoles, enforcement: 'server',
+  },
+  // Temporary compatibility alias for clients released before Milestone 1.
   limitedHistory: {
     key: 'limitedHistory', tier: 'free', lifecycle: 'available', eligibleRoles: allRoles, enforcement: 'both',
   },
   localReminders: {
     key: 'localReminders', tier: 'free', lifecycle: 'available', eligibleRoles: allRoles, enforcement: 'client',
   },
+  // Temporary compatibility alias for clients released before Milestone 1.
   unlimitedHistory: {
-    key: 'unlimitedHistory', tier: 'premium', lifecycle: 'available', eligibleRoles: allRoles, enforcement: 'server',
+    key: 'unlimitedHistory', tier: 'free', lifecycle: 'available', eligibleRoles: allRoles, enforcement: 'server',
   },
   aiSummary: {
     key: 'aiSummary', tier: 'premium', lifecycle: 'available', eligibleRoles: adultRoles, enforcement: 'server',

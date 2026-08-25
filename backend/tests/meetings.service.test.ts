@@ -23,6 +23,7 @@ const completedMeetingIds = [
   '33333333-3333-4333-8333-333333333333',
   '44444444-4444-4444-8444-444444444444',
   '55555555-5555-4555-8555-555555555555',
+  '66666666-6666-4666-8666-666666666666',
 ] as const;
 
 const auth = {
@@ -92,9 +93,7 @@ function repositoryMeeting(overrides: Partial<MeetingRepositoryDto> = {}): Meeti
 function createRepositories() {
   return {
     meetings: {
-      listMeetingsForWorkspace: vi.fn(),
-      listCompletedMeetingsForFreePlan: vi.fn().mockResolvedValue([]),
-      listMeetingsByStatusesForWorkspace: vi.fn().mockResolvedValue([]),
+      listMeetingsForWorkspace: vi.fn().mockResolvedValue([]),
       findMeetingByIdForWorkspace: vi.fn(),
       insertMeeting: vi.fn(),
       updateMeeting: vi.fn(),
@@ -174,7 +173,7 @@ describe('MeetingsService', () => {
     });
   });
 
-  it('limits free history to active meetings plus latest completed meetings', async () => {
+  it('returns the complete history for free workspaces', async () => {
     const repos = createRepositories();
     repos.subscriptions.findCurrentSubscriptionForWorkspace.mockResolvedValue(null);
     const active = repositoryMeeting({ id: activeMeetingId, status: 'in_progress' });
@@ -182,15 +181,15 @@ describe('MeetingsService', () => {
       repositoryMeeting({ id: completedMeetingIds[0], status: 'completed', completedAt: '2026-06-06T08:00:00.000Z' }),
       repositoryMeeting({ id: completedMeetingIds[1], status: 'completed', completedAt: '2026-06-05T08:00:00.000Z' }),
       repositoryMeeting({ id: completedMeetingIds[2], status: 'completed', completedAt: '2026-06-04T08:00:00.000Z' }),
+      repositoryMeeting({ id: completedMeetingIds[3], status: 'completed', completedAt: '2026-06-03T08:00:00.000Z' }),
     ];
-    repos.meetings.listMeetingsByStatusesForWorkspace.mockResolvedValue([active]);
-    repos.meetings.listCompletedMeetingsForFreePlan.mockResolvedValue(completed);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([active, ...completed]);
 
     const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
     const response = await service.listMeetings(auth, new Date(now));
 
-    expect(repos.meetings.listCompletedMeetingsForFreePlan)
-      .toHaveBeenCalledWith('workspace_1', 3);
+    expect(repos.meetings.listMeetingsForWorkspace)
+      .toHaveBeenCalledWith('workspace_1', 1000);
     expect(response.meetings.map((meeting) => meeting.id).sort()).toEqual([
       activeMeetingId,
       ...completedMeetingIds,
@@ -198,13 +197,14 @@ describe('MeetingsService', () => {
     expect(response.activeMeetingId).toBe(activeMeetingId);
   });
 
-  it('uses limited history when auth plan is premium but entitlement is stale', async () => {
+  it('returns the complete history when a premium entitlement is stale', async () => {
     const repos = createRepositories();
     const active = repositoryMeeting({ id: activeMeetingId, status: 'in_progress' });
     const completed = [
       repositoryMeeting({ id: completedMeetingIds[0], status: 'completed', completedAt: '2026-06-06T08:00:00.000Z' }),
       repositoryMeeting({ id: completedMeetingIds[1], status: 'completed', completedAt: '2026-06-05T08:00:00.000Z' }),
       repositoryMeeting({ id: completedMeetingIds[2], status: 'completed', completedAt: '2026-06-04T08:00:00.000Z' }),
+      repositoryMeeting({ id: completedMeetingIds[3], status: 'completed', completedAt: '2026-06-03T08:00:00.000Z' }),
     ];
     repos.subscriptions.findCurrentSubscriptionForWorkspace.mockResolvedValue({
       id: 'subscription_1',
@@ -217,8 +217,7 @@ describe('MeetingsService', () => {
       createdAt: now,
       updatedAt: now,
     });
-    repos.meetings.listMeetingsByStatusesForWorkspace.mockResolvedValue([active]);
-    repos.meetings.listCompletedMeetingsForFreePlan.mockResolvedValue(completed);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([active, ...completed]);
 
     const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
     const response = await service.listMeetings(
@@ -226,9 +225,8 @@ describe('MeetingsService', () => {
       new Date(now),
     );
 
-    expect(repos.meetings.listMeetingsForWorkspace).not.toHaveBeenCalled();
-    expect(repos.meetings.listCompletedMeetingsForFreePlan)
-      .toHaveBeenCalledWith('workspace_1', 3);
+    expect(repos.meetings.listMeetingsForWorkspace)
+      .toHaveBeenCalledWith('workspace_1', 1000);
     expect(response.meetings.map((meeting) => meeting.id).sort()).toEqual([
       activeMeetingId,
       ...completedMeetingIds,
@@ -252,7 +250,7 @@ describe('MeetingsService', () => {
       updatedAt: '2026-06-06T09:45:00.000Z',
     });
     repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(server);
-    repos.meetings.listMeetingsByStatusesForWorkspace.mockResolvedValue([server]);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([server]);
 
     const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
     const response = await service.syncMeetings(auth, {
@@ -285,7 +283,7 @@ describe('MeetingsService', () => {
     });
     delete client.serverRevision;
     repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(server);
-    repos.meetings.listMeetingsByStatusesForWorkspace.mockResolvedValue([server]);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([server]);
 
     const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
     const response = await service.syncMeetings(auth, {
@@ -314,7 +312,7 @@ describe('MeetingsService', () => {
     const updated = repositoryMeeting({ serverRevision: 3, title: 'New title' });
     repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(server);
     repos.meetings.updateMeeting.mockResolvedValue(updated);
-    repos.meetings.listMeetingsByStatusesForWorkspace.mockResolvedValue([updated]);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([updated]);
 
     const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
     const response = await service.syncMeetings(auth, {
@@ -350,7 +348,7 @@ describe('MeetingsService', () => {
     });
     repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(null);
     repos.meetings.insertMeeting.mockResolvedValue(created);
-    repos.meetings.listCompletedMeetingsForFreePlan.mockResolvedValue([created]);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([created]);
 
     const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
     const response = await service.syncMeetings(auth, {
@@ -560,8 +558,6 @@ describe('MeetingsService', () => {
     expect(repos.meetings.updateMeetingSummary).not.toHaveBeenCalled();
   });
 });
-
-
 
 
 
