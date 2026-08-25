@@ -2,6 +2,11 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+import { useWorkspaceStore } from '@/app/stores/workspace';
+import {
+  canOfferFeatureUpgrade,
+  canPurchasePremium,
+} from '@/features/access/premiumPurchasePolicy';
 import type { FeatureKey } from '@/features/access/types';
 import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
@@ -18,13 +23,24 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const { t } = useI18n();
+const workspaceStore = useWorkspaceStore();
 const { getFeatureAccess, getFeatureAccessState } = useFeatureAccess();
 
 const featureAccess = computed(() =>
   props.feature ? getFeatureAccess(props.feature) : undefined
 );
 const canOfferUpgrade = computed(
-  () => !props.feature || getFeatureAccessState(props.feature) === 'upgradeRequired'
+  () => props.feature
+    ? canOfferFeatureUpgrade(
+      workspaceStore.currentUserRole,
+      getFeatureAccessState(props.feature)
+    )
+    : canPurchasePremium(workspaceStore.currentUserRole)
+);
+const isOwnerManaged = computed(
+  () => Boolean(props.feature) &&
+    getFeatureAccessState(props.feature as FeatureKey) === 'upgradeRequired' &&
+    !canPurchasePremium(workspaceStore.currentUserRole)
 );
 const promptTitle = computed(
   () =>
@@ -35,7 +51,9 @@ const promptTitle = computed(
 );
 const promptMessage = computed(
   () =>
-    props.message ?? featureAccess.value?.lockedReason ?? t('premium.message')
+    isOwnerManaged.value
+      ? t('premium.ownerManaged')
+      : props.message ?? featureAccess.value?.lockedReason ?? t('premium.message')
 );
 
 function openUpgrade() {

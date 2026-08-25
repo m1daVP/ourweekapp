@@ -2,10 +2,13 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSubscriptionStore } from '@/app/stores/subscription';
+import { useWorkspaceStore } from '@/app/stores/workspace';
+import { canPurchasePremium } from '@/features/access/premiumPurchasePolicy';
 import type { SubscriptionPlanOption } from '@/features/subscription/types';
 import { appConfig } from '@/shared/config/env';
 
 const subscriptionStore = useSubscriptionStore();
+const workspaceStore = useWorkspaceStore();
 const { t } = useI18n();
 
 const planOrder: SubscriptionPlanOption['id'][] = [
@@ -13,11 +16,6 @@ const planOrder: SubscriptionPlanOption['id'][] = [
   'premium_yearly',
 ];
 const benefitItems = [
-  {
-    icon: 'history',
-    titleKey: 'upgrade.benefits.unlimitedHistory.title',
-    textKey: 'upgrade.benefits.unlimitedHistory.text',
-  },
   {
     icon: 'auto_awesome',
     titleKey: 'upgrade.benefits.aiSummaries.title',
@@ -29,9 +27,19 @@ const benefitItems = [
     textKey: 'upgrade.benefits.templates.text',
   },
   {
-    icon: 'sync',
-    titleKey: 'upgrade.benefits.calendarNotes.title',
-    textKey: 'upgrade.benefits.calendarNotes.text',
+    icon: 'calendar_month',
+    titleKey: 'upgrade.benefits.calendarSync.title',
+    textKey: 'upgrade.benefits.calendarSync.text',
+  },
+  {
+    icon: 'ios_share',
+    titleKey: 'upgrade.benefits.export.title',
+    textKey: 'upgrade.benefits.export.text',
+  },
+  {
+    icon: 'lock',
+    titleKey: 'upgrade.benefits.privateNotes.title',
+    textKey: 'upgrade.benefits.privateNotes.text',
   },
 ] as const;
 
@@ -45,6 +53,9 @@ const displayPlans = computed(() =>
 const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
 const isPurchaseUnavailable = computed(() => !appConfig.isRevenueCatEnabled);
 const canRestorePurchases = computed(() => appConfig.isRevenueCatEnabled);
+const isWorkspaceOwner = computed(() =>
+  canPurchasePremium(workspaceStore.currentUserRole)
+);
 const purchaseButtonLabel = computed(() => {
   if (hasPremium.value) {
     return t('upgrade.premiumActive');
@@ -139,6 +150,7 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
 
     <div class="upgrade-purchase-dock" :aria-label="t('upgrade.actionsLabel')">
       <button
+        v-if="isWorkspaceOwner"
         class="meeting-primary upgrade-purchase-dock__primary"
         type="button"
         :disabled="
@@ -155,6 +167,7 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
         {{ t('upgrade.billingNote') }}
       </p>
       <button
+        v-if="isWorkspaceOwner"
         class="upgrade-purchase-dock__link"
         type="button"
         :disabled="subscriptionStore.isRestoring || !canRestorePurchases"
@@ -162,11 +175,14 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
       >
         {{ t('common.restorePurchases') }}
       </button>
+      <p v-else class="upgrade-purchase-dock__note">
+        {{ t('upgrade.ownerManaged') }}
+      </p>
       <span class="upgrade-purchase-dock__separator" aria-hidden="true" />
       <RouterLink class="upgrade-purchase-dock__link" :to="{ name: 'terms' }">
         {{ t('upgrade.termsLink') }}
       </RouterLink>
-      <template v-if="subscriptionStore.canManageSubscription">
+      <template v-if="isWorkspaceOwner && subscriptionStore.canManageSubscription">
         <span class="upgrade-purchase-dock__separator" aria-hidden="true" />
         <button
           class="upgrade-purchase-dock__link"

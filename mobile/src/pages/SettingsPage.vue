@@ -6,6 +6,8 @@ import { useAuthStore } from '@/app/stores/auth';
 import { useLocalizationStore } from '@/app/stores/localization';
 import { reminderDayOptions, useRemindersStore } from '@/app/stores/reminders';
 import { useSubscriptionStore } from '@/app/stores/subscription';
+import { useWorkspaceStore } from '@/app/stores/workspace';
+import { canPurchasePremium } from '@/features/access/premiumPurchasePolicy';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import type { FeatureKey } from '@/features/access/types';
 import {
@@ -27,6 +29,7 @@ const authStore = useAuthStore();
 const localizationStore = useLocalizationStore();
 const remindersStore = useRemindersStore();
 const subscriptionStore = useSubscriptionStore();
+const workspaceStore = useWorkspaceStore();
 const { canUseFeature } = useFeatureAccess();
 const {
   disableReminders,
@@ -62,6 +65,9 @@ const currentLocaleLabel = computed(
 );
 const canUseReminders = computed(() => canUseFeature('agreementReminders'));
 const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
+const isWorkspaceOwner = computed(() =>
+  canPurchasePremium(workspaceStore.currentUserRole)
+);
 const currentPlanLabel = computed(() =>
   hasPremium.value ? t('settings.plan.premium') : t('settings.plan.free')
 );
@@ -281,13 +287,19 @@ function openReminderSheet() {
             <span class="material-symbols-outlined" aria-hidden="true">
               check
             </span>
-            {{ t('settings.subscriptionBenefits.unlimitedHistory') }}
+            {{ t('settings.subscriptionBenefits.aiSummaries') }}
           </li>
           <li>
             <span class="material-symbols-outlined" aria-hidden="true">
               check
             </span>
-            {{ t('settings.subscriptionBenefits.aiSummaries') }}
+            {{ t('settings.subscriptionBenefits.calendarSync') }}
+          </li>
+          <li>
+            <span class="material-symbols-outlined" aria-hidden="true">
+              check
+            </span>
+            {{ t('settings.subscriptionBenefits.export') }}
           </li>
         </ul>
 
@@ -301,12 +313,15 @@ function openReminderSheet() {
           {{ t('common.manageSubscription') }}
         </button>
         <RouterLink
-          v-else-if="!hasPremium"
+          v-else-if="!hasPremium && isWorkspaceOwner"
           class="settings-subscription-card__button"
           :to="{ name: 'upgrade' }"
         >
           {{ t('settings.upgradeToPremium') }}
         </RouterLink>
+        <p v-else-if="!hasPremium" class="settings-subscription-card__note">
+          {{ t('settings.subscriptionOwnerManaged') }}
+        </p>
       </article>
     </section>
 
