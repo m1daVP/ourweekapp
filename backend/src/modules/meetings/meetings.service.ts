@@ -11,7 +11,11 @@ import {
   type MeetingDto as MeetingRepositoryDto,
   type UpsertMeetingInput,
 } from './meetings.repository.js';
-import { hasTrustedPremiumEntitlement } from '../billing/billing.service.js';
+import {
+  assertFeatureAccess,
+  resolveWorkspaceFeatureAccess,
+  type FeatureAccessMap,
+} from '../billing/feature-access.js';
 import {
   SubscriptionsRepository,
   type SubscriptionDto,
@@ -166,12 +170,12 @@ function buildMeetingsResponse(
   };
 }
 
-function supportedTemplateIdsForPlan(planType: AuthContext['planType']) {
-  return planType === 'premium' ? PREMIUM_TEMPLATE_IDS : FREE_TEMPLATE_IDS;
-}
-
-function validateTemplateId(meeting: MeetingDto, auth: AuthContext) {
-  return supportedTemplateIdsForPlan(auth.planType).has(meeting.templateId);
+function validateTemplateId(meeting: MeetingDto, access: FeatureAccessMap) {
+  return (
+    FREE_TEMPLATE_IDS.has(meeting.templateId) ||
+    (access.additionalTemplates.state === 'available' &&
+      PREMIUM_TEMPLATE_IDS.has(meeting.templateId))
+  );
 }
 
 function collectParticipantIds(meeting: MeetingDto) {
@@ -361,6 +365,7 @@ export class MeetingsService {
     requireMinimumRole(auth, 'adult_member');
 
     const syncedAt = now.toISOString();
+    const access = await this.getWorkspaceFeatureAccess(auth, now);
     const participants = await this.participantsRepository.listParticipantsForWorkspace(
       auth.workspaceId,
     );
@@ -368,7 +373,7 @@ export class MeetingsService {
     const conflicts: MeetingConflict[] = [];
 
     for (const meeting of request.meetings) {
-      if (!validateTemplateId(meeting, auth) || hasInvalidSectionIndex(meeting)) {
+      if (!validateTemplateId(meeting, access) || hasInvalidSectionIndex(meeting)) {
         conflicts.push(invalidMeetingReferenceConflict(meeting, syncedAt));
         continue;
       }
@@ -405,8 +410,7 @@ export class MeetingsService {
     summary: NonNullable<MeetingDto['aiSummary']>,
     now = new Date(),
   ) {
-    requireMinimumRole(auth, 'adult_member');
-    await this.requirePremiumWorkspaceEntitlement(auth, now);
+    await assertFeatureAccess(this.subscriptionsRepository, auth, 'aiSummary', now);
 
     if (summary.meetingId !== meetingId) {
       throw new ApiError(422, 'meeting_summary_mismatch', 'Summary does not match meeting.');
@@ -447,7 +451,9 @@ export class MeetingsService {
   }
 
   private async listVisibleMeetingRows(auth: AuthContext, now: Date) {
-    if (await this.hasPremiumWorkspaceEntitlement(auth, now)) {
+    const access = await this.getWorkspaceFeatureAccess(auth, now);
+
+    if (access.unlimitedHistory.state === 'available') {
       return this.meetingsRepository.listMeetingsForWorkspace(auth.workspaceId, 1000);
     }
 
@@ -465,23 +471,14 @@ export class MeetingsService {
     return uniqueById([...activeMeetings, ...completedMeetings]);
   }
 
-  private async hasPremiumWorkspaceEntitlement(auth: AuthContext, now: Date) {
-    const subscription =
-      (await this.subscriptionsRepository.findCurrentSubscriptionForWorkspace(
-        auth.workspaceId,
-      )) as SubscriptionDto | SubscriptionRecord | null;
+  private async getWorkspaceFeatureAccess(auth: AuthContext, now: Date) {
+    const { access } = await resolveWorkspaceFeatureAccess(
+      this.subscriptionsRepository,
+      auth,
+      now,
+    );
 
-    return hasTrustedPremiumEntitlement(subscription, now);
-  }
-
-  private async requirePremiumWorkspaceEntitlement(auth: AuthContext, now: Date) {
-    if (!(await this.hasPremiumWorkspaceEntitlement(auth, now))) {
-      throw new ApiError(
-        403,
-        'premium_required',
-        'Premium is required for this feature.',
-      );
-    }
+    return access;
   }
 
   private async applyMeetingSync(

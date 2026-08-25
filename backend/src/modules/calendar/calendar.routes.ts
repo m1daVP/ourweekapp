@@ -3,7 +3,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { requireAuthenticatedContext } from '../../shared/auth/index.js';
 import { errorResponseSchema } from '../../shared/schemas/index.js';
 import { buildAuthPreHandler } from '../auth/auth.middleware.js';
-import { requirePremiumAdultMember } from '../billing/require-premium.middleware.js';
+import { requireFeature } from '../billing/require-feature.middleware.js';
 import { SubscriptionsRepository } from '../billing/subscriptions.repository.js';
 import {
   calendarConnectRequestSchema,
@@ -27,7 +27,10 @@ const calendarErrorResponses = {
 export const calendarRoutes: FastifyPluginAsyncZod = async (app) => {
   const requireAuth = buildAuthPreHandler(app);
   const subscriptionsRepository = new SubscriptionsRepository(app.supabase);
-  const requirePremiumWorkspace = requirePremiumAdultMember(subscriptionsRepository);
+  const requirePremiumWorkspace = requireFeature(
+    subscriptionsRepository,
+    'googleCalendarSync',
+  );
   const calendarService = createDefaultCalendarService(
     app.supabase,
     googleCalendarProvider,

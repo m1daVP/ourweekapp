@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SubscriptionService } from '../src/modules/billing/billing.service.js';
 import {
-  assertPremiumEntitlement,
-  requirePremiumAdultMember,
-} from '../src/modules/billing/require-premium.middleware.js';
+  assertFeatureAccess,
+} from '../src/modules/billing/feature-access.js';
+import { requireFeature } from '../src/modules/billing/require-feature.middleware.js';
 import type {
   SubscriptionDto,
   SubscriptionRecord,
@@ -140,7 +140,17 @@ describe('SubscriptionService', () => {
       'tasksAndAgreements',
       'manualResponsibility',
       'limitedHistory',
+      'localReminders',
+      'agreementReminders',
     ]);
+    expect(status.features.aiSummary).toMatchObject({
+      state: 'upgradeRequired',
+      upgradeEligible: true,
+    });
+    expect(status.features.advancedStatistics).toMatchObject({
+      state: 'notYetAvailable',
+      upgradeEligible: false,
+    });
     expect(status.enabledFeatures).not.toContain('aiSummary');
   });
 
@@ -396,7 +406,7 @@ describe('syncEntitlementForWorkspace', () => {
     });
   });
 });
-describe('requirePremium middleware helper', () => {
+describe('requireFeature middleware helper', () => {
   it('allows recently verified premium entitlements', async () => {
     const repository = new FakeSubscriptionRepository(
       subscription({
@@ -408,7 +418,7 @@ describe('requirePremium middleware helper', () => {
     );
 
     await expect(
-      assertPremiumEntitlement(repository, auth, new Date(now)),
+      assertFeatureAccess(repository, auth, 'aiSummary', new Date(now)),
     ).resolves.toMatchObject({
       workspaceId: 'workspace-1',
     });
@@ -423,7 +433,7 @@ describe('requirePremium middleware helper', () => {
         lastCheckedAt: now,
       }),
     );
-    const middleware = requirePremiumAdultMember(repository);
+    const middleware = requireFeature(repository, 'aiSummary');
     const lookup = vi.spyOn(repository, 'findCurrentSubscriptionForWorkspace');
 
     await expect(
@@ -436,14 +446,14 @@ describe('requirePremium middleware helper', () => {
       ),
     ).rejects.toMatchObject({
       statusCode: 403,
-      code: 'forbidden',
+      code: 'feature_role_restricted',
     });
     expect(lookup).not.toHaveBeenCalled();
   });
 
   it('rejects adult members without trusted premium feature entitlement', async () => {
     const repository = new FakeSubscriptionRepository(null);
-    const middleware = requirePremiumAdultMember(repository);
+    const middleware = requireFeature(repository, 'aiSummary');
 
     await expect(
       middleware(
@@ -468,9 +478,10 @@ describe('requirePremium middleware helper', () => {
     );
 
     await expect(
-      assertPremiumEntitlement(
+      assertFeatureAccess(
         repository,
         { ...auth, planType: 'premium' },
+        'aiSummary',
         new Date(now),
       ),
     ).rejects.toMatchObject({

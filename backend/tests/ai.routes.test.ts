@@ -64,17 +64,17 @@ vi.mock('../src/modules/auth/auth.middleware.js', async () => {
   };
 });
 
-vi.mock('../src/modules/billing/require-premium.middleware.js', async () => {
+vi.mock('../src/modules/billing/require-feature.middleware.js', async () => {
   const { ApiError } = await vi.importActual<typeof import('../src/shared/errors/index.js')>(
     '../src/shared/errors/index.js',
   );
 
   return {
-    requirePremiumAdultMember: () => async (request: {
+    requireFeature: () => async (request: {
       auth?: { role?: string; planType?: string };
     }) => {
       if (request.auth?.role !== 'adult_member' && request.auth?.role !== 'owner') {
-        throw new ApiError(403, 'forbidden', 'You do not have permission to do that.');
+        throw new ApiError(403, 'feature_role_restricted', 'Your workspace role cannot use this feature.');
       }
 
       if (request.auth?.planType !== 'premium') {
@@ -166,7 +166,7 @@ describe('AI summary routes', () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json()).toMatchObject({ code: 'forbidden' });
+    expect(response.json()).toMatchObject({ code: 'feature_role_restricted' });
     expect(routeGenerateMeetingSummary).not.toHaveBeenCalled();
     await app.close();
   });

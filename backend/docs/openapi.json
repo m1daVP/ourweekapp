@@ -2111,6 +2111,108 @@
                         ]
                       }
                     },
+                    "features": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "basicMeetings",
+                          "defaultTemplate",
+                          "tasksAndAgreements",
+                          "manualResponsibility",
+                          "limitedHistory",
+                          "localReminders",
+                          "unlimitedHistory",
+                          "aiSummary",
+                          "agreementReminders",
+                          "additionalTemplates",
+                          "privateNotes",
+                          "googleCalendarSync",
+                          "export",
+                          "advancedStatistics"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "enum": [
+                              "basicMeetings",
+                              "defaultTemplate",
+                              "tasksAndAgreements",
+                              "manualResponsibility",
+                              "limitedHistory",
+                              "localReminders",
+                              "unlimitedHistory",
+                              "aiSummary",
+                              "agreementReminders",
+                              "additionalTemplates",
+                              "privateNotes",
+                              "googleCalendarSync",
+                              "export",
+                              "advancedStatistics"
+                            ]
+                          },
+                          "tier": {
+                            "type": "string",
+                            "enum": [
+                              "free",
+                              "premium"
+                            ]
+                          },
+                          "lifecycle": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "planned",
+                              "retired"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "upgradeRequired",
+                              "roleRestricted",
+                              "notYetAvailable",
+                              "unavailable"
+                            ]
+                          },
+                          "roleEligible": {
+                            "type": "boolean"
+                          },
+                          "upgradeEligible": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "tier",
+                          "lifecycle",
+                          "state",
+                          "roleEligible",
+                          "upgradeEligible"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "required": [
+                        "basicMeetings",
+                        "defaultTemplate",
+                        "tasksAndAgreements",
+                        "manualResponsibility",
+                        "limitedHistory",
+                        "localReminders",
+                        "unlimitedHistory",
+                        "aiSummary",
+                        "agreementReminders",
+                        "additionalTemplates",
+                        "privateNotes",
+                        "googleCalendarSync",
+                        "export",
+                        "advancedStatistics"
+                      ]
+                    },
                     "expiresAt": {
                       "anyOf": [
                         {
@@ -2133,6 +2235,7 @@
                     "planType",
                     "provider",
                     "enabledFeatures",
+                    "features",
                     "expiresAt",
                     "checkedAt"
                   ],
@@ -2383,6 +2486,108 @@
                         ]
                       }
                     },
+                    "features": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "basicMeetings",
+                          "defaultTemplate",
+                          "tasksAndAgreements",
+                          "manualResponsibility",
+                          "limitedHistory",
+                          "localReminders",
+                          "unlimitedHistory",
+                          "aiSummary",
+                          "agreementReminders",
+                          "additionalTemplates",
+                          "privateNotes",
+                          "googleCalendarSync",
+                          "export",
+                          "advancedStatistics"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "enum": [
+                              "basicMeetings",
+                              "defaultTemplate",
+                              "tasksAndAgreements",
+                              "manualResponsibility",
+                              "limitedHistory",
+                              "localReminders",
+                              "unlimitedHistory",
+                              "aiSummary",
+                              "agreementReminders",
+                              "additionalTemplates",
+                              "privateNotes",
+                              "googleCalendarSync",
+                              "export",
+                              "advancedStatistics"
+                            ]
+                          },
+                          "tier": {
+                            "type": "string",
+                            "enum": [
+                              "free",
+                              "premium"
+                            ]
+                          },
+                          "lifecycle": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "planned",
+                              "retired"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "upgradeRequired",
+                              "roleRestricted",
+                              "notYetAvailable",
+                              "unavailable"
+                            ]
+                          },
+                          "roleEligible": {
+                            "type": "boolean"
+                          },
+                          "upgradeEligible": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "tier",
+                          "lifecycle",
+                          "state",
+                          "roleEligible",
+                          "upgradeEligible"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "required": [
+                        "basicMeetings",
+                        "defaultTemplate",
+                        "tasksAndAgreements",
+                        "manualResponsibility",
+                        "limitedHistory",
+                        "localReminders",
+                        "unlimitedHistory",
+                        "aiSummary",
+                        "agreementReminders",
+                        "additionalTemplates",
+                        "privateNotes",
+                        "googleCalendarSync",
+                        "export",
+                        "advancedStatistics"
+                      ]
+                    },
                     "expiresAt": {
                       "anyOf": [
                         {
@@ -2405,6 +2610,7 @@
                     "planType",
                     "provider",
                     "enabledFeatures",
+                    "features",
                     "expiresAt",
                     "checkedAt"
                   ],
@@ -2822,6 +3028,108 @@
                         ]
                       }
                     },
+                    "features": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "basicMeetings",
+                          "defaultTemplate",
+                          "tasksAndAgreements",
+                          "manualResponsibility",
+                          "limitedHistory",
+                          "localReminders",
+                          "unlimitedHistory",
+                          "aiSummary",
+                          "agreementReminders",
+                          "additionalTemplates",
+                          "privateNotes",
+                          "googleCalendarSync",
+                          "export",
+                          "advancedStatistics"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "enum": [
+                              "basicMeetings",
+                              "defaultTemplate",
+                              "tasksAndAgreements",
+                              "manualResponsibility",
+                              "limitedHistory",
+                              "localReminders",
+                              "unlimitedHistory",
+                              "aiSummary",
+                              "agreementReminders",
+                              "additionalTemplates",
+                              "privateNotes",
+                              "googleCalendarSync",
+                              "export",
+                              "advancedStatistics"
+                            ]
+                          },
+                          "tier": {
+                            "type": "string",
+                            "enum": [
+                              "free",
+                              "premium"
+                            ]
+                          },
+                          "lifecycle": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "planned",
+                              "retired"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "upgradeRequired",
+                              "roleRestricted",
+                              "notYetAvailable",
+                              "unavailable"
+                            ]
+                          },
+                          "roleEligible": {
+                            "type": "boolean"
+                          },
+                          "upgradeEligible": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "tier",
+                          "lifecycle",
+                          "state",
+                          "roleEligible",
+                          "upgradeEligible"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "required": [
+                        "basicMeetings",
+                        "defaultTemplate",
+                        "tasksAndAgreements",
+                        "manualResponsibility",
+                        "limitedHistory",
+                        "localReminders",
+                        "unlimitedHistory",
+                        "aiSummary",
+                        "agreementReminders",
+                        "additionalTemplates",
+                        "privateNotes",
+                        "googleCalendarSync",
+                        "export",
+                        "advancedStatistics"
+                      ]
+                    },
                     "expiresAt": {
                       "anyOf": [
                         {
@@ -2844,6 +3152,7 @@
                     "planType",
                     "provider",
                     "enabledFeatures",
+                    "features",
                     "expiresAt",
                     "checkedAt"
                   ],
@@ -3094,6 +3403,108 @@
                         ]
                       }
                     },
+                    "features": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "basicMeetings",
+                          "defaultTemplate",
+                          "tasksAndAgreements",
+                          "manualResponsibility",
+                          "limitedHistory",
+                          "localReminders",
+                          "unlimitedHistory",
+                          "aiSummary",
+                          "agreementReminders",
+                          "additionalTemplates",
+                          "privateNotes",
+                          "googleCalendarSync",
+                          "export",
+                          "advancedStatistics"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "enum": [
+                              "basicMeetings",
+                              "defaultTemplate",
+                              "tasksAndAgreements",
+                              "manualResponsibility",
+                              "limitedHistory",
+                              "localReminders",
+                              "unlimitedHistory",
+                              "aiSummary",
+                              "agreementReminders",
+                              "additionalTemplates",
+                              "privateNotes",
+                              "googleCalendarSync",
+                              "export",
+                              "advancedStatistics"
+                            ]
+                          },
+                          "tier": {
+                            "type": "string",
+                            "enum": [
+                              "free",
+                              "premium"
+                            ]
+                          },
+                          "lifecycle": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "planned",
+                              "retired"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "upgradeRequired",
+                              "roleRestricted",
+                              "notYetAvailable",
+                              "unavailable"
+                            ]
+                          },
+                          "roleEligible": {
+                            "type": "boolean"
+                          },
+                          "upgradeEligible": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "tier",
+                          "lifecycle",
+                          "state",
+                          "roleEligible",
+                          "upgradeEligible"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "required": [
+                        "basicMeetings",
+                        "defaultTemplate",
+                        "tasksAndAgreements",
+                        "manualResponsibility",
+                        "limitedHistory",
+                        "localReminders",
+                        "unlimitedHistory",
+                        "aiSummary",
+                        "agreementReminders",
+                        "additionalTemplates",
+                        "privateNotes",
+                        "googleCalendarSync",
+                        "export",
+                        "advancedStatistics"
+                      ]
+                    },
                     "expiresAt": {
                       "anyOf": [
                         {
@@ -3116,6 +3527,7 @@
                     "planType",
                     "provider",
                     "enabledFeatures",
+                    "features",
                     "expiresAt",
                     "checkedAt"
                   ],
@@ -6075,6 +6487,108 @@
                                       ]
                                     }
                                   },
+                                  "features": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string",
+                                      "enum": [
+                                        "basicMeetings",
+                                        "defaultTemplate",
+                                        "tasksAndAgreements",
+                                        "manualResponsibility",
+                                        "limitedHistory",
+                                        "localReminders",
+                                        "unlimitedHistory",
+                                        "aiSummary",
+                                        "agreementReminders",
+                                        "additionalTemplates",
+                                        "privateNotes",
+                                        "googleCalendarSync",
+                                        "export",
+                                        "advancedStatistics"
+                                      ]
+                                    },
+                                    "additionalProperties": {
+                                      "type": "object",
+                                      "properties": {
+                                        "key": {
+                                          "type": "string",
+                                          "enum": [
+                                            "basicMeetings",
+                                            "defaultTemplate",
+                                            "tasksAndAgreements",
+                                            "manualResponsibility",
+                                            "limitedHistory",
+                                            "localReminders",
+                                            "unlimitedHistory",
+                                            "aiSummary",
+                                            "agreementReminders",
+                                            "additionalTemplates",
+                                            "privateNotes",
+                                            "googleCalendarSync",
+                                            "export",
+                                            "advancedStatistics"
+                                          ]
+                                        },
+                                        "tier": {
+                                          "type": "string",
+                                          "enum": [
+                                            "free",
+                                            "premium"
+                                          ]
+                                        },
+                                        "lifecycle": {
+                                          "type": "string",
+                                          "enum": [
+                                            "available",
+                                            "planned",
+                                            "retired"
+                                          ]
+                                        },
+                                        "state": {
+                                          "type": "string",
+                                          "enum": [
+                                            "available",
+                                            "upgradeRequired",
+                                            "roleRestricted",
+                                            "notYetAvailable",
+                                            "unavailable"
+                                          ]
+                                        },
+                                        "roleEligible": {
+                                          "type": "boolean"
+                                        },
+                                        "upgradeEligible": {
+                                          "type": "boolean"
+                                        }
+                                      },
+                                      "required": [
+                                        "key",
+                                        "tier",
+                                        "lifecycle",
+                                        "state",
+                                        "roleEligible",
+                                        "upgradeEligible"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "required": [
+                                      "basicMeetings",
+                                      "defaultTemplate",
+                                      "tasksAndAgreements",
+                                      "manualResponsibility",
+                                      "limitedHistory",
+                                      "localReminders",
+                                      "unlimitedHistory",
+                                      "aiSummary",
+                                      "agreementReminders",
+                                      "additionalTemplates",
+                                      "privateNotes",
+                                      "googleCalendarSync",
+                                      "export",
+                                      "advancedStatistics"
+                                    ]
+                                  },
                                   "expiresAt": {
                                     "anyOf": [
                                       {
@@ -6097,6 +6611,7 @@
                                   "planType",
                                   "provider",
                                   "enabledFeatures",
+                                  "features",
                                   "expiresAt",
                                   "checkedAt"
                                 ],

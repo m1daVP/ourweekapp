@@ -3,8 +3,11 @@ import { requireAuthenticatedContext } from '../../shared/auth/index.js';
 import { ApiError } from '../../shared/errors/index.js';
 import { resolveEffectivePlan } from '../../shared/repositories/index.js';
 import {
-  freeSubscriptionFeatures,
-  premiumSubscriptionFeatures,
+  enabledFeatureKeys,
+  hasTrustedPremiumEntitlement,
+  resolveFeatureAccessMap,
+} from './feature-access.js';
+import {
   type RestoreSubscriptionRequestDto,
   type SubscriptionProviderDto,
   type SubscriptionStatusDto,
@@ -21,7 +24,8 @@ import {
   type RevenueCatEntitlement,
 } from './revenuecat.client.js';
 
-const TRUSTED_ENTITLEMENT_CACHE_MS = 24 * 60 * 60 * 1000;
+export { hasTrustedPremiumEntitlement } from './feature-access.js';
+
 const GOOGLE_PLAY_MANAGE_URL =
   'https://play.google.com/store/account/subscriptions';
 const APP_STORE_MANAGE_URL = 'https://apps.apple.com/account/subscriptions';
@@ -56,41 +60,6 @@ function isFuture(value: string | null | undefined, now: Date) {
   return value ? Date.parse(value) > now.getTime() : false;
 }
 
-function isRecentlyChecked(subscription: SubscriptionDto, now: Date) {
-  const checkedAt = Date.parse(subscription.lastCheckedAt);
-
-  return (
-    Number.isFinite(checkedAt) &&
-    now.getTime() - checkedAt <= TRUSTED_ENTITLEMENT_CACHE_MS
-  );
-}
-
-export function hasTrustedPremiumEntitlement(
-  subscription: SubscriptionDto | SubscriptionRecord | null,
-  now = new Date(),
-) {
-  if (!subscription || !isRecentlyChecked(subscription, now)) {
-    return false;
-  }
-
-  return (
-    resolveEffectivePlan(
-      {
-        plan_type: subscription.planType,
-        status: subscription.status,
-        expires_at: subscription.expiresAt,
-      },
-      now,
-    ) === 'premium'
-  );
-}
-
-function featuresForPlan(planType: PlanType) {
-  return planType === 'premium'
-    ? [...premiumSubscriptionFeatures]
-    : [...freeSubscriptionFeatures];
-}
-
 function providerFromRevenueCatStore(
   store: string | null | undefined,
   fallback: SubscriptionProviderDto,
@@ -122,6 +91,7 @@ function requireSubscriptionOwner(auth: AuthContext | undefined) {
 
 function subscriptionStatusFromRecord(
   subscription: SubscriptionDto | SubscriptionRecord | null,
+  role: AuthContext['role'],
   now: Date,
 ): SubscriptionStatusDto {
   const planType = resolveEffectivePlan(
@@ -136,29 +106,38 @@ function subscriptionStatusFromRecord(
   );
 
   if (!subscription || planType === 'free') {
+    const features = resolveFeatureAccessMap({ planType: 'free', role });
+
     return {
       planType: 'free',
       provider: null,
-      enabledFeatures: featuresForPlan('free'),
+      enabledFeatures: enabledFeatureKeys(features),
+      features,
       expiresAt: null,
       checkedAt: subscription?.lastCheckedAt ?? now.toISOString(),
     };
   }
 
+  const features = resolveFeatureAccessMap({ planType: 'premium', role });
+
   return {
     planType: 'premium',
     provider: subscription.provider,
-    enabledFeatures: featuresForPlan('premium'),
+    enabledFeatures: enabledFeatureKeys(features),
+    features,
     expiresAt: subscription.expiresAt,
     checkedAt: subscription.lastCheckedAt,
   };
 }
 
-function freeStatus(now: Date): SubscriptionStatusDto {
+function freeStatus(role: AuthContext['role'], now: Date): SubscriptionStatusDto {
+  const features = resolveFeatureAccessMap({ planType: 'free', role });
+
   return {
     planType: 'free',
     provider: null,
-    enabledFeatures: featuresForPlan('free'),
+    enabledFeatures: enabledFeatureKeys(features),
+    features,
     expiresAt: null,
     checkedAt: now.toISOString(),
   };
@@ -232,14 +211,15 @@ export class SubscriptionService {
       try {
         return await this.syncRevenueCatEntitlement(context.workspaceId, {
           fallbackProvider: 'revenuecat',
+          role: context.role,
           now,
         });
       } catch {
-        return this.cachedOrFreeStatus(context.workspaceId, now);
+        return this.cachedOrFreeStatus(context.workspaceId, context.role, now);
       }
     }
 
-    return this.cachedOrFreeStatus(context.workspaceId, now);
+    return this.cachedOrFreeStatus(context.workspaceId, context.role, now);
   }
 
   async restore(
@@ -250,18 +230,19 @@ export class SubscriptionService {
     const now = new Date();
 
     if (!this.revenueCatClient.configured) {
-      return freeStatus(now);
+      return freeStatus(context.role, now);
     }
 
     try {
       return await this.syncRevenueCatEntitlement(context.workspaceId, {
         fallbackProvider: body.provider,
+        role: context.role,
         now,
       });
     } catch (error) {
       if (error instanceof RevenueCatClientError) {
         if (error.statusCode === 404) {
-          return freeStatus(now);
+          return freeStatus(context.role, now);
         }
 
         throw new ApiError(
@@ -319,19 +300,24 @@ export class SubscriptionService {
 
     return this.syncRevenueCatEntitlement(workspaceId, {
       fallbackProvider: options.fallbackProvider ?? 'revenuecat',
+      role: 'owner',
       now: options.now ?? new Date(),
     });
   }
 
-  private async cachedOrFreeStatus(workspaceId: string, now: Date) {
+  private async cachedOrFreeStatus(
+    workspaceId: string,
+    role: AuthContext['role'],
+    now: Date,
+  ) {
     const subscription =
       await this.repository.findCurrentSubscriptionForWorkspace(workspaceId);
 
     if (!hasTrustedPremiumEntitlement(subscription, now)) {
-      return freeStatus(now);
+      return freeStatus(role, now);
     }
 
-    return subscriptionStatusFromRecord(subscription, now);
+    return subscriptionStatusFromRecord(subscription, role, now);
   }
 
   private async syncRevenueCatEntitlement(
@@ -339,6 +325,7 @@ export class SubscriptionService {
     input: {
       customerInfo?: RevenueCatCustomerInfo;
       fallbackProvider: SubscriptionProviderDto;
+      role: AuthContext['role'];
       now: Date;
     },
   ) {
@@ -370,6 +357,6 @@ export class SubscriptionService {
       lastCheckedAt: resolved.checkedAt,
     });
 
-    return subscriptionStatusFromRecord(saved, input.now);
+    return subscriptionStatusFromRecord(saved, input.role, input.now);
   }
 }

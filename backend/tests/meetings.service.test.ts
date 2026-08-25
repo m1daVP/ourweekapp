@@ -528,7 +528,7 @@ describe('MeetingsService', () => {
       createdAt: now,
     })).rejects.toMatchObject({
       statusCode: 403,
-      code: 'forbidden',
+      code: 'feature_role_restricted',
     });
     expect(repos.meetings.findMeetingByIdForWorkspace).not.toHaveBeenCalled();
     expect(repos.meetings.updateMeetingSummary).not.toHaveBeenCalled();
@@ -560,7 +560,6 @@ describe('MeetingsService', () => {
     expect(repos.meetings.updateMeetingSummary).not.toHaveBeenCalled();
   });
 });
-
 
 
 

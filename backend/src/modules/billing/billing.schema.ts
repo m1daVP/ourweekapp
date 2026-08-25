@@ -5,6 +5,10 @@ import {
   nullableIsoDateTimeStringSchema,
 } from '../../shared/schemas/index.js';
 import { planTypeSchema } from '../auth/auth.schema.js';
+import {
+  featureAccessMapSchema,
+  subscriptionFeatureSchema,
+} from './feature-access.js';
 
 export const subscriptionProviderSchema = z.enum([
   'google_play',
@@ -17,22 +21,7 @@ export const mobilePurchaseProviderSchema = z.enum([
   'app_store',
 ]);
 
-export const subscriptionFeatureSchema = z.enum([
-  'basicMeetings',
-  'defaultTemplate',
-  'tasksAndAgreements',
-  'manualResponsibility',
-  'limitedHistory',
-  'localReminders',
-  'unlimitedHistory',
-  'aiSummary',
-  'agreementReminders',
-  'additionalTemplates',
-  'privateNotes',
-  'googleCalendarSync',
-  'export',
-  'advancedStatistics',
-]);
+export { subscriptionFeatureSchema } from './feature-access.js';
 
 export const freeSubscriptionFeatures = [
   'basicMeetings',
@@ -40,14 +29,14 @@ export const freeSubscriptionFeatures = [
   'tasksAndAgreements',
   'manualResponsibility',
   'limitedHistory',
+  'localReminders',
+  'agreementReminders',
 ] as const satisfies Array<z.infer<typeof subscriptionFeatureSchema>>;
 
 export const premiumSubscriptionFeatures = [
   ...freeSubscriptionFeatures,
-  'localReminders',
   'unlimitedHistory',
   'aiSummary',
-  'agreementReminders',
   'additionalTemplates',
   'privateNotes',
   'googleCalendarSync',
@@ -59,6 +48,7 @@ export const subscriptionStatusSchema = z.object({
   planType: planTypeSchema,
   provider: subscriptionProviderSchema.nullable(),
   enabledFeatures: z.array(subscriptionFeatureSchema),
+  features: featureAccessMapSchema,
   expiresAt: nullableIsoDateTimeStringSchema,
   checkedAt: isoDateTimeStringSchema,
 });

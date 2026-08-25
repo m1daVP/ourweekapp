@@ -5,7 +5,7 @@ import { ApiError } from '../../shared/errors/index.js';
 import type { AuthContext } from '../../shared/auth/index.js';
 import { env } from '../../config/env.js';
 import { buildAuthPreHandler } from '../auth/auth.middleware.js';
-import { requirePremiumAdultMember } from '../billing/require-premium.middleware.js';
+import { requireFeature } from '../billing/require-feature.middleware.js';
 import { SubscriptionsRepository } from '../billing/subscriptions.repository.js';
 import {
   aiMeetingSummaryRequestSchema,
@@ -71,7 +71,7 @@ export const aiRoutes: FastifyPluginAsyncZod = async (app) => {
           timeWindow: '1 hour',
         },
       },
-      preHandler: [requireAuth, requirePremiumAdultMember(subscriptionsRepository)],
+      preHandler: [requireAuth, requireFeature(subscriptionsRepository, 'aiSummary')],
       schema: {
         body: aiMeetingSummaryRequestSchema,
         response: {

@@ -3,11 +3,11 @@ import { requireAuthenticatedContext } from '../../shared/auth/index.js';
 import { ApiError } from '../../shared/errors/index.js';
 import { isPrivateMarkedObject } from '../../shared/privacy/index.js';
 import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositories/index.js';
+import type { SubscriptionStatusDto } from '../billing/billing.schema.js';
 import {
-  freeSubscriptionFeatures,
-  premiumSubscriptionFeatures,
-  type SubscriptionStatusDto,
-} from '../billing/billing.schema.js';
+  enabledFeatureKeys,
+  resolveFeatureAccessMap,
+} from '../billing/feature-access.js';
 import type { CalendarConnectionStatusDto } from '../calendar/calendar.schema.js';
 import {
   AccountRepository,
@@ -165,19 +165,23 @@ function toExportReviewDecision(decision: AccountTaskReviewDecisionRecord) {
 
 function toSubscriptionStatus(
   subscription: AccountSubscriptionRecord | null,
+  role: AuthContext['role'],
   checkedAt: string,
 ): SubscriptionStatusDto | null {
   if (!subscription) {
     return null;
   }
 
+  const features = resolveFeatureAccessMap({
+    planType: subscription.planType,
+    role,
+  });
+
   return {
     planType: subscription.planType,
     provider: subscription.provider,
-    enabledFeatures:
-      subscription.planType === 'premium'
-        ? [...premiumSubscriptionFeatures]
-        : [...freeSubscriptionFeatures],
+    enabledFeatures: enabledFeatureKeys(features),
+    features,
     expiresAt: subscription.expiresAt,
     checkedAt: subscription.lastCheckedAt || checkedAt,
   };
@@ -266,7 +270,7 @@ export class AccountService {
         tasks: tasks.map(toExportTask),
         agreements: agreements.map(toExportAgreement),
         reviewDecisions: reviewDecisions.map(toExportReviewDecision),
-        subscription: toSubscriptionStatus(subscription, exportedAt),
+        subscription: toSubscriptionStatus(subscription, membership.role, exportedAt),
         calendarConnections: calendarConnections.map((connection) =>
           toCalendarStatus(connection, exportedAt),
         ),

@@ -2,7 +2,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 
 import { errorResponseSchema } from '../../shared/schemas/index.js';
 import { requireAuth } from '../auth/auth.middleware.js';
-import { requirePremiumAdultMember } from '../billing/require-premium.middleware.js';
+import { requireFeature } from '../billing/require-feature.middleware.js';
 import { SubscriptionsRepository } from '../billing/subscriptions.repository.js';
 import {
   exportMeetingRequestSchema,
@@ -31,7 +31,7 @@ export const exportsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
       preHandler: [
         authPreHandler,
-        requirePremiumAdultMember(subscriptionsRepository),
+        requireFeature(subscriptionsRepository, 'export'),
       ],
       schema: {
         body: exportMeetingRequestSchema,
