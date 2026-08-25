@@ -87,6 +87,28 @@ const premiumStatus: SubscriptionStatusDto = {
   checkedAt: '2026-06-16T00:00:00.000Z',
 };
 
+const premiumStatusWithAccessMap: SubscriptionStatusDto = {
+  ...premiumStatus,
+  features: {
+    ...Object.fromEntries(premiumStatus.enabledFeatures.map((key) => [key, {
+      key,
+      tier: key === 'unlimitedHistory' ? 'premium' : 'free',
+      lifecycle: 'available',
+      state: 'available',
+      roleEligible: true,
+      upgradeEligible: false,
+    }])),
+    advancedStatistics: {
+      key: 'advancedStatistics',
+      tier: 'premium',
+      lifecycle: 'planned',
+      state: 'notYetAvailable',
+      roleEligible: true,
+      upgradeEligible: false,
+    },
+  } as SubscriptionStatusDto['features'],
+};
+
 const mockedGetSubscriptionStatus = vi.mocked(getSubscriptionStatus);
 const mockedRestoreSubscriptionStatus = vi.mocked(restoreSubscriptionStatus);
 const mockedGetSubscriptionManagementUrl = vi.mocked(
@@ -226,6 +248,21 @@ describe('createRevenueCatSubscriptionProvider', () => {
     expect(result.message).toBe('Premium is active for this account.');
     expect(result.snapshot.currentPlan).toBe('premium');
     expect(result.snapshot.entitlements.premium.isActive).toBe(true);
+  });
+
+  it('preserves planned access-map entries without treating them as unlocked', async () => {
+    mockedGetSubscriptionStatus.mockResolvedValue(premiumStatusWithAccessMap);
+
+    const provider = createRevenueCatSubscriptionProvider();
+    const snapshot = await provider.getCurrentPlan();
+
+    expect(snapshot.featureAccess.advancedStatistics).toMatchObject({
+      state: 'notYetAvailable',
+      upgradeEligible: false,
+    });
+    expect(snapshot.entitlements.premium.unlockedFeatures).not.toContain(
+      'advancedStatistics'
+    );
   });
 
   it('keeps the backend snapshot when the user cancels purchase', async () => {
