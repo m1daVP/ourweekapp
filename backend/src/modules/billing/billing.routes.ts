@@ -11,6 +11,7 @@ import {
 import { SubscriptionService } from './billing.service.js';
 import { RevenueCatClient } from './revenuecat.client.js';
 import { SubscriptionsRepository } from './subscriptions.repository.js';
+import { AssistantRepository } from '../assistant/assistant.repository.js';
 
 const subscriptionErrorResponses = {
   401: errorResponseSchema,
@@ -25,6 +26,7 @@ export const billingRoutes: FastifyPluginAsyncZod = async (app) => {
     new SubscriptionsRepository(app.supabase),
     new RevenueCatClient(env.REVENUECAT_API_KEY),
     env.REVENUECAT_ENTITLEMENT_ID,
+    new AssistantRepository(app.supabase),
   );
   const authPreHandler = requireAuth(app);
 

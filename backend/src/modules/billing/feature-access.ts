@@ -23,6 +23,7 @@ export const subscriptionFeatureKeys = [
   'localReminders',
   'unlimitedHistory',
   'aiSummary',
+  'smartFollowUps',
   'agreementReminders',
   'additionalTemplates',
   'privateNotes',
@@ -87,6 +88,9 @@ export const featureCatalog = {
   },
   aiSummary: {
     key: 'aiSummary', tier: 'premium', lifecycle: 'available', eligibleRoles: adultRoles, enforcement: 'server',
+  },
+  smartFollowUps: {
+    key: 'smartFollowUps', tier: 'premium', lifecycle: 'available', eligibleRoles: adultRoles, enforcement: 'server',
   },
   agreementReminders: {
     key: 'agreementReminders', tier: 'free', lifecycle: 'available', eligibleRoles: allRoles, enforcement: 'client',

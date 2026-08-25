@@ -38,6 +38,7 @@ export const freeSubscriptionFeatures = [
 export const premiumSubscriptionFeatures = [
   ...freeSubscriptionFeatures,
   'aiSummary',
+  'smartFollowUps',
   'additionalTemplates',
   'privateNotes',
   'googleCalendarSync',
@@ -52,6 +53,10 @@ export const subscriptionStatusSchema = z.object({
   features: featureAccessMapSchema,
   expiresAt: nullableIsoDateTimeStringSchema,
   checkedAt: isoDateTimeStringSchema,
+  assistantRecap: z.object({
+    remainingFreeCredits: z.number().int().min(0).max(3).nullable(),
+    canGenerate: z.boolean(),
+  }),
 });
 
 export const restoreSubscriptionRequestSchema = z.object({

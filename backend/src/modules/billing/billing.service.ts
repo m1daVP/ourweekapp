@@ -17,6 +17,7 @@ import {
   type SubscriptionRecord,
   type SubscriptionsRepository,
 } from './subscriptions.repository.js';
+import { AssistantRepository } from '../assistant/assistant.repository.js';
 import {
   RevenueCatClientError,
   type RevenueCatCustomerInfo,
@@ -40,6 +41,11 @@ type SubscriptionRepository = Pick<
 type EntitlementProviderClient = Pick<
   RevenueCatClient,
   'configured' | 'getSubscriber'
+>;
+
+type AssistantCreditRepository = Pick<
+  AssistantRepository,
+  'getRemainingFreeRecapCredits'
 >;
 
 type RevenueCatEntitlementWithStore = RevenueCatEntitlement & {
@@ -89,11 +95,13 @@ function requireSubscriptionOwner(auth: AuthContext | undefined) {
   return context;
 }
 
-function subscriptionStatusFromRecord(
+async function subscriptionStatusFromRecord(
   subscription: SubscriptionDto | SubscriptionRecord | null,
+  workspaceId: string,
   role: AuthContext['role'],
   now: Date,
-): SubscriptionStatusDto {
+  assistantCredits: AssistantCreditRepository,
+): Promise<SubscriptionStatusDto> {
   const planType = resolveEffectivePlan(
     subscription
       ? {
@@ -107,6 +115,9 @@ function subscriptionStatusFromRecord(
 
   if (!subscription || planType === 'free') {
     const features = resolveFeatureAccessMap({ planType: 'free', role });
+    const remainingFreeCredits = await assistantCredits.getRemainingFreeRecapCredits(
+      workspaceId,
+    );
 
     return {
       planType: 'free',
@@ -115,6 +126,10 @@ function subscriptionStatusFromRecord(
       features,
       expiresAt: null,
       checkedAt: subscription?.lastCheckedAt ?? now.toISOString(),
+      assistantRecap: {
+        remainingFreeCredits,
+        canGenerate: role !== 'viewer' && remainingFreeCredits > 0,
+      },
     };
   }
 
@@ -127,11 +142,23 @@ function subscriptionStatusFromRecord(
     features,
     expiresAt: subscription.expiresAt,
     checkedAt: subscription.lastCheckedAt,
+    assistantRecap: {
+      remainingFreeCredits: null,
+      canGenerate: role !== 'viewer',
+    },
   };
 }
 
-function freeStatus(role: AuthContext['role'], now: Date): SubscriptionStatusDto {
+async function freeStatus(
+  workspaceId: string,
+  role: AuthContext['role'],
+  now: Date,
+  assistantCredits: AssistantCreditRepository,
+): Promise<SubscriptionStatusDto> {
   const features = resolveFeatureAccessMap({ planType: 'free', role });
+  const remainingFreeCredits = await assistantCredits.getRemainingFreeRecapCredits(
+    workspaceId,
+  );
 
   return {
     planType: 'free',
@@ -140,6 +167,10 @@ function freeStatus(role: AuthContext['role'], now: Date): SubscriptionStatusDto
     features,
     expiresAt: null,
     checkedAt: now.toISOString(),
+    assistantRecap: {
+      remainingFreeCredits,
+      canGenerate: role !== 'viewer' && remainingFreeCredits > 0,
+    },
   };
 }
 
@@ -201,6 +232,11 @@ export class SubscriptionService {
     private readonly repository: SubscriptionRepository,
     private readonly revenueCatClient: EntitlementProviderClient,
     private readonly entitlementId = 'premium',
+    private readonly assistantCredits: AssistantCreditRepository = {
+      async getRemainingFreeRecapCredits() {
+        return 3;
+      },
+    },
   ) {}
 
   async getStatus(auth: AuthContext | undefined) {
@@ -230,7 +266,12 @@ export class SubscriptionService {
     const now = new Date();
 
     if (!this.revenueCatClient.configured) {
-      return freeStatus(context.role, now);
+      return freeStatus(
+        context.workspaceId,
+        context.role,
+        now,
+        this.assistantCredits,
+      );
     }
 
     try {
@@ -242,7 +283,12 @@ export class SubscriptionService {
     } catch (error) {
       if (error instanceof RevenueCatClientError) {
         if (error.statusCode === 404) {
-          return freeStatus(context.role, now);
+          return freeStatus(
+            context.workspaceId,
+            context.role,
+            now,
+            this.assistantCredits,
+          );
         }
 
         throw new ApiError(
@@ -314,10 +360,16 @@ export class SubscriptionService {
       await this.repository.findCurrentSubscriptionForWorkspace(workspaceId);
 
     if (!hasTrustedPremiumEntitlement(subscription, now)) {
-      return freeStatus(role, now);
+      return freeStatus(workspaceId, role, now, this.assistantCredits);
     }
 
-    return subscriptionStatusFromRecord(subscription, role, now);
+    return subscriptionStatusFromRecord(
+      subscription,
+      workspaceId,
+      role,
+      now,
+      this.assistantCredits,
+    );
   }
 
   private async syncRevenueCatEntitlement(
@@ -357,6 +409,12 @@ export class SubscriptionService {
       lastCheckedAt: resolved.checkedAt,
     });
 
-    return subscriptionStatusFromRecord(saved, input.role, input.now);
+    return subscriptionStatusFromRecord(
+      saved,
+      workspaceId,
+      input.role,
+      input.now,
+      this.assistantCredits,
+    );
   }
 }

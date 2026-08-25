@@ -184,6 +184,10 @@ function toSubscriptionStatus(
     features,
     expiresAt: subscription.expiresAt,
     checkedAt: subscription.lastCheckedAt || checkedAt,
+    assistantRecap: {
+      remainingFreeCredits: subscription.planType === 'premium' ? null : 0,
+      canGenerate: subscription.planType === 'premium' && role !== 'viewer',
+    },
   };
 }
 
