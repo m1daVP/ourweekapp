@@ -104,8 +104,8 @@ const premiumStatusWithAccessMap: SubscriptionStatusDto = {
     advancedStatistics: {
       key: 'advancedStatistics',
       tier: 'premium',
-      lifecycle: 'planned',
-      state: 'notYetAvailable',
+      lifecycle: 'available',
+      state: 'available',
       roleEligible: true,
       upgradeEligible: false,
     },
@@ -253,17 +253,18 @@ describe('createRevenueCatSubscriptionProvider', () => {
     expect(result.snapshot.entitlements.premium.isActive).toBe(true);
   });
 
-  it('preserves planned access-map entries without treating them as unlocked', async () => {
+  it('preserves available Premium access-map entries as unlocked', async () => {
     mockedGetSubscriptionStatus.mockResolvedValue(premiumStatusWithAccessMap);
 
     const provider = createRevenueCatSubscriptionProvider();
     const snapshot = await provider.getCurrentPlan();
 
     expect(snapshot.featureAccess.advancedStatistics).toMatchObject({
-      state: 'notYetAvailable',
+      lifecycle: 'available',
+      state: 'available',
       upgradeEligible: false,
     });
-    expect(snapshot.entitlements.premium.unlockedFeatures).not.toContain(
+    expect(snapshot.entitlements.premium.unlockedFeatures).toContain(
       'advancedStatistics'
     );
   });

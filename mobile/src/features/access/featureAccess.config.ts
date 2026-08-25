@@ -81,6 +81,6 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     label: 'Advanced statistics',
     description: 'See deeper household patterns over time.',
     lockedReason:
-      'Upgrade to unlock advanced household insights when available.',
+      'Upgrade to unlock advanced household insights.',
   },
 };

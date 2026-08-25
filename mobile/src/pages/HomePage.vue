@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
 
 const { isStartupLoading } = useStartupLoadingState();
@@ -13,6 +14,7 @@ const router = useRouter();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
+const subscriptionStore = useSubscriptionStore();
 
 onMounted(() => {
   participantsStore.ensureDefaultParticipants();
@@ -42,6 +44,9 @@ const showTaskShortcutSkeleton = computed(
 );
 const showHistoryShortcutSkeleton = computed(
   () => isStartupLoading.value && meetingsStore.meetings.length === 0
+);
+const canOpenInsights = computed(
+  () => subscriptionStore.getFeatureAccess('advancedStatistics').state === 'available'
 );
 
 function startMeeting() {
@@ -128,6 +133,14 @@ function startMeeting() {
         <span class="material-symbols-outlined" aria-hidden="true">
           chevron_right
         </span>
+      </RouterLink>
+      <RouterLink v-if="canOpenInsights" class="content-panel home-action" :to="{ name: 'insights' }">
+        <span class="section-icon material-symbols-outlined" aria-hidden="true">insights</span>
+        <span>
+          <strong>{{ t('home.householdInsights') }}</strong>
+          <small>{{ t('home.householdInsightsText') }}</small>
+        </span>
+        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
       </RouterLink>
     </section>
 

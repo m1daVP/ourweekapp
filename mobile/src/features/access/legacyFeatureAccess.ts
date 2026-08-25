@@ -25,7 +25,7 @@ export function createLegacyFeatureAccessMap(input: {
 
   return Object.fromEntries(featureKeys.map((key) => {
     const tier = premiumFeatureKeys.has(key) ? 'premium' : 'free';
-    const lifecycle = key === 'advancedStatistics' ? 'planned' : 'available';
+    const lifecycle = 'available';
     const enabled = lifecycle === 'available' && (
       tier === 'free' ||
       enabledFeatures.has(key) ||

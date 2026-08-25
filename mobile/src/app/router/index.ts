@@ -8,6 +8,7 @@ import CalendarSyncPage from '@/pages/CalendarSyncPage.vue';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
 import HomePage from '@/pages/HomePage.vue';
 import HistoryPage from '@/pages/HistoryPage.vue';
+import InsightsPage from '@/pages/InsightsPage.vue';
 import LogoutConfirmationPage from '@/pages/LogoutConfirmationPage.vue';
 import MeetingDetailsPage from '@/pages/MeetingDetailsPage.vue';
 import MeetingPage from '@/pages/MeetingPage.vue';
@@ -107,6 +108,12 @@ export const router = createRouter({
       name: 'history',
       component: HistoryPage,
       meta: { requiresFeature: 'meetingHistory' },
+    },
+    {
+      path: '/insights',
+      name: 'insights',
+      component: InsightsPage,
+      meta: { requiresFeature: 'advancedStatistics' },
     },
     {
       path: '/history/private-notes',
