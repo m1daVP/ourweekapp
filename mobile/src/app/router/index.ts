@@ -106,7 +106,7 @@ export const router = createRouter({
       path: '/history',
       name: 'history',
       component: HistoryPage,
-      meta: { requiresFeature: 'limitedHistory' },
+      meta: { requiresFeature: 'meetingHistory' },
     },
     {
       path: '/history/private-notes',
@@ -117,7 +117,7 @@ export const router = createRouter({
       path: '/history/:meetingId',
       name: 'meeting-details',
       component: MeetingDetailsPage,
-      meta: { requiresFeature: 'limitedHistory' },
+      meta: { requiresFeature: 'meetingHistory' },
     },
     {
       path: '/meeting-summary/:meetingId',
@@ -125,7 +125,7 @@ export const router = createRouter({
       component: MeetingSummaryPage,
       meta: {
         hideNavigation: true,
-        requiresFeature: 'limitedHistory',
+        requiresFeature: 'meetingHistory',
       },
     },
     {

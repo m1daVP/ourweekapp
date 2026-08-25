@@ -5,7 +5,6 @@ import { useWorkspaceStore } from '@/app/stores/workspace';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import { canUseFeatureAccess } from '@/features/access/featureAccessPolicy';
 import type { FeatureKey } from '@/features/access/types';
-import type { Meeting } from '@/features/meeting/types';
 
 export function useFeatureAccess() {
   const { t, te } = useI18n();
@@ -22,22 +21,6 @@ export function useFeatureAccess() {
 
   function getFeatureAccessState(featureKey: FeatureKey) {
     return subscriptionStore.getFeatureAccess(featureKey).state;
-  }
-
-  function canAccessMeetingHistoryItem(
-    meeting: Pick<Meeting, 'status'>,
-    completedMeetingIndex: number
-  ) {
-    if (meeting.status !== 'completed') {
-      return true;
-    }
-
-    if (canUseFeature('unlimitedHistory')) {
-      return true;
-    }
-
-    const freeLimit = getFreeLimit('limitedHistory') ?? 3;
-    return completedMeetingIndex >= 0 && completedMeetingIndex < freeLimit;
   }
 
   function getFeatureAccess(featureKey: FeatureKey) {
@@ -57,18 +40,12 @@ export function useFeatureAccess() {
     };
   }
 
-  function getFreeLimit(featureKey: FeatureKey) {
-    return featureAccessConfig[featureKey].freeLimit;
-  }
-
   return {
     planType,
     userRole,
     isPremium,
     canUseFeature,
     getFeatureAccessState,
-    canAccessMeetingHistoryItem,
     getFeatureAccess,
-    getFreeLimit,
   };
 }

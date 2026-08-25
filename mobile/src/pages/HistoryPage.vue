@@ -8,28 +8,20 @@ import type { Participant } from '@/features/participants/types';
 import type { Meeting } from '@/features/meeting/types';
 import HistoryProgressSwipeCard from '@/features/meeting/components/HistoryProgressSwipeCard.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
-import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
 import { useToast } from '@/shared/composables/useToast';
 
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const router = useRouter();
-const { canAccessMeetingHistoryItem, canUseFeature, getFreeLimit } =
-  useFeatureAccess();
 const { isStartupLoading } = useStartupLoadingState();
 const { t, locale } = useI18n();
 const { showToast } = useToast();
 
-const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
 const pendingDeleteMeeting = ref<Meeting | null>(null);
 
 const sortedCompletedMeetings = computed(() =>
   [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
-);
-
-const completedMeetingCount = computed(
-  () => sortedCompletedMeetings.value.length
 );
 
 const inProgressItems = computed(() =>
@@ -44,28 +36,14 @@ const inProgressItems = computed(() =>
 );
 
 const completedItems = computed(() =>
-  sortedCompletedMeetings.value.map((meeting) => {
-    const completedIndex = sortedCompletedMeetings.value.findIndex(
-      (item) => item.id === meeting.id
-    );
-
-    return {
+  sortedCompletedMeetings.value.map((meeting) => ({
       meeting,
-      completedIndex,
-      isLocked: !canAccessMeetingHistoryItem(meeting, completedIndex),
       title: `${formatMeetingDate(getMeetingDate(meeting))}: ${getMeetingTitle(
         meeting
       )}`,
       subtitle: formatCompletedLabel(meeting),
       participants: getMeetingParticipants(meeting),
-    };
-  })
-);
-
-const showPremiumUnlock = computed(
-  () =>
-    !canUseFeature('unlimitedHistory') &&
-    completedMeetingCount.value >= freeHistoryLimit
+    }))
 );
 const showInProgressSkeleton = computed(
   () => isStartupLoading.value && inProgressItems.value.length === 0
@@ -169,20 +147,9 @@ function confirmDeleteDraft() {
 }
 
 function openCompletedMeeting(item: (typeof completedItems.value)[number]) {
-  if (item.isLocked) {
-    return;
-  }
-
   router.push({
     name: 'meeting-summary',
     params: { meetingId: item.meeting.id },
-  });
-}
-
-function openUpgrade() {
-  router.push({
-    name: 'upgrade',
-    query: { lockedFeature: 'unlimitedHistory' },
   });
 }
 </script>
@@ -234,12 +201,11 @@ function openUpgrade() {
         <li
           v-for="item in completedItems"
           :key="item.meeting.id"
-          :class="['history-completed-card', { 'is-locked': item.isLocked }]"
+          class="history-completed-card"
         >
           <button
             type="button"
             class="history-completed-card__button"
-            :disabled="item.isLocked"
             @click="openCompletedMeeting(item)"
           >
             <span class="history-completed-card__header">
@@ -251,7 +217,7 @@ function openUpgrade() {
                 class="history-completed-card__status material-symbols-outlined"
                 aria-hidden="true"
               >
-                {{ item.isLocked ? 'lock' : 'check_circle' }}
+                check_circle
               </span>
             </span>
             <span class="history-avatar-stack" aria-hidden="true">
@@ -296,29 +262,6 @@ function openUpgrade() {
         </li>
       </ul>
       <p v-else class="history-empty-card">{{ t('history.emptyText') }}</p>
-    </section>
-
-    <section
-      v-if="showPremiumUnlock"
-      class="history-premium-card"
-      aria-labelledby="history-premium-title"
-    >
-      <span class="history-premium-card__icon" aria-hidden="true">
-        <span class="material-symbols-outlined">lock</span>
-      </span>
-      <div>
-        <h2 id="history-premium-title">{{ t('history.unlockFullHistory') }}</h2>
-        <p>
-          {{
-            t('history.unlockFullHistoryMessage', {
-              count: freeHistoryLimit,
-            })
-          }}
-        </p>
-      </div>
-      <button type="button" @click="openUpgrade">
-        {{ t('history.upgradePremium') }}
-      </button>
     </section>
 
     <ConfirmationDialog

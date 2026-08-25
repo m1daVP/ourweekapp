@@ -66,7 +66,9 @@ const freeStatus: SubscriptionStatusDto = {
     'defaultTemplate',
     'tasksAndAgreements',
     'manualResponsibility',
+    'meetingHistory',
     'limitedHistory',
+    'unlimitedHistory',
   ],
   expiresAt: null,
   checkedAt: '2026-06-16T00:00:00.000Z',
@@ -80,6 +82,7 @@ const premiumStatus: SubscriptionStatusDto = {
     'defaultTemplate',
     'tasksAndAgreements',
     'manualResponsibility',
+    'meetingHistory',
     'limitedHistory',
     'unlimitedHistory',
   ],
@@ -92,7 +95,7 @@ const premiumStatusWithAccessMap: SubscriptionStatusDto = {
   features: {
     ...Object.fromEntries(premiumStatus.enabledFeatures.map((key) => [key, {
       key,
-      tier: key === 'unlimitedHistory' ? 'premium' : 'free',
+      tier: 'free',
       lifecycle: 'available',
       state: 'available',
       roleEligible: true,
@@ -263,6 +266,19 @@ describe('createRevenueCatSubscriptionProvider', () => {
     expect(snapshot.entitlements.premium.unlockedFeatures).not.toContain(
       'advancedStatistics'
     );
+  });
+
+  it('keeps meeting history available when mapping a legacy Free status response', async () => {
+    const provider = createRevenueCatSubscriptionProvider();
+
+    const snapshot = await provider.getCurrentPlan();
+
+    expect(snapshot.featureAccess.meetingHistory).toMatchObject({
+      tier: 'free',
+      state: 'available',
+      upgradeEligible: false,
+    });
+    expect(snapshot.featureAccess.unlimitedHistory.state).toBe('available');
   });
 
   it('keeps the backend snapshot when the user cancels purchase', async () => {

@@ -21,11 +21,15 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     label: 'Manual responsibility assignment',
     description: 'Assign tasks and agreements to family members manually.',
   },
+  meetingHistory: {
+    key: 'meetingHistory',
+    label: 'Meeting history',
+    description: 'Review every completed meeting, agreement, task, and saved summary.',
+  },
   limitedHistory: {
     key: 'limitedHistory',
     label: 'Recent meeting history',
-    description: 'Review the latest 3 completed meetings.',
-    freeLimit: 3,
+    description: 'Compatibility access for meeting history.',
   },
   localReminders: {
     key: 'localReminders',
@@ -36,7 +40,6 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     key: 'unlimitedHistory',
     label: 'Unlimited meeting history',
     description: 'Keep and review all completed meetings.',
-    lockedReason: 'Upgrade to keep the full record of your family meetings.',
   },
   aiSummary: {
     key: 'aiSummary',

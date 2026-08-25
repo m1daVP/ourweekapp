@@ -252,16 +252,12 @@ export const messages = {
       fromCheckIns: 'From weekly check-ins',
       meetingsSaved: '{count} meetings saved',
       fullHistory: 'Full history available',
-      freeLatest: 'Free shows latest {count}',
-      unlockHistory: 'Unlock full history',
-      unlockHistoryMessage:
-        'Look back at older weekly check-ins and agreements when your household needs context.',
     },
     history: {
       kicker: 'Meeting history',
       title: 'Past check-ins',
       intro:
-        'Finished meetings stay saved locally. Free history opens the latest {count} finished meetings.',
+        'Finished meetings stay available to everyone in the household.',
       inProgress: 'In progress',
       completedMeetings: 'Finished meetings',
       defaultMeetingTitle: 'Weekly family check-in',
@@ -270,10 +266,6 @@ export const messages = {
       draftedDaysAgo: 'Drafted {count} days ago',
       completedOn: 'Completed on {day}',
       noDrafts: 'No meeting in progress.',
-      unlockFullHistory: 'Unlock full history',
-      unlockFullHistoryMessage:
-        'Upgrade to OurWeek Premium to view all past check-ins.',
-      upgradePremium: 'Upgrade Premium',
       privateNotes: 'Private notes',
       privateNotesText:
         'Keep personal notes separate from shared meeting history.',
@@ -282,9 +274,6 @@ export const messages = {
       confirmDeleteDraft:
         'Delete this draft? Notes, tasks, and agreements from it will be removed.',
       draftDeleted: 'Draft deleted.',
-      lockedTitle: 'Older meeting locked',
-      lockedMessage:
-        'Free history opens the latest {count} finished meetings. Upgrade to review this meeting.',
       emptyTitle: 'No meetings yet',
       emptyText: 'Draft and finished meetings will appear here.',
     },
@@ -309,8 +298,6 @@ export const messages = {
       unavailableTitle: 'Summary unavailable',
       unavailableText:
         'This meeting summary is not available on this device right now.',
-      historyLockedText:
-        'This meeting is outside the free history limit. Upgrade to review the saved summary.',
       viewFullNotes: 'View full notes',
       shareSummary: 'Share summary',
       copied: 'Summary copied.',
@@ -431,20 +418,17 @@ export const messages = {
       kicker: 'Premium',
       title: 'Upgrade OurWeek',
       intro:
-        'Premium is for households that want a longer memory, gentle follow-up, and clean summaries after each weekly check-in.',
+        'Premium helps households turn weekly conversations into clear follow-through.',
       heroTitle: 'Make weekly check-ins easier to keep',
       heroText:
-        'Keep a longer record, use focused templates, and carry clear follow-ups into each weekly check-in.',
+        'Use focused templates, AI summaries, Calendar sync, and exports to keep your next steps moving.',
       benefitsTitle: 'Premium benefits',
       bestValue: 'Best value',
       yearlyNote: 'Best for a steady weekly rhythm.',
       actionsLabel: 'Premium purchase actions',
       termsLink: 'Terms of Service',
+      ownerManaged: 'The workspace owner manages Premium for this household.',
       benefits: {
-        unlimitedHistory: {
-          title: 'Unlimited history',
-          text: 'Review every finished check-in when an old agreement needs context.',
-        },
         aiSummaries: {
           title: 'AI meeting summaries',
           text: 'Turn meeting notes into a short neutral summary and next steps.',
@@ -453,9 +437,17 @@ export const messages = {
           title: 'All templates unlocked',
           text: 'Use focused check-ins for couples, money, busy weeks, and family routines.',
         },
-        calendarNotes: {
-          title: 'Calendar sync and private notes',
-          text: 'Prepare privately and keep agreed follow-ups visible between meetings.',
+        calendarSync: {
+          title: 'Google Calendar sync',
+          text: 'Keep meetings and agreed follow-ups visible where your household plans time.',
+        },
+        export: {
+          title: 'Meeting exports',
+          text: 'Take a clean record of decisions, tasks, and agreements outside the app.',
+        },
+        privateNotes: {
+          title: 'Private notes',
+          text: 'Keep personal reflections separate from the shared household record.',
         },
       },
       plansTitle: 'Choose a Premium plan',
@@ -543,9 +535,11 @@ export const messages = {
         premium: 'Premium',
       },
       subscriptionBenefits: {
-        unlimitedHistory: 'Unlimited history',
         aiSummaries: 'AI summaries',
+        calendarSync: 'Google Calendar sync',
+        export: 'Meeting exports',
       },
+      subscriptionOwnerManaged: 'The workspace owner manages Premium for this household.',
       upgradeToPremium: 'Upgrade to Premium',
       version: 'Version {version}',
       support: 'Support',
@@ -911,9 +905,6 @@ export const messages = {
       meetingNotFound: 'Meeting not found',
       notSaved: 'This meeting is not saved on this device.',
       backToHistory: 'Back to history',
-      olderMeetingLocked: 'Older meeting locked',
-      freeHistoryLimit:
-        'Free history opens the latest {count} finished meetings. Upgrade to review every section, note, task, and agreement.',
       exportPremiumTitle: 'Export is premium',
       exportPremiumMessage:
         'Upgrade to export meeting summaries, agreements, and tasks.',
@@ -1206,6 +1197,7 @@ export const messages = {
       locked: 'Locked premium feature',
       unlock: 'Unlock',
       roleRestricted: 'Your household role cannot use this feature.',
+      ownerManaged: 'The workspace owner manages Premium for this household.',
       notYetAvailable: 'This feature is coming soon.',
       unavailable: 'This feature is not available right now.',
     },
@@ -1226,9 +1218,13 @@ export const messages = {
         label: 'Assign responsibility',
         description: 'Assign tasks and agreements to household members.',
       },
+      meetingHistory: {
+        label: 'Meeting history',
+        description: 'Review every completed meeting, agreement, task, and saved summary.',
+      },
       limitedHistory: {
         label: 'Recent meeting history',
-        description: 'Review the latest 3 completed meetings.',
+        description: 'Compatibility access for meeting history.',
       },
       localReminders: {
         label: 'Local reminders',
@@ -1660,16 +1656,12 @@ export const messages = {
       fromCheckIns: 'Зі щотижневих зустрічей',
       meetingsSaved: '{count} зустрічей збережено',
       fullHistory: 'Повна історія доступна',
-      freeLatest: 'Безкоштовно відкриває останні {count}',
-      unlockHistory: 'Відкрити повну історію',
-      unlockHistoryMessage:
-        'Повертайтеся до старіших зустрічей і домовленостей, коли потрібен контекст.',
     },
     history: {
       kicker: 'Історія зустрічей',
       title: 'Минулі зустрічі',
       intro:
-        'Завершені зустрічі зберігаються локально. Безкоштовна історія відкриває останні {count} завершені зустрічі.',
+        'Завершені зустрічі залишаються доступними для всіх учасників дому.',
       inProgress: 'У процесі',
       completedMeetings: 'Завершені зустрічі',
       defaultMeetingTitle: 'Щотижнева сімейна зустріч',
@@ -1678,10 +1670,6 @@ export const messages = {
       draftedDaysAgo: 'Чернетку створено {count} дні тому',
       completedOn: 'Завершено у {day}',
       noDrafts: 'Немає зустрічі в процесі.',
-      unlockFullHistory: 'Відкрити повну історію',
-      unlockFullHistoryMessage:
-        'Огляд минулих зустрічей допомагає згадати, про що ви вже домовилися. Оновіться до OurWeek Premium, щоб переглядати всі минулі зустрічі.',
-      upgradePremium: 'Оновити Premium',
       privateNotes: 'Приватні нотатки',
       privateNotesText:
         'Тримайте особисті нотатки окремо від спільної історії зустрічей.',
@@ -1690,9 +1678,6 @@ export const messages = {
       confirmDeleteDraft:
         'Видалити цю чернетку? Нотатки, завдання та домовленості з неї буде видалено.',
       draftDeleted: 'Чернетку видалено.',
-      lockedTitle: 'Старішу зустріч заблоковано',
-      lockedMessage:
-        'Безкоштовна історія відкриває останні {count} завершені зустрічі. Оновіться, щоб переглянути цю зустріч.',
       emptyTitle: 'Зустрічей ще немає',
       emptyText: 'Чернетки й завершені зустрічі з’являться тут.',
     },
@@ -1716,8 +1701,6 @@ export const messages = {
       unavailableTitle: 'Підсумок недоступний',
       unavailableText:
         'Підсумок цієї зустрічі зараз недоступний на цьому пристрої.',
-      historyLockedText:
-        'Ця зустріч поза безкоштовним лімітом історії. Оновіть план, щоб переглянути збережений підсумок.',
       viewFullNotes: 'Переглянути повні нотатки',
       shareSummary: 'Поділитися підсумком',
       copied: 'Підсумок скопійовано.',
@@ -1843,20 +1826,17 @@ export const messages = {
       kicker: 'Premium',
       title: 'Оновити OurWeek',
       intro:
-        'Premium для домів, яким потрібна довша історія, м’які нагадування і чисті підсумки після кожної щотижневої зустрічі.',
+        'Premium допомагає перетворювати щотижневі розмови на зрозумілі подальші кроки.',
       heroTitle: 'Легше підтримувати щотижневі зустрічі',
       heroText:
-        'Зберігайте довшу історію, використовуйте фокусні шаблони й переносіть подальші кроки в кожну зустріч.',
+        'Використовуйте фокусні шаблони, AI-підсумки, синхронізацію календаря та експорт для наступних кроків.',
       benefitsTitle: 'Переваги Premium',
       bestValue: 'Найкраща цінність',
       yearlyNote: 'Зручно для стабільного щотижневого ритму.',
       actionsLabel: 'Дії покупки Premium',
       termsLink: 'Умови користування',
+      ownerManaged: 'Premium для цього дому керує власник робочого простору.',
       benefits: {
-        unlimitedHistory: {
-          title: 'Необмежена історія',
-          text: 'Переглядайте всі завершені зустрічі, коли потрібен контекст попередніх домовленостей.',
-        },
         aiSummaries: {
           title: 'AI-підсумки зустрічей',
           text: 'Перетворюйте нотатки на короткий нейтральний підсумок і наступні кроки.',
@@ -1865,9 +1845,17 @@ export const messages = {
           title: 'Усі шаблони відкриті',
           text: 'Використовуйте фокусні зустрічі для пари, грошей, зайнятих тижнів і сімейних рутин.',
         },
-        calendarNotes: {
-          title: 'Календар і приватні нотатки',
-          text: 'Готуйтеся приватно й тримайте домовлені подальші кроки видимими між зустрічами.',
+        calendarSync: {
+          title: 'Синхронізація Google Calendar',
+          text: 'Тримайте зустрічі й домовлені подальші кроки видимими там, де дім планує час.',
+        },
+        export: {
+          title: 'Експорт зустрічей',
+          text: 'Зберігайте чистий запис рішень, завдань і домовленостей поза застосунком.',
+        },
+        privateNotes: {
+          title: 'Приватні нотатки',
+          text: 'Тримайте особисті думки окремо від спільного домашнього запису.',
         },
       },
       plansTitle: 'Оберіть Premium-план',
@@ -1956,9 +1944,11 @@ export const messages = {
         premium: 'Premium',
       },
       subscriptionBenefits: {
-        unlimitedHistory: 'Необмежена історія',
         aiSummaries: 'AI-підсумки',
+        calendarSync: 'Синхронізація Google Calendar',
+        export: 'Експорт зустрічей',
       },
+      subscriptionOwnerManaged: 'Premium для цього дому керує власник робочого простору.',
       upgradeToPremium: 'Оновити до Premium',
       version: 'Версія {version}',
       support: 'Підтримка',
@@ -2339,9 +2329,6 @@ export const messages = {
       meetingNotFound: 'Зустріч не знайдено',
       notSaved: 'Цю зустріч не збережено на цьому пристрої.',
       backToHistory: 'Назад до історії',
-      olderMeetingLocked: 'Старішу зустріч заблоковано',
-      freeHistoryLimit:
-        'Безкоштовна історія відкриває останні {count} завершені зустрічі. Оновіться, щоб переглядати всі розділи, нотатки, завдання й домовленості.',
       exportPremiumTitle: 'Експорт доступний у Premium',
       exportPremiumMessage:
         'Оновіться, щоб експортувати підсумки зустрічей, домовленості й завдання.',
@@ -2639,6 +2626,7 @@ export const messages = {
       locked: 'Закрита Premium-функція',
       unlock: 'Розблокувати',
       roleRestricted: 'Ваша роль у сім’ї не може користуватися цією функцією.',
+      ownerManaged: 'Premium для цього дому керує власник робочого простору.',
       notYetAvailable: 'Ця функція скоро з’явиться.',
       unavailable: 'Ця функція зараз недоступна.',
     },
@@ -2659,9 +2647,13 @@ export const messages = {
         label: 'Ручне призначення відповідальності',
         description: 'Призначайте завдання й домовленості учасникам вручну.',
       },
+      meetingHistory: {
+        label: 'Історія зустрічей',
+        description: 'Переглядайте кожну завершену зустріч, домовленість, завдання та збережений підсумок.',
+      },
       limitedHistory: {
         label: 'Нещодавня історія зустрічей',
-        description: 'Переглядайте останні 3 завершені зустрічі.',
+        description: 'Сумісний доступ до історії зустрічей.',
       },
       localReminders: {
         label: 'Локальні нагадування',
@@ -3106,16 +3098,12 @@ export const messages = {
       fromCheckIns: 'De revisiones semanales',
       meetingsSaved: '{count} reuniones guardadas',
       fullHistory: 'Historial completo disponible',
-      freeLatest: 'Gratis muestra las últimas {count}',
-      unlockHistory: 'Desbloquear historial completo',
-      unlockHistoryMessage:
-        'Vuelve a revisiones semanales y acuerdos anteriores cuando tu hogar necesite contexto.',
     },
     history: {
       kicker: 'Historial de reuniones',
       title: 'Revisiones anteriores',
       intro:
-        'Las reuniones finalizadas se guardan localmente. El plan gratis muestra las últimas {count}.',
+        'Las reuniones finalizadas siguen disponibles para todas las personas del hogar.',
       inProgress: 'En progreso',
       completedMeetings: 'Reuniones completadas',
       defaultMeetingTitle: 'Revisión familiar semanal',
@@ -3124,10 +3112,6 @@ export const messages = {
       draftedDaysAgo: 'Borrador de hace {count} días',
       completedOn: 'Completada el {day}',
       noDrafts: 'No hay reunión en progreso.',
-      unlockFullHistory: 'Desbloquear historial completo',
-      unlockFullHistoryMessage:
-        'Mirar atrás ayuda a recordar acuerdos anteriores. Pasa a OurWeek Premium para ver todas las revisiones.',
-      upgradePremium: 'Pasar a Premium',
       privateNotes: 'Notas privadas',
       privateNotesText:
         'Mantén las notas personales separadas del historial compartido de reuniones.',
@@ -3136,9 +3120,6 @@ export const messages = {
       confirmDeleteDraft:
         '¿Eliminar este borrador? Sus notas, tareas y acuerdos se quitarán.',
       draftDeleted: 'Borrador eliminado.',
-      lockedTitle: 'Reunión anterior bloqueada',
-      lockedMessage:
-        'El plan gratis muestra las últimas {count} reuniones finalizadas. Pasa a Premium para revisar esta reunión.',
       emptyTitle: 'Todavía no hay reuniones',
       emptyText: 'Las reuniones en borrador y finalizadas aparecerán aquí.',
     },
@@ -3162,8 +3143,6 @@ export const messages = {
       unavailableTitle: 'Resumen no disponible',
       unavailableText:
         'El resumen de esta reunión no está disponible en este dispositivo ahora.',
-      historyLockedText:
-        'Esta reunión está fuera del límite del historial gratuito. Actualiza a Premium para revisar el resumen guardado.',
       viewFullNotes: 'Ver notas completas',
       shareSummary: 'Compartir resumen',
       copied: 'Resumen copiado.',
@@ -3290,20 +3269,17 @@ export const messages = {
       kicker: 'Premium',
       title: 'Mejorar OurWeek',
       intro:
-        'Premium es para hogares que quieren una memoria más larga, seguimiento suave y resúmenes claros después de cada revisión semanal.',
+        'Premium ayuda a los hogares a convertir conversaciones semanales en seguimientos claros.',
       heroTitle: 'Haz más fácil mantener la revisión semanal',
       heroText:
-        'Conserva más historial, usa plantillas enfocadas y lleva seguimientos claros a cada revisión.',
+        'Usa plantillas enfocadas, resúmenes con IA, sincronización de calendario y exportaciones para avanzar con los próximos pasos.',
       benefitsTitle: 'Beneficios Premium',
       bestValue: 'Mejor valor',
       yearlyNote: 'Ideal para mantener el ritmo semanal.',
       actionsLabel: 'Acciones de compra Premium',
       termsLink: 'Términos del servicio',
+      ownerManaged: 'La persona propietaria del espacio gestiona Premium para este hogar.',
       benefits: {
-        unlimitedHistory: {
-          title: 'Historial ilimitado',
-          text: 'Revisa cada reunión terminada cuando un acuerdo anterior necesita contexto.',
-        },
         aiSummaries: {
           title: 'Resúmenes de reuniones con IA',
           text: 'Convierte notas de reunión en un resumen breve, neutral y con próximos pasos.',
@@ -3312,9 +3288,17 @@ export const messages = {
           title: 'Todas las plantillas desbloqueadas',
           text: 'Usa revisiones enfocadas para pareja, dinero, semanas ocupadas y rutinas familiares.',
         },
-        calendarNotes: {
-          title: 'Calendario y notas privadas',
-          text: 'Prepárate en privado y mantén visibles los seguimientos acordados entre reuniones.',
+        calendarSync: {
+          title: 'Sincronización con Google Calendar',
+          text: 'Mantén visibles las reuniones y los seguimientos acordados donde el hogar organiza su tiempo.',
+        },
+        export: {
+          title: 'Exportaciones de reuniones',
+          text: 'Lleva un registro claro de decisiones, tareas y acuerdos fuera de la app.',
+        },
+        privateNotes: {
+          title: 'Notas privadas',
+          text: 'Mantén las reflexiones personales separadas del registro compartido del hogar.',
         },
       },
       plansTitle: 'Elige un plan Premium',
@@ -3406,9 +3390,11 @@ export const messages = {
         premium: 'Premium',
       },
       subscriptionBenefits: {
-        unlimitedHistory: 'Historial ilimitado',
         aiSummaries: 'Resúmenes con AI',
+        calendarSync: 'Sincronización con Google Calendar',
+        export: 'Exportaciones de reuniones',
       },
+      subscriptionOwnerManaged: 'La persona propietaria del espacio gestiona Premium para este hogar.',
       upgradeToPremium: 'Actualizar a Premium',
       version: 'Versión {version}',
       support: 'Soporte',
@@ -3792,9 +3778,6 @@ export const messages = {
       meetingNotFound: 'Reunión no encontrada',
       notSaved: 'Esta reunión no está guardada en este dispositivo.',
       backToHistory: 'Volver al historial',
-      olderMeetingLocked: 'Reunión anterior bloqueada',
-      freeHistoryLimit:
-        'El plan gratis muestra las últimas {count} reuniones finalizadas. Pasa a Premium para revisar cada sección, nota, tarea y acuerdo.',
       exportPremiumTitle: 'La exportación es Premium',
       exportPremiumMessage:
         'Pasa a Premium para exportar resúmenes de reuniones, acuerdos y tareas.',
@@ -4096,6 +4079,7 @@ export const messages = {
       locked: 'Función Premium bloqueada',
       unlock: 'Desbloquear',
       roleRestricted: 'Tu rol en el hogar no puede usar esta función.',
+      ownerManaged: 'La persona propietaria del espacio gestiona Premium para este hogar.',
       notYetAvailable: 'Esta función estará disponible próximamente.',
       unavailable: 'Esta función no está disponible ahora mismo.',
     },
@@ -4117,9 +4101,13 @@ export const messages = {
         description:
           'Asigna tareas y acuerdos manualmente a miembros de la familia.',
       },
+      meetingHistory: {
+        label: 'Historial de reuniones',
+        description: 'Revisa cada reunión completada, acuerdo, tarea y resumen guardado.',
+      },
       limitedHistory: {
         label: 'Historial reciente de reuniones',
-        description: 'Revisa las últimas 3 reuniones completadas.',
+        description: 'Acceso de compatibilidad al historial de reuniones.',
       },
       localReminders: {
         label: 'Recordatorios locales',

@@ -37,7 +37,7 @@ export const planComparisonItems: PlanComparisonItem[] = [
     benefits: [
       { label: 'Basic weekly meetings', featureKey: 'basicMeetings' },
       { label: 'Tasks and agreements', featureKey: 'tasksAndAgreements' },
-      { label: 'Last 3 meetings history', featureKey: 'limitedHistory' },
+      { label: 'Meeting history', featureKey: 'meetingHistory' },
       { label: 'Default template', featureKey: 'defaultTemplate' },
       {
         label: 'Unfinished agreement reminders',
@@ -49,7 +49,6 @@ export const planComparisonItems: PlanComparisonItem[] = [
     planType: 'premium',
     label: 'Premium',
     benefits: [
-      { label: 'Unlimited meeting history', featureKey: 'unlimitedHistory' },
       { label: 'AI summaries', featureKey: 'aiSummary' },
       { label: 'Extra templates', featureKey: 'additionalTemplates' },
       { label: 'Private notes', featureKey: 'privateNotes' },

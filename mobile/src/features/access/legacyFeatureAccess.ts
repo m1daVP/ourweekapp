@@ -7,7 +7,6 @@ import type {
 } from './types';
 
 const premiumFeatureKeys = new Set<FeatureKey>([
-  'unlimitedHistory',
   'aiSummary',
   'additionalTemplates',
   'privateNotes',

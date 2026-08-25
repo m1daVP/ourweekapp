@@ -5,6 +5,7 @@ export type FeatureKey =
   | 'defaultTemplate'
   | 'tasksAndAgreements'
   | 'manualResponsibility'
+  | 'meetingHistory'
   | 'limitedHistory'
   | 'localReminders'
   | 'unlimitedHistory'

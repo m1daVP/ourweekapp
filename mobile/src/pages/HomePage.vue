@@ -1,22 +1,18 @@
 <script setup lang="ts">
-import PremiumLock from '@/shared/components/PremiumLock.vue';
 import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
-import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
 
-const { canUseFeature, getFreeLimit } = useFeatureAccess();
 const { isStartupLoading } = useStartupLoadingState();
 const { t, locale } = useI18n();
 const router = useRouter();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
-const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
 
 onMounted(() => {
   participantsStore.ensureDefaultParticipants();
@@ -127,12 +123,7 @@ function startMeeting() {
           <strong>{{
             t('home.meetingsSaved', { count: completedCount })
           }}</strong>
-          <small v-if="canUseFeature('unlimitedHistory')">
-            {{ t('home.fullHistory') }}
-          </small>
-          <small v-else>
-            {{ t('home.freeLatest', { count: freeHistoryLimit }) }}
-          </small>
+          <small>{{ t('home.fullHistory') }}</small>
         </span>
         <span class="material-symbols-outlined" aria-hidden="true">
           chevron_right
@@ -140,11 +131,5 @@ function startMeeting() {
       </RouterLink>
     </section>
 
-    <PremiumLock
-      feature="unlimitedHistory"
-      :title="t('home.unlockHistory')"
-      :message="t('home.unlockHistoryMessage')"
-      :show-preview="false"
-    />
   </section>
 </template>

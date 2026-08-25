@@ -34,10 +34,8 @@ const { t, locale } = useI18n();
 const participantsStore = useParticipantsStore();
 const route = useRoute();
 const router = useRouter();
-const { canAccessMeetingHistoryItem, canUseFeature, getFreeLimit } =
-  useFeatureAccess();
+const { canUseFeature } = useFeatureAccess();
 
-const freeHistoryLimit = getFreeLimit('limitedHistory') ?? 3;
 const meetingId = computed(() => String(route.params.meetingId ?? ''));
 const isGeneratingSummary = ref(false);
 const aiSummaryError = ref('');
@@ -63,29 +61,6 @@ const canGenerateAiSummary = computed(() =>
   )
 );
 
-const sortedCompletedMeetings = computed(() =>
-  [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
-);
-
-const completedMeetingIndex = computed(() =>
-  sortedCompletedMeetings.value.findIndex((item) => item.id === meetingId.value)
-);
-
-const canAccessMeeting = computed(() => {
-  if (!meeting.value) {
-    return false;
-  }
-
-  return canAccessMeetingHistoryItem(
-    meeting.value,
-    completedMeetingIndex.value
-  );
-});
-
-const isLocked = computed(() =>
-  Boolean(meeting.value && !canAccessMeeting.value)
-);
-
 const meetingDateLabel = computed(() =>
   meeting.value ? formatDate(getMeetingDate(meeting.value)) : ''
 );
@@ -101,10 +76,6 @@ const allTasks = computed(
 const allAgreements = computed(
   () => meeting.value?.sections.flatMap((section) => section.agreements) ?? []
 );
-
-function compareMeetingsByDate(first: Meeting, second: Meeting) {
-  return getMeetingDate(second).getTime() - getMeetingDate(first).getTime();
-}
 
 function getMeetingDate(item: Meeting) {
   return new Date(item.completedAt ?? item.updatedAt ?? item.createdAt);
@@ -346,25 +317,6 @@ async function generateSummary() {
         {{ t('meeting.backToHistory') }}
       </RouterLink>
     </div>
-
-    <template v-else-if="isLocked">
-      <header>
-        <p class="page-kicker">{{ meetingDateLabel }}</p>
-        <h1>{{ displayMeetingTitle(meeting) }}</h1>
-        <p class="page-copy">{{ meetingPreview }}</p>
-      </header>
-
-      <PremiumLock
-        feature="unlimitedHistory"
-        :title="t('meeting.olderMeetingLocked')"
-        :message="t('meeting.freeHistoryLimit', { count: freeHistoryLimit })"
-      >
-        <div class="content-panel feature-summary">
-          <h2>{{ displayMeetingTitle(meeting) }}</h2>
-          <p>{{ getMeetingStatusLabel(meeting) }} - {{ meetingDateLabel }}</p>
-        </div>
-      </PremiumLock>
-    </template>
 
     <template v-else>
       <header class="meeting-details-header">

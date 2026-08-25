@@ -54,7 +54,7 @@ const router = useRouter();
 const { t, te, locale } = useI18n();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
-const { canAccessMeetingHistoryItem, canUseFeature } = useFeatureAccess();
+const { canUseFeature } = useFeatureAccess();
 const shareError = ref('');
 const isSharing = ref(false);
 const aiSummaryError = ref('');
@@ -78,8 +78,6 @@ const meetingSummaryFallbackText = {
   unavailableTitle: 'Summary unavailable',
   unavailableText:
     'This meeting summary is not available on this device right now.',
-  historyLockedText:
-    'This meeting is outside the free history limit. Upgrade to review the saved summary.',
   viewFullNotes: 'View full notes',
 } as const;
 
@@ -97,28 +95,7 @@ const meeting = computed(
     meetingsStore.meetings.find((item) => item.id === meetingId.value) ?? null
 );
 
-const sortedCompletedMeetings = computed(() =>
-  [...meetingsStore.completedMeetings].sort(compareMeetingsByDate)
-);
-
-const completedMeetingIndex = computed(() =>
-  sortedCompletedMeetings.value.findIndex((item) => item.id === meetingId.value)
-);
-
-const canAccessMeeting = computed(() => {
-  if (!meeting.value) {
-    return false;
-  }
-
-  return canAccessMeetingHistoryItem(
-    meeting.value,
-    completedMeetingIndex.value
-  );
-});
-
-const accessibleMeeting = computed(() =>
-  meeting.value && canAccessMeeting.value ? meeting.value : null
-);
+const accessibleMeeting = computed(() => meeting.value);
 
 const meetingSummary = computed(() =>
   accessibleMeeting.value
@@ -202,15 +179,7 @@ const aiInsightState = computed<AiInsightState>(() => {
   return 'empty';
 });
 
-const unavailableText = computed(() =>
-  meeting.value && !canAccessMeeting.value
-    ? meetingSummaryText('historyLockedText')
-    : meetingSummaryText('unavailableText')
-);
-
-function compareMeetingsByDate(first: Meeting, second: Meeting) {
-  return getMeetingDate(second).getTime() - getMeetingDate(first).getTime();
-}
+const unavailableText = computed(() => meetingSummaryText('unavailableText'));
 
 function getMeetingDate(item: Meeting) {
   return new Date(item.completedAt ?? item.updatedAt ?? item.createdAt);
