@@ -130,6 +130,7 @@ export interface MeetingTemplate {
   name: string;
   description: string;
   access: MeetingTemplateAccess;
+  outcomeTagKeys: string[];
   sections: MeetingTemplateSection[];
 }
 

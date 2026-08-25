@@ -40,6 +40,7 @@ export const meetingTemplates: MeetingTemplate[] = [
     name: 'Weekly family check-in',
     description: 'The standard weekly rhythm for notes, tasks, and agreements.',
     access: 'free',
+    outcomeTagKeys: ['weeklyRhythm', 'sharedPlan'],
     sections: [
       {
         id: 'goodThings',
@@ -82,8 +83,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'couple-reset',
     name: 'Couple reset',
     description: 'A short practical reset for partners after a full week.',
-    // access: 'premium',
-    access: 'free',
+    access: 'premium',
+    outcomeTagKeys: ['reconnect', 'clearNextStep'],
     sections: [
       {
         id: 'appreciation',
@@ -116,8 +117,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'family-with-kids',
     name: 'Family with kids',
     description: 'A focused check-in for routines, care, and kid logistics.',
-    // access: 'premium',
-    access: 'free',
+    access: 'premium',
+    outcomeTagKeys: ['smootherRoutines', 'shareTheLoad'],
     sections: [
       {
         id: 'childRoutines',
@@ -155,8 +156,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'money-check-in',
     name: 'Money check-in',
     description: 'A simple agenda for household spending and money decisions.',
-    // access: 'premium',
-    access: 'free',
+    access: 'premium',
+    outcomeTagKeys: ['makeMoneyDecision', 'planAhead'],
     sections: [
       {
         id: 'upcomingExpenses',
@@ -194,8 +195,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'conflict-cleanup',
     name: 'Conflict cleanup',
     description: 'A calm way to turn one unresolved issue into next steps.',
-    // access: 'premium',
-    access: 'free',
+    access: 'premium',
+    outcomeTagKeys: ['talkItThrough', 'agreeWhatChanges'],
     sections: [
       {
         id: 'whatHappened',
@@ -228,8 +229,8 @@ export const meetingTemplates: MeetingTemplate[] = [
     id: 'busy-week-planning',
     name: 'Busy week planning',
     description: 'A practical plan for schedule, errands, and backup options.',
-    // access: 'premium',
-    access: 'free',
+    access: 'premium',
+    outcomeTagKeys: ['makeWeekWorkable', 'backupPlan'],
     sections: [
       {
         id: 'scheduleOverview',
@@ -281,6 +282,21 @@ const templateTranslationKeys: Record<MeetingTemplateId, string> = {
   'busy-week-planning': 'busyWeekPlanning',
 };
 
+const templateOutcomeFallbacks: Record<string, string> = {
+  weeklyRhythm: 'Weekly rhythm',
+  sharedPlan: 'Shared plan',
+  reconnect: 'Reconnect',
+  clearNextStep: 'Clear next step',
+  smootherRoutines: 'Smoother routines',
+  shareTheLoad: 'Share the load',
+  makeMoneyDecision: 'Make a money decision',
+  planAhead: 'Plan ahead',
+  talkItThrough: 'Talk it through',
+  agreeWhatChanges: 'Agree what changes',
+  makeWeekWorkable: 'Make the week workable',
+  backupPlan: 'Backup plan',
+};
+
 export function getMeetingTemplateName(templateId?: string, fallback?: string) {
   const template = getMeetingTemplate(templateId);
   const key = templateTranslationKeys[template.id];
@@ -296,6 +312,17 @@ export function getMeetingTemplateDescription(
   const key = templateTranslationKeys[template.id];
   const translated = translate(`templates.${key}.description`);
   return translated || fallback || template.description;
+}
+
+export function getMeetingTemplateOutcomeTags(templateId?: string) {
+  return getMeetingTemplate(templateId).outcomeTagKeys.map((tagKey) => {
+    const translationKey = `templates.outcomes.${tagKey}`;
+    const translated = translate(translationKey);
+
+    return translated === translationKey
+      ? (templateOutcomeFallbacks[tagKey] ?? tagKey)
+      : translated;
+  });
 }
 
 export function getMeetingSectionTitle(
