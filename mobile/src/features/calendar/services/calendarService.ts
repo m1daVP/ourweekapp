@@ -4,6 +4,7 @@ import type {
   CalendarMeetingReminderPayload,
   CalendarSyncResult,
   CalendarTaskDueDatePayload,
+  UpdateCalendarPreferences,
 } from '@/features/calendar/types';
 import { translate } from '@/features/localization/i18n';
 import {
@@ -13,6 +14,8 @@ import {
   syncGoogleCalendarFollowUpDate,
   syncGoogleCalendarMeetingReminder,
   syncGoogleCalendarTaskDueDate,
+  retryGoogleCalendarSync,
+  updateGoogleCalendarSettings,
 } from '@/shared/api/calendarApi';
 import { openExternalAuthUrl } from '@/shared/services/externalAuthService';
 import { nowIso } from '@/shared/utils/dates';
@@ -65,6 +68,16 @@ export async function getCalendarConnectionStatus(): Promise<CalendarConnectionS
   return getGoogleCalendarConnectionStatus();
 }
 
+export async function updateCalendarSettings(
+  payload: UpdateCalendarPreferences
+): Promise<CalendarConnectionStatus> {
+  return updateGoogleCalendarSettings(payload);
+}
+
+export async function retryCalendarSync(): Promise<CalendarSyncResult> {
+  return retryGoogleCalendarSync();
+}
+
 export async function syncMeetingReminder(
   payload: CalendarMeetingReminderPayload
 ): Promise<CalendarSyncResult> {
@@ -108,6 +121,8 @@ export const calendarService = {
   connectCalendar,
   disconnectCalendar,
   getCalendarConnectionStatus,
+  updateCalendarSettings,
+  retryCalendarSync,
   syncFollowUpDate,
   syncMeetingReminder,
   syncTaskDueDate,

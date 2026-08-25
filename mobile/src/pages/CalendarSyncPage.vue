@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useCalendarSyncStore } from '@/app/stores/calendarSync';
 import { parseCalendarCallbackQuery } from '@/features/calendar/services/calendarCallback';
-import type { CalendarSyncSettings } from '@/features/calendar/types';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
+import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useToast } from '@/shared/composables/useToast';
-
-type CalendarSyncOptionKey = keyof Omit<CalendarSyncSettings, 'updatedAt'>;
 
 const calendarSyncStore = useCalendarSyncStore();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { showToast } = useToast();
+const isDisconnectConfirmationOpen = ref(false);
 
 watch(
   () => route.query,
@@ -46,24 +45,19 @@ watch(
 void calendarSyncStore.initializeCalendarConnection();
 
 const calendarOptions: Array<{
-  key: CalendarSyncOptionKey;
+  key: 'weeklyMeetingSyncEnabled' | 'assignedTaskSyncEnabled';
   label: string;
   description: string;
 }> = [
   {
-    key: 'addWeeklyMeetingReminder',
+    key: 'weeklyMeetingSyncEnabled',
     label: t('calendar.options.weeklyMeeting.label'),
     description: t('calendar.options.weeklyMeeting.description'),
   },
   {
-    key: 'addTaskDueDates',
+    key: 'assignedTaskSyncEnabled',
     label: t('calendar.options.taskDueDates.label'),
     description: t('calendar.options.taskDueDates.description'),
-  },
-  {
-    key: 'addFollowUpDates',
-    label: t('calendar.options.followUpDates.label'),
-    description: t('calendar.options.followUpDates.description'),
   },
 ];
 
@@ -77,11 +71,32 @@ const connectionStatusText = computed(() => {
   );
 });
 
-function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
-  calendarSyncStore.updateSetting(
-    key,
-    (event.target as HTMLInputElement).checked
-  );
+function updateCalendarOption(
+  key: 'weeklyMeetingSyncEnabled' | 'assignedTaskSyncEnabled',
+  event: Event
+) {
+  const enabled = (event.target as HTMLInputElement).checked;
+  const preferences = calendarSyncStore.connectionStatus?.preferences;
+  const payload = {
+    [key]: (event.target as HTMLInputElement).checked,
+    ...(key === 'weeklyMeetingSyncEnabled'
+      ? {
+          weeklyMeetingDay: preferences?.weeklyMeetingDay ?? 'sunday',
+          weeklyMeetingTime: preferences?.weeklyMeetingTime ?? '18:00',
+          timeZone:
+            preferences?.timeZone ??
+            Intl.DateTimeFormat().resolvedOptions().timeZone ??
+            'UTC',
+        }
+      : {}),
+  };
+
+  void calendarSyncStore.updateSettings({ ...payload, [key]: enabled });
+}
+
+function confirmDisconnect() {
+  isDisconnectConfirmationOpen.value = false;
+  void calendarSyncStore.disconnectCalendar();
 }
 </script>
 
@@ -100,7 +115,7 @@ function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
     >
       <section class="content-panel calendar-sync-panel">
         <div>
-          <h2>{{ t('calendar.connectionTitle') }}</h2>
+          <h2>{{ t('calendar.personalConnectionTitle') }}</h2>
           <p>{{ connectionStatusText }}</p>
         </div>
 
@@ -122,7 +137,7 @@ function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
           class="calendar-sync-secondary"
           type="button"
           :disabled="calendarSyncStore.isDisconnecting"
-          @click="calendarSyncStore.disconnectCalendar"
+          @click="isDisconnectConfirmationOpen = true"
         >
           {{ t('calendar.disconnect') }}
         </button>
@@ -146,7 +161,11 @@ function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
           >
             <input
               type="checkbox"
-              :checked="calendarSyncStore.settings[option.key]"
+              :checked="
+                calendarSyncStore.connectionStatus?.preferences[option.key] ??
+                false
+              "
+              :disabled="!calendarSyncStore.isConnected"
               @change="updateCalendarOption(option.key, $event)"
             />
             <span>
@@ -155,6 +174,22 @@ function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
             </span>
           </label>
         </div>
+
+        <p class="meeting-help">
+          {{ t('calendar.sharedItemsNotice') }}
+        </p>
+
+        <button
+          v-if="
+            calendarSyncStore.connectionStatus?.preferences
+              .lastSyncErrorCode === 'provider-error'
+          "
+          class="calendar-sync-secondary"
+          type="button"
+          @click="calendarSyncStore.retrySync"
+        >
+          {{ t('calendar.retry') }}
+        </button>
 
         <p v-if="calendarSyncStore.statusMessage" class="meeting-status">
           {{ calendarSyncStore.statusMessage }}
@@ -168,5 +203,13 @@ function updateCalendarOption(key: CalendarSyncOptionKey, event: Event) {
         </p>
       </section>
     </PremiumLock>
+    <ConfirmationDialog
+      :open="isDisconnectConfirmationOpen"
+      :title="t('calendar.disconnectConfirmTitle')"
+      :message="t('calendar.disconnectConfirmText')"
+      :confirm-label="t('calendar.disconnect')"
+      @close="isDisconnectConfirmationOpen = false"
+      @confirm="confirmDisconnect"
+    />
   </section>
 </template>

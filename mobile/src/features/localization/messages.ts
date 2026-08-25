@@ -256,8 +256,7 @@ export const messages = {
     history: {
       kicker: 'Meeting history',
       title: 'Past check-ins',
-      intro:
-        'Finished meetings stay available to everyone in the household.',
+      intro: 'Finished meetings stay available to everyone in the household.',
       inProgress: 'In progress',
       completedMeetings: 'Finished meetings',
       defaultMeetingTitle: 'Weekly family check-in',
@@ -373,11 +372,17 @@ export const messages = {
       premiumMessage:
         'Upgrade to sync OurWeek meetings, task due dates, and follow-ups with Google Calendar.',
       connectionTitle: 'Google Calendar connection',
+      personalConnectionTitle: 'Your Google Calendar',
+      sharedItemsNotice: 'Shared and unassigned items stay in OurWeek.',
+      retry: 'Try Calendar sync again',
       checkingConnection: 'Checking Google Calendar connection...',
       notConnected: 'Google Calendar is not connected.',
       preparingConnection: 'Preparing connection',
       connect: 'Connect Google Calendar',
       disconnect: 'Disconnect',
+      disconnectConfirmTitle: 'Disconnect Google Calendar?',
+      disconnectConfirmText:
+        'OurWeek will stop future Calendar sync. Events already in Google will remain.',
       noTokens: 'No Google tokens are stored in this mobile app.',
       callback: {
         connected: 'Google Calendar is connected.',
@@ -539,7 +544,8 @@ export const messages = {
         calendarSync: 'Google Calendar sync',
         export: 'Meeting exports',
       },
-      subscriptionOwnerManaged: 'The workspace owner manages Premium for this household.',
+      subscriptionOwnerManaged:
+        'The workspace owner manages Premium for this household.',
       upgradeToPremium: 'Upgrade to Premium',
       version: 'Version {version}',
       support: 'Support',
@@ -704,6 +710,7 @@ export const messages = {
       readOnlyTasks: 'This role can view tasks but cannot edit them.',
       task: 'Task',
       responsible: 'Responsible',
+      responsibleAdults: 'Adults assigned to this task',
       needsDiscussion: 'Needs discussion',
       shared: 'Shared',
       disabledParticipant: ' (disabled)',
@@ -1220,7 +1227,8 @@ export const messages = {
       },
       meetingHistory: {
         label: 'Meeting history',
-        description: 'Review every completed meeting, agreement, task, and saved summary.',
+        description:
+          'Review every completed meeting, agreement, task, and saved summary.',
       },
       limitedHistory: {
         label: 'Recent meeting history',
@@ -1778,11 +1786,18 @@ export const messages = {
       premiumMessage:
         'Оновіться, щоб підготувати зустрічі OurWeek, дати завдань і повернення до тем для Google Calendar.',
       connectionTitle: 'Підключення Google Calendar',
+      personalConnectionTitle: 'Ваш Google Calendar',
+      sharedItemsNotice:
+        'Спільні й непризначені елементи залишаються в OurWeek.',
+      retry: 'Спробувати синхронізацію ще раз',
       checkingConnection: 'Перевірка підключення Google Calendar.',
       notConnected: 'Google Calendar не підключено.',
       preparingConnection: 'Підготовка підключення',
       connect: 'Підключити Google Calendar',
       disconnect: 'Відключити',
+      disconnectConfirmTitle: 'Відключити Google Calendar?',
+      disconnectConfirmText:
+        'OurWeek припинить майбутню синхронізацію. Події, які вже є в Google, залишаться.',
       noTokens: 'У цьому мобільному додатку токени Google не зберігаються.',
       callback: {
         connected: 'Google Calendar підключено.',
@@ -1948,7 +1963,8 @@ export const messages = {
         calendarSync: 'Синхронізація Google Calendar',
         export: 'Експорт зустрічей',
       },
-      subscriptionOwnerManaged: 'Premium для цього дому керує власник робочого простору.',
+      subscriptionOwnerManaged:
+        'Premium для цього дому керує власник робочого простору.',
       upgradeToPremium: 'Оновити до Premium',
       version: 'Версія {version}',
       support: 'Підтримка',
@@ -2115,6 +2131,7 @@ export const messages = {
         'Ця роль у просторі може переглядати завдання, але не редагувати їх.',
       task: 'Завдання',
       responsible: 'Відповідальний',
+      responsibleAdults: 'Дорослі, призначені для цього завдання',
       needsDiscussion: 'Потрібно обговорити',
       shared: 'Спільно',
       disabledParticipant: ' (вимкнено)',
@@ -2649,7 +2666,8 @@ export const messages = {
       },
       meetingHistory: {
         label: 'Історія зустрічей',
-        description: 'Переглядайте кожну завершену зустріч, домовленість, завдання та збережений підсумок.',
+        description:
+          'Переглядайте кожну завершену зустріч, домовленість, завдання та збережений підсумок.',
       },
       limitedHistory: {
         label: 'Нещодавня історія зустрічей',
@@ -3220,11 +3238,18 @@ export const messages = {
       premiumMessage:
         'Pasa a Premium para preparar reuniones de OurWeek, fechas de tareas y seguimientos para Google Calendar.',
       connectionTitle: 'Conexión de Google Calendar',
+      personalConnectionTitle: 'Tu Google Calendar',
+      sharedItemsNotice:
+        'Los elementos compartidos y sin asignar permanecen en OurWeek.',
+      retry: 'Intentar sincronizar de nuevo',
       checkingConnection: 'Revisando la conexión de Google Calendar.',
       notConnected: 'Google Calendar está desconectado.',
       preparingConnection: 'Preparando conexión',
       connect: 'Conectar Google Calendar',
       disconnect: 'Desconectar',
+      disconnectConfirmTitle: '¿Desconectar Google Calendar?',
+      disconnectConfirmText:
+        'OurWeek detendrá la sincronización futura. Los eventos que ya están en Google permanecerán.',
       noTokens: 'No se guardan tokens de Google en esta app móvil.',
       callback: {
         connected: 'Google Calendar está conectado.',
@@ -3278,7 +3303,8 @@ export const messages = {
       yearlyNote: 'Ideal para mantener el ritmo semanal.',
       actionsLabel: 'Acciones de compra Premium',
       termsLink: 'Términos del servicio',
-      ownerManaged: 'La persona propietaria del espacio gestiona Premium para este hogar.',
+      ownerManaged:
+        'La persona propietaria del espacio gestiona Premium para este hogar.',
       benefits: {
         aiSummaries: {
           title: 'Resúmenes de reuniones con IA',
@@ -3394,7 +3420,8 @@ export const messages = {
         calendarSync: 'Sincronización con Google Calendar',
         export: 'Exportaciones de reuniones',
       },
-      subscriptionOwnerManaged: 'La persona propietaria del espacio gestiona Premium para este hogar.',
+      subscriptionOwnerManaged:
+        'La persona propietaria del espacio gestiona Premium para este hogar.',
       upgradeToPremium: 'Actualizar a Premium',
       version: 'Versión {version}',
       support: 'Soporte',
@@ -3566,6 +3593,7 @@ export const messages = {
         'Este rol del espacio puede ver tareas, pero no editarlas.',
       task: 'Tarea',
       responsible: 'Responsable',
+      responsibleAdults: 'Adultos asignados a esta tarea',
       needsDiscussion: 'Necesita conversación',
       shared: 'Compartida',
       disabledParticipant: ' (desactivado)',
@@ -4079,7 +4107,8 @@ export const messages = {
       locked: 'Función Premium bloqueada',
       unlock: 'Desbloquear',
       roleRestricted: 'Tu rol en el hogar no puede usar esta función.',
-      ownerManaged: 'La persona propietaria del espacio gestiona Premium para este hogar.',
+      ownerManaged:
+        'La persona propietaria del espacio gestiona Premium para este hogar.',
       notYetAvailable: 'Esta función estará disponible próximamente.',
       unavailable: 'Esta función no está disponible ahora mismo.',
     },
@@ -4103,7 +4132,8 @@ export const messages = {
       },
       meetingHistory: {
         label: 'Historial de reuniones',
-        description: 'Revisa cada reunión completada, acuerdo, tarea y resumen guardado.',
+        description:
+          'Revisa cada reunión completada, acuerdo, tarea y resumen guardado.',
       },
       limitedHistory: {
         label: 'Historial reciente de reuniones',

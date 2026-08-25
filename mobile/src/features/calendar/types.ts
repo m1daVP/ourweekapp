@@ -1,10 +1,7 @@
 export type CalendarProvider = 'google';
 
 export type CalendarConnectionState =
-  | 'disconnected'
-  | 'connected'
-  | 'setup_required'
-  | 'unavailable';
+  'disconnected' | 'connected' | 'setup_required' | 'unavailable';
 
 export interface CalendarConnectionStatus {
   provider: CalendarProvider;
@@ -13,15 +10,39 @@ export interface CalendarConnectionStatus {
   connectedAccountEmail?: string;
   lastCheckedAt: string;
   message: string;
+  preferences: CalendarPreferences;
   authorizationUrl?: string;
 }
 
-export interface CalendarSyncSettings {
-  addWeeklyMeetingReminder: boolean;
-  addTaskDueDates: boolean;
-  addFollowUpDates: boolean;
-  updatedAt: string;
+export type CalendarWeekday =
+  | 'sunday'
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday';
+
+export interface CalendarPreferences {
+  weeklyMeetingSyncEnabled: boolean;
+  assignedTaskSyncEnabled: boolean;
+  weeklyMeetingDay: CalendarWeekday;
+  weeklyMeetingTime: string;
+  timeZone: string;
+  lastSyncErrorCode?: 'provider-error';
+  lastSyncAttemptedAt?: string;
 }
+
+export type UpdateCalendarPreferences = Partial<
+  Pick<
+    CalendarPreferences,
+    | 'weeklyMeetingSyncEnabled'
+    | 'assignedTaskSyncEnabled'
+    | 'weeklyMeetingDay'
+    | 'weeklyMeetingTime'
+    | 'timeZone'
+  >
+>;
 
 export interface CalendarMeetingReminderPayload {
   meetingId: string;
@@ -47,8 +68,6 @@ export interface CalendarSyncResult {
   synced: boolean;
   attemptedAt: string;
   skippedReason:
-    | 'not-connected'
-    | 'oauth-not-configured'
-    | 'missing-calendar-date';
+    'not-connected' | 'oauth-not-configured' | 'missing-calendar-date';
   message: string;
 }

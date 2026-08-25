@@ -4,6 +4,7 @@ import type {
   CalendarMeetingReminderPayload,
   CalendarSyncResult,
   CalendarTaskDueDatePayload,
+  UpdateCalendarPreferences,
 } from '@/features/calendar/types';
 import { apiRequest } from './httpClient';
 
@@ -29,6 +30,23 @@ export async function startGoogleCalendarConnection(
 
 export async function disconnectGoogleCalendar(): Promise<CalendarConnectionStatus> {
   return apiRequest<CalendarConnectionStatus>('/calendar/google/disconnect', {
+    method: 'POST',
+    requiresAuth: true,
+  });
+}
+
+export async function updateGoogleCalendarSettings(
+  payload: UpdateCalendarPreferences
+): Promise<CalendarConnectionStatus> {
+  return apiRequest<CalendarConnectionStatus>('/calendar/google/settings', {
+    method: 'PUT',
+    body: payload,
+    requiresAuth: true,
+  });
+}
+
+export async function retryGoogleCalendarSync(): Promise<CalendarSyncResult> {
+  return apiRequest<CalendarSyncResult>('/calendar/google/retry', {
     method: 'POST',
     requiresAuth: true,
   });
