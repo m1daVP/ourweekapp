@@ -157,11 +157,27 @@ function buildMeetingsResponse(
   };
 }
 
-function validateTemplateId(meeting: MeetingDto, access: FeatureAccessMap) {
-  return (
-    FREE_TEMPLATE_IDS.has(meeting.templateId) ||
-    (access.additionalTemplates.state === 'available' &&
-      PREMIUM_TEMPLATE_IDS.has(meeting.templateId))
+function canUseTemplate(
+  meeting: MeetingDto,
+  serverMeeting: MeetingRepositoryDto | null,
+  access: FeatureAccessMap,
+) {
+  if (FREE_TEMPLATE_IDS.has(meeting.templateId)) {
+    return true;
+  }
+
+  if (!PREMIUM_TEMPLATE_IDS.has(meeting.templateId)) {
+    return false;
+  }
+
+  if (access.additionalTemplates.state === 'available') {
+    return true;
+  }
+
+  return Boolean(
+    serverMeeting &&
+      !serverMeeting.deletedAt &&
+      serverMeeting.templateId === meeting.templateId,
   );
 }
 
@@ -360,7 +376,7 @@ export class MeetingsService {
     const conflicts: MeetingConflict[] = [];
 
     for (const meeting of request.meetings) {
-      if (!validateTemplateId(meeting, access) || hasInvalidSectionIndex(meeting)) {
+      if (hasInvalidSectionIndex(meeting)) {
         conflicts.push(invalidMeetingReferenceConflict(meeting, syncedAt));
         continue;
       }
@@ -375,7 +391,14 @@ export class MeetingsService {
         continue;
       }
 
-      await this.applyMeetingSync(auth, meeting, request.lastSyncedAt, syncedAt, conflicts);
+      await this.applyMeetingSync(
+        auth,
+        meeting,
+        access,
+        request.lastSyncedAt,
+        syncedAt,
+        conflicts,
+      );
     }
 
     const response = await this.listMeetings(auth, now);
@@ -460,6 +483,7 @@ export class MeetingsService {
   private async applyMeetingSync(
     auth: AuthContext,
     meeting: MeetingDto,
+    access: FeatureAccessMap,
     lastSyncedAt: string | undefined,
     detectedAt: string,
     conflicts: MeetingConflict[],
@@ -469,6 +493,11 @@ export class MeetingsService {
       meeting.id,
       true,
     );
+
+    if (!canUseTemplate(meeting, serverMeeting, access)) {
+      conflicts.push(invalidMeetingReferenceConflict(meeting, detectedAt));
+      return;
+    }
 
     if (!serverMeeting) {
       if (!isDeletedMeeting(meeting)) {

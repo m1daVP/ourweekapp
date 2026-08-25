@@ -433,6 +433,61 @@ describe('MeetingsService', () => {
     expect(response.meetings[0]?.templateId).toBe('busy-week-planning');
   });
 
+  it('allows a free workspace to continue an existing premium template draft', async () => {
+    const repos = createRepositories();
+    const server = repositoryMeeting({
+      templateId: 'couple-reset',
+      status: 'draft',
+      serverRevision: 1,
+      title: 'Couple reset',
+    });
+    const client = apiMeeting({
+      templateId: 'couple-reset',
+      status: 'in_progress',
+      serverRevision: 1,
+      title: 'Couple reset',
+    });
+    const updated = repositoryMeeting({
+      ...client,
+      serverRevision: 2,
+    });
+    repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(server);
+    repos.meetings.updateMeeting.mockResolvedValue(updated);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([updated]);
+
+    const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
+    const response = await service.syncMeetings(auth, {
+      meetings: [client],
+      activeMeetingId: meetingId,
+      draftSavedAt: now,
+      clientUpdatedAt: now,
+    }, new Date(now));
+
+    expect(response.conflicts).toEqual([]);
+    expect(repos.meetings.updateMeeting).toHaveBeenCalled();
+  });
+
+  it('does not allow a free workspace to change an existing free draft to premium', async () => {
+    const repos = createRepositories();
+    const server = repositoryMeeting({ templateId: 'weekly-family-check-in' });
+    const client = apiMeeting({ templateId: 'couple-reset' });
+    repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(server);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([server]);
+
+    const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
+    const response = await service.syncMeetings(auth, {
+      meetings: [client],
+      activeMeetingId: null,
+      draftSavedAt: null,
+      clientUpdatedAt: now,
+    }, new Date(now));
+
+    expect(repos.meetings.updateMeeting).not.toHaveBeenCalled();
+    expect(response.conflicts).toEqual([
+      expect.objectContaining({ reason: 'invalid_reference' }),
+    ]);
+  });
+
   it('blocks viewers from syncing meetings', async () => {
     const repos = createRepositories();
     const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
@@ -558,6 +613,5 @@ describe('MeetingsService', () => {
     expect(repos.meetings.updateMeetingSummary).not.toHaveBeenCalled();
   });
 });
-
 
 
