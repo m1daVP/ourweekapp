@@ -11,7 +11,9 @@
 ## Global Constraints
 
 - The backend is the only source of initial participant data.
-- Password signup and first-time Google signup create exactly `Me` and `Partner` with the existing default initials and colors.
+- Password signup and first-time Google signup create an owner participant using
+  the signup display name and derived initials, plus `Partner` with the existing
+  default color and initials.
 - Login, session restoration, and reinstall never create participant records.
 - All participant database access is scoped by authenticated `workspaceId`.
 - Preserve later local-first participant creation and sync behavior.
@@ -55,7 +57,7 @@
 **Interfaces:**
 
 - Consumes: existing `registerUser(supabase, body)` and new-user `registerGoogleUser(supabase, identity)` registration sequences.
-- Produces: internal `createInitialParticipants(supabase: SupabaseClient, workspaceId: string): Promise<void>`.
+- Produces: internal `createInitialParticipants(supabase: SupabaseClient, workspaceId: string, ownerDisplayName: string): Promise<void>`.
 
 - [ ] **Step 1: Extend the auth test Supabase harness to record table and insert payloads**
 
@@ -69,8 +71,8 @@ For password signup, supply successful rows in this order: user, workspace, memb
 [
   {
     workspace_id: 'workspace-1',
-    name: 'Me',
-    initials: 'M',
+    name: 'Rita',
+    initials: 'R',
     avatar_color: '#496a8f',
     type: 'adult',
     is_active: true,
@@ -100,18 +102,36 @@ Expected: the new tests fail because registration does not insert participants.
 
 - [ ] **Step 4: Implement the shared registration helper and invoke it from both new-account flows**
 
-Add constants for the two rows and an internal helper shaped as:
+Add a display-name initials helper and an internal bootstrap helper shaped as:
 
 ```ts
+function participantInitials(displayName: string) {
+  return displayName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? '')
+    .join('')
+    .slice(0, 3);
+}
+
 async function createInitialParticipants(
   supabase: SupabaseClient,
   workspaceId: string,
+  ownerDisplayName: string,
 ) {
   const { error } = await supabase.from('participants').insert(
-    INITIAL_PARTICIPANTS.map((participant) => ({
-      workspace_id: workspaceId,
-      ...participant,
-    })),
+    [
+      {
+        workspace_id: workspaceId,
+        name: ownerDisplayName,
+        initials: participantInitials(ownerDisplayName),
+        avatar_color: '#496a8f',
+        type: 'adult',
+        is_active: true,
+      },
+      PARTNER_PARTICIPANT,
+    ],
   );
 
   if (error) {
@@ -124,7 +144,7 @@ async function createInitialParticipants(
 }
 ```
 
-Call it after owner membership creation and before session creation in `registerUser` and `registerGoogleUser`. Keep it inside the existing `try/catch`, so `cleanupFailedRegistration` removes the cascaded workspace participants if the insert fails.
+Call it after owner membership creation and before session creation in `registerUser` with `body.displayName`, and in `registerGoogleUser` with `displayName`. Keep it inside the existing `try/catch`, so `cleanupFailedRegistration` removes the cascaded workspace participants if the insert fails.
 
 - [ ] **Step 5: Add and pass the initialization-failure cleanup test**
 

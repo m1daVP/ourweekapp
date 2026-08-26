@@ -16,8 +16,8 @@ already belong to the authenticated workspace.
 ## Required Behavior
 
 - Password signup and first-time Google signup create the workspace, owner
-  membership, and the initial `Me` and `Partner` participant records on the
-  backend.
+  membership, an owner participant named from the signup display name, and the
+  initial `Partner` participant on the backend.
 - A failure to create either initial participant fails registration and invokes
   the existing partial-registration cleanup path.
 - Login, token restoration, and reinstall do not create participant records.
@@ -36,7 +36,8 @@ already belong to the authenticated workspace.
 Both password registration and the new-user branch of Google registration add
 two participant rows after the workspace and owner membership have been created:
 
-1. `Me`, initials `M`, color `#496a8f`, type `adult`, active.
+1. The owner's validated signup display name, with initials derived from that
+   name, color `#496a8f`, type `adult`, active.
 2. `Partner`, initials `P`, color `#6b8f71`, type `adult`, active.
 
 The backend generates their IDs and timestamps. The inserts are part of the
