@@ -29,16 +29,17 @@ const { getFeatureAccess, getFeatureAccessState } = useFeatureAccess();
 const featureAccess = computed(() =>
   props.feature ? getFeatureAccess(props.feature) : undefined
 );
-const canOfferUpgrade = computed(
-  () => props.feature
+const canOfferUpgrade = computed(() =>
+  props.feature
     ? canOfferFeatureUpgrade(
-      workspaceStore.currentUserRole,
-      getFeatureAccessState(props.feature)
-    )
+        workspaceStore.currentUserRole,
+        getFeatureAccessState(props.feature)
+      )
     : canPurchasePremium(workspaceStore.currentUserRole)
 );
 const isOwnerManaged = computed(
-  () => Boolean(props.feature) &&
+  () =>
+    Boolean(props.feature) &&
     getFeatureAccessState(props.feature as FeatureKey) === 'upgradeRequired' &&
     !canPurchasePremium(workspaceStore.currentUserRole)
 );
@@ -49,11 +50,12 @@ const promptTitle = computed(
       feature: featureAccess.value?.label ?? t('premium.feature'),
     })
 );
-const promptMessage = computed(
-  () =>
-    isOwnerManaged.value
-      ? t('premium.ownerManaged')
-      : props.message ?? featureAccess.value?.lockedReason ?? t('premium.message')
+const promptMessage = computed(() =>
+  isOwnerManaged.value
+    ? t('premium.ownerManaged')
+    : (props.message ??
+      featureAccess.value?.lockedReason ??
+      t('premium.message'))
 );
 
 function openUpgrade() {

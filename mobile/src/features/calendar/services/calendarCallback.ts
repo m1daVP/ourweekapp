@@ -1,6 +1,5 @@
 export type CalendarCallbackResult =
-  | { status: 'connected' }
-  | { status: 'failed'; messageKey: string };
+  { status: 'connected' } | { status: 'failed'; messageKey: string };
 
 type CalendarCallbackQuery = Record<string, unknown>;
 

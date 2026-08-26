@@ -54,11 +54,7 @@ export type AuthOperationStage =
   | 'navigation';
 
 type SessionCheckStatus =
-  | 'idle'
-  | 'checking'
-  | 'verified'
-  | 'failed'
-  | 'unauthorized';
+  'idle' | 'checking' | 'verified' | 'failed' | 'unauthorized';
 
 interface StoredAuthState {
   version: number;

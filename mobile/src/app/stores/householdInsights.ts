@@ -69,7 +69,9 @@ export const useHouseholdInsightsStore = defineStore('householdInsights', {
         this.selectedPeriod = period;
       } catch (error) {
         this.errorMessage =
-          error instanceof Error ? error.message : translate('insights.loadFailed');
+          error instanceof Error
+            ? error.message
+            : translate('insights.loadFailed');
       } finally {
         this.isLoading = false;
       }
@@ -92,10 +94,16 @@ export const useHouseholdInsightsStore = defineStore('householdInsights', {
           limit: SEARCH_PAGE_SIZE,
           offset,
         });
-        this.searchResults = mergeSearchResults(this.searchResults, response, offset);
+        this.searchResults = mergeSearchResults(
+          this.searchResults,
+          response,
+          offset
+        );
       } catch (error) {
         this.searchErrorMessage =
-          error instanceof Error ? error.message : translate('insights.searchFailed');
+          error instanceof Error
+            ? error.message
+            : translate('insights.searchFailed');
       } finally {
         this.isSearching = false;
       }

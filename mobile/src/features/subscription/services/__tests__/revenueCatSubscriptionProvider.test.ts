@@ -93,14 +93,19 @@ const premiumStatus: SubscriptionStatusDto = {
 const premiumStatusWithAccessMap: SubscriptionStatusDto = {
   ...premiumStatus,
   features: {
-    ...Object.fromEntries(premiumStatus.enabledFeatures.map((key) => [key, {
-      key,
-      tier: 'free',
-      lifecycle: 'available',
-      state: 'available',
-      roleEligible: true,
-      upgradeEligible: false,
-    }])),
+    ...Object.fromEntries(
+      premiumStatus.enabledFeatures.map((key) => [
+        key,
+        {
+          key,
+          tier: 'free',
+          lifecycle: 'available',
+          state: 'available',
+          roleEligible: true,
+          upgradeEligible: false,
+        },
+      ])
+    ),
     advancedStatistics: {
       key: 'advancedStatistics',
       tier: 'premium',

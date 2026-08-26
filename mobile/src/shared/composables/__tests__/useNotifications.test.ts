@@ -57,9 +57,8 @@ describe('useNotifications free-plan reminder scheduling', () => {
   });
 
   it('lets a free-plan user enable reminders (regression for H2)', async () => {
-    const { useNotifications } = await import(
-      '@/shared/composables/useNotifications'
-    );
+    const { useNotifications } =
+      await import('@/shared/composables/useNotifications');
     const { useRemindersStore } = await import('@/app/stores/reminders');
 
     const remindersStore = useRemindersStore();
@@ -76,9 +75,8 @@ describe('useNotifications free-plan reminder scheduling', () => {
   });
 
   it('reschedules reminders for a free-plan user when already enabled', async () => {
-    const { useNotifications } = await import(
-      '@/shared/composables/useNotifications'
-    );
+    const { useNotifications } =
+      await import('@/shared/composables/useNotifications');
     const { useRemindersStore } = await import('@/app/stores/reminders');
 
     const remindersStore = useRemindersStore();
@@ -97,9 +95,8 @@ describe('useNotifications free-plan reminder scheduling', () => {
   });
 
   it('cancels reminders when disabled', async () => {
-    const { useNotifications } = await import(
-      '@/shared/composables/useNotifications'
-    );
+    const { useNotifications } =
+      await import('@/shared/composables/useNotifications');
     const { useRemindersStore } = await import('@/app/stores/reminders');
 
     const remindersStore = useRemindersStore();
@@ -108,9 +105,7 @@ describe('useNotifications free-plan reminder scheduling', () => {
     const { rescheduleReminders } = useNotifications();
     const result = await rescheduleReminders();
 
-    expect(
-      reminderServiceMocks.cancelReminderNotifications
-    ).toHaveBeenCalled();
+    expect(reminderServiceMocks.cancelReminderNotifications).toHaveBeenCalled();
     expect(result).toEqual({ scheduled: false, reason: 'disabled' });
   });
 
@@ -119,9 +114,8 @@ describe('useNotifications free-plan reminder scheduling', () => {
       display: 'denied',
     });
 
-    const { useNotifications } = await import(
-      '@/shared/composables/useNotifications'
-    );
+    const { useNotifications } =
+      await import('@/shared/composables/useNotifications');
     const { useRemindersStore } = await import('@/app/stores/reminders');
 
     const remindersStore = useRemindersStore();
@@ -131,8 +125,6 @@ describe('useNotifications free-plan reminder scheduling', () => {
 
     expect(result).toBe(false);
     expect(remindersStore.settings.enabled).toBe(false);
-    expect(
-      reminderServiceMocks.cancelReminderNotifications
-    ).toHaveBeenCalled();
+    expect(reminderServiceMocks.cancelReminderNotifications).toHaveBeenCalled();
   });
 });

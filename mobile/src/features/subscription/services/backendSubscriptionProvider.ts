@@ -26,7 +26,9 @@ function createPremiumEntitlement(
   featureAccess: ReturnType<typeof createLegacyFeatureAccessMap>
 ): SubscriptionEntitlementStatus {
   const unlockedFeatures = Object.values(featureAccess)
-    .filter((feature) => feature.tier === 'premium' && feature.state === 'available')
+    .filter(
+      (feature) => feature.tier === 'premium' && feature.state === 'available'
+    )
     .map((feature) => feature.key);
 
   return {

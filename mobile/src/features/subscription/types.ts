@@ -10,9 +10,7 @@ export type SubscriptionProviderKind = 'backend' | 'revenuecat';
 export type SubscriptionPlatform = 'web' | 'android' | 'ios';
 export type SubscriptionEntitlementKey = 'premium';
 export type EntitlementVerificationSource =
-  | 'trusted_provider'
-  | 'backend'
-  | 'none';
+  'trusted_provider' | 'backend' | 'none';
 
 export interface PlanBenefit {
   label: string;
@@ -64,9 +62,7 @@ export interface SubscriptionSnapshot {
 }
 
 export type SubscriptionActionStatus =
-  | 'completed'
-  | 'cancelled'
-  | 'not_supported';
+  'completed' | 'cancelled' | 'not_supported';
 
 export interface SubscriptionActionResult {
   status: SubscriptionActionStatus;

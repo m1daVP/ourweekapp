@@ -37,13 +37,13 @@ const inProgressItems = computed(() =>
 
 const completedItems = computed(() =>
   sortedCompletedMeetings.value.map((meeting) => ({
-      meeting,
-      title: `${formatMeetingDate(getMeetingDate(meeting))}: ${getMeetingTitle(
-        meeting
-      )}`,
-      subtitle: formatCompletedLabel(meeting),
-      participants: getMeetingParticipants(meeting),
-    }))
+    meeting,
+    title: `${formatMeetingDate(getMeetingDate(meeting))}: ${getMeetingTitle(
+      meeting
+    )}`,
+    subtitle: formatCompletedLabel(meeting),
+    participants: getMeetingParticipants(meeting),
+  }))
 );
 const showInProgressSkeleton = computed(
   () => isStartupLoading.value && inProgressItems.value.length === 0

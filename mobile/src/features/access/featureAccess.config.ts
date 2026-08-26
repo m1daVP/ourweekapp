@@ -24,7 +24,8 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
   meetingHistory: {
     key: 'meetingHistory',
     label: 'Meeting history',
-    description: 'Review every completed meeting, agreement, task, and saved summary.',
+    description:
+      'Review every completed meeting, agreement, task, and saved summary.',
   },
   limitedHistory: {
     key: 'limitedHistory',
@@ -80,7 +81,6 @@ export const featureAccessConfig: Record<FeatureKey, FeatureAccess> = {
     key: 'advancedStatistics',
     label: 'Advanced statistics',
     description: 'See deeper household patterns over time.',
-    lockedReason:
-      'Upgrade to unlock advanced household insights.',
+    lockedReason: 'Upgrade to unlock advanced household insights.',
   },
 };

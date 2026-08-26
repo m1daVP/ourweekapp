@@ -19,7 +19,10 @@ describe('premium purchase policy', () => {
     ['adult_member', 'upgradeRequired', false],
     ['viewer', 'roleRestricted', false],
     ['owner', 'notYetAvailable', false],
-  ] as const)('offers a feature upgrade only for %s/%s', (role, state, expected) => {
-    expect(canOfferFeatureUpgrade(role, state)).toBe(expected);
-  });
+  ] as const)(
+    'offers a feature upgrade only for %s/%s',
+    (role, state, expected) => {
+      expect(canOfferFeatureUpgrade(role, state)).toBe(expected);
+    }
+  );
 });

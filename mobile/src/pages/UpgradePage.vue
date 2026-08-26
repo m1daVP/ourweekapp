@@ -182,7 +182,9 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
       <RouterLink class="upgrade-purchase-dock__link" :to="{ name: 'terms' }">
         {{ t('upgrade.termsLink') }}
       </RouterLink>
-      <template v-if="isWorkspaceOwner && subscriptionStore.canManageSubscription">
+      <template
+        v-if="isWorkspaceOwner && subscriptionStore.canManageSubscription"
+      >
         <span class="upgrade-purchase-dock__separator" aria-hidden="true" />
         <button
           class="upgrade-purchase-dock__link"

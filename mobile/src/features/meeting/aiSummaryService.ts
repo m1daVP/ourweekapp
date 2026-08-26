@@ -54,7 +54,9 @@ export function formatAiQuotaMessage(info: AiQuotaInfo): string {
   }).format(new Date(info.resetAt));
 
   const key =
-    info.scope === 'user' ? 'ai.quotaUserLimitReached' : 'ai.quotaWorkspaceLimitReached';
+    info.scope === 'user'
+      ? 'ai.quotaUserLimitReached'
+      : 'ai.quotaWorkspaceLimitReached';
 
   return translate(key, { count: info.limit, resetTime });
 }

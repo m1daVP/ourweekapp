@@ -110,7 +110,10 @@ function getTemplateOutcomeTags(template: MeetingTemplate) {
         <p>
           {{ getTemplateDescription(template) }}
         </p>
-        <ul class="template-card__tags" :aria-label="t('templatePage.outcomesLabel')">
+        <ul
+          class="template-card__tags"
+          :aria-label="t('templatePage.outcomesLabel')"
+        >
           <li v-for="tag in getTemplateOutcomeTags(template)" :key="tag">
             {{ tag }}
           </li>

@@ -34,12 +34,12 @@ or change subscription pricing.
 
 Add `meetingHistory` to the backend catalog as:
 
-| Field | Value |
-| --- | --- |
-| Tier | `free` |
-| Lifecycle | `available` |
+| Field          | Value                             |
+| -------------- | --------------------------------- |
+| Tier           | `free`                            |
+| Lifecycle      | `available`                       |
 | Eligible roles | `owner`, `adult_member`, `viewer` |
-| Enforcement | `server` |
+| Enforcement    | `server`                          |
 
 The API access map makes `meetingHistory.state` `available` for every
 authenticated member, irrespective of the workspace's subscription, provider

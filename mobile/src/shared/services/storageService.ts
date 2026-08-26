@@ -22,11 +22,7 @@ const legacyStorageKeys = {
 } as const;
 
 type TopLevelStorageSliceKey =
-  | 'participants'
-  | 'meetings'
-  | 'tasks'
-  | 'privateNotes'
-  | 'syncMetadata';
+  'participants' | 'meetings' | 'tasks' | 'privateNotes' | 'syncMetadata';
 
 export type SyncStorageResource = 'meetings' | 'tasks' | 'participants';
 
@@ -49,10 +45,7 @@ interface SyncStorageMetadata {
 }
 
 type SettingsStorageSliceKey =
-  | 'calendarSync'
-  | 'localization'
-  | 'reminders'
-  | 'workspace';
+  'calendarSync' | 'localization' | 'reminders' | 'workspace';
 type OnboardingStorageSliceKey = 'auth';
 
 interface AppDataSettings {

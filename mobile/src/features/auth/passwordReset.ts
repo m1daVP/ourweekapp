@@ -6,9 +6,7 @@ import {
 export const minimumPasswordLength = 8;
 
 export type ResetPasswordValidationError =
-  | 'missingToken'
-  | 'missingPassword'
-  | 'passwordTooShort';
+  'missingToken' | 'missingPassword' | 'passwordTooShort';
 
 export type ResetPasswordResult =
   | { status: 'success' }

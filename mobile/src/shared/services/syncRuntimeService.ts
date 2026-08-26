@@ -2,12 +2,7 @@ import { shallowRef } from 'vue';
 
 export type SyncResource = 'meetings' | 'tasks' | 'participants';
 export type SyncState =
-  | 'idle'
-  | 'savedLocally'
-  | 'syncing'
-  | 'synced'
-  | 'failed'
-  | 'offline';
+  'idle' | 'savedLocally' | 'syncing' | 'synced' | 'failed' | 'offline';
 
 export interface ResourceSyncStatus {
   state: SyncState;

@@ -26,42 +26,44 @@
 
 ### API repository — `D:\Projects\myself\weekly-us-api`
 
-| File | Responsibility |
-| --- | --- |
-| Create `src/modules/billing/feature-access.ts` | Canonical feature catalog, Zod schemas, pure resolver, workspace entitlement lookup, and generic Fastify guards. |
-| Modify `src/modules/billing/billing.schema.ts` | Add the additive `features` access map to the subscription DTO while retaining `enabledFeatures`. |
-| Modify `src/modules/billing/billing.service.ts` | Produce catalog-derived feature access in `/subscriptions/status` and restore responses. |
-| Delete `src/modules/billing/require-premium.middleware.ts` | Remove the duplicate generic Premium policy after every caller has migrated to the feature-specific guard. |
-| Modify `src/modules/ai/ai.routes.ts`, `src/modules/calendar/calendar.routes.ts`, `src/modules/exports/exports.routes.ts` | Replace generic Premium checks with the feature-specific guard. |
-| Modify `src/modules/meetings/meetings.service.ts` | Use the resolver for history, AI-summary persistence, and extra-template sync decisions. |
-| Modify `src/modules/account/account.service.ts` | Produce schema-valid catalog access maps in account data export, using each membership’s role. |
-| Create `tests/feature-access.test.ts` | Exhaustive catalog and pure resolver matrix. |
-| Modify `tests/subscriptions.service.test.ts`, `tests/meetings.service.test.ts`, `tests/account.service.test.ts`, `tests/ai.routes.test.ts`, `tests/exports.routes.test.ts` | Assert status, service, export, and route behavior use the same contract. |
-| Create `tests/calendar.routes.test.ts` | Add the missing route-level feature-gate contract coverage for Calendar endpoints. |
+| File                                                                                                                                                                       | Responsibility                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Create `src/modules/billing/feature-access.ts`                                                                                                                             | Canonical feature catalog, Zod schemas, pure resolver, workspace entitlement lookup, and generic Fastify guards. |
+| Modify `src/modules/billing/billing.schema.ts`                                                                                                                             | Add the additive `features` access map to the subscription DTO while retaining `enabledFeatures`.                |
+| Modify `src/modules/billing/billing.service.ts`                                                                                                                            | Produce catalog-derived feature access in `/subscriptions/status` and restore responses.                         |
+| Delete `src/modules/billing/require-premium.middleware.ts`                                                                                                                 | Remove the duplicate generic Premium policy after every caller has migrated to the feature-specific guard.       |
+| Modify `src/modules/ai/ai.routes.ts`, `src/modules/calendar/calendar.routes.ts`, `src/modules/exports/exports.routes.ts`                                                   | Replace generic Premium checks with the feature-specific guard.                                                  |
+| Modify `src/modules/meetings/meetings.service.ts`                                                                                                                          | Use the resolver for history, AI-summary persistence, and extra-template sync decisions.                         |
+| Modify `src/modules/account/account.service.ts`                                                                                                                            | Produce schema-valid catalog access maps in account data export, using each membership’s role.                   |
+| Create `tests/feature-access.test.ts`                                                                                                                                      | Exhaustive catalog and pure resolver matrix.                                                                     |
+| Modify `tests/subscriptions.service.test.ts`, `tests/meetings.service.test.ts`, `tests/account.service.test.ts`, `tests/ai.routes.test.ts`, `tests/exports.routes.test.ts` | Assert status, service, export, and route behavior use the same contract.                                        |
+| Create `tests/calendar.routes.test.ts`                                                                                                                                     | Add the missing route-level feature-gate contract coverage for Calendar endpoints.                               |
 
 ### Client repository — `D:\Projects\myself\weekly-us`
 
-| File | Responsibility |
-| --- | --- |
-| Modify `src/features/access/types.ts` | Define API-compatible catalog lifecycle, tier, access-state, and access-map types. |
-| Modify `src/features/access/featureAccess.config.ts` | Retain only localized/presentation metadata and the temporary history-copy limit; remove plan/role authority. |
-| Modify `src/features/access/featureAccessPolicy.ts` | Resolve client display permission from the server access map, with a narrowly-scoped legacy fallback. |
-| Modify `src/shared/api/subscriptionsApi.ts` | Type the additive `features` response field as optional for staged rollout. |
-| Modify `src/features/subscription/types.ts`, `src/features/subscription/services/backendSubscriptionProvider.ts`, `src/features/subscription/services/revenueCatSubscriptionProvider.ts`, `src/app/stores/subscription.ts` | Carry the access map from API status into Pinia across browser and RevenueCat flows. |
-| Modify `src/shared/composables/useFeatureAccess.ts`, `src/shared/composables/useNotifications.ts`, `src/app/router/index.ts` | Consume stored effective access instead of local plan membership. |
-| Modify `src/shared/components/PremiumLock.vue`, `src/shared/components/UpgradePrompt.vue`, `src/pages/SettingsPage.vue` | Distinguish upgrade-required, role-restricted, and planned states without a misleading purchase CTA. |
-| Modify `src/features/localization/messages.ts` | Add localized neutral copy for role restriction and planned/unavailable feature states in every supported locale. |
-| Create `src/features/access/featureAccessPolicy.test.ts` and `src/app/stores/__tests__/subscription.test.ts` | Test server-map decisions and staged-response fallback. |
-| Modify `src/features/subscription/services/__tests__/revenueCatSubscriptionProvider.test.ts`, `src/shared/composables/__tests__/useNotifications.test.ts` | Update subscription fixtures and prove Free reminder scheduling stays Free. |
+| File                                                                                                                                                                                                                       | Responsibility                                                                                                    |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Modify `src/features/access/types.ts`                                                                                                                                                                                      | Define API-compatible catalog lifecycle, tier, access-state, and access-map types.                                |
+| Modify `src/features/access/featureAccess.config.ts`                                                                                                                                                                       | Retain only localized/presentation metadata and the temporary history-copy limit; remove plan/role authority.     |
+| Modify `src/features/access/featureAccessPolicy.ts`                                                                                                                                                                        | Resolve client display permission from the server access map, with a narrowly-scoped legacy fallback.             |
+| Modify `src/shared/api/subscriptionsApi.ts`                                                                                                                                                                                | Type the additive `features` response field as optional for staged rollout.                                       |
+| Modify `src/features/subscription/types.ts`, `src/features/subscription/services/backendSubscriptionProvider.ts`, `src/features/subscription/services/revenueCatSubscriptionProvider.ts`, `src/app/stores/subscription.ts` | Carry the access map from API status into Pinia across browser and RevenueCat flows.                              |
+| Modify `src/shared/composables/useFeatureAccess.ts`, `src/shared/composables/useNotifications.ts`, `src/app/router/index.ts`                                                                                               | Consume stored effective access instead of local plan membership.                                                 |
+| Modify `src/shared/components/PremiumLock.vue`, `src/shared/components/UpgradePrompt.vue`, `src/pages/SettingsPage.vue`                                                                                                    | Distinguish upgrade-required, role-restricted, and planned states without a misleading purchase CTA.              |
+| Modify `src/features/localization/messages.ts`                                                                                                                                                                             | Add localized neutral copy for role restriction and planned/unavailable feature states in every supported locale. |
+| Create `src/features/access/featureAccessPolicy.test.ts` and `src/app/stores/__tests__/subscription.test.ts`                                                                                                               | Test server-map decisions and staged-response fallback.                                                           |
+| Modify `src/features/subscription/services/__tests__/revenueCatSubscriptionProvider.test.ts`, `src/shared/composables/__tests__/useNotifications.test.ts`                                                                  | Update subscription fixtures and prove Free reminder scheduling stays Free.                                       |
 
 ## Task 1: Establish the canonical backend catalog and pure resolver
 
 **Files:**
+
 - Create: `D:\Projects\myself\weekly-us-api\src\modules\billing\feature-access.ts`
 - Create: `D:\Projects\myself\weekly-us-api\tests\feature-access.test.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\billing\billing.schema.ts`
 
 **Interfaces:**
+
 - Consumes: `PlanType` and `UserRole` from `src/shared/auth`; migrates the existing stable feature-key list out of `billing.schema.ts`.
 - Produces: `featureCatalog`, `SubscriptionFeatureKey`, `FeatureAccessState`, `FeatureAccessDto`, `resolveFeatureAccess`, and `resolveFeatureAccessMap` for billing services, guards, and the response schema.
 
@@ -74,15 +76,21 @@ import {
 } from '../src/modules/billing/feature-access.js';
 
 it('does not offer an upgrade for a planned Premium feature', () => {
-  expect(resolveFeatureAccess(featureCatalog.advancedStatistics, {
-    planType: 'free', role: 'owner',
-  }).state).toBe('notYetAvailable');
+  expect(
+    resolveFeatureAccess(featureCatalog.advancedStatistics, {
+      planType: 'free',
+      role: 'owner',
+    }).state
+  ).toBe('notYetAvailable');
 });
 
 it('prioritizes role restriction over Premium entitlement', () => {
-  expect(resolveFeatureAccess(featureCatalog.aiSummary, {
-    planType: 'free', role: 'viewer',
-  }).state).toBe('roleRestricted');
+  expect(
+    resolveFeatureAccess(featureCatalog.aiSummary, {
+      planType: 'free',
+      role: 'viewer',
+    }).state
+  ).toBe('roleRestricted');
 });
 ```
 
@@ -100,23 +108,36 @@ Create the catalog as the only backend list of the existing keys. Use `available
 
 ```ts
 export const featureAccessStateSchema = z.enum([
-  'available', 'upgradeRequired', 'roleRestricted',
-  'notYetAvailable', 'unavailable',
+  'available',
+  'upgradeRequired',
+  'roleRestricted',
+  'notYetAvailable',
+  'unavailable',
 ]);
 
 export function resolveFeatureAccess(
   feature: FeatureCatalogEntry,
-  context: { planType: PlanType; role: UserRole },
+  context: { planType: PlanType; role: UserRole }
 ): FeatureAccessDto {
-  const state = feature.lifecycle !== 'available'
-    ? feature.lifecycle === 'planned' ? 'notYetAvailable' : 'unavailable'
-    : !feature.eligibleRoles.includes(context.role) ? 'roleRestricted'
-    : feature.tier === 'premium' && context.planType !== 'premium'
-      ? 'upgradeRequired' : 'available';
+  const state =
+    feature.lifecycle !== 'available'
+      ? feature.lifecycle === 'planned'
+        ? 'notYetAvailable'
+        : 'unavailable'
+      : !feature.eligibleRoles.includes(context.role)
+        ? 'roleRestricted'
+        : feature.tier === 'premium' && context.planType !== 'premium'
+          ? 'upgradeRequired'
+          : 'available';
 
-  return { key: feature.key, tier: feature.tier, lifecycle: feature.lifecycle,
-    state, roleEligible: feature.eligibleRoles.includes(context.role),
-    upgradeEligible: state === 'upgradeRequired' };
+  return {
+    key: feature.key,
+    tier: feature.tier,
+    lifecycle: feature.lifecycle,
+    state,
+    roleEligible: feature.eligibleRoles.includes(context.role),
+    upgradeEligible: state === 'upgradeRequired',
+  };
 }
 ```
 
@@ -137,6 +158,7 @@ Expected: PASS; no `any` casts or duplicate feature-key union remains in billing
 ## Task 2: Return the effective map from subscription and account APIs
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\billing\billing.schema.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\billing\billing.service.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\account\account.service.ts`
@@ -144,6 +166,7 @@ Expected: PASS; no `any` casts or duplicate feature-key union remains in billing
 - Modify: `D:\Projects\myself\weekly-us-api\tests\account.service.test.ts`
 
 **Interfaces:**
+
 - Consumes: `resolveFeatureAccessMap({ planType, role })` from Task 1 and current RevenueCat trusted-plan behavior.
 - Produces: `SubscriptionStatusDto.features: Record<SubscriptionFeatureKey, FeatureAccessDto>` while preserving `enabledFeatures` for legacy clients.
 
@@ -154,11 +177,14 @@ const status = await service.getStatus(adultAuth);
 
 expect(status.enabledFeatures).toContain('agreementReminders');
 expect(status.features.aiSummary).toMatchObject({
-  tier: 'premium', lifecycle: 'available', state: 'upgradeRequired',
+  tier: 'premium',
+  lifecycle: 'available',
+  state: 'upgradeRequired',
   upgradeEligible: true,
 });
 expect(status.features.advancedStatistics).toMatchObject({
-  state: 'notYetAvailable', upgradeEligible: false,
+  state: 'notYetAvailable',
+  upgradeEligible: false,
 });
 ```
 
@@ -206,6 +232,7 @@ Expected: FAIL if the checked-in OpenAPI document is stale; regenerate it with t
 ## Task 3: Use the resolver for all existing server-side feature gates
 
 **Files:**
+
 - Create: `D:\Projects\myself\weekly-us-api\src\modules\billing\require-feature.middleware.ts`
 - Delete: `D:\Projects\myself\weekly-us-api\src\modules\billing\require-premium.middleware.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\ai\ai.routes.ts`
@@ -217,20 +244,24 @@ Expected: FAIL if the checked-in OpenAPI document is stale; regenerate it with t
 - Create: `D:\Projects\myself\weekly-us-api\tests\calendar.routes.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1 catalog/resolver and `SubscriptionsRepository.findCurrentSubscriptionForWorkspace`.
 - Produces: `resolveWorkspaceFeatureAccess(repository, auth, now?)`, `requireFeature(repository, featureKey): preHandlerHookHandler`, and `assertFeatureAccess(repository, auth, featureKey, now?)`.
 
 - [ ] **Step 1: Write feature-guard tests before migrating routes**
 
 ```ts
-await expect(assertFeatureAccess(repository, adultAuth, 'aiSummary'))
-  .rejects.toMatchObject({ statusCode: 403, code: 'premium_required' });
+await expect(
+  assertFeatureAccess(repository, adultAuth, 'aiSummary')
+).rejects.toMatchObject({ statusCode: 403, code: 'premium_required' });
 
-await expect(assertFeatureAccess(repository, { ...adultAuth, role: 'viewer' }, 'aiSummary'))
-  .rejects.toMatchObject({ statusCode: 403, code: 'feature_role_restricted' });
+await expect(
+  assertFeatureAccess(repository, { ...adultAuth, role: 'viewer' }, 'aiSummary')
+).rejects.toMatchObject({ statusCode: 403, code: 'feature_role_restricted' });
 
-await expect(assertFeatureAccess(repository, adultAuth, 'advancedStatistics'))
-  .rejects.toMatchObject({ statusCode: 404, code: 'feature_not_available' });
+await expect(
+  assertFeatureAccess(repository, adultAuth, 'advancedStatistics')
+).rejects.toMatchObject({ statusCode: 404, code: 'feature_not_available' });
 ```
 
 Update route mocks to expose `requireFeature`, then assert AI, Calendar, and export pass their specific keys (`aiSummary`, `googleCalendarSync`, `export`) instead of a generic Premium hook.
@@ -246,7 +277,7 @@ Expected: FAIL because no generic guard exists and Calendar has no route-contrac
 ```ts
 export function requireFeature(
   repository: SubscriptionEntitlementRepository,
-  featureKey: SubscriptionFeatureKey,
+  featureKey: SubscriptionFeatureKey
 ): preHandlerHookHandler {
   return async (request) => {
     await assertFeatureAccess(repository, request.auth, featureKey);
@@ -273,10 +304,12 @@ Expected: No production import or implementation remains; all feature routes use
 ## Task 4: Align meeting history, templates, and saved summaries
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\meetings\meetings.service.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\tests\meetings.service.test.ts`
 
 **Interfaces:**
+
 - Consumes: `resolveWorkspaceFeatureAccess` from Task 3.
 - Produces: one resolved workspace access map per meeting read/sync operation; `unlimitedHistory`, `additionalTemplates`, and `aiSummary` decisions derive from that map.
 
@@ -285,14 +318,23 @@ Expected: No production import or implementation remains; all feature routes use
 ```ts
 it('uses the same stale entitlement decision for history and premium templates', async () => {
   repos.subscriptions.findCurrentSubscriptionForWorkspace.mockResolvedValue(
-    stalePremiumSubscription(),
+    stalePremiumSubscription()
   );
 
-  const response = await service.listMeetings({ ...auth, planType: 'premium' }, new Date(now));
+  const response = await service.listMeetings(
+    { ...auth, planType: 'premium' },
+    new Date(now)
+  );
 
   expect(response.meetings).toHaveLength(4); // active + current free history limit
-  await expect(service.syncMeetings({ ...auth, planType: 'premium' }, premiumTemplateRequest))
-    .resolves.toMatchObject({ conflicts: [expect.objectContaining({ reason: 'invalid_reference' })] });
+  await expect(
+    service.syncMeetings(
+      { ...auth, planType: 'premium' },
+      premiumTemplateRequest
+    )
+  ).resolves.toMatchObject({
+    conflicts: [expect.objectContaining({ reason: 'invalid_reference' })],
+  });
 });
 ```
 
@@ -311,7 +353,10 @@ Create a private meeting-service helper that calls `resolveWorkspaceFeatureAcces
 ```ts
 const access = await this.getWorkspaceFeatureAccess(auth, now);
 if (access.unlimitedHistory.state === 'available') {
-  return this.meetingsRepository.listMeetingsForWorkspace(auth.workspaceId, 1000);
+  return this.meetingsRepository.listMeetingsForWorkspace(
+    auth.workspaceId,
+    1000
+  );
 }
 ```
 
@@ -332,6 +377,7 @@ Expected: PASS. If unrelated pre-existing failures occur, record their exact com
 ## Task 5: Carry the additive API map through the client subscription state
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us\src\features\access\types.ts`
 - Modify: `D:\Projects\myself\weekly-us\src\shared\api\subscriptionsApi.ts`
 - Modify: `D:\Projects\myself\weekly-us\src\features\subscription\types.ts`
@@ -342,6 +388,7 @@ Expected: PASS. If unrelated pre-existing failures occur, record their exact com
 - Modify: `D:\Projects\myself\weekly-us\src\features\subscription\services\__tests__\revenueCatSubscriptionProvider.test.ts`
 
 **Interfaces:**
+
 - Consumes: API `features?: Record<FeatureKey, FeatureAccessDto>` and legacy `enabledFeatures` during rollout.
 - Produces: `SubscriptionSnapshot.featureAccess` and store accessor `getFeatureAccess(featureKey)`.
 
@@ -352,7 +399,8 @@ it('preserves a planned feature without marking it Premium-unlocked', () => {
   const snapshot = createSubscriptionSnapshotFromStatus(premiumStatusWithMap);
 
   expect(snapshot.featureAccess.advancedStatistics).toMatchObject({
-    state: 'notYetAvailable', upgradeEligible: false,
+    state: 'notYetAvailable',
+    upgradeEligible: false,
   });
 });
 
@@ -377,7 +425,9 @@ Expected: FAIL because API and snapshot types have no feature map.
 Define `FeatureTier`, `FeatureLifecycle`, `FeatureAccessState`, `FeatureAccessDto`, and `FeatureAccessMap` in `features/access/types.ts`. Make the API `features` field optional for rollout compatibility; make `SubscriptionSnapshot.featureAccess` required after adapter mapping.
 
 ```ts
-function createSubscriptionSnapshotFromStatus(status: SubscriptionStatusDto): SubscriptionSnapshot {
+function createSubscriptionSnapshotFromStatus(
+  status: SubscriptionStatusDto
+): SubscriptionSnapshot {
   return {
     currentPlan: status.planType,
     featureAccess: status.features ?? createLegacyFeatureAccessMap(status),
@@ -403,6 +453,7 @@ Expected: FAIL only until Task 6 migrates obsolete local-plan access callers; ca
 ## Task 6: Make client locks, routing, and reminders use server access states
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us\src\features\access\featureAccess.config.ts`
 - Modify: `D:\Projects\myself\weekly-us\src\features\access\featureAccessPolicy.ts`
 - Create: `D:\Projects\myself\weekly-us\src\features\access\featureAccessPolicy.test.ts`
@@ -416,6 +467,7 @@ Expected: FAIL only until Task 6 migrates obsolete local-plan access callers; ca
 - Modify: `D:\Projects\myself\weekly-us\src\shared\composables\__tests__\useNotifications.test.ts`
 
 **Interfaces:**
+
 - Consumes: `SubscriptionSnapshot.featureAccess` from Task 5.
 - Produces: `canUseFeature(featureKey)` based only on `state === 'available'`, and contextual UI that only offers Premium for `upgradeRequired`.
 
@@ -423,8 +475,11 @@ Expected: FAIL only until Task 6 migrates obsolete local-plan access callers; ca
 
 ```ts
 it.each([
-  ['available', true], ['upgradeRequired', false], ['roleRestricted', false],
-  ['notYetAvailable', false], ['unavailable', false],
+  ['available', true],
+  ['upgradeRequired', false],
+  ['roleRestricted', false],
+  ['notYetAvailable', false],
+  ['unavailable', false],
 ])('allows a feature only when state is %s', (state, expected) => {
   expect(canUseFeatureAccess({ state } as FeatureAccessDto)).toBe(expected);
 });
@@ -473,10 +528,12 @@ Expected: PASS. Inspect the typecheck output for eliminated references to `featu
 ## Task 7: Contract verification and staged-release handoff
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us\docs\superpowers\specs\2026-08-25-premium-entitlement-contract-design.md` only if implementation exposed a deliberate design correction.
 - Modify: `D:\Projects\myself\weekly-us\docs\superpowers\plans\2026-08-25-premium-entitlement-contract.md` to check completed tasks and record exact verification commands/results.
 
 **Interfaces:**
+
 - Consumes: completed Tasks 1–6.
 - Produces: a reviewed API-first deployment sequence and evidence that the catalog is the single access decision.
 

@@ -7,11 +7,14 @@ import {
 import { ApiClientError } from '@/shared/api/httpClient';
 
 function quotaError(details: Record<string, unknown>) {
-  return new ApiClientError('Please wait before generating another AI summary.', {
-    status: 429,
-    code: 'ai_summary_rate_limited',
-    details,
-  });
+  return new ApiClientError(
+    'Please wait before generating another AI summary.',
+    {
+      status: 429,
+      code: 'ai_summary_rate_limited',
+      details,
+    }
+  );
 }
 
 describe('parseAiQuotaError', () => {
@@ -42,7 +45,11 @@ describe('parseAiQuotaError', () => {
           resetAt: '2026-07-15T15:45:00.000Z',
         })
       )
-    ).toEqual({ scope: 'workspace', limit: 20, resetAt: '2026-07-15T15:45:00.000Z' });
+    ).toEqual({
+      scope: 'workspace',
+      limit: 20,
+      resetAt: '2026-07-15T15:45:00.000Z',
+    });
   });
 
   it('returns null for a non-quota ApiClientError', () => {

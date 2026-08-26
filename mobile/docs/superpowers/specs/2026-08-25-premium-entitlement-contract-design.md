@@ -21,13 +21,13 @@ This is a contract-only milestone. It must preserve the current user-visible Fre
 
 Every stable feature key has one catalog entry with:
 
-| Field | Meaning |
-| --- | --- |
-| `key` | Stable API/client identifier; never rename after release. |
-| `tier` | `free` or `premium`. |
-| `lifecycle` | `available`, `planned`, or `retired`. |
-| `eligibleRoles` | Workspace roles allowed to use the feature. |
-| `enforcement` | `server`, `client`, or `both`, indicating where use is protected. |
+| Field           | Meaning                                                           |
+| --------------- | ----------------------------------------------------------------- |
+| `key`           | Stable API/client identifier; never rename after release.         |
+| `tier`          | `free` or `premium`.                                              |
+| `lifecycle`     | `available`, `planned`, or `retired`.                             |
+| `eligibleRoles` | Workspace roles allowed to use the feature.                       |
+| `enforcement`   | `server`, `client`, or `both`, indicating where use is protected. |
 
 `client` enforcement is allowed only for a feature that has no server-side operation, such as a purely local experience. It does not make the client authoritative: the client still derives its access state from the API response.
 
@@ -35,13 +35,13 @@ Every stable feature key has one catalog entry with:
 
 For an authenticated workspace member, each catalog entry resolves to exactly one state:
 
-| State | Meaning | Client behavior |
-| --- | --- | --- |
-| `available` | Shipped and allowed by plan and role. | Render and allow use. |
-| `upgradeRequired` | Shipped Premium feature; current workspace lacks a trusted Premium entitlement. | Show an upgrade path. |
-| `roleRestricted` | Shipped and plan-eligible, but this member lacks the required workspace role. | Explain the role requirement; do not show an upgrade CTA. |
-| `notYetAvailable` | Planned, regardless of tier. | Optional “Coming soon”; never promote purchase. |
-| `unavailable` | Retired or disabled. | Hide or give a neutral unavailable message. |
+| State             | Meaning                                                                         | Client behavior                                           |
+| ----------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `available`       | Shipped and allowed by plan and role.                                           | Render and allow use.                                     |
+| `upgradeRequired` | Shipped Premium feature; current workspace lacks a trusted Premium entitlement. | Show an upgrade path.                                     |
+| `roleRestricted`  | Shipped and plan-eligible, but this member lacks the required workspace role.   | Explain the role requirement; do not show an upgrade CTA. |
+| `notYetAvailable` | Planned, regardless of tier.                                                    | Optional “Coming soon”; never promote purchase.           |
+| `unavailable`     | Retired or disabled.                                                            | Hide or give a neutral unavailable message.               |
 
 The resolver evaluates these states in this order: non-available lifecycle first, then role eligibility, then Premium entitlement, then available. This means a viewer never receives an upgrade prompt for an adult-only Premium feature; they receive `roleRestricted` instead.
 
@@ -104,13 +104,13 @@ New server guards use a generic `requireFeature(featureKey)` policy helper. Exis
 
 Existing successful and failure behavior remains stable unless a new generic guard is used.
 
-| Condition | API result |
-| --- | --- |
-| Available feature | Continue to the route handler. |
-| Shipped Premium feature without entitlement | `403 premium_required`. |
-| Role-restricted feature | `403 feature_role_restricted`. |
-| Planned, retired, or disabled server feature | `404 feature_not_available`. |
-| Subscription-provider outage | Use only the existing trusted cached entitlement; never grant Premium merely because verification failed. |
+| Condition                                    | API result                                                                                                |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Available feature                            | Continue to the route handler.                                                                            |
+| Shipped Premium feature without entitlement  | `403 premium_required`.                                                                                   |
+| Role-restricted feature                      | `403 feature_role_restricted`.                                                                            |
+| Planned, retired, or disabled server feature | `404 feature_not_available`.                                                                              |
+| Subscription-provider outage                 | Use only the existing trusted cached entitlement; never grant Premium merely because verification failed. |
 
 The UI should make planned and role-restricted states unreachable or self-explanatory, so these errors are safe fallbacks rather than ordinary navigation outcomes.
 

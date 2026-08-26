@@ -23,29 +23,35 @@ export function createLegacyFeatureAccessMap(input: {
 }): FeatureAccessMap {
   const enabledFeatures = new Set(input.enabledFeatures ?? []);
 
-  return Object.fromEntries(featureKeys.map((key) => {
-    const tier = premiumFeatureKeys.has(key) ? 'premium' : 'free';
-    const lifecycle = 'available';
-    const enabled = lifecycle === 'available' && (
-      tier === 'free' ||
-      enabledFeatures.has(key) ||
-      (enabledFeatures.size === 0 && input.planType === 'premium')
-    );
-    const state: FeatureAccessDto['state'] = lifecycle === 'planned'
-      ? 'notYetAvailable'
-      : enabled
-        ? 'available'
-        : tier === 'premium'
-          ? 'upgradeRequired'
-          : 'unavailable';
+  return Object.fromEntries(
+    featureKeys.map((key) => {
+      const tier = premiumFeatureKeys.has(key) ? 'premium' : 'free';
+      const lifecycle = 'available';
+      const enabled =
+        lifecycle === 'available' &&
+        (tier === 'free' ||
+          enabledFeatures.has(key) ||
+          (enabledFeatures.size === 0 && input.planType === 'premium'));
+      const state: FeatureAccessDto['state'] =
+        lifecycle === 'planned'
+          ? 'notYetAvailable'
+          : enabled
+            ? 'available'
+            : tier === 'premium'
+              ? 'upgradeRequired'
+              : 'unavailable';
 
-    return [key, {
-      key,
-      tier,
-      lifecycle,
-      state,
-      roleEligible: true,
-      upgradeEligible: state === 'upgradeRequired',
-    }];
-  })) as FeatureAccessMap;
+      return [
+        key,
+        {
+          key,
+          tier,
+          lifecycle,
+          state,
+          roleEligible: true,
+          upgradeEligible: state === 'upgradeRequired',
+        },
+      ];
+    })
+  ) as FeatureAccessMap;
 }

@@ -19,7 +19,8 @@ const props = withDefaults(
   }
 );
 
-const { canUseFeature, getFeatureAccess, getFeatureAccessState } = useFeatureAccess();
+const { canUseFeature, getFeatureAccess, getFeatureAccessState } =
+  useFeatureAccess();
 const { t } = useI18n();
 
 const canUse = computed(() => canUseFeature(props.feature));

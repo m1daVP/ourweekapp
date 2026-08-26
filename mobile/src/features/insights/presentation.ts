@@ -1,7 +1,4 @@
-import type {
-  InsightSearchItem,
-  TaskFollowThroughInsight,
-} from './types';
+import type { InsightSearchItem, TaskFollowThroughInsight } from './types';
 
 export function getTaskTags(value: TaskFollowThroughInsight) {
   return [

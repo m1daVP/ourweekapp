@@ -22,42 +22,44 @@
 
 ## File structure
 
-| File | Responsibility in this milestone |
-| --- | --- |
-| `weekly-us-api/src/modules/billing/feature-access.ts` | Defines `meetingHistory` and safe unlocked compatibility aliases. |
-| `weekly-us-api/src/modules/billing/billing.schema.ts` | Keeps Free/Premium feature lists consistent with the catalog. |
-| `weekly-us-api/src/modules/meetings/meetings.service.ts` | Removes the Free history cap and always lists the full workspace history. |
-| `weekly-us-api/src/modules/meetings/meetings.repository.ts` | Removes the obsolete capped completed-meeting query. |
-| `weekly-us-api/tests/feature-access.test.ts` | Proves canonical history and aliases resolve independently of entitlement. |
-| `weekly-us-api/tests/meetings.service.test.ts` | Proves each member/entitlement state receives full history. |
-| `weekly-us-api/tests/subscriptions.service.test.ts` | Proves subscription status exposes the canonical key and aliases. |
-| `weekly-us-api/docs/openapi.json` | Generated OpenAPI contract for the changed feature-key enum. |
-| `weekly-us/src/features/access/types.ts` | Adds the canonical client feature key. |
-| `weekly-us/src/features/access/featureAccess.config.ts` | Holds presentation-only metadata for `meetingHistory` and removes the limit. |
-| `weekly-us/src/features/access/legacyFeatureAccess.ts` | Treats history keys as Free in old-status fallback mapping. |
-| `weekly-us/src/features/access/premiumPurchasePolicy.ts` | Provides owner-only purchase decisions without coupling UI components to workspace state. |
-| `weekly-us/src/features/access/premiumPurchasePolicy.test.ts` | Covers owner, adult, and viewer purchase/prompt outcomes. |
-| `weekly-us/src/shared/composables/useFeatureAccess.ts` | Removes per-meeting limit calculations. |
-| `weekly-us/src/app/router/index.ts` | Uses canonical `meetingHistory` metadata for history routes. |
-| `weekly-us/src/pages/HistoryPage.vue` | Removes locked cards and the full-history upgrade panel. |
-| `weekly-us/src/pages/HomePage.vue` | Shows saved-history availability without the limit or Premium lock. |
-| `weekly-us/src/pages/MeetingDetailsPage.vue` | Always renders the scoped meeting details. |
-| `weekly-us/src/pages/MeetingSummaryPage.vue` | Always permits saved-summary history navigation. |
-| `weekly-us/src/features/subscription/subscriptionPlans.ts` | Moves history to Free and removes it from Premium benefits. |
-| `weekly-us/src/shared/components/UpgradePrompt.vue` | Allows a purchase CTA only for a Free workspace owner with `upgradeRequired`. |
-| `weekly-us/src/pages/UpgradePage.vue` | Reframes Premium around AI, Calendar, export, templates, and private notes; hides billing actions from non-owners. |
-| `weekly-us/src/pages/SettingsPage.vue` | Replaces history in the subscription card and exposes an owner-managed message to non-owners. |
-| `weekly-us/src/features/localization/messages.ts` | Removes history-limit/up-sell copy and adds owner-managed Premium copy in all locales. |
+| File                                                          | Responsibility in this milestone                                                                                   |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `weekly-us-api/src/modules/billing/feature-access.ts`         | Defines `meetingHistory` and safe unlocked compatibility aliases.                                                  |
+| `weekly-us-api/src/modules/billing/billing.schema.ts`         | Keeps Free/Premium feature lists consistent with the catalog.                                                      |
+| `weekly-us-api/src/modules/meetings/meetings.service.ts`      | Removes the Free history cap and always lists the full workspace history.                                          |
+| `weekly-us-api/src/modules/meetings/meetings.repository.ts`   | Removes the obsolete capped completed-meeting query.                                                               |
+| `weekly-us-api/tests/feature-access.test.ts`                  | Proves canonical history and aliases resolve independently of entitlement.                                         |
+| `weekly-us-api/tests/meetings.service.test.ts`                | Proves each member/entitlement state receives full history.                                                        |
+| `weekly-us-api/tests/subscriptions.service.test.ts`           | Proves subscription status exposes the canonical key and aliases.                                                  |
+| `weekly-us-api/docs/openapi.json`                             | Generated OpenAPI contract for the changed feature-key enum.                                                       |
+| `weekly-us/src/features/access/types.ts`                      | Adds the canonical client feature key.                                                                             |
+| `weekly-us/src/features/access/featureAccess.config.ts`       | Holds presentation-only metadata for `meetingHistory` and removes the limit.                                       |
+| `weekly-us/src/features/access/legacyFeatureAccess.ts`        | Treats history keys as Free in old-status fallback mapping.                                                        |
+| `weekly-us/src/features/access/premiumPurchasePolicy.ts`      | Provides owner-only purchase decisions without coupling UI components to workspace state.                          |
+| `weekly-us/src/features/access/premiumPurchasePolicy.test.ts` | Covers owner, adult, and viewer purchase/prompt outcomes.                                                          |
+| `weekly-us/src/shared/composables/useFeatureAccess.ts`        | Removes per-meeting limit calculations.                                                                            |
+| `weekly-us/src/app/router/index.ts`                           | Uses canonical `meetingHistory` metadata for history routes.                                                       |
+| `weekly-us/src/pages/HistoryPage.vue`                         | Removes locked cards and the full-history upgrade panel.                                                           |
+| `weekly-us/src/pages/HomePage.vue`                            | Shows saved-history availability without the limit or Premium lock.                                                |
+| `weekly-us/src/pages/MeetingDetailsPage.vue`                  | Always renders the scoped meeting details.                                                                         |
+| `weekly-us/src/pages/MeetingSummaryPage.vue`                  | Always permits saved-summary history navigation.                                                                   |
+| `weekly-us/src/features/subscription/subscriptionPlans.ts`    | Moves history to Free and removes it from Premium benefits.                                                        |
+| `weekly-us/src/shared/components/UpgradePrompt.vue`           | Allows a purchase CTA only for a Free workspace owner with `upgradeRequired`.                                      |
+| `weekly-us/src/pages/UpgradePage.vue`                         | Reframes Premium around AI, Calendar, export, templates, and private notes; hides billing actions from non-owners. |
+| `weekly-us/src/pages/SettingsPage.vue`                        | Replaces history in the subscription card and exposes an owner-managed message to non-owners.                      |
+| `weekly-us/src/features/localization/messages.ts`             | Removes history-limit/up-sell copy and adds owner-managed Premium copy in all locales.                             |
 
 ## Task 1: Expand the API entitlement contract safely
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\billing\feature-access.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\billing\billing.schema.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\tests\feature-access.test.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\tests\subscriptions.service.test.ts`
 
 **Interfaces:**
+
 - Consumes: `resolveFeatureAccessMap({ planType, role })` and the existing subscription-status DTO.
 - Produces: `SubscriptionFeatureKey` including `meetingHistory`; `features.meetingHistory`, `features.limitedHistory`, and `features.unlimitedHistory` all resolve `{ tier: 'free', state: 'available' }` for every authenticated workspace role.
 
@@ -72,20 +74,33 @@ it.each(['owner', 'adult_member', 'viewer'] as const)(
     const access = resolveFeatureAccessMap({ planType: 'free', role });
 
     expect(access.meetingHistory).toMatchObject({
-      key: 'meetingHistory', tier: 'free', state: 'available', upgradeEligible: false,
+      key: 'meetingHistory',
+      tier: 'free',
+      state: 'available',
+      upgradeEligible: false,
     });
-  },
+  }
 );
 
 it('keeps both old history keys unlocked for a stale Premium record', async () => {
-  const status = await service.getStatus({ ...auth, planType: 'premium' }, staleNow);
+  const status = await service.getStatus(
+    { ...auth, planType: 'premium' },
+    staleNow
+  );
 
   expect(status.planType).toBe('free');
   expect(status.features.limitedHistory.state).toBe('available');
-  expect(status.features.unlimitedHistory).toMatchObject({ tier: 'free', state: 'available' });
-  expect(status.enabledFeatures).toEqual(expect.arrayContaining([
-    'meetingHistory', 'limitedHistory', 'unlimitedHistory',
-  ]));
+  expect(status.features.unlimitedHistory).toMatchObject({
+    tier: 'free',
+    state: 'available',
+  });
+  expect(status.enabledFeatures).toEqual(
+    expect.arrayContaining([
+      'meetingHistory',
+      'limitedHistory',
+      'unlimitedHistory',
+    ])
+  );
 });
 ```
 
@@ -138,11 +153,13 @@ Expected: both commands pass; a stale Premium record still reports `planType: 'f
 ## Task 2: Remove the server-side history cap
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\meetings\meetings.service.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\meetings\meetings.repository.ts`
 - Modify: `D:\Projects\myself\weekly-us-api\tests\meetings.service.test.ts`
 
 **Interfaces:**
+
 - Consumes: `FeatureAccessMap.meetingHistory` from Task 1 and `MeetingsRepository.listMeetingsForWorkspace(workspaceId, 1000)`.
 - Produces: `MeetingsService.listMeetings(auth, now?)` that returns the full workspace-owned meeting list for Free, Premium, stale-entitlement, and viewer contexts.
 
@@ -155,23 +172,40 @@ it.each([auth, adultAuth, viewerAuth])(
   'returns every completed meeting for a Free member',
   async (memberAuth) => {
     repos.meetings.listMeetingsForWorkspace.mockResolvedValue([
-      completedMeeting('meeting_1'), completedMeeting('meeting_2'),
-      completedMeeting('meeting_3'), completedMeeting('meeting_4'),
+      completedMeeting('meeting_1'),
+      completedMeeting('meeting_2'),
+      completedMeeting('meeting_3'),
+      completedMeeting('meeting_4'),
     ]);
 
-    const response = await service.listMeetings({ ...memberAuth, planType: 'free' }, new Date(now));
+    const response = await service.listMeetings(
+      { ...memberAuth, planType: 'free' },
+      new Date(now)
+    );
 
     expect(response.meetings).toHaveLength(4);
-    expect(repos.meetings.listMeetingsForWorkspace).toHaveBeenCalledWith('workspace_1', 1000);
-  },
+    expect(repos.meetings.listMeetingsForWorkspace).toHaveBeenCalledWith(
+      'workspace_1',
+      1000
+    );
+  }
 );
 
 it('does not reduce history after a Premium entitlement becomes stale', async () => {
-  repos.subscriptions.findCurrentSubscriptionForWorkspace.mockResolvedValue(stalePremiumSubscription());
-  repos.meetings.listMeetingsForWorkspace.mockResolvedValue(fourCompletedMeetings());
+  repos.subscriptions.findCurrentSubscriptionForWorkspace.mockResolvedValue(
+    stalePremiumSubscription()
+  );
+  repos.meetings.listMeetingsForWorkspace.mockResolvedValue(
+    fourCompletedMeetings()
+  );
 
-  await expect(service.listMeetings({ ...auth, planType: 'premium' }, staleNow))
-    .resolves.toMatchObject({ meetings: expect.arrayContaining([expect.objectContaining({ id: 'meeting_4' })]) });
+  await expect(
+    service.listMeetings({ ...auth, planType: 'premium' }, staleNow)
+  ).resolves.toMatchObject({
+    meetings: expect.arrayContaining([
+      expect.objectContaining({ id: 'meeting_4' }),
+    ]),
+  });
 });
 ```
 
@@ -226,10 +260,12 @@ Expected: tests and typecheck pass; the search has no history-cap production ref
 ## Task 3: Regenerate and verify the API contract
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us-api\docs\openapi.json`
 - Modify: `D:\Projects\myself\weekly-us-api\tests\api-contract.routes.test.ts`
 
 **Interfaces:**
+
 - Consumes: updated `subscriptionFeatureSchema` and subscription-status route schema.
 - Produces: checked-in OpenAPI documentation and an integration assertion preserving `features` and `enabledFeatures` compatibility.
 
@@ -241,7 +277,9 @@ In the existing authenticated API contract test, assert the additive response fi
 expect(response.json()).toMatchObject({
   planType: 'free',
   enabledFeatures: expect.arrayContaining([
-    'meetingHistory', 'limitedHistory', 'unlimitedHistory',
+    'meetingHistory',
+    'limitedHistory',
+    'unlimitedHistory',
   ]),
   features: {
     meetingHistory: { state: 'available', tier: 'free' },
@@ -286,6 +324,7 @@ Expected: both commands pass.
 ## Task 4: Migrate client access state and history navigation
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us\src\features\access\types.ts`
 - Modify: `D:\Projects\myself\weekly-us\src\features\access\featureAccess.config.ts`
 - Modify: `D:\Projects\myself\weekly-us\src\features\access\legacyFeatureAccess.ts`
@@ -298,6 +337,7 @@ Expected: both commands pass.
 - Modify: `D:\Projects\myself\weekly-us\src\features\access\featureAccessPolicy.test.ts`
 
 **Interfaces:**
+
 - Consumes: `features.meetingHistory` from the API or `createLegacyFeatureAccessMap` during the old-response fallback.
 - Produces: routes and components that use `meetingHistory` and always display any locally available, workspace-authorized completed meeting without a Free-limit branch.
 
@@ -364,6 +404,7 @@ Expected: the search has no results. The targeted test and build pass.
 ## Task 5: Reframe Premium and make purchase actions owner-only
 
 **Files:**
+
 - Create: `D:\Projects\myself\weekly-us\src\features\access\premiumPurchasePolicy.ts`
 - Create: `D:\Projects\myself\weekly-us\src\features\access\premiumPurchasePolicy.test.ts`
 - Modify: `D:\Projects\myself\weekly-us\src\features\subscription\subscriptionPlans.ts`
@@ -373,6 +414,7 @@ Expected: the search has no results. The targeted test and build pass.
 - Modify: `D:\Projects\myself\weekly-us\src\features\localization\messages.ts`
 
 **Interfaces:**
+
 - Consumes: `workspaceStore.currentRole`, `FeatureAccessState`, and the existing RevenueCat actions.
 - Produces: `canPurchasePremium(role)` and `canOfferFeatureUpgrade(role, accessState)`, ensuring only an owner can initiate purchase/restore/manage flows and contextual prompts retain state-aware messaging.
 
@@ -383,7 +425,9 @@ Create `premiumPurchasePolicy.test.ts` with the exact role/state matrix:
 ```ts
 describe('Premium purchase policy', () => {
   it.each([
-    ['owner', true], ['adult_member', false], ['viewer', false],
+    ['owner', true],
+    ['adult_member', false],
+    ['viewer', false],
   ] as const)('allows %s to purchase Premium: %s', (role, expected) => {
     expect(canPurchasePremium(role)).toBe(expected);
   });
@@ -393,9 +437,12 @@ describe('Premium purchase policy', () => {
     ['adult_member', 'upgradeRequired', false],
     ['viewer', 'roleRestricted', false],
     ['owner', 'notYetAvailable', false],
-  ] as const)('offers a feature upgrade only for %s/%s', (role, state, expected) => {
-    expect(canOfferFeatureUpgrade(role, state)).toBe(expected);
-  });
+  ] as const)(
+    'offers a feature upgrade only for %s/%s',
+    (role, state, expected) => {
+      expect(canOfferFeatureUpgrade(role, state)).toBe(expected);
+    }
+  );
 });
 ```
 
@@ -420,7 +467,10 @@ export function canPurchasePremium(role: UserRole) {
   return role === 'owner';
 }
 
-export function canOfferFeatureUpgrade(role: UserRole, state: FeatureAccessState | undefined) {
+export function canOfferFeatureUpgrade(
+  role: UserRole,
+  state: FeatureAccessState | undefined
+) {
   return canPurchasePremium(role) && state === 'upgradeRequired';
 }
 ```
@@ -450,10 +500,12 @@ Expected: policy tests, complete client suite, and build pass. The build must no
 ## Task 6: End-to-end verification and rollout handoff
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us\docs\superpowers\plans\2026-08-25-free-meeting-history.md`
 - Modify only if a design correction is required: `D:\Projects\myself\weekly-us\docs\superpowers\specs\2026-08-25-premium-history-free-design.md`
 
 **Interfaces:**
+
 - Consumes: completed API and client changes from Tasks 1–5.
 - Produces: documented verification evidence and a safe API-first release checklist.
 

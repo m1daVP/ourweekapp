@@ -6,10 +6,7 @@ import type {
 import { apiRequest } from './httpClient';
 
 export type SubscriptionProviderDto =
-  | 'google_play'
-  | 'app_store'
-  | 'revenuecat'
-  | null;
+  'google_play' | 'app_store' | 'revenuecat' | null;
 
 export interface SubscriptionStatusDto {
   planType: PlanType;
