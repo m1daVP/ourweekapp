@@ -6,12 +6,14 @@ export const trimmedString = (minLength: number, maxLength: number) =>
   z.string().trim().min(minLength).max(maxLength);
 
 export const optionalTrimmedString = (maxLength: number) =>
-  z
-    .string()
-    .trim()
-    .max(maxLength)
-    .optional()
-    .transform((value) => (value === '' ? undefined : value));
+  z.codec(
+    z.string().trim().max(maxLength).optional(),
+    z.string().max(maxLength).optional(),
+    {
+      decode: (value) => (value === '' ? undefined : value),
+      encode: (value) => value?.trim() || undefined,
+    },
+  );
 
 export const apiIdSchema = trimmedString(1, VALIDATION_LIMITS.apiIdMaxLength);
 

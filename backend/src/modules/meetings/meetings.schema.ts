@@ -77,22 +77,37 @@ const meetingSectionAgreementBaseSchema = z.object({
   relatedTaskIds: z.array(apiIdSchema).optional(),
 });
 
-export const meetingSectionAgreementSchema = z.preprocess((value) => {
-  if (
-    value &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    !('text' in value) &&
-    'title' in value
-  ) {
-    return {
-      ...value,
-      text: (value as { title?: unknown }).title,
-    };
-  }
+const legacyMeetingSectionAgreementSchema = meetingSectionAgreementBaseSchema
+  .omit({ text: true })
+  .extend({
+    title: trimmedString(
+      VALIDATION_LIMITS.agreementTitleMinLength,
+      VALIDATION_LIMITS.agreementTitleMaxLength,
+    ),
+  });
 
-  return value;
-}, meetingSectionAgreementBaseSchema);
+export const meetingSectionAgreementSchema = z.codec(
+  z.union([
+    meetingSectionAgreementBaseSchema,
+    legacyMeetingSectionAgreementSchema,
+  ]),
+  meetingSectionAgreementBaseSchema,
+  {
+    decode: (value) => {
+      if ('title' in value && !('text' in value)) {
+        const legacy = legacyMeetingSectionAgreementSchema.parse(value);
+
+        return meetingSectionAgreementBaseSchema.parse({
+          ...legacy,
+          text: legacy.title,
+        });
+      }
+
+      return meetingSectionAgreementBaseSchema.parse(value);
+    },
+    encode: (value) => z.encode(meetingSectionAgreementBaseSchema, value),
+  },
+);
 
 export const meetingSectionSchema = z.object({
   id: apiIdSchema,
