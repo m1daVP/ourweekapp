@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   ensureFirstSyncBackup: vi.fn(),
   getWorkspace: vi.fn(),
   listMeetings: vi.fn(),
+  listParticipants: vi.fn(),
   listTasks: vi.fn(),
   readSyncMetadata: vi.fn(),
   readStorageSlice: vi.fn(),
@@ -47,6 +48,10 @@ vi.mock('@/shared/api/httpClient', () => ({
 vi.mock('@/shared/api/meetingsApi', () => ({
   listMeetings: mocks.listMeetings,
   syncMeetingsApi: mocks.syncMeetingsApi,
+}));
+
+vi.mock('@/shared/api/participantsApi', () => ({
+  listParticipants: mocks.listParticipants,
 }));
 
 vi.mock('@/shared/api/tasksApi', () => ({
@@ -106,6 +111,20 @@ function task(id: string, title = id): Task {
   };
 }
 
+function participant(id: string, name: string, serverRevision?: number) {
+  return {
+    id,
+    name,
+    initials: name.slice(0, 1).toUpperCase(),
+    avatarColor: '#496a8f',
+    type: 'adult' as const,
+    isActive: true,
+    createdAt,
+    updatedAt,
+    serverRevision,
+  };
+}
+
 beforeEach(() => {
   vi.unstubAllGlobals();
   setActivePinia(createPinia());
@@ -116,6 +135,7 @@ beforeEach(() => {
   mocks.ensureFirstSyncBackup.mockReset();
   mocks.getWorkspace.mockReset();
   mocks.listMeetings.mockReset();
+  mocks.listParticipants.mockReset();
   mocks.listTasks.mockReset();
   mocks.readSyncMetadata.mockReset();
   mocks.readStorageSlice.mockReset();
@@ -158,6 +178,7 @@ beforeEach(() => {
     draftSavedAt: null,
     syncedAt,
   });
+  mocks.listParticipants.mockResolvedValue({ participants: [] });
   mocks.listTasks.mockResolvedValue({
     tasks: [],
     agreements: [],
@@ -187,6 +208,101 @@ beforeEach(() => {
 });
 
 describe('syncService', () => {
+  it('hydrates renamed server participants before a fresh-login push', async () => {
+    const participantsStore = useParticipantsStore();
+    const remoteParticipants = [
+      participant('participant-1', 'Rita', 3),
+      participant('participant-2', 'Alex', 2),
+    ];
+    mocks.listParticipants.mockResolvedValueOnce({
+      participants: remoteParticipants,
+    });
+    mocks.apiRequest.mockImplementationOnce(async (_path, options) => ({
+      participants: (options?.body as { participants: unknown[] }).participants,
+      conflicts: [],
+      syncedAt,
+    }));
+
+    expect(participantsStore.participants).toEqual([]);
+
+    await retrySync();
+
+    expect(mocks.listParticipants.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.apiRequest.mock.invocationCallOrder[0]
+    );
+    expect(mocks.apiRequest).toHaveBeenCalledWith(
+      '/participants/sync',
+      expect.objectContaining({
+        body: expect.objectContaining({
+          participants: expect.arrayContaining([
+            expect.objectContaining({ name: 'Rita', serverRevision: 3 }),
+            expect.objectContaining({ name: 'Alex', serverRevision: 2 }),
+          ]),
+        }),
+      })
+    );
+    const pushedParticipants = (
+      mocks.apiRequest.mock.calls[0]?.[1]?.body as {
+        participants: Array<{ name: string }>;
+      }
+    ).participants;
+    expect(pushedParticipants.map(({ name }) => name)).toEqual([
+      'Rita',
+      'Alex',
+    ]);
+    expect(pushedParticipants.some(({ name }) => name === 'Me')).toBe(false);
+    expect(pushedParticipants.some(({ name }) => name === 'Partner')).toBe(
+      false
+    );
+    expect(participantsStore.participants.map(({ name }) => name)).toEqual([
+      'Rita',
+      'Alex',
+    ]);
+  });
+
+  it('does not push any core data when participant hydration fails', async () => {
+    mocks.listParticipants.mockRejectedValueOnce(
+      new Error('participant hydration failed')
+    );
+
+    await expect(retrySync()).rejects.toThrow('participant hydration failed');
+
+    expect(mocks.apiRequest).not.toHaveBeenCalled();
+    expect(mocks.syncMeetingsApi).not.toHaveBeenCalled();
+    expect(mocks.syncTasksApi).not.toHaveBeenCalled();
+    expect(mocks.writeSyncResourceMetadata).toHaveBeenCalledWith(
+      'participants',
+      expect.objectContaining({ lastFailedAt: expect.any(String) })
+    );
+  });
+
+  it('preserves same-owner local participant changes through hydration', async () => {
+    const participantsStore = useParticipantsStore();
+    participantsStore.participants = [
+      participant('local-participant', 'Local addition'),
+    ];
+    mocks.listParticipants.mockResolvedValueOnce({
+      participants: [participant('server-participant', 'Rita', 2)],
+    });
+    mocks.apiRequest.mockImplementationOnce(async (_path, options) => ({
+      participants: (options?.body as { participants: unknown[] }).participants,
+      conflicts: [],
+      syncedAt,
+    }));
+
+    await retrySync();
+
+    const pushedParticipants = (
+      mocks.apiRequest.mock.calls[0]?.[1]?.body as {
+        participants: Array<{ id: string }>;
+      }
+    ).participants;
+    expect(pushedParticipants.map(({ id }) => id)).toEqual([
+      'local-participant',
+      'server-participant',
+    ]);
+  });
+
   it('hydrates backend data before the first full push sync', async () => {
     const meetingsStore = useMeetingsStore();
     const tasksStore = useTasksStore();

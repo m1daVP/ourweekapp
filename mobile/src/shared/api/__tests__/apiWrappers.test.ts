@@ -16,6 +16,7 @@ import {
   syncMeetingsApi,
 } from '@/shared/api/meetingsApi';
 import { listTasks, syncTasksApi } from '@/shared/api/tasksApi';
+import { listParticipants } from '@/shared/api/participantsApi';
 import {
   getSubscriptionManagementUrl,
   getSubscriptionStatus,
@@ -280,6 +281,37 @@ describe('meetingsApi', () => {
     expect(syncResponse.conflicts).toEqual([]);
     expect(syncResponse.activeMeetingId).toBeNull();
     expect(syncResponse.draftSavedAt).toBeNull();
+  });
+});
+
+describe('participantsApi', () => {
+  it('lists authenticated workspace participants', async () => {
+    apiRequestMock.mockResolvedValueOnce({
+      participants: [
+        {
+          id: 'participant-1',
+          name: 'Rita',
+          initials: 'R',
+          avatarColor: '#496a8f',
+          type: 'adult',
+          isActive: true,
+          createdAt: '2026-06-13T12:00:00.000Z',
+          updatedAt: '2026-06-13T12:00:00.000Z',
+          serverRevision: 1,
+        },
+      ],
+    } as never);
+
+    const response = await listParticipants();
+
+    expect(lastApiCall()).toEqual(['/participants/', { requiresAuth: true }]);
+    expect(response.participants).toHaveLength(1);
+  });
+
+  it('normalizes a missing participant response array', async () => {
+    apiRequestMock.mockResolvedValueOnce({ participants: null } as never);
+
+    await expect(listParticipants()).resolves.toEqual({ participants: [] });
   });
 });
 

@@ -6,6 +6,7 @@ import { translate } from '@/features/localization/i18n';
 import type { Agreement, Task } from '@/features/tasks/types';
 import { apiRequest } from '@/shared/api/httpClient';
 import { listMeetings, syncMeetingsApi } from '@/shared/api/meetingsApi';
+import { listParticipants } from '@/shared/api/participantsApi';
 import { listTasks, syncTasksApi } from '@/shared/api/tasksApi';
 import {
   bindSyncOwner,
@@ -251,6 +252,18 @@ function applyTasksFromBackend(
   tasksStore.persist();
 }
 
+function applyParticipantsFromBackend(
+  response: Awaited<ReturnType<typeof listParticipants>>
+) {
+  const participantsStore = useParticipantsStore();
+  const mergedParticipants = mergeSyncItems<ParticipantDto>(
+    participantsStore.participants.map(toParticipantDto),
+    response.participants
+  ).map(fromParticipantDto);
+
+  participantsStore.applyParticipants(mergedParticipants);
+}
+
 async function hydrateCoreDataFromBackend() {
   if (hasInitialHydrationCompleted() || isOffline()) {
     return;
@@ -272,15 +285,15 @@ async function hydrateCoreDataFromBackend() {
       bindSyncOwner(ownerUserId, workspaceStore.workspace.id);
     }
 
-    const [meetingsResponse, tasksResponse] = await Promise.all([
-      listMeetings(),
-      listTasks(),
-    ]);
+    const [participantsResponse, meetingsResponse, tasksResponse] =
+      await Promise.all([listParticipants(), listMeetings(), listTasks()]);
 
+    applyParticipantsFromBackend(participantsResponse);
     applyMeetingsFromBackend(meetingsResponse);
     applyTasksFromBackend(tasksResponse);
     markInitialHydrationComplete();
   } catch (error) {
+    markSyncFailure('participants', error);
     markSyncFailure('meetings', error);
     markSyncFailure('tasks', error);
     throw error;
