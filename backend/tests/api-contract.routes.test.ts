@@ -20,6 +20,7 @@ const meetingId = '44444444-4444-4444-8444-444444444444';
 const participantId = '55555555-5555-4555-8555-555555555555';
 const userId = '66666666-6666-4666-8666-666666666666';
 
+const listParticipantsWithSupabase = vi.hoisted(() => vi.fn());
 const syncParticipantsWithSupabase = vi.hoisted(() => vi.fn());
 const meetingsService = vi.hoisted(() => ({
   listMeetings: vi.fn(),
@@ -94,6 +95,7 @@ vi.mock('../src/modules/auth/auth.middleware.js', async () => {
 });
 
 vi.mock('../src/modules/participants/participants.service.js', () => ({
+  listParticipantsWithSupabase,
   syncParticipantsWithSupabase,
 }));
 
@@ -268,6 +270,7 @@ function authSessionResponse() {
 
 describe('API route contracts', () => {
   beforeEach(() => {
+    listParticipantsWithSupabase.mockReset();
     syncParticipantsWithSupabase.mockReset();
     meetingsService.listMeetings.mockReset();
     meetingsService.saveMeetingSummary.mockReset();
@@ -286,6 +289,48 @@ describe('API route contracts', () => {
     signInUser.mockReset();
     signInWithGoogle.mockReset();
     authMe.mockReset();
+  });
+
+  it('returns 401 before participant list service code runs', async () => {
+    const app = await buildRouteApp('participants');
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/participants/',
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({ code: 'unauthenticated' });
+    expect(listParticipantsWithSupabase).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('lists public participants for the authenticated workspace', async () => {
+    listParticipantsWithSupabase.mockResolvedValueOnce({
+      participants: participantPayload().participants,
+    });
+    const app = await buildRouteApp('participants');
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/participants/',
+      headers: { authorization: 'Bearer valid-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(listParticipantsWithSupabase).toHaveBeenCalledWith(
+      expect.anything(),
+      { workspaceId: authContext.workspaceId },
+    );
+    expect(response.json()).toEqual({
+      participants: [
+        expect.objectContaining({
+          id: participantId,
+          name: 'Rita',
+          serverRevision: 1,
+        }),
+      ],
+    });
+    expect(response.json().participants[0]).not.toHaveProperty('workspaceId');
+    await app.close();
   });
 
   it('returns 401 before participant sync service code runs', async () => {

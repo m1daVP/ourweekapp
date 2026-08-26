@@ -64,6 +64,10 @@ export const participantSyncConflictSchema = createTypedSyncConflictSchema(
   participantSchema,
 );
 
+export const listParticipantsResponseSchema = z.object({
+  participants: z.array(participantSchema),
+});
+
 export const syncParticipantsResponseSchema = z.object({
   participants: z.array(participantSchema),
   conflicts: z.array(participantSyncConflictSchema),
@@ -72,6 +76,9 @@ export const syncParticipantsResponseSchema = z.object({
 
 export type ParticipantTypeDto = z.infer<typeof participantTypeSchema>;
 export type ParticipantDto = z.infer<typeof participantSchema>;
+export type ListParticipantsResponseDto = z.infer<
+  typeof listParticipantsResponseSchema
+>;
 export type SyncParticipantsRequestDto = z.infer<
   typeof syncParticipantsRequestSchema
 >;

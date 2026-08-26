@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  listParticipants,
   syncParticipants,
   type ParticipantSyncRepository,
 } from '../src/modules/participants/participants.service.js';
@@ -75,6 +76,10 @@ function syncRequest(
 }
 
 class FakeParticipantRepository implements ParticipantSyncRepository {
+  public readonly listCalls: Array<{
+    workspaceId: string;
+    includeDeleted: boolean;
+  }> = [];
   public readonly creates: CreateParticipantInput[] = [];
   public readonly updates: UpdateParticipantIfRevisionMatchesInput[] = [];
   public readonly deletes: Array<{
@@ -90,10 +95,13 @@ class FakeParticipantRepository implements ParticipantSyncRepository {
   constructor(private readonly participants: RepositoryParticipantDto[]) {}
 
   async listParticipantsForWorkspace(
-    _workspaceId: string,
-    _includeDeleted = false,
+    workspaceId: string,
+    includeDeleted = false,
   ) {
-    return this.participants;
+    this.listCalls.push({ workspaceId, includeDeleted });
+    return includeDeleted
+      ? this.participants
+      : this.participants.filter((participant) => !participant.deletedAt);
   }
 
   async findParticipantByIdForWorkspace(
@@ -218,6 +226,29 @@ class FakeParticipantRepository implements ParticipantSyncRepository {
 }
 
 describe('participant sync service', () => {
+  it('lists active participants for the requested workspace as public DTOs', async () => {
+    const repository = new FakeParticipantRepository([
+      repositoryParticipant({ id: participantOneId, name: 'Rita' }),
+      repositoryParticipant({
+        id: participantTwoId,
+        name: 'Deleted',
+        deletedAt: later,
+      }),
+    ]);
+
+    const response = await listParticipants(repository, {
+      workspaceId: 'workspace-1',
+    });
+
+    expect(repository.listCalls).toEqual([
+      { workspaceId: 'workspace-1', includeDeleted: false },
+    ]);
+    expect(response.participants).toEqual([
+      expect.objectContaining({ id: participantOneId, name: 'Rita' }),
+    ]);
+    expect(response.participants[0]).not.toHaveProperty('workspaceId');
+  });
+
   it('keeps server participants when the client sends an empty list', async () => {
     const repository = new FakeParticipantRepository([
       repositoryParticipant({ id: participantOneId }),

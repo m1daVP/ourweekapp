@@ -11,6 +11,7 @@ import {
 } from './participants.repository.js';
 import {
   participantSyncConflictSchema,
+  type ListParticipantsResponseDto,
   type ParticipantDto,
   type SyncParticipantsRequestDto,
   type SyncParticipantsResponseDto,
@@ -45,6 +46,10 @@ type SyncParticipantsInput = {
   body: SyncParticipantsRequestDto;
 };
 
+type ListParticipantsInput = {
+  workspaceId: string;
+};
+
 function toParticipantDto(participant: RepositoryParticipantDto): ParticipantDto {
   const dto: ParticipantDto = {
     id: participant.id,
@@ -63,6 +68,23 @@ function toParticipantDto(participant: RepositoryParticipantDto): ParticipantDto
   }
 
   return dto;
+}
+
+export async function listParticipants(
+  repository: Pick<
+    ParticipantSyncRepository,
+    'listParticipantsForWorkspace'
+  >,
+  input: ListParticipantsInput,
+): Promise<ListParticipantsResponseDto> {
+  const participants = await repository.listParticipantsForWorkspace(
+    input.workspaceId,
+    false,
+  );
+
+  return {
+    participants: participants.map(toParticipantDto),
+  };
 }
 
 function hasParticipantContentChanged(
@@ -402,4 +424,10 @@ export function syncParticipantsWithSupabase(
   return syncParticipants(new ParticipantsRepository(supabase), input);
 }
 
+export function listParticipantsWithSupabase(
+  supabase: SupabaseRepositoryClient,
+  input: ListParticipantsInput,
+) {
+  return listParticipants(new ParticipantsRepository(supabase), input);
+}
 
