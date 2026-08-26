@@ -31,12 +31,25 @@ async function loadAuthModules() {
   return { authService, tokenService };
 }
 
-function createQuery(result: unknown) {
+type SupabaseOperation = {
+  table: string;
+  action: 'from' | 'insert';
+  payload?: unknown;
+};
+
+function createQuery(
+  result: unknown,
+  table = '',
+  operations: SupabaseOperation[] = [],
+) {
   const query = {
     delete: vi.fn(() => query),
     eq: vi.fn(() => query),
     gt: vi.fn(() => query),
-    insert: vi.fn(() => query),
+    insert: vi.fn((payload: unknown) => {
+      operations.push({ table, action: 'insert', payload });
+      return query;
+    }),
     is: vi.fn(() => query),
     limit: vi.fn(() => query),
     maybeSingle: vi.fn(async () => result),
@@ -53,16 +66,20 @@ function createQuery(result: unknown) {
   return query;
 }
 
-function createSequentialSupabase(results: unknown[]) {
+function createSequentialSupabase(
+  results: unknown[],
+  operations: SupabaseOperation[] = [],
+) {
   return {
-    from: vi.fn(() => {
+    from: vi.fn((table: string) => {
+      operations.push({ table, action: 'from' });
       const result = results.shift();
 
       if (!result) {
         throw new Error('Unexpected Supabase call');
       }
 
-      return createQuery(result);
+      return createQuery(result, table, operations);
     }),
   } as unknown as SupabaseClient;
 }
@@ -260,9 +277,53 @@ describe('auth.service', () => {
     });
   });
 
+  it('creates server-owned initial participants during password registration', async () => {
+    const { authService } = await loadAuthModules();
+    const operations: SupabaseOperation[] = [];
+    const supabase = createSequentialSupabase([
+      { data: userRow(), error: null },
+      { data: workspaceRow(), error: null },
+      { data: memberRow(), error: null },
+      { data: null, error: null },
+      { data: sessionRow(), error: null },
+    ], operations);
+
+    const response = await authService.registerUser(supabase, {
+      email: 'rita@example.com',
+      password: 'password123',
+      displayName: 'Rita',
+    });
+
+    expect(response.user.workspaceId).toBe('workspace-1');
+    expect(
+      operations.find(
+        (operation) =>
+          operation.table === 'participants' && operation.action === 'insert',
+      )?.payload,
+    ).toEqual([
+      {
+        workspace_id: 'workspace-1',
+        name: 'Me',
+        initials: 'M',
+        avatar_color: '#496a8f',
+        type: 'adult',
+        is_active: true,
+      },
+      {
+        workspace_id: 'workspace-1',
+        name: 'Partner',
+        initials: 'P',
+        avatar_color: '#6b8f71',
+        type: 'adult',
+        is_active: true,
+      },
+    ]);
+  });
+
   it('creates a user, workspace, Google identity, and session for a new Google identity', async () => {
     const { authService } = await loadAuthModules();
     const provider = googleProvider();
+    const operations: SupabaseOperation[] = [];
     const supabase = createSequentialSupabase([
       { data: null, error: null },
       { data: null, error: null },
@@ -270,8 +331,9 @@ describe('auth.service', () => {
       { data: googleIdentityRow(), error: null },
       { data: workspaceRow(), error: null },
       { data: memberRow(), error: null },
+      { data: null, error: null },
       { data: sessionRow(), error: null },
-    ]);
+    ], operations);
 
     const response = await authService.signInWithGoogle(
       supabase,
@@ -289,16 +351,32 @@ describe('auth.service', () => {
     });
     expect(response.accessToken).toEqual(expect.any(String));
     expect(response.refreshToken).toEqual(expect.any(String));
+    expect(
+      operations.find(
+        (operation) =>
+          operation.table === 'participants' && operation.action === 'insert',
+      )?.payload,
+    ).toEqual([
+      expect.objectContaining({
+        workspace_id: 'workspace-1',
+        name: 'Me',
+      }),
+      expect.objectContaining({
+        workspace_id: 'workspace-1',
+        name: 'Partner',
+      }),
+    ]);
   });
 
   it('signs in through an existing Google identity', async () => {
     const { authService } = await loadAuthModules();
+    const operations: SupabaseOperation[] = [];
     const supabase = createSequentialSupabase([
       { data: googleIdentityRow(), error: null },
       { data: userRow({ password_hash: null }), error: null },
       { data: [memberRow()], error: null },
       { data: sessionRow(), error: null },
-    ]);
+    ], operations);
 
     const response = await authService.signInWithGoogle(
       supabase,
@@ -308,6 +386,56 @@ describe('auth.service', () => {
 
     expect(response.user.id).toBe('user-1');
     expect(response.user.workspaceId).toBe('workspace-1');
+    expect(
+      operations.some((operation) => operation.table === 'participants'),
+    ).toBe(false);
+  });
+
+  it('cleans up registration when initial participant creation fails', async () => {
+    const { authService } = await loadAuthModules();
+    const operations: SupabaseOperation[] = [];
+    const supabase = createSequentialSupabase([
+      { data: userRow(), error: null },
+      { data: workspaceRow(), error: null },
+      { data: memberRow(), error: null },
+      { data: null, error: { code: 'participant_insert_failed' } },
+      { data: null, error: null },
+      { data: null, error: null },
+      { data: null, error: null },
+      { data: null, error: null },
+    ], operations);
+
+    await expect(
+      authService.registerUser(supabase, {
+        email: 'rita@example.com',
+        password: 'password123',
+        displayName: 'Rita',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 500,
+      code: 'participant_create_failed',
+    });
+
+    const fromTables = operations
+      .filter((operation) => operation.action === 'from')
+      .map((operation) => operation.table);
+
+    expect(fromTables).toEqual([
+      'users',
+      'workspaces',
+      'workspace_members',
+      'participants',
+      'sessions',
+      'workspace_members',
+      'workspaces',
+      'users',
+    ]);
+    expect(
+      operations.some(
+        (operation) =>
+          operation.table === 'sessions' && operation.action === 'insert',
+      ),
+    ).toBe(false);
   });
 
   it('links a verified Google identity to an existing password account by email', async () => {

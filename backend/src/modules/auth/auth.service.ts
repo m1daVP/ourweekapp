@@ -282,6 +282,43 @@ async function cleanupFailedRegistration(
   }
 }
 
+const INITIAL_PARTICIPANTS = [
+  {
+    name: 'Me',
+    initials: 'M',
+    avatar_color: '#496a8f',
+    type: 'adult',
+    is_active: true,
+  },
+  {
+    name: 'Partner',
+    initials: 'P',
+    avatar_color: '#6b8f71',
+    type: 'adult',
+    is_active: true,
+  },
+] as const;
+
+async function createInitialParticipants(
+  supabase: SupabaseClient,
+  workspaceId: string,
+) {
+  const { error } = await supabase.from('participants').insert(
+    INITIAL_PARTICIPANTS.map((participant) => ({
+      workspace_id: workspaceId,
+      ...participant,
+    })),
+  );
+
+  if (error) {
+    throw new ApiError(
+      500,
+      'participant_create_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+}
+
 async function getGoogleIdentityBySubject(
   supabase: SupabaseClient,
   providerSubject: string,
@@ -492,6 +529,8 @@ export async function registerUser(
       );
     }
 
+    await createInitialParticipants(supabase, workspace.id);
+
     return await createSessionResponse(supabase, user, member);
   } catch (error) {
     // No transaction/RPC exists for registration yet; remove only the rows
@@ -590,6 +629,8 @@ async function registerGoogleUser(
         'Something went wrong. Please try again.',
       );
     }
+
+    await createInitialParticipants(supabase, workspace.id);
 
     return await createSessionResponse(supabase, user, member);
   } catch (error) {
