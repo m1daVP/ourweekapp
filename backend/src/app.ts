@@ -49,6 +49,7 @@ export async function buildApp(options: FastifyServerOptions = {}) {
   await app.register(helmet);
   await app.register(cors, {
     origin: env.CORS_ORIGINS.length > 0 ? env.CORS_ORIGINS : false,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
   await app.register(rateLimit, {
     max: 100,

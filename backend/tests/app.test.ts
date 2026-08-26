@@ -13,6 +13,7 @@ Object.assign(process.env, {
   REFRESH_TOKEN_SECRET: 'refresh-token-secret-at-least-32-bytes',
   PASSWORD_RESET_TOKEN_SECRET: 'password-reset-secret-at-least-32-bytes',
   TOKEN_ENCRYPTION_KEY: 'token-encryption-key-at-least-32-byte',
+  CORS_ALLOWED_ORIGINS: 'http://localhost:3000',
 });
 
 vi.mock('../src/plugins/supabase.js', async () => {
@@ -81,6 +82,21 @@ describe('buildApp proxy awareness', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ ip: '203.0.113.7' });
+  });
+
+  it('allows PUT requests from configured CORS origins', async () => {
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/v1/workspace',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'PUT',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-methods'])
+      .toBe('GET, HEAD, POST, PUT, DELETE, OPTIONS');
   });
 
   it('keys rate limits per forwarded client IP, not per proxy address', async () => {
