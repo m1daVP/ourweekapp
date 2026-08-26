@@ -17,7 +17,6 @@ const tasksStore = useTasksStore();
 const subscriptionStore = useSubscriptionStore();
 
 onMounted(() => {
-  participantsStore.ensureDefaultParticipants();
   tasksStore.syncFromMeetings(meetingsStore.meetings);
 });
 

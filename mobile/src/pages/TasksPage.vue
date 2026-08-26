@@ -139,7 +139,6 @@ const emptyTaskMessage = computed(() => {
 });
 
 onMounted(() => {
-  participantsStore.ensureDefaultParticipants();
   tasksStore.syncFromMeetings(meetingsStore.meetings);
   newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
 });

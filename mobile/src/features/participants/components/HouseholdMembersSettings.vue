@@ -30,8 +30,6 @@ const meetingsStore = useMeetingsStore();
 const tasksStore = useTasksStore();
 const { can } = useWorkspacePermissions();
 
-participantsStore.ensureDefaultParticipants();
-
 const isSheetOpen = ref(false);
 const sheetMode = ref<SheetMode>('create');
 const selectedParticipantId = ref<string | null>(null);

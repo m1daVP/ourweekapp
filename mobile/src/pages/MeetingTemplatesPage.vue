@@ -3,7 +3,6 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
-import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
 import TemplateCard from '@/features/meeting/components/TemplateCard.vue';
 import {
@@ -18,7 +17,6 @@ import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermis
 const router = useRouter();
 const { t } = useI18n();
 const meetingsStore = useMeetingsStore();
-const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
 const { canUseFeature } = useFeatureAccess();
 const { can } = useWorkspacePermissions();
@@ -84,7 +82,6 @@ function startSelectedTemplate() {
     return;
   }
 
-  participantsStore.ensureDefaultParticipants();
   meetingsStore.startNewMeetingFromTemplate(selectedTemplate.value.id);
   tasksStore.syncFromMeetings(meetingsStore.meetings);
   router.push({ name: 'meeting' });

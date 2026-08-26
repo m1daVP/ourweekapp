@@ -498,7 +498,6 @@ export function useMeetingSession() {
   );
 
   onMounted(() => {
-    participantsStore.ensureDefaultParticipants();
     tasksStore.syncFromMeetings(meetingsStore.meetings);
 
     const decision = getMeetingRouteDecision(

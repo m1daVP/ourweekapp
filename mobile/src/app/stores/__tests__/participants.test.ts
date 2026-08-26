@@ -47,13 +47,32 @@ beforeEach(() => {
 });
 
 describe('participants store current participant identity', () => {
-  it('marks the seeded Me participant in fresh state', () => {
+  it('keeps fresh state empty until backend hydration', () => {
     const store = useParticipantsStore();
-    const me = store.participants.find((item) => item.name === 'Me');
 
-    expect(me).toBeDefined();
-    expect(store.currentParticipantId).toBe(me?.id);
-    expect(store.isCurrentParticipant(me?.id ?? '')).toBe(true);
+    expect(store.participants).toEqual([]);
+    expect(store.currentParticipantId).toBeNull();
+  });
+
+  it('applies hydrated participants and selects the first active adult', () => {
+    const store = useParticipantsStore();
+    const hydratedParticipants = [
+      participant('self-1', 'Rita'),
+      participant('adult-2', 'Alex'),
+    ];
+
+    store.applyParticipants(hydratedParticipants);
+
+    expect(store.participants).toEqual(hydratedParticipants);
+    expect(store.currentParticipantId).toBe('self-1');
+    expect(store.participants.map(({ name }) => name)).toEqual([
+      'Rita',
+      'Alex',
+    ]);
+    expect(mocks.writeStorageSlice).toHaveBeenLastCalledWith('participants', {
+      participants: hydratedParticipants,
+      currentParticipantId: 'self-1',
+    });
   });
 
   it('keeps a valid stored identity after the participant is renamed', () => {

@@ -124,43 +124,6 @@ function withoutStaleDefaultPlaceholders(participants: Participant[]) {
   );
 }
 
-function createParticipant(
-  name: string,
-  type: ParticipantType,
-  index: number
-): Participant {
-  const createdAt = nowIso();
-
-  return {
-    id: createId(),
-    name,
-    initials: getInitials(name),
-    avatarColor: participantColors[index % participantColors.length],
-    type,
-    isActive: true,
-    createdAt,
-    updatedAt: createdAt,
-  };
-}
-
-function createDefaultParticipantsState(): ParticipantsState {
-  const me = createParticipant(
-    translate('settings.defaultParticipant.me'),
-    'adult',
-    0
-  );
-  const partner = createParticipant(
-    translate('settings.defaultParticipant.partner'),
-    'adult',
-    1
-  );
-
-  return {
-    participants: [me, partner],
-    currentParticipantId: me.id,
-  };
-}
-
 function selectCurrentParticipantId(
   participants: Participant[],
   storedParticipantId?: string | null
@@ -257,7 +220,10 @@ function getStoredState(): ParticipantsState {
       );
 
     if (!legacyParticipants.length) {
-      return createDefaultParticipantsState();
+      return {
+        participants: [],
+        currentParticipantId: null,
+      };
     }
 
     return {
@@ -275,7 +241,10 @@ function getStoredState(): ParticipantsState {
     : [];
 
   if (!participants.length) {
-    return createDefaultParticipantsState();
+    return {
+      participants: [],
+      currentParticipantId: null,
+    };
   }
 
   return {
@@ -321,14 +290,12 @@ export const useParticipantsStore = defineStore('participants', {
         currentParticipantId: this.currentParticipantId,
       });
     },
-    ensureDefaultParticipants() {
-      if (this.participants.length) {
-        return;
-      }
-
-      const defaults = createDefaultParticipantsState();
-      this.participants = defaults.participants;
-      this.currentParticipantId = defaults.currentParticipantId;
+    applyParticipants(participants: Participant[]) {
+      this.participants = participants;
+      this.currentParticipantId = selectCurrentParticipantId(
+        participants,
+        this.currentParticipantId
+      );
       this.persist();
     },
     isCurrentParticipant(participantId: string) {

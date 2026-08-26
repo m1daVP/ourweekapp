@@ -147,7 +147,6 @@ interface LegacyMeeting {
 
 function getActiveParticipantIds() {
   const participantsStore = useParticipantsStore();
-  participantsStore.ensureDefaultParticipants();
   return participantsStore.activeParticipants.map(
     (participant) => participant.id
   );
