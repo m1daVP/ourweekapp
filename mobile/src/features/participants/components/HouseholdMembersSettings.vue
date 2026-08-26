@@ -54,6 +54,7 @@ const participantDraft = reactive({
   avatarColor: participantColors[0],
   type: 'adult' as ParticipantType,
 });
+const customAvatarColorInput = ref<HTMLInputElement | null>(null);
 
 function getParticipantDisplayKey(participant: Participant) {
   return [
@@ -114,6 +115,17 @@ const typeOptions = computed<Array<{ label: string; value: ParticipantType }>>(
 const initialsPreview = computed(
   () => participantDraft.initials || getInitials(participantDraft.name)
 );
+const isCustomAvatarColor = computed(
+  () =>
+    !participantColors.some(
+      (color) =>
+        color.toLocaleLowerCase() ===
+        participantDraft.avatarColor.toLocaleLowerCase()
+    )
+);
+const displayedAvatarColor = computed(() =>
+  participantDraft.avatarColor.toLocaleUpperCase()
+);
 
 function getInitials(name: string) {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -126,6 +138,18 @@ function getInitials(name: string) {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() ?? '')
     .join('');
+}
+
+function openCustomAvatarColorPicker() {
+  customAvatarColorInput.value?.click();
+}
+
+function setCustomAvatarColor(event: Event) {
+  const input = event.target as HTMLInputElement;
+
+  if (input.value) {
+    participantDraft.avatarColor = input.value.toLocaleLowerCase();
+  }
 }
 
 function getTypeLabel(type: ParticipantType) {
@@ -720,6 +744,33 @@ function enableParticipant(participantId: string) {
             />
             <span :style="{ backgroundColor: color }" />
           </label>
+          <label class="color-selector__custom">
+            <input
+              ref="customAvatarColorInput"
+              class="color-selector__native-input"
+              :value="participantDraft.avatarColor"
+              tabindex="-1"
+              type="color"
+              aria-hidden="true"
+              @input="setCustomAvatarColor"
+            />
+            <button
+              class="color-selector__custom-trigger"
+              :class="{ 'is-selected': isCustomAvatarColor }"
+              type="button"
+              :aria-label="t('settings.customAvatarColor')"
+              @click="openCustomAvatarColorPicker"
+            >
+              <span aria-hidden="true" />
+            </button>
+          </label>
+          <output class="color-selector__selected-value" aria-live="polite">
+            {{
+              t('settings.selectedAvatarColor', {
+                color: displayedAvatarColor,
+              })
+            }}
+          </output>
         </fieldset>
 
         <button
