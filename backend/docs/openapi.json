@@ -245,7 +245,10 @@
                           "format": "email",
                           "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                         },
-                        "displayName": {},
+                        "displayName": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
                         "role": {
                           "type": "string",
                           "enum": [
@@ -275,7 +278,6 @@
                       "required": [
                         "id",
                         "workspaceId",
-                        "displayName",
                         "role",
                         "planType",
                         "createdAt",
@@ -524,7 +526,10 @@
                           "format": "email",
                           "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                         },
-                        "displayName": {},
+                        "displayName": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
                         "role": {
                           "type": "string",
                           "enum": [
@@ -554,7 +559,6 @@
                       "required": [
                         "id",
                         "workspaceId",
-                        "displayName",
                         "role",
                         "planType",
                         "createdAt",
@@ -798,7 +802,10 @@
                           "format": "email",
                           "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                         },
-                        "displayName": {},
+                        "displayName": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
                         "role": {
                           "type": "string",
                           "enum": [
@@ -828,7 +835,6 @@
                       "required": [
                         "id",
                         "workspaceId",
-                        "displayName",
                         "role",
                         "planType",
                         "createdAt",
@@ -1072,7 +1078,10 @@
                           "format": "email",
                           "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                         },
-                        "displayName": {},
+                        "displayName": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
                         "role": {
                           "type": "string",
                           "enum": [
@@ -1102,7 +1111,6 @@
                       "required": [
                         "id",
                         "workspaceId",
-                        "displayName",
                         "role",
                         "planType",
                         "createdAt",
@@ -1486,7 +1494,10 @@
                       "format": "email",
                       "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                     },
-                    "displayName": {},
+                    "displayName": {
+                      "type": "string",
+                      "maxLength": 80
+                    },
                     "role": {
                       "type": "string",
                       "enum": [
@@ -1516,7 +1527,6 @@
                   "required": [
                     "id",
                     "workspaceId",
-                    "displayName",
                     "role",
                     "planType",
                     "createdAt",
@@ -2103,6 +2113,7 @@
                           "localReminders",
                           "unlimitedHistory",
                           "aiSummary",
+                          "smartFollowUps",
                           "agreementReminders",
                           "additionalTemplates",
                           "privateNotes",
@@ -2126,6 +2137,7 @@
                           "localReminders",
                           "unlimitedHistory",
                           "aiSummary",
+                          "smartFollowUps",
                           "agreementReminders",
                           "additionalTemplates",
                           "privateNotes",
@@ -2149,6 +2161,7 @@
                               "localReminders",
                               "unlimitedHistory",
                               "aiSummary",
+                              "smartFollowUps",
                               "agreementReminders",
                               "additionalTemplates",
                               "privateNotes",
@@ -2209,6 +2222,7 @@
                         "localReminders",
                         "unlimitedHistory",
                         "aiSummary",
+                        "smartFollowUps",
                         "agreementReminders",
                         "additionalTemplates",
                         "privateNotes",
@@ -2233,6 +2247,31 @@
                       "type": "string",
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    },
+                    "assistantRecap": {
+                      "type": "object",
+                      "properties": {
+                        "remainingFreeCredits": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 3
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "canGenerate": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "remainingFreeCredits",
+                        "canGenerate"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -2241,7 +2280,8 @@
                     "enabledFeatures",
                     "features",
                     "expiresAt",
-                    "checkedAt"
+                    "checkedAt",
+                    "assistantRecap"
                   ],
                   "additionalProperties": false
                 }
@@ -2482,6 +2522,7 @@
                           "localReminders",
                           "unlimitedHistory",
                           "aiSummary",
+                          "smartFollowUps",
                           "agreementReminders",
                           "additionalTemplates",
                           "privateNotes",
@@ -2505,6 +2546,7 @@
                           "localReminders",
                           "unlimitedHistory",
                           "aiSummary",
+                          "smartFollowUps",
                           "agreementReminders",
                           "additionalTemplates",
                           "privateNotes",
@@ -2528,6 +2570,7 @@
                               "localReminders",
                               "unlimitedHistory",
                               "aiSummary",
+                              "smartFollowUps",
                               "agreementReminders",
                               "additionalTemplates",
                               "privateNotes",
@@ -2588,6 +2631,7 @@
                         "localReminders",
                         "unlimitedHistory",
                         "aiSummary",
+                        "smartFollowUps",
                         "agreementReminders",
                         "additionalTemplates",
                         "privateNotes",
@@ -2612,6 +2656,31 @@
                       "type": "string",
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    },
+                    "assistantRecap": {
+                      "type": "object",
+                      "properties": {
+                        "remainingFreeCredits": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 3
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "canGenerate": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "remainingFreeCredits",
+                        "canGenerate"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -2620,7 +2689,8 @@
                     "enabledFeatures",
                     "features",
                     "expiresAt",
-                    "checkedAt"
+                    "checkedAt",
+                    "assistantRecap"
                   ],
                   "additionalProperties": false
                 }
@@ -3028,6 +3098,7 @@
                           "localReminders",
                           "unlimitedHistory",
                           "aiSummary",
+                          "smartFollowUps",
                           "agreementReminders",
                           "additionalTemplates",
                           "privateNotes",
@@ -3051,6 +3122,7 @@
                           "localReminders",
                           "unlimitedHistory",
                           "aiSummary",
+                          "smartFollowUps",
                           "agreementReminders",
                           "additionalTemplates",
                           "privateNotes",
@@ -3074,6 +3146,7 @@
                               "localReminders",
                               "unlimitedHistory",
                               "aiSummary",
+                              "smartFollowUps",
                               "agreementReminders",
                               "additionalTemplates",
                               "privateNotes",
@@ -3134,6 +3207,7 @@
                         "localReminders",
                         "unlimitedHistory",
                         "aiSummary",
+                        "smartFollowUps",
                         "agreementReminders",
                         "additionalTemplates",
                         "privateNotes",
@@ -3158,6 +3232,31 @@
                       "type": "string",
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    },
+                    "assistantRecap": {
+                      "type": "object",
+                      "properties": {
+                        "remainingFreeCredits": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 3
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "canGenerate": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "remainingFreeCredits",
+                        "canGenerate"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -3166,7 +3265,8 @@
                     "enabledFeatures",
                     "features",
                     "expiresAt",
-                    "checkedAt"
+                    "checkedAt",
+                    "assistantRecap"
                   ],
                   "additionalProperties": false
                 }
@@ -3407,6 +3507,7 @@
                           "localReminders",
                           "unlimitedHistory",
                           "aiSummary",
+                          "smartFollowUps",
                           "agreementReminders",
                           "additionalTemplates",
                           "privateNotes",
@@ -3430,6 +3531,7 @@
                           "localReminders",
                           "unlimitedHistory",
                           "aiSummary",
+                          "smartFollowUps",
                           "agreementReminders",
                           "additionalTemplates",
                           "privateNotes",
@@ -3453,6 +3555,7 @@
                               "localReminders",
                               "unlimitedHistory",
                               "aiSummary",
+                              "smartFollowUps",
                               "agreementReminders",
                               "additionalTemplates",
                               "privateNotes",
@@ -3513,6 +3616,7 @@
                         "localReminders",
                         "unlimitedHistory",
                         "aiSummary",
+                        "smartFollowUps",
                         "agreementReminders",
                         "additionalTemplates",
                         "privateNotes",
@@ -3537,6 +3641,31 @@
                       "type": "string",
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    },
+                    "assistantRecap": {
+                      "type": "object",
+                      "properties": {
+                        "remainingFreeCredits": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 3
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "canGenerate": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "remainingFreeCredits",
+                        "canGenerate"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -3545,7 +3674,8 @@
                     "enabledFeatures",
                     "features",
                     "expiresAt",
-                    "checkedAt"
+                    "checkedAt",
+                    "assistantRecap"
                   ],
                   "additionalProperties": false
                 }
@@ -3956,6 +4086,57 @@
                       "minLength": 1,
                       "maxLength": 1000
                     },
+                    "preferences": {
+                      "type": "object",
+                      "properties": {
+                        "weeklyMeetingSyncEnabled": {
+                          "type": "boolean"
+                        },
+                        "assignedTaskSyncEnabled": {
+                          "type": "boolean"
+                        },
+                        "weeklyMeetingDay": {
+                          "type": "string",
+                          "enum": [
+                            "sunday",
+                            "monday",
+                            "tuesday",
+                            "wednesday",
+                            "thursday",
+                            "friday",
+                            "saturday"
+                          ]
+                        },
+                        "weeklyMeetingTime": {
+                          "type": "string",
+                          "pattern": "^\\d{2}:\\d{2}$"
+                        },
+                        "timeZone": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "lastSyncErrorCode": {
+                          "type": "string",
+                          "enum": [
+                            "provider-error"
+                          ]
+                        },
+                        "lastSyncAttemptedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "weeklyMeetingSyncEnabled",
+                        "assignedTaskSyncEnabled",
+                        "weeklyMeetingDay",
+                        "weeklyMeetingTime",
+                        "timeZone"
+                      ],
+                      "additionalProperties": false
+                    },
                     "authorizationUrl": {
                       "type": "string",
                       "format": "uri"
@@ -3967,7 +4148,8 @@
                     "connected",
                     "connectedAccountEmail",
                     "lastCheckedAt",
-                    "message"
+                    "message",
+                    "preferences"
                   ],
                   "additionalProperties": false
                 }
@@ -4178,6 +4360,57 @@
                       "minLength": 1,
                       "maxLength": 1000
                     },
+                    "preferences": {
+                      "type": "object",
+                      "properties": {
+                        "weeklyMeetingSyncEnabled": {
+                          "type": "boolean"
+                        },
+                        "assignedTaskSyncEnabled": {
+                          "type": "boolean"
+                        },
+                        "weeklyMeetingDay": {
+                          "type": "string",
+                          "enum": [
+                            "sunday",
+                            "monday",
+                            "tuesday",
+                            "wednesday",
+                            "thursday",
+                            "friday",
+                            "saturday"
+                          ]
+                        },
+                        "weeklyMeetingTime": {
+                          "type": "string",
+                          "pattern": "^\\d{2}:\\d{2}$"
+                        },
+                        "timeZone": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "lastSyncErrorCode": {
+                          "type": "string",
+                          "enum": [
+                            "provider-error"
+                          ]
+                        },
+                        "lastSyncAttemptedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "weeklyMeetingSyncEnabled",
+                        "assignedTaskSyncEnabled",
+                        "weeklyMeetingDay",
+                        "weeklyMeetingTime",
+                        "timeZone"
+                      ],
+                      "additionalProperties": false
+                    },
                     "authorizationUrl": {
                       "type": "string",
                       "format": "uri"
@@ -4189,7 +4422,8 @@
                     "connected",
                     "connectedAccountEmail",
                     "lastCheckedAt",
-                    "message"
+                    "message",
+                    "preferences"
                   ],
                   "additionalProperties": false
                 }
@@ -4480,6 +4714,57 @@
                       "minLength": 1,
                       "maxLength": 1000
                     },
+                    "preferences": {
+                      "type": "object",
+                      "properties": {
+                        "weeklyMeetingSyncEnabled": {
+                          "type": "boolean"
+                        },
+                        "assignedTaskSyncEnabled": {
+                          "type": "boolean"
+                        },
+                        "weeklyMeetingDay": {
+                          "type": "string",
+                          "enum": [
+                            "sunday",
+                            "monday",
+                            "tuesday",
+                            "wednesday",
+                            "thursday",
+                            "friday",
+                            "saturday"
+                          ]
+                        },
+                        "weeklyMeetingTime": {
+                          "type": "string",
+                          "pattern": "^\\d{2}:\\d{2}$"
+                        },
+                        "timeZone": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "lastSyncErrorCode": {
+                          "type": "string",
+                          "enum": [
+                            "provider-error"
+                          ]
+                        },
+                        "lastSyncAttemptedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "weeklyMeetingSyncEnabled",
+                        "assignedTaskSyncEnabled",
+                        "weeklyMeetingDay",
+                        "weeklyMeetingTime",
+                        "timeZone"
+                      ],
+                      "additionalProperties": false
+                    },
                     "authorizationUrl": {
                       "type": "string",
                       "format": "uri"
@@ -4491,6 +4776,490 @@
                     "connected",
                     "connectedAccountEmail",
                     "lastCheckedAt",
+                    "message",
+                    "preferences"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/calendar/google/settings": {
+      "put": {
+        "tags": [
+          "calendar"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "weeklyMeetingSyncEnabled": {
+                    "type": "boolean"
+                  },
+                  "assignedTaskSyncEnabled": {
+                    "type": "boolean"
+                  },
+                  "weeklyMeetingDay": {
+                    "type": "string",
+                    "enum": [
+                      "sunday",
+                      "monday",
+                      "tuesday",
+                      "wednesday",
+                      "thursday",
+                      "friday",
+                      "saturday"
+                    ]
+                  },
+                  "weeklyMeetingTime": {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}$"
+                  },
+                  "timeZone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string",
+                      "enum": [
+                        "google"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "disconnected",
+                        "connected",
+                        "setup_required"
+                      ]
+                    },
+                    "connected": {
+                      "type": "boolean"
+                    },
+                    "connectedAccountEmail": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "email",
+                          "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lastCheckedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000
+                    },
+                    "preferences": {
+                      "type": "object",
+                      "properties": {
+                        "weeklyMeetingSyncEnabled": {
+                          "type": "boolean"
+                        },
+                        "assignedTaskSyncEnabled": {
+                          "type": "boolean"
+                        },
+                        "weeklyMeetingDay": {
+                          "type": "string",
+                          "enum": [
+                            "sunday",
+                            "monday",
+                            "tuesday",
+                            "wednesday",
+                            "thursday",
+                            "friday",
+                            "saturday"
+                          ]
+                        },
+                        "weeklyMeetingTime": {
+                          "type": "string",
+                          "pattern": "^\\d{2}:\\d{2}$"
+                        },
+                        "timeZone": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "lastSyncErrorCode": {
+                          "type": "string",
+                          "enum": [
+                            "provider-error"
+                          ]
+                        },
+                        "lastSyncAttemptedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "weeklyMeetingSyncEnabled",
+                        "assignedTaskSyncEnabled",
+                        "weeklyMeetingDay",
+                        "weeklyMeetingTime",
+                        "timeZone"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "authorizationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "provider",
+                    "state",
+                    "connected",
+                    "connectedAccountEmail",
+                    "lastCheckedAt",
+                    "message",
+                    "preferences"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/calendar/google/retry": {
+      "post": {
+        "tags": [
+          "calendar"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string",
+                      "enum": [
+                        "google"
+                      ]
+                    },
+                    "synced": {
+                      "type": "boolean"
+                    },
+                    "attemptedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    },
+                    "skippedReason": {
+                      "type": "string",
+                      "enum": [
+                        "not-connected",
+                        "missing-calendar-date",
+                        "setup-required",
+                        "premium-required",
+                        "provider-error"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000
+                    },
+                    "providerEventId": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "provider",
+                    "synced",
+                    "attemptedAt",
                     "message"
                   ],
                   "additionalProperties": false
@@ -5960,6 +6729,850 @@
         }
       }
     },
+    "/v1/insights/": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "default": "4w",
+              "type": "string",
+              "enum": [
+                "4w",
+                "12w",
+                "all"
+              ]
+            },
+            "in": "query",
+            "name": "period",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "period": {
+                      "type": "string",
+                      "enum": [
+                        "4w",
+                        "12w",
+                        "all"
+                      ]
+                    },
+                    "rangeStart": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rangeEnd": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    },
+                    "meetingConsistency": {
+                      "type": "object",
+                      "properties": {
+                        "completedMeetings": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "averageIntervalDays": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "completedMeetings",
+                        "averageIntervalDays"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "taskFollowThrough": {
+                      "type": "object",
+                      "properties": {
+                        "done": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "open": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "skipped": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "overdue": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "completionRate": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "done",
+                        "open",
+                        "skipped",
+                        "overdue",
+                        "completionRate"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "agreementFollowThrough": {
+                      "type": "object",
+                      "properties": {
+                        "resolved": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "unresolved": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "notTrackedYet": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "resolved",
+                        "unresolved",
+                        "notTrackedYet"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "recurringTopics": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "meetingCount": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 9007199254740991
+                          },
+                          "meetingIds": {
+                            "minItems": 2,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            }
+                          }
+                        },
+                        "required": [
+                          "title",
+                          "meetingCount",
+                          "meetingIds"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "period",
+                    "rangeStart",
+                    "rangeEnd",
+                    "meetingConsistency",
+                    "taskFollowThrough",
+                    "agreementFollowThrough",
+                    "recurringTopics"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/insights/search": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 120
+            },
+            "in": "query",
+            "name": "q",
+            "required": true
+          },
+          {
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meetings": {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "meeting",
+                                  "task",
+                                  "agreement"
+                                ]
+                              },
+                              "title": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "occurredAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "sourceMeetingId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "title",
+                              "occurredAt",
+                              "status",
+                              "sourceMeetingId"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "limit": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "offset": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "hasMore": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "limit",
+                            "offset",
+                            "total",
+                            "hasMore"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "data",
+                        "pagination"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "tasks": {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "meeting",
+                                  "task",
+                                  "agreement"
+                                ]
+                              },
+                              "title": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "occurredAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "sourceMeetingId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "title",
+                              "occurredAt",
+                              "status",
+                              "sourceMeetingId"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "limit": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "offset": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "hasMore": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "limit",
+                            "offset",
+                            "total",
+                            "hasMore"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "data",
+                        "pagination"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "agreements": {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "meeting",
+                                  "task",
+                                  "agreement"
+                                ]
+                              },
+                              "title": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "occurredAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "sourceMeetingId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "title",
+                              "occurredAt",
+                              "status",
+                              "sourceMeetingId"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "limit": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "offset": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "hasMore": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "limit",
+                            "offset",
+                            "total",
+                            "hasMore"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "data",
+                        "pagination"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "meetings",
+                    "tasks",
+                    "agreements"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "code",
+                    "details"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/account/export": {
       "get": {
         "tags": [
@@ -6287,7 +7900,10 @@
                                   "minLength": 1,
                                   "maxLength": 140
                                 },
-                                "description": {},
+                                "description": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
                                 "responsibilityType": {
                                   "type": "string",
                                   "enum": [
@@ -6297,6 +7913,15 @@
                                   ]
                                 },
                                 "responsibleParticipantIds": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "responsibleUserIds": {
+                                  "default": [],
                                   "type": "array",
                                   "items": {
                                     "type": "string",
@@ -6345,9 +7970,9 @@
                               "required": [
                                 "id",
                                 "title",
-                                "description",
                                 "responsibilityType",
                                 "responsibleParticipantIds",
+                                "responsibleUserIds",
                                 "status",
                                 "createdAt",
                                 "updatedAt"
@@ -6370,7 +7995,10 @@
                                   "minLength": 1,
                                   "maxLength": 140
                                 },
-                                "description": {},
+                                "description": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
                                 "participantIds": {
                                   "type": "array",
                                   "items": {
@@ -6416,7 +8044,6 @@
                               "required": [
                                 "id",
                                 "title",
-                                "description",
                                 "participantIds",
                                 "sourceMeetingId",
                                 "createdAt",
@@ -6495,6 +8122,7 @@
                                         "localReminders",
                                         "unlimitedHistory",
                                         "aiSummary",
+                                        "smartFollowUps",
                                         "agreementReminders",
                                         "additionalTemplates",
                                         "privateNotes",
@@ -6518,6 +8146,7 @@
                                         "localReminders",
                                         "unlimitedHistory",
                                         "aiSummary",
+                                        "smartFollowUps",
                                         "agreementReminders",
                                         "additionalTemplates",
                                         "privateNotes",
@@ -6541,6 +8170,7 @@
                                             "localReminders",
                                             "unlimitedHistory",
                                             "aiSummary",
+                                            "smartFollowUps",
                                             "agreementReminders",
                                             "additionalTemplates",
                                             "privateNotes",
@@ -6601,6 +8231,7 @@
                                       "localReminders",
                                       "unlimitedHistory",
                                       "aiSummary",
+                                      "smartFollowUps",
                                       "agreementReminders",
                                       "additionalTemplates",
                                       "privateNotes",
@@ -6625,6 +8256,31 @@
                                     "type": "string",
                                     "format": "date-time",
                                     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                  },
+                                  "assistantRecap": {
+                                    "type": "object",
+                                    "properties": {
+                                      "remainingFreeCredits": {
+                                        "anyOf": [
+                                          {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 3
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "canGenerate": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "required": [
+                                      "remainingFreeCredits",
+                                      "canGenerate"
+                                    ],
+                                    "additionalProperties": false
                                   }
                                 },
                                 "required": [
@@ -6633,7 +8289,8 @@
                                   "enabledFeatures",
                                   "features",
                                   "expiresAt",
-                                  "checkedAt"
+                                  "checkedAt",
+                                  "assistantRecap"
                                 ],
                                 "additionalProperties": false
                               },
@@ -6686,6 +8343,57 @@
                                   "minLength": 1,
                                   "maxLength": 1000
                                 },
+                                "preferences": {
+                                  "type": "object",
+                                  "properties": {
+                                    "weeklyMeetingSyncEnabled": {
+                                      "type": "boolean"
+                                    },
+                                    "assignedTaskSyncEnabled": {
+                                      "type": "boolean"
+                                    },
+                                    "weeklyMeetingDay": {
+                                      "type": "string",
+                                      "enum": [
+                                        "sunday",
+                                        "monday",
+                                        "tuesday",
+                                        "wednesday",
+                                        "thursday",
+                                        "friday",
+                                        "saturday"
+                                      ]
+                                    },
+                                    "weeklyMeetingTime": {
+                                      "type": "string",
+                                      "pattern": "^\\d{2}:\\d{2}$"
+                                    },
+                                    "timeZone": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 100
+                                    },
+                                    "lastSyncErrorCode": {
+                                      "type": "string",
+                                      "enum": [
+                                        "provider-error"
+                                      ]
+                                    },
+                                    "lastSyncAttemptedAt": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                    }
+                                  },
+                                  "required": [
+                                    "weeklyMeetingSyncEnabled",
+                                    "assignedTaskSyncEnabled",
+                                    "weeklyMeetingDay",
+                                    "weeklyMeetingTime",
+                                    "timeZone"
+                                  ],
+                                  "additionalProperties": false
+                                },
                                 "authorizationUrl": {
                                   "type": "string",
                                   "format": "uri"
@@ -6697,7 +8405,8 @@
                                 "connected",
                                 "connectedAccountEmail",
                                 "lastCheckedAt",
-                                "message"
+                                "message",
+                                "preferences"
                               ],
                               "additionalProperties": false
                             }
@@ -7094,7 +8803,10 @@
                             "format": "email",
                             "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                           },
-                          "displayName": {},
+                          "displayName": {
+                            "type": "string",
+                            "maxLength": 80
+                          },
                           "role": {
                             "type": "string",
                             "enum": [
@@ -7126,7 +8838,6 @@
                         "required": [
                           "invitationId",
                           "email",
-                          "displayName",
                           "role",
                           "status",
                           "createdAt",
@@ -7461,7 +9172,10 @@
                             "format": "email",
                             "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                           },
-                          "displayName": {},
+                          "displayName": {
+                            "type": "string",
+                            "maxLength": 80
+                          },
                           "role": {
                             "type": "string",
                             "enum": [
@@ -7493,7 +9207,6 @@
                         "required": [
                           "invitationId",
                           "email",
-                          "displayName",
                           "role",
                           "status",
                           "createdAt",
@@ -7776,7 +9489,10 @@
                       "format": "email",
                       "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                     },
-                    "displayName": {},
+                    "displayName": {
+                      "type": "string",
+                      "maxLength": 80
+                    },
                     "role": {
                       "type": "string",
                       "enum": [
@@ -7808,7 +9524,6 @@
                   "required": [
                     "invitationId",
                     "email",
-                    "displayName",
                     "role",
                     "status",
                     "createdAt",
@@ -8791,8 +10506,14 @@
                                   "minLength": 1,
                                   "maxLength": 128
                                 },
-                                "title": {},
-                                "prompt": {},
+                                "title": {
+                                  "type": "string",
+                                  "maxLength": 120
+                                },
+                                "prompt": {
+                                  "type": "string",
+                                  "maxLength": 2000
+                                },
                                 "notes": {
                                   "default": [],
                                   "maxItems": 50,
@@ -8849,7 +10570,10 @@
                                         "minLength": 1,
                                         "maxLength": 140
                                       },
-                                      "description": {},
+                                      "description": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
                                       "responsibilityType": {
                                         "type": "string",
                                         "enum": [
@@ -8881,7 +10605,6 @@
                                     },
                                     "required": [
                                       "title",
-                                      "description",
                                       "responsibilityType"
                                     ],
                                     "additionalProperties": false
@@ -8904,7 +10627,10 @@
                                         "minLength": 1,
                                         "maxLength": 140
                                       },
-                                      "description": {},
+                                      "description": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
                                       "participantIds": {
                                         "type": "array",
                                         "items": {
@@ -8923,8 +10649,7 @@
                                       }
                                     },
                                     "required": [
-                                      "text",
-                                      "description"
+                                      "text"
                                     ],
                                     "additionalProperties": false
                                   }
@@ -8937,8 +10662,6 @@
                               },
                               "required": [
                                 "id",
-                                "title",
-                                "prompt",
                                 "notes",
                                 "tasks",
                                 "agreements"
@@ -9491,41 +11214,83 @@
                                 "maxItems": 50,
                                 "type": "array",
                                 "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "id": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 128
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "text": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 140
+                                        },
+                                        "description": {
+                                          "type": "string",
+                                          "maxLength": 1000
+                                        },
+                                        "participantIds": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 128
+                                          }
+                                        },
+                                        "relatedTaskIds": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 128
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "text"
+                                      ]
                                     },
-                                    "text": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "maxLength": 140
-                                    },
-                                    "description": {
-                                      "type": "string",
-                                      "maxLength": 1000
-                                    },
-                                    "participantIds": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "maxLength": 128
-                                      }
-                                    },
-                                    "relatedTaskIds": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "maxLength": 128
-                                      }
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "description": {
+                                          "type": "string",
+                                          "maxLength": 1000
+                                        },
+                                        "participantIds": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 128
+                                          }
+                                        },
+                                        "relatedTaskIds": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 128
+                                          }
+                                        },
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 140
+                                        }
+                                      },
+                                      "required": [
+                                        "title"
+                                      ]
                                     }
-                                  },
-                                  "required": [
-                                    "text"
                                   ]
                                 }
                               },
@@ -9792,8 +11557,14 @@
                                   "minLength": 1,
                                   "maxLength": 128
                                 },
-                                "title": {},
-                                "prompt": {},
+                                "title": {
+                                  "type": "string",
+                                  "maxLength": 120
+                                },
+                                "prompt": {
+                                  "type": "string",
+                                  "maxLength": 2000
+                                },
                                 "notes": {
                                   "default": [],
                                   "maxItems": 50,
@@ -9850,7 +11621,10 @@
                                         "minLength": 1,
                                         "maxLength": 140
                                       },
-                                      "description": {},
+                                      "description": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
                                       "responsibilityType": {
                                         "type": "string",
                                         "enum": [
@@ -9882,7 +11656,6 @@
                                     },
                                     "required": [
                                       "title",
-                                      "description",
                                       "responsibilityType"
                                     ],
                                     "additionalProperties": false
@@ -9905,7 +11678,10 @@
                                         "minLength": 1,
                                         "maxLength": 140
                                       },
-                                      "description": {},
+                                      "description": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
                                       "participantIds": {
                                         "type": "array",
                                         "items": {
@@ -9924,8 +11700,7 @@
                                       }
                                     },
                                     "required": [
-                                      "text",
-                                      "description"
+                                      "text"
                                     ],
                                     "additionalProperties": false
                                   }
@@ -9938,8 +11713,6 @@
                               },
                               "required": [
                                 "id",
-                                "title",
-                                "prompt",
                                 "notes",
                                 "tasks",
                                 "agreements"
@@ -10209,8 +11982,14 @@
                                       "minLength": 1,
                                       "maxLength": 128
                                     },
-                                    "title": {},
-                                    "prompt": {},
+                                    "title": {
+                                      "type": "string",
+                                      "maxLength": 120
+                                    },
+                                    "prompt": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    },
                                     "notes": {
                                       "default": [],
                                       "maxItems": 50,
@@ -10267,7 +12046,10 @@
                                             "minLength": 1,
                                             "maxLength": 140
                                           },
-                                          "description": {},
+                                          "description": {
+                                            "type": "string",
+                                            "maxLength": 1000
+                                          },
                                           "responsibilityType": {
                                             "type": "string",
                                             "enum": [
@@ -10299,7 +12081,6 @@
                                         },
                                         "required": [
                                           "title",
-                                          "description",
                                           "responsibilityType"
                                         ],
                                         "additionalProperties": false
@@ -10322,7 +12103,10 @@
                                             "minLength": 1,
                                             "maxLength": 140
                                           },
-                                          "description": {},
+                                          "description": {
+                                            "type": "string",
+                                            "maxLength": 1000
+                                          },
                                           "participantIds": {
                                             "type": "array",
                                             "items": {
@@ -10341,8 +12125,7 @@
                                           }
                                         },
                                         "required": [
-                                          "text",
-                                          "description"
+                                          "text"
                                         ],
                                         "additionalProperties": false
                                       }
@@ -10355,8 +12138,6 @@
                                   },
                                   "required": [
                                     "id",
-                                    "title",
-                                    "prompt",
                                     "notes",
                                     "tasks",
                                     "agreements"
@@ -10558,8 +12339,14 @@
                                       "minLength": 1,
                                       "maxLength": 128
                                     },
-                                    "title": {},
-                                    "prompt": {},
+                                    "title": {
+                                      "type": "string",
+                                      "maxLength": 120
+                                    },
+                                    "prompt": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    },
                                     "notes": {
                                       "default": [],
                                       "maxItems": 50,
@@ -10616,7 +12403,10 @@
                                             "minLength": 1,
                                             "maxLength": 140
                                           },
-                                          "description": {},
+                                          "description": {
+                                            "type": "string",
+                                            "maxLength": 1000
+                                          },
                                           "responsibilityType": {
                                             "type": "string",
                                             "enum": [
@@ -10648,7 +12438,6 @@
                                         },
                                         "required": [
                                           "title",
-                                          "description",
                                           "responsibilityType"
                                         ],
                                         "additionalProperties": false
@@ -10671,7 +12460,10 @@
                                             "minLength": 1,
                                             "maxLength": 140
                                           },
-                                          "description": {},
+                                          "description": {
+                                            "type": "string",
+                                            "maxLength": 1000
+                                          },
                                           "participantIds": {
                                             "type": "array",
                                             "items": {
@@ -10690,8 +12482,7 @@
                                           }
                                         },
                                         "required": [
-                                          "text",
-                                          "description"
+                                          "text"
                                         ],
                                         "additionalProperties": false
                                       }
@@ -10704,8 +12495,6 @@
                                   },
                                   "required": [
                                     "id",
-                                    "title",
-                                    "prompt",
                                     "notes",
                                     "tasks",
                                     "agreements"
@@ -11262,8 +13051,14 @@
                             "minLength": 1,
                             "maxLength": 128
                           },
-                          "title": {},
-                          "prompt": {},
+                          "title": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "prompt": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
                           "notes": {
                             "default": [],
                             "maxItems": 50,
@@ -11320,7 +13115,10 @@
                                   "minLength": 1,
                                   "maxLength": 140
                                 },
-                                "description": {},
+                                "description": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
                                 "responsibilityType": {
                                   "type": "string",
                                   "enum": [
@@ -11352,7 +13150,6 @@
                               },
                               "required": [
                                 "title",
-                                "description",
                                 "responsibilityType"
                               ],
                               "additionalProperties": false
@@ -11375,7 +13172,10 @@
                                   "minLength": 1,
                                   "maxLength": 140
                                 },
-                                "description": {},
+                                "description": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
                                 "participantIds": {
                                   "type": "array",
                                   "items": {
@@ -11394,8 +13194,7 @@
                                 }
                               },
                               "required": [
-                                "text",
-                                "description"
+                                "text"
                               ],
                               "additionalProperties": false
                             }
@@ -11408,8 +13207,6 @@
                         },
                         "required": [
                           "id",
-                          "title",
-                          "prompt",
                           "notes",
                           "tasks",
                           "agreements"
@@ -12294,7 +14091,10 @@
                             "minLength": 1,
                             "maxLength": 140
                           },
-                          "description": {},
+                          "description": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
                           "responsibilityType": {
                             "type": "string",
                             "enum": [
@@ -12304,6 +14104,15 @@
                             ]
                           },
                           "responsibleParticipantIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            }
+                          },
+                          "responsibleUserIds": {
+                            "default": [],
                             "type": "array",
                             "items": {
                               "type": "string",
@@ -12352,9 +14161,9 @@
                         "required": [
                           "id",
                           "title",
-                          "description",
                           "responsibilityType",
                           "responsibleParticipantIds",
+                          "responsibleUserIds",
                           "status",
                           "createdAt",
                           "updatedAt"
@@ -12377,7 +14186,10 @@
                             "minLength": 1,
                             "maxLength": 140
                           },
-                          "description": {},
+                          "description": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
                           "participantIds": {
                             "type": "array",
                             "items": {
@@ -12423,7 +14235,6 @@
                         "required": [
                           "id",
                           "title",
-                          "description",
                           "participantIds",
                           "sourceMeetingId",
                           "createdAt",
@@ -12514,7 +14325,10 @@
                                     "minLength": 1,
                                     "maxLength": 140
                                   },
-                                  "description": {},
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
                                   "responsibilityType": {
                                     "type": "string",
                                     "enum": [
@@ -12524,6 +14338,15 @@
                                     ]
                                   },
                                   "responsibleParticipantIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    }
+                                  },
+                                  "responsibleUserIds": {
+                                    "default": [],
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -12572,9 +14395,9 @@
                                 "required": [
                                   "id",
                                   "title",
-                                  "description",
                                   "responsibilityType",
                                   "responsibleParticipantIds",
+                                  "responsibleUserIds",
                                   "status",
                                   "createdAt",
                                   "updatedAt"
@@ -12594,7 +14417,10 @@
                                     "minLength": 1,
                                     "maxLength": 140
                                   },
-                                  "description": {},
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
                                   "responsibilityType": {
                                     "type": "string",
                                     "enum": [
@@ -12604,6 +14430,15 @@
                                     ]
                                   },
                                   "responsibleParticipantIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    }
+                                  },
+                                  "responsibleUserIds": {
+                                    "default": [],
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -12652,9 +14487,9 @@
                                 "required": [
                                   "id",
                                   "title",
-                                  "description",
                                   "responsibilityType",
                                   "responsibleParticipantIds",
+                                  "responsibleUserIds",
                                   "status",
                                   "createdAt",
                                   "updatedAt"
@@ -12719,7 +14554,10 @@
                                     "minLength": 1,
                                     "maxLength": 140
                                   },
-                                  "description": {},
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
                                   "participantIds": {
                                     "type": "array",
                                     "items": {
@@ -12765,7 +14603,6 @@
                                 "required": [
                                   "id",
                                   "title",
-                                  "description",
                                   "participantIds",
                                   "sourceMeetingId",
                                   "createdAt",
@@ -12786,7 +14623,10 @@
                                     "minLength": 1,
                                     "maxLength": 140
                                   },
-                                  "description": {},
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
                                   "participantIds": {
                                     "type": "array",
                                     "items": {
@@ -12832,7 +14672,6 @@
                                 "required": [
                                   "id",
                                   "title",
-                                  "description",
                                   "participantIds",
                                   "sourceMeetingId",
                                   "createdAt",
@@ -13076,6 +14915,15 @@
                             "maxLength": 128
                           }
                         },
+                        "responsibleUserIds": {
+                          "default": [],
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          }
+                        },
                         "dueDate": {
                           "type": "string",
                           "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
@@ -13274,7 +15122,10 @@
                             "minLength": 1,
                             "maxLength": 140
                           },
-                          "description": {},
+                          "description": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
                           "responsibilityType": {
                             "type": "string",
                             "enum": [
@@ -13284,6 +15135,15 @@
                             ]
                           },
                           "responsibleParticipantIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            }
+                          },
+                          "responsibleUserIds": {
+                            "default": [],
                             "type": "array",
                             "items": {
                               "type": "string",
@@ -13332,9 +15192,9 @@
                         "required": [
                           "id",
                           "title",
-                          "description",
                           "responsibilityType",
                           "responsibleParticipantIds",
+                          "responsibleUserIds",
                           "status",
                           "createdAt",
                           "updatedAt"
@@ -13357,7 +15217,10 @@
                             "minLength": 1,
                             "maxLength": 140
                           },
-                          "description": {},
+                          "description": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
                           "participantIds": {
                             "type": "array",
                             "items": {
@@ -13403,7 +15266,6 @@
                         "required": [
                           "id",
                           "title",
-                          "description",
                           "participantIds",
                           "sourceMeetingId",
                           "createdAt",
@@ -13494,7 +15356,10 @@
                                     "minLength": 1,
                                     "maxLength": 140
                                   },
-                                  "description": {},
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
                                   "responsibilityType": {
                                     "type": "string",
                                     "enum": [
@@ -13504,6 +15369,15 @@
                                     ]
                                   },
                                   "responsibleParticipantIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    }
+                                  },
+                                  "responsibleUserIds": {
+                                    "default": [],
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -13552,9 +15426,9 @@
                                 "required": [
                                   "id",
                                   "title",
-                                  "description",
                                   "responsibilityType",
                                   "responsibleParticipantIds",
+                                  "responsibleUserIds",
                                   "status",
                                   "createdAt",
                                   "updatedAt"
@@ -13574,7 +15448,10 @@
                                     "minLength": 1,
                                     "maxLength": 140
                                   },
-                                  "description": {},
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
                                   "responsibilityType": {
                                     "type": "string",
                                     "enum": [
@@ -13584,6 +15461,15 @@
                                     ]
                                   },
                                   "responsibleParticipantIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    }
+                                  },
+                                  "responsibleUserIds": {
+                                    "default": [],
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -13632,9 +15518,9 @@
                                 "required": [
                                   "id",
                                   "title",
-                                  "description",
                                   "responsibilityType",
                                   "responsibleParticipantIds",
+                                  "responsibleUserIds",
                                   "status",
                                   "createdAt",
                                   "updatedAt"
@@ -13699,7 +15585,10 @@
                                     "minLength": 1,
                                     "maxLength": 140
                                   },
-                                  "description": {},
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
                                   "participantIds": {
                                     "type": "array",
                                     "items": {
@@ -13745,7 +15634,6 @@
                                 "required": [
                                   "id",
                                   "title",
-                                  "description",
                                   "participantIds",
                                   "sourceMeetingId",
                                   "createdAt",
@@ -13766,7 +15654,10 @@
                                     "minLength": 1,
                                     "maxLength": 140
                                   },
-                                  "description": {},
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
                                   "participantIds": {
                                     "type": "array",
                                     "items": {
@@ -13812,7 +15703,6 @@
                                 "required": [
                                   "id",
                                   "title",
-                                  "description",
                                   "participantIds",
                                   "sourceMeetingId",
                                   "createdAt",
