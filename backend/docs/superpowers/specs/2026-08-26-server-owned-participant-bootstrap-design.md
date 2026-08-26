@@ -90,6 +90,15 @@ placeholder participants while hydration is in flight.
   remain usable for the same bound user; a fresh installation waits for network
   hydration.
 
+## Duplicate Registration Feedback
+
+When user creation fails with PostgreSQL unique-constraint code `23505`, the
+registration endpoint returns `409` with code `email_already_registered` and
+the message `An account with this email address already exists. Sign in
+instead.` This intentionally discloses whether an email address has an account;
+the existing registration rate limit remains in place to limit abuse. Other
+account-creation failures remain generic `500 account_create_failed` responses.
+
 ## Existing Duplicate Data
 
 This change prevents new duplicates but does not automatically delete existing
@@ -106,6 +115,8 @@ Backend tests cover:
 - first-time Google signup creates both initial participants;
 - participant creation failure triggers registration cleanup and does not return
   a session;
+- duplicate password registration returns the explicit `409
+  email_already_registered` response;
 - `GET /v1/participants` requires authentication and scopes reads to the request
   workspace;
 - response DTOs do not leak workspace or database fields.

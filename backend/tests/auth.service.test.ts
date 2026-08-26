@@ -320,6 +320,25 @@ describe('auth.service', () => {
     ]);
   });
 
+  it('returns clear feedback when a password registration email already exists', async () => {
+    const { authService } = await loadAuthModules();
+    const supabase = createSequentialSupabase([
+      { data: null, error: { code: '23505' } },
+    ]);
+
+    await expect(
+      authService.registerUser(supabase, {
+        email: 'rita@example.com',
+        password: 'password123',
+        displayName: 'Rita',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'email_already_registered',
+      message: 'An account with this email address already exists. Sign in instead.',
+    });
+  });
+
   it('creates a user, workspace, Google identity, and session for a new Google identity', async () => {
     const { authService } = await loadAuthModules();
     const provider = googleProvider();

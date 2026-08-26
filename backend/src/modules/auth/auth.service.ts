@@ -481,8 +481,8 @@ export async function registerUser(
     if (code === '23505') {
       throw new ApiError(
         409,
-        'account_create_failed',
-        'Unable to create an account with those details.',
+        'email_already_registered',
+        'An account with this email address already exists. Sign in instead.',
       );
     }
 

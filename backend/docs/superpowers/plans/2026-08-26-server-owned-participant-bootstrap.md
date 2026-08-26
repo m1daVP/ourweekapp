@@ -19,6 +19,8 @@
 - Preserve later local-first participant creation and sync behavior.
 - Do not add dependencies or a database migration.
 - Do not automatically delete existing duplicate rows.
+- Duplicate password registration returns `409 email_already_registered` with
+  `An account with this email address already exists. Sign in instead.`
 - Do not stage or commit changes without explicit user authorization.
 
 ## File Map
@@ -520,3 +522,50 @@ Manually validate when environments are available:
 3. Log in from a clean browser profile and confirm only the renamed records appear.
 4. Reinstall the native app, log in, and confirm the same result.
 5. For the already affected test account, inspect references before deleting the two duplicate IDs; do not include that cleanup in this implementation.
+
+---
+
+### Task 6: Return a clear duplicate-email registration error
+
+**Files:**
+
+- Modify: `src/modules/auth/auth.service.ts`
+- Test: `tests/auth.service.test.ts`
+
+**Interfaces:**
+
+- Consumes: the existing Supabase/PostgreSQL unique-constraint error code `23505` from password-account creation.
+- Produces: HTTP `409` through the existing error handler, with code `email_already_registered` and message `An account with this email address already exists. Sign in instead.`
+
+- [x] **Step 1: Add a failing duplicate-registration service test**
+
+Configure the auth Supabase harness to return `code: '23505'` for user creation. Assert `registerUser` rejects with the exact public status, code, and message. Do not include the submitted email in the response or logs.
+
+- [x] **Step 2: Verify the client already displays API error messages**
+
+Confirm the sign-up store uses the API error's message, so the API contract change reaches the user without client-side branching or duplicated copy.
+
+- [x] **Step 3: Map only duplicate password registrations to the explicit error**
+
+Replace the existing generic `account_create_failed` conflict branch in `registerUser` with:
+
+```ts
+throw new ApiError(
+  409,
+  'email_already_registered',
+  'An account with this email address already exists. Sign in instead.',
+);
+```
+
+Leave all non-duplicate account-creation failures as the current generic `500 account_create_failed` response.
+
+- [x] **Step 4: Run focused verification**
+
+Run:
+
+```bash
+npm test -- tests/auth.service.test.ts
+npm run typecheck
+```
+
+Expected: the duplicate-registration test and existing auth bootstrap tests pass.
