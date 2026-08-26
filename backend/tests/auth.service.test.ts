@@ -291,7 +291,7 @@ describe('auth.service', () => {
     const response = await authService.registerUser(supabase, {
       email: 'rita@example.com',
       password: 'password123',
-      displayName: 'Rita',
+      displayName: 'Rita Nowak',
     });
 
     expect(response.user.workspaceId).toBe('workspace-1');
@@ -303,8 +303,8 @@ describe('auth.service', () => {
     ).toEqual([
       {
         workspace_id: 'workspace-1',
-        name: 'Me',
-        initials: 'M',
+        name: 'Rita Nowak',
+        initials: 'RN',
         avatar_color: '#496a8f',
         type: 'adult',
         is_active: true,
@@ -359,7 +359,8 @@ describe('auth.service', () => {
     ).toEqual([
       expect.objectContaining({
         workspace_id: 'workspace-1',
-        name: 'Me',
+        name: 'Rita',
+        initials: 'R',
       }),
       expect.objectContaining({
         workspace_id: 'workspace-1',

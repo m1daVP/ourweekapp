@@ -282,32 +282,44 @@ async function cleanupFailedRegistration(
   }
 }
 
-const INITIAL_PARTICIPANTS = [
-  {
-    name: 'Me',
-    initials: 'M',
-    avatar_color: '#496a8f',
-    type: 'adult',
-    is_active: true,
-  },
-  {
-    name: 'Partner',
-    initials: 'P',
-    avatar_color: '#6b8f71',
-    type: 'adult',
-    is_active: true,
-  },
-] as const;
+const PARTNER_PARTICIPANT = {
+  name: 'Partner',
+  initials: 'P',
+  avatar_color: '#6b8f71',
+  type: 'adult',
+  is_active: true,
+} as const;
+
+function participantInitials(displayName: string) {
+  return displayName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? '')
+    .join('')
+    .slice(0, 3);
+}
 
 async function createInitialParticipants(
   supabase: SupabaseClient,
   workspaceId: string,
+  ownerDisplayName: string,
 ) {
   const { error } = await supabase.from('participants').insert(
-    INITIAL_PARTICIPANTS.map((participant) => ({
-      workspace_id: workspaceId,
-      ...participant,
-    })),
+    [
+      {
+        workspace_id: workspaceId,
+        name: ownerDisplayName,
+        initials: participantInitials(ownerDisplayName),
+        avatar_color: '#496a8f',
+        type: 'adult',
+        is_active: true,
+      },
+      {
+        workspace_id: workspaceId,
+        ...PARTNER_PARTICIPANT,
+      },
+    ],
   );
 
   if (error) {
@@ -529,7 +541,7 @@ export async function registerUser(
       );
     }
 
-    await createInitialParticipants(supabase, workspace.id);
+    await createInitialParticipants(supabase, workspace.id, body.displayName);
 
     return await createSessionResponse(supabase, user, member);
   } catch (error) {
@@ -630,7 +642,7 @@ async function registerGoogleUser(
       );
     }
 
-    await createInitialParticipants(supabase, workspace.id);
+    await createInitialParticipants(supabase, workspace.id, displayName);
 
     return await createSessionResponse(supabase, user, member);
   } catch (error) {
