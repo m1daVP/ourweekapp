@@ -42,6 +42,20 @@ describe('resolveDeepLinkRoute', () => {
     });
   });
 
+  it('maps an invitation deep link without exposing unrelated fields', () => {
+    expect(resolveDeepLinkRoute('weeklyus://invite?token=opaque-token')).toEqual({
+      path: '/invitations/accept',
+      query: { token: 'opaque-token' },
+    });
+  });
+
+  it.each(['weeklyus://invite', 'weeklyus://invite?token=   '])(
+    'rejects invitation deep links without a token: %s',
+    (url) => {
+      expect(resolveDeepLinkRoute(url)).toBeNull();
+    }
+  );
+
   it.each([
     'https://calendar-callback?calendar=connected',
     'weeklyus://other-callback?calendar=connected',

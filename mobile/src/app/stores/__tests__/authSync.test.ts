@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia';
 
 const mocks = vi.hoisted(() => ({
   clearAuthTokens: vi.fn(),
+  clearPendingInvitationToken: vi.fn(),
   captureHandledError: vi.fn(),
   getCurrentUser: vi.fn(),
   logInRevenueCat: vi.fn(),
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   prepareSyncForAuthenticatedUser: vi.fn(),
   readOnboardingStorage: vi.fn(),
   readAuthTokens: vi.fn(),
+  readPendingInvitationToken: vi.fn().mockResolvedValue(null),
   refreshSession: vi.fn(),
   resetSyncRuntimeState: vi.fn(),
   signIn: vi.fn(),
@@ -61,7 +63,9 @@ vi.mock('@/features/auth/googleSignInService', () => ({
 
 vi.mock('@/shared/services/authTokenStorageService', () => ({
   clearAuthTokens: mocks.clearAuthTokens,
+  clearPendingInvitationToken: mocks.clearPendingInvitationToken,
   readAuthTokens: mocks.readAuthTokens,
+  readPendingInvitationToken: mocks.readPendingInvitationToken,
   writeAuthTokens: mocks.writeAuthTokens,
 }));
 

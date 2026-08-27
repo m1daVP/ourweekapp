@@ -9,10 +9,16 @@ export function resolveDeepLinkRoute(url: string): DeepLinkRoute | null {
     const callbackTarget =
       parsedUrl.host || parsedUrl.pathname.replace(/^\/+/, '');
 
-    if (
-      parsedUrl.protocol !== 'weeklyus:' ||
-      callbackTarget !== 'calendar-callback'
-    ) {
+    if (parsedUrl.protocol !== 'weeklyus:') {
+      return null;
+    }
+
+    if (callbackTarget === 'invite') {
+      const token = parsedUrl.searchParams.get('token')?.trim();
+      return token ? { path: '/invitations/accept', query: { token } } : null;
+    }
+
+    if (callbackTarget !== 'calendar-callback') {
       return null;
     }
 

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { translate } from '@/features/localization/i18n';
 import {
   getCurrentUser as getCurrentUserRequest,
+  acceptWorkspaceInvitation as acceptWorkspaceInvitationRequest,
   refreshSession as refreshSessionRequest,
   register as registerRequest,
   signIn as signInRequest,
@@ -15,7 +16,9 @@ import { ApiClientError, setApiAuthHandlers } from '@/shared/api/httpClient';
 import { appConfig } from '@/shared/config/env';
 import {
   clearAuthTokens,
+  clearPendingInvitationToken,
   readAuthTokens,
+  readPendingInvitationToken,
   writeAuthTokens,
   type AuthTokens,
 } from '@/shared/services/authTokenStorageService';
@@ -446,7 +449,8 @@ function getGoogleSignInDebugDetails(
 
 async function exchangeGoogleIdToken(
   idToken: string,
-  abortController: AbortController
+  abortController: AbortController,
+  invitationToken?: string
 ) {
   const timeoutId = globalThis.setTimeout(() => {
     abortController.abort();
@@ -454,7 +458,7 @@ async function exchangeGoogleIdToken(
 
   try {
     return await signInWithGoogleIdTokenRequest(
-      { idToken },
+      { idToken, invitationToken },
       abortController.signal
     );
   } finally {
@@ -876,7 +880,12 @@ export const useAuthStore = defineStore('auth', {
         this.setAuthOperationStage('backend_exchange');
         const abortController = new AbortController();
         activeGoogleExchange = { abortController, attemptId };
-        const session = await exchangeGoogleIdToken(idToken, abortController);
+        const invitationToken = await readPendingInvitationToken();
+        const session = await exchangeGoogleIdToken(
+          idToken,
+          abortController,
+          invitationToken ?? undefined
+        );
 
         if (!isActiveGoogleSignInAttempt(attemptId)) {
           return false;
@@ -948,9 +957,13 @@ export const useAuthStore = defineStore('auth', {
           email: normalizeEmail(payload.email),
           password: payload.password,
           displayName: payload.displayName.trim(),
+          invitationToken: payload.invitationToken,
         });
 
         await this.applySession(session);
+        if (payload.invitationToken) {
+          await clearPendingInvitationToken();
+        }
         return true;
       } catch (error) {
         this.user = null;
@@ -961,6 +974,33 @@ export const useAuthStore = defineStore('auth', {
         );
         this.persist();
         await clearStoredAuthTokensSafely();
+        return false;
+      }
+    },
+    async acceptWorkspaceInvitation(token: string) {
+      const invitationToken = token.trim();
+
+      if (!invitationToken) {
+        this.errorMessage = 'Invitation link is invalid.';
+        return false;
+      }
+
+      this.authStatus = 'loading';
+      this.errorMessage = '';
+
+      try {
+        const session = await acceptWorkspaceInvitationRequest({
+          token: invitationToken,
+        });
+        await this.applySession(session);
+        await clearPendingInvitationToken();
+        return true;
+      } catch (error) {
+        this.authStatus = 'authenticated';
+        this.errorMessage = getSessionApplicationErrorMessage(
+          error,
+          'api.signInFailed'
+        );
         return false;
       }
     },

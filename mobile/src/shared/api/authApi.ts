@@ -27,12 +27,18 @@ export interface SignInRequestDto {
 
 export interface GoogleSignInRequestDto {
   idToken: string;
+  invitationToken?: string;
 }
 
 export interface RegisterRequestDto {
   email: string;
   password: string;
   displayName: string;
+  invitationToken?: string;
+}
+
+export interface AcceptWorkspaceInvitationRequestDto {
+  token: string;
 }
 
 export interface RefreshSessionRequestDto {
@@ -136,6 +142,16 @@ export async function register(
   return apiRequest<AuthSessionDto>('/auth/register', {
     method: 'POST',
     body: payload,
+  });
+}
+
+export async function acceptWorkspaceInvitation(
+  payload: AcceptWorkspaceInvitationRequestDto
+): Promise<AuthSessionDto> {
+  return apiRequest<AuthSessionDto>('/auth/invitations/accept', {
+    method: 'POST',
+    body: payload,
+    requiresAuth: true,
   });
 }
 

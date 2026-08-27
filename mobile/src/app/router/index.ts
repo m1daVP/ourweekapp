@@ -9,6 +9,7 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
 import HomePage from '@/pages/HomePage.vue';
 import HistoryPage from '@/pages/HistoryPage.vue';
 import InsightsPage from '@/pages/InsightsPage.vue';
+import InvitationAcceptancePage from '@/pages/InvitationAcceptancePage.vue';
 import LogoutConfirmationPage from '@/pages/LogoutConfirmationPage.vue';
 import MeetingDetailsPage from '@/pages/MeetingDetailsPage.vue';
 import MeetingPage from '@/pages/MeetingPage.vue';
@@ -32,6 +33,7 @@ const unauthenticatedRouteNames = new Set([
   'sign-up',
   'forgot-password',
   'reset-password',
+  'invitation-acceptance',
 ]);
 
 function isUnauthenticatedRouteName(routeName: unknown) {
@@ -85,6 +87,12 @@ export const router = createRouter({
       path: '/reset-password',
       name: 'reset-password',
       component: ResetPasswordPage,
+      meta: { hideNavigation: true },
+    },
+    {
+      path: '/invitations/accept',
+      name: 'invitation-acceptance',
+      component: InvitationAcceptancePage,
       meta: { hideNavigation: true },
     },
     {

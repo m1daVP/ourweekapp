@@ -9,6 +9,7 @@ const SESSION_KEY = 'session';
 const ACCESS_TOKEN_KEY = 'access-token';
 const REFRESH_TOKEN_KEY = 'refresh-token';
 const EXPIRES_AT_KEY = 'expires-at';
+const PENDING_INVITATION_TOKEN_KEY = 'pending-invitation-token';
 const SECURE_STORAGE_OPERATION_TIMEOUT_MS = 4_000;
 
 type AuthTokenStorageErrorCode =
@@ -26,7 +27,10 @@ type SecureStorageOperation =
   | 'remove_session'
   | 'remove_legacy_access_token'
   | 'remove_legacy_refresh_token'
-  | 'remove_legacy_expiry';
+  | 'remove_legacy_expiry'
+  | 'read_pending_invitation_token'
+  | 'write_pending_invitation_token'
+  | 'remove_pending_invitation_token';
 
 export interface AuthTokens {
   accessToken: string | null;
@@ -288,4 +292,32 @@ export async function clearAuthTokens() {
 
   await removeTokenBestEffort(SESSION_KEY, 'remove_session');
   await removeLegacyTokenKeys();
+}
+
+/**
+ * An invitation token is short-lived but still grants a workspace join. Keep it
+ * with the session credentials while authentication is in progress, never in
+ * query-derived app state or regular settings storage.
+ */
+export async function readPendingInvitationToken() {
+  await initializeSecureTokenStorage();
+  return readToken(
+    PENDING_INVITATION_TOKEN_KEY,
+    'read_pending_invitation_token'
+  );
+}
+
+export async function writePendingInvitationToken(token: string) {
+  await initializeSecureTokenStorage();
+  await runSecureStorageOperation('write_pending_invitation_token', () =>
+    SecureStorage.set(PENDING_INVITATION_TOKEN_KEY, token, false)
+  );
+}
+
+export async function clearPendingInvitationToken() {
+  await initializeSecureTokenStorage();
+  await removeTokenBestEffort(
+    PENDING_INVITATION_TOKEN_KEY,
+    'remove_pending_invitation_token'
+  );
 }

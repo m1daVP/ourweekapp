@@ -18,4 +18,5 @@ export interface SignInPayload {
 
 export interface SignUpPayload extends SignInPayload {
   displayName: string;
+  invitationToken?: string;
 }

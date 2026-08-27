@@ -31,7 +31,9 @@ vi.mock('@/features/auth/googleSignInService', () => ({
 
 vi.mock('@/shared/services/authTokenStorageService', () => ({
   clearAuthTokens: vi.fn(),
+  clearPendingInvitationToken: vi.fn(),
   readAuthTokens: vi.fn(),
+  readPendingInvitationToken: vi.fn().mockResolvedValue(null),
   writeAuthTokens: mocks.writeAuthTokens,
 }));
 

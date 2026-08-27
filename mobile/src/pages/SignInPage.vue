@@ -193,7 +193,10 @@ onBeforeRouteLeave(() => {
 
     <p class="auth-switch">
       {{ t('auth.newHere') }}
-      <RouterLink :to="{ name: 'sign-up' }" @click="cancelGoogleSignIn">
+      <RouterLink
+        :to="{ name: 'sign-up', query: { redirect: route.query.redirect } }"
+        @click="cancelGoogleSignIn"
+      >
         {{ t('auth.createAccount') }}
       </RouterLink>
     </p>

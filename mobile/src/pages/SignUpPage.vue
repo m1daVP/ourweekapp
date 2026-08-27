@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
 import GoogleSignInButton from '@/features/auth/GoogleSignInButton.vue';
 import { isNativeGoogleSignInSupported } from '@/features/auth/googleSignInService';
 import { navigateAfterAuthentication } from '@/features/auth/postAuthNavigation';
 import { captureHandledError } from '@/shared/services/errorMonitoringService';
+import { readPendingInvitationToken } from '@/shared/services/authTokenStorageService';
 
+const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const { t } = useI18n();
@@ -53,7 +55,7 @@ async function openAuthenticatedApp(provider: 'google' | 'password') {
   isNavigating.value = true;
 
   try {
-    await navigateAfterAuthentication(router);
+    await navigateAfterAuthentication(router, route.query.redirect);
     authStore.setAuthOperationStage('idle');
     return true;
   } catch (error) {
@@ -89,13 +91,19 @@ async function handleSubmit() {
     return;
   }
 
+  const invitationToken = await readPendingInvitationToken();
   const didSignUp = await authStore.signUp({
     displayName: form.displayName,
     email: form.email,
     password: form.password,
+    invitationToken: invitationToken ?? undefined,
   });
 
   if (didSignUp) {
+    if (invitationToken) {
+      await router.replace({ name: 'home' });
+      return;
+    }
     await openAuthenticatedApp('password');
     return;
   }
@@ -199,7 +207,10 @@ onBeforeRouteLeave(() => {
 
     <p class="auth-switch">
       {{ t('auth.alreadyHaveAccount') }}
-      <RouterLink :to="{ name: 'sign-in' }" @click="cancelGoogleSignIn">
+      <RouterLink
+        :to="{ name: 'sign-in', query: { redirect: route.query.redirect } }"
+        @click="cancelGoogleSignIn"
+      >
         {{ t('auth.signIn') }}
       </RouterLink>
     </p>
