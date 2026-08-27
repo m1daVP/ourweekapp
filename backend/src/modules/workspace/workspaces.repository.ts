@@ -8,7 +8,7 @@ const WORKSPACE_COLUMNS = 'id,name,owner_id,created_at,updated_at' as const;
 const MEMBER_COLUMNS =
   'workspace_id,user_id,display_name,email,role,status,created_at,updated_at' as const;
 const INVITATION_COLUMNS =
-  'id,workspace_id,email,email_normalized,display_name,role,status,created_at,expires_at' as const;
+  'id,workspace_id,participant_id,email,email_normalized,display_name,role,status,delivery_status,delivery_attempted_at,delivery_sent_at,created_at,expires_at' as const;
 
 type WorkspaceRow = {
   id: string;
@@ -32,13 +32,24 @@ type WorkspaceMemberRow = {
 type WorkspaceInvitationRow = {
   id: string;
   workspace_id: string;
+  participant_id: string;
   email: string;
   email_normalized: string;
   display_name: string | null;
   role: UserRole;
   status: 'pending' | 'accepted' | 'expired' | 'revoked';
+  delivery_status: 'pending' | 'sent' | 'failed';
+  delivery_attempted_at: string | null;
+  delivery_sent_at: string | null;
   created_at: string;
   expires_at: string;
+};
+
+type WorkspaceParticipantRow = {
+  id: string;
+  workspace_id: string;
+  name: string;
+  type: 'adult' | 'child' | 'other';
 };
 
 export type WorkspaceDto = {
@@ -63,13 +74,22 @@ export type WorkspaceMemberDto = {
 export type WorkspaceInvitationDto = {
   id: string;
   workspaceId: string;
+  participantId: string;
   email: string;
   emailNormalized: string;
   displayName: string | null;
   role: UserRole;
   status: WorkspaceInvitationRow['status'];
+  deliveryStatus: WorkspaceInvitationRow['delivery_status'];
   createdAt: string;
   expiresAt: string;
+};
+
+export type WorkspaceInvitationParticipantDto = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  type: WorkspaceParticipantRow['type'];
 };
 
 export type CreateWorkspaceInput = {
@@ -88,9 +108,9 @@ export type CreateMembershipInput = {
 
 export type CreateWorkspaceInvitationInput = {
   workspaceId: string;
+  participantId: string;
   email: string;
   emailNormalized: string;
-  displayName?: string | null;
   role: UserRole;
   tokenHash: string;
   expiresAt: string;
@@ -99,6 +119,12 @@ export type CreateWorkspaceInvitationInput = {
 export type UpdateWorkspaceMembershipInput = {
   role?: UserRole;
   status?: 'removed';
+};
+
+export type UpdateInvitationDeliveryInput = {
+  deliveryStatus: WorkspaceInvitationRow['delivery_status'];
+  attemptedAt: string;
+  sentAt?: string | null;
 };
 
 export type CreateWorkspaceWithOwnerInput = {
@@ -135,11 +161,13 @@ export function mapWorkspaceInvitationRowToDto(row: WorkspaceInvitationRow): Wor
   return {
     id: row.id,
     workspaceId: row.workspace_id,
+    participantId: row.participant_id,
     email: row.email,
     emailNormalized: row.email_normalized,
     displayName: row.display_name,
     role: row.role,
     status: row.status,
+    deliveryStatus: row.delivery_status,
     createdAt: formatApiDateTime(row.created_at),
     expiresAt: formatApiDateTime(row.expires_at),
   };
@@ -172,6 +200,70 @@ function mapWorkspaceMemberRpcError(error: { code?: string; message?: string } |
       'workspace_member_role_invalid',
       'This workspace member role is not supported.',
     );
+  }
+}
+
+function mapInvitationRpcError(error: { code?: string; message?: string } | null) {
+  if (!error) {
+    return;
+  }
+
+  const mappings: Record<string, { statusCode: number; code: string; message: string }> = {
+    participant_not_found: {
+      statusCode: 404,
+      code: 'participant_not_found',
+      message: 'Participant not found.',
+    },
+    participant_email_already_linked: {
+      statusCode: 409,
+      code: 'participant_email_already_linked',
+      message: 'This email address is already linked to another active participant.',
+    },
+    workspace_member_already_linked: {
+      statusCode: 409,
+      code: 'workspace_member_already_linked',
+      message: 'This workspace member is already linked to another participant.',
+    },
+    workspace_member_not_found: {
+      statusCode: 404,
+      code: 'workspace_member_not_found',
+      message: 'No active workspace member exists for this email address.',
+    },
+    invitation_email_mismatch: {
+      statusCode: 403,
+      code: 'invitation_email_mismatch',
+      message: 'Sign in with the email address that received this invitation.',
+    },
+    invitation_invalid_or_expired: {
+      statusCode: 422,
+      code: 'invitation_invalid_or_expired',
+      message: 'This invitation is invalid or has expired.',
+    },
+    workspace_invitation_not_found: {
+      statusCode: 404,
+      code: 'workspace_invitation_not_found',
+      message: 'Pending workspace invitation not found.',
+    },
+    invitation_not_found: {
+      statusCode: 404,
+      code: 'workspace_invitation_not_found',
+      message: 'Pending workspace invitation not found.',
+    },
+    participant_email_required: {
+      statusCode: 422,
+      code: 'participant_email_required',
+      message: 'A participant email address is required.',
+    },
+    participant_role_invalid: {
+      statusCode: 422,
+      code: 'participant_role_invalid',
+      message: 'This participant type cannot receive the requested access role.',
+    },
+  };
+  const mapped = error.message ? mappings[error.message] : undefined;
+
+  if (mapped) {
+    throw new ApiError(mapped.statusCode, mapped.code, mapped.message);
   }
 }
 
@@ -340,31 +432,49 @@ export class WorkspacesRepository {
     return (data ?? []).map(mapWorkspaceInvitationRowToDto);
   }
 
+  async findActiveParticipantForWorkspace(workspaceId: string, participantId: string) {
+    const { data, error } = await this.supabase
+      .from('participants')
+      .select('id,workspace_id,name,type')
+      .eq('workspace_id', workspaceId)
+      .eq('id', participantId)
+      .eq('is_active', true)
+      .is('deleted_at', null)
+      .maybeSingle<WorkspaceParticipantRow>();
+
+    throwOnSupabaseError(error, 'participant_lookup_failed', 'Unable to load the participant.');
+
+    return data
+      ? {
+        id: data.id,
+        workspaceId: data.workspace_id,
+        name: data.name,
+        type: data.type,
+      }
+      : null;
+  }
+
   async revokePendingInvitation(workspaceId: string, invitationId: string) {
     const { data, error } = await this.supabase
-      .from('workspace_invitations')
-      .update({ status: 'revoked' })
-      .eq('workspace_id', workspaceId)
-      .eq('id', invitationId)
-      .eq('status', 'pending')
-      .select(INVITATION_COLUMNS)
-      .maybeSingle<WorkspaceInvitationRow>();
+      .rpc('revoke_participant_invitation', {
+        p_workspace_id: workspaceId,
+        p_invitation_id: invitationId,
+      })
+      .returns<WorkspaceInvitationRow[]>();
 
+    mapInvitationRpcError(error);
     throwOnSupabaseError(
       error,
       'workspace_invitation_revoke_failed',
       'Unable to revoke the workspace invitation.',
     );
 
-    if (!data) {
-      throw new ApiError(
-        404,
-        'workspace_invitation_not_found',
-        'Pending workspace invitation not found.',
-      );
+    const row = (Array.isArray(data) ? data : [])[0];
+    if (!row) {
+      throw new ApiError(404, 'workspace_invitation_not_found', 'Pending workspace invitation not found.');
     }
 
-    return mapWorkspaceInvitationRowToDto(data);
+    return mapWorkspaceInvitationRowToDto(row);
   }
 
   async listActiveOwnersForWorkspace(workspaceId: string) {
@@ -470,30 +580,150 @@ export class WorkspacesRepository {
 
   async createInvitation(input: CreateWorkspaceInvitationInput) {
     const { data, error } = await this.supabase
-      .from('workspace_invitations')
-      .insert({
-        workspace_id: input.workspaceId,
-        email: input.email,
-        email_normalized: input.emailNormalized,
-        display_name: input.displayName ?? null,
-        role: input.role,
-        token_hash: input.tokenHash,
-        status: 'pending',
-        expires_at: input.expiresAt,
+      .rpc('create_participant_invitation', {
+        p_workspace_id: input.workspaceId,
+        p_participant_id: input.participantId,
+        p_email: input.email,
+        p_email_normalized: input.emailNormalized,
+        p_role: input.role,
+        p_token_hash: input.tokenHash,
+        p_expires_at: input.expiresAt,
       })
-      .select(INVITATION_COLUMNS)
-      .single<WorkspaceInvitationRow>();
+      .returns<WorkspaceInvitationRow[]>();
 
-    if (error?.code === '23505') {
+    mapInvitationRpcError(error);
+    throwOnSupabaseError(
+      error,
+      'workspace_invitation_create_failed',
+      'Unable to create the workspace invitation.',
+    );
+
+    const row = (Array.isArray(data) ? data : [])[0];
+    if (!row) {
       throw new ApiError(
-        409,
-        'workspace_invitation_exists',
-        'A pending invitation already exists for this email address.',
+        500,
+        'workspace_invitation_create_failed',
+        'Unable to create the workspace invitation.',
       );
     }
 
-    return mapWorkspaceInvitationRowToDto(
-      requireRow(data, error, 'workspace_invitation_create_failed', 'Unable to create the workspace invitation.'),
+    return mapWorkspaceInvitationRowToDto(row);
+  }
+
+  async linkExistingMemberToParticipant(
+    workspaceId: string,
+    participantId: string,
+    email: string,
+    emailNormalized: string,
+  ) {
+    const { data, error } = await this.supabase
+      .rpc('link_existing_workspace_member_to_participant', {
+        p_workspace_id: workspaceId,
+        p_participant_id: participantId,
+        p_email: email,
+        p_email_normalized: emailNormalized,
+      })
+      .returns<WorkspaceMemberRow[]>();
+
+    mapInvitationRpcError(error);
+    throwOnSupabaseError(
+      error,
+      'workspace_member_link_failed',
+      'Unable to link the workspace member to this participant.',
     );
+
+    const row = (Array.isArray(data) ? data : [])[0];
+    if (!row) {
+      throw new ApiError(
+        404,
+        'workspace_member_not_found',
+        'No active workspace member exists for this email address.',
+      );
+    }
+
+    return mapWorkspaceMemberRowToDto(row);
+  }
+
+  async findPendingInvitation(workspaceId: string, invitationId: string) {
+    const { data, error } = await this.supabase
+      .from('workspace_invitations')
+      .select(INVITATION_COLUMNS)
+      .eq('workspace_id', workspaceId)
+      .eq('id', invitationId)
+      .eq('status', 'pending')
+      .maybeSingle<WorkspaceInvitationRow>();
+
+    throwOnSupabaseError(
+      error,
+      'workspace_invitation_lookup_failed',
+      'Unable to load the workspace invitation.',
+    );
+
+    return data ? mapWorkspaceInvitationRowToDto(data) : null;
+  }
+
+  async rotateInvitationToken(
+    workspaceId: string,
+    invitationId: string,
+    tokenHash: string,
+    expiresAt: string,
+  ) {
+    const { data, error } = await this.supabase
+      .from('workspace_invitations')
+      .update({
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+        delivery_status: 'pending',
+        delivery_attempted_at: null,
+        delivery_sent_at: null,
+      })
+      .eq('workspace_id', workspaceId)
+      .eq('id', invitationId)
+      .eq('status', 'pending')
+      .select(INVITATION_COLUMNS)
+      .maybeSingle<WorkspaceInvitationRow>();
+
+    throwOnSupabaseError(
+      error,
+      'workspace_invitation_resend_failed',
+      'Unable to resend the workspace invitation.',
+    );
+
+    if (!data) {
+      throw new ApiError(404, 'workspace_invitation_not_found', 'Pending workspace invitation not found.');
+    }
+
+    return mapWorkspaceInvitationRowToDto(data);
+  }
+
+  async updateInvitationDelivery(
+    workspaceId: string,
+    invitationId: string,
+    input: UpdateInvitationDeliveryInput,
+  ) {
+    const { data, error } = await this.supabase
+      .from('workspace_invitations')
+      .update({
+        delivery_status: input.deliveryStatus,
+        delivery_attempted_at: input.attemptedAt,
+        delivery_sent_at: input.sentAt ?? null,
+      })
+      .eq('workspace_id', workspaceId)
+      .eq('id', invitationId)
+      .eq('status', 'pending')
+      .select(INVITATION_COLUMNS)
+      .maybeSingle<WorkspaceInvitationRow>();
+
+    throwOnSupabaseError(
+      error,
+      'workspace_invitation_delivery_update_failed',
+      'Unable to update invitation delivery status.',
+    );
+
+    if (!data) {
+      throw new ApiError(404, 'workspace_invitation_not_found', 'Pending workspace invitation not found.');
+    }
+
+    return mapWorkspaceInvitationRowToDto(data);
   }
 }

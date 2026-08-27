@@ -86,11 +86,15 @@ class FakeQuery {
           {
             id: '44444444-4444-4444-8444-444444444444',
             workspace_id: '33333333-3333-4333-8333-333333333333',
+            participant_id: '55555555-5555-4555-8555-555555555555',
             email: 'alex@example.com',
             email_normalized: 'alex@example.com',
             display_name: 'Alex',
             role: 'adult_member',
             status: 'pending',
+            delivery_status: 'sent',
+            delivery_attempted_at: '2026-06-11T17:18:13.351+02:00',
+            delivery_sent_at: '2026-06-11T17:18:13.351+02:00',
             created_at: '2026-06-11T17:18:13.351+02:00',
             expires_at: '2026-06-18T17:18:13.351+02:00',
           },
@@ -140,10 +144,11 @@ describe('workspace routes', () => {
       invitations: [
         {
           invitationId: '44444444-4444-4444-8444-444444444444',
+          participantId: '55555555-5555-4555-8555-555555555555',
           email: 'alex@example.com',
-          displayName: 'Alex',
           role: 'adult_member',
           status: 'pending',
+          deliveryStatus: 'sent',
           createdAt: '2026-06-11T15:18:13.351Z',
           expiresAt: '2026-06-18T15:18:13.351Z',
         },

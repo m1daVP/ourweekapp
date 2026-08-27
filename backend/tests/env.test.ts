@@ -96,8 +96,27 @@ describe('env AI provider configuration', () => {
       SMTP_USER: 'mailer@example.com',
       SMTP_PASSWORD: 'smtp-password',
       EMAIL_FROM: 'OurWeek <no-reply@example.com>',
+      INVITATION_HANDOFF_URL: 'https://ourweekapp.com/invite',
     });
 
     expect(env.SMTP_CONFIGURED).toBe(true);
+    expect(env.INVITATION_HANDOFF_CONFIGURED).toBe(true);
+    expect(env.INVITATION_HANDOFF_URL).toBe('https://ourweekapp.com/invite');
+  });
+
+  it('requires an invitation handoff URL when SMTP is configured in production', async () => {
+    await expect(
+      loadEnv({
+        NODE_ENV: 'production',
+        APP_ENV: 'production',
+        CORS_ALLOWED_ORIGINS: 'https://example.com',
+        SMTP_HOST: 'smtp.example.com',
+        SMTP_PORT: '587',
+        SMTP_USER: 'mailer@example.com',
+        SMTP_PASSWORD: 'smtp-password',
+        EMAIL_FROM: 'OurWeek <no-reply@example.com>',
+        INVITATION_HANDOFF_URL: '',
+      }),
+    ).rejects.toThrow('INVITATION_HANDOFF_URL is required');
   });
 });

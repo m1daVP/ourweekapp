@@ -22,11 +22,15 @@ const memberRow = {
 const invitationRow = {
   id: 'invitation-1',
   workspace_id: 'workspace-1',
+  participant_id: 'participant-1',
   email: 'alex@example.com',
   email_normalized: 'alex@example.com',
   display_name: 'Alex',
   role: 'adult_member',
   status: 'pending',
+  delivery_status: 'sent',
+  delivery_attempted_at: '2026-06-06T10:00:00.000Z',
+  delivery_sent_at: '2026-06-06T10:00:00.000Z',
   created_at: '2026-06-06T10:00:00.000Z',
   expires_at: '2026-06-13T10:00:00.000Z',
 };
@@ -229,11 +233,13 @@ describe('WorkspacesRepository', () => {
       {
         id: 'invitation-1',
         workspaceId: 'workspace-1',
+        participantId: 'participant-1',
         email: 'alex@example.com',
         emailNormalized: 'alex@example.com',
         displayName: 'Alex',
         role: 'adult_member',
         status: 'pending',
+        deliveryStatus: 'sent',
         createdAt: '2026-06-06T10:00:00.000Z',
         expiresAt: '2026-06-13T10:00:00.000Z',
       },
@@ -242,8 +248,8 @@ describe('WorkspacesRepository', () => {
   });
 
   it('revokes a pending invitation within its workspace', async () => {
-    const { calls, client } = createFromClient({
-      data: { ...invitationRow, status: 'revoked' },
+    const { calls, client } = createRpcClient({
+      data: [{ ...invitationRow, status: 'revoked' }],
       error: null,
     });
     const repository = new WorkspacesRepository(client);
@@ -254,11 +260,13 @@ describe('WorkspacesRepository', () => {
     );
 
     expect(calls).toEqual([
-      { table: 'workspace_invitations' },
-      { update: { status: 'revoked' } },
-      { eq: ['workspace_id', 'workspace-1'] },
-      { eq: ['id', 'invitation-1'] },
-      { eq: ['status', 'pending'] },
+      {
+        name: 'revoke_participant_invitation',
+        args: {
+          p_workspace_id: 'workspace-1',
+          p_invitation_id: 'invitation-1',
+        },
+      },
     ]);
     expect(result).toMatchObject({
       id: 'invitation-1',
@@ -268,7 +276,7 @@ describe('WorkspacesRepository', () => {
   });
 
   it('returns a safe not-found error when no pending invitation matches', async () => {
-    const { client } = createFromClient({ data: null, error: null });
+    const { client } = createRpcClient({ data: [], error: null });
     const repository = new WorkspacesRepository(client);
 
     await expect(
@@ -277,6 +285,38 @@ describe('WorkspacesRepository', () => {
       statusCode: 404,
       code: 'workspace_invitation_not_found',
       details: {},
+    });
+  });
+
+  it('links an active workspace member to the selected participant atomically', async () => {
+    const { calls, client } = createRpcClient({
+      data: [memberRow],
+      error: null,
+    });
+    const repository = new WorkspacesRepository(client);
+
+    const result = await repository.linkExistingMemberToParticipant(
+      'workspace-1',
+      'participant-1',
+      'rita@example.com',
+      'rita@example.com',
+    );
+
+    expect(calls).toEqual([
+      {
+        name: 'link_existing_workspace_member_to_participant',
+        args: {
+          p_workspace_id: 'workspace-1',
+          p_participant_id: 'participant-1',
+          p_email: 'rita@example.com',
+          p_email_normalized: 'rita@example.com',
+        },
+      },
+    ]);
+    expect(result).toMatchObject({
+      workspaceId: 'workspace-1',
+      userId: 'user-1',
+      email: 'rita@example.com',
     });
   });
 });

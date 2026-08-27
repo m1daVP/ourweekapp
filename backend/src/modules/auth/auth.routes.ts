@@ -2,7 +2,9 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
 import { errorResponseSchema } from '../../shared/schemas/index.js';
+import { requireAuth } from './auth.middleware.js';
 import {
+  acceptWorkspaceInvitationRequestSchema,
   authMeResponseSchema,
   authSessionResponseSchema,
   googleSignInRequestSchema,
@@ -15,6 +17,7 @@ import {
   signOutRequestSchema,
 } from './auth.schema.js';
 import {
+  acceptWorkspaceInvitation,
   confirmPasswordReset,
   getCurrentUser,
   refreshSession,
@@ -27,6 +30,7 @@ import {
 
 const authErrorResponses = {
   401: errorResponseSchema,
+  403: errorResponseSchema,
   409: errorResponseSchema,
   422: errorResponseSchema,
   500: errorResponseSchema,
@@ -38,6 +42,8 @@ const authRateLimitedErrorResponses = {
 };
 
 export const authRoutes: FastifyPluginAsyncZod = async (app) => {
+  const authPreHandler = requireAuth(app);
+
   app.post('/register', {
     config: {
       rateLimit: {
@@ -136,6 +142,22 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     );
 
     return reply.status(204).send(null);
+  });
+
+  app.post('/invitations/accept', {
+    config: {
+      authRequired: true,
+    },
+    preHandler: authPreHandler,
+    schema: {
+      body: acceptWorkspaceInvitationRequestSchema,
+      response: {
+        200: authSessionResponseSchema,
+        ...authErrorResponses,
+      },
+    },
+  }, async (request) => {
+    return acceptWorkspaceInvitation(app.supabase, request.auth, request.body);
   });
 
   app.get('/me', {

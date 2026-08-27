@@ -1,12 +1,16 @@
 import { createHash, randomBytes } from 'node:crypto';
 
+import { env } from '../../config/env.js';
 import type { AuthContext } from '../../shared/auth/index.js';
 import { requireAuthenticatedContext } from '../../shared/auth/index.js';
 import { ApiError } from '../../shared/errors/index.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
+import { sendWorkspaceInvitationEmail } from '../../shared/mailer/mailer.js';
 import type {
   CreateWorkspaceInvitationRequestDto,
   CreateWorkspaceInvitationResponseDto,
+  LinkParticipantToExistingMemberRequestDto,
+  ParticipantAccessAssociationDto,
   UpdateWorkspaceMemberRequestDto,
   UpdateWorkspaceRequestDto,
   WorkspaceDto,
@@ -40,10 +44,11 @@ function toWorkspaceInvitationDto(
 ): WorkspaceInvitationDto {
   return {
     invitationId: invitation.id,
+    participantId: invitation.participantId,
     email: invitation.email,
-    displayName: invitation.displayName ?? undefined,
     role: invitation.role,
     status: invitation.status,
+    deliveryStatus: invitation.deliveryStatus,
     createdAt: invitation.createdAt,
     expiresAt: invitation.expiresAt,
   };
@@ -70,15 +75,13 @@ function canViewWorkspaceInvitations(context: AuthContext) {
 }
 
 function hashInvitationToken(token: string) {
-  const digest = createHash('sha256').update(token, 'utf8').digest('base64url');
-
-  return `sha256:${digest}`;
+  return createHash('sha256').update(token, 'utf8').digest('base64url');
 }
 
-function issueInvitationTokenHash() {
-  return hashInvitationToken(
-    randomBytes(invitationTokenByteLength).toString('base64url'),
-  );
+function issueInvitationToken() {
+  const rawToken = randomBytes(invitationTokenByteLength).toString('base64url');
+
+  return { rawToken, tokenHash: hashInvitationToken(rawToken) };
 }
 
 function getInvitationExpiresAt(now = new Date()) {
@@ -116,8 +119,33 @@ export function requireInviteMembers(auth: AuthContext | undefined) {
   return context;
 }
 
+function roleForParticipantType(type: 'adult' | 'child' | 'other') {
+  return type === 'adult' ? 'adult_member' : 'viewer';
+}
+
+function invitationUrl(token: string) {
+  if (!env.INVITATION_HANDOFF_CONFIGURED) {
+    throw new ApiError(
+      503,
+      'invitation_delivery_failed',
+      'Invitation email delivery is not configured.',
+    );
+  }
+
+  const url = new URL(env.INVITATION_HANDOFF_URL);
+  url.searchParams.set('token', token);
+  return url.toString();
+}
+
+type SendInvitationEmail = typeof sendWorkspaceInvitationEmail;
+type BuildInvitationUrl = (token: string) => string;
+
 export class WorkspaceService {
-  constructor(private readonly repository: WorkspacesRepository) {}
+  constructor(
+    private readonly repository: WorkspacesRepository,
+    private readonly sendInvitationEmail: SendInvitationEmail = sendWorkspaceInvitationEmail,
+    private readonly buildInvitationUrl: BuildInvitationUrl = invitationUrl,
+  ) {}
 
   static fromSupabase(supabase: SupabaseRepositoryClient) {
     return new WorkspaceService(new WorkspacesRepository(supabase));
@@ -146,46 +174,97 @@ export class WorkspaceService {
     now = new Date(),
   ): Promise<CreateWorkspaceInvitationResponseDto> {
     const context = requireInviteMembers(auth);
-
-    if (input.role === 'owner') {
-      throw new ApiError(
-        422,
-        'workspace_invitation_role_invalid',
-        'Workspace invitations cannot grant owner access.',
-      );
-    }
-
-    const existingMember = await this.repository.findActiveMemberByEmailForWorkspace(
+    const participant = await this.repository.findActiveParticipantForWorkspace(
       context.workspaceId,
-      input.email,
+      input.participantId,
     );
 
-    if (existingMember) {
-      throw new ApiError(
-        409,
-        'workspace_member_exists',
-        'This email address already belongs to an active workspace member.',
-      );
+    if (!participant) {
+      throw new ApiError(404, 'participant_not_found', 'Participant not found.');
     }
+
+    const token = issueInvitationToken();
 
     const invitation = await this.repository.createInvitation({
       workspaceId: context.workspaceId,
+      participantId: participant.id,
       email: input.email,
       emailNormalized: input.email,
-      displayName: input.displayName ?? null,
-      role: input.role,
-      tokenHash: issueInvitationTokenHash(),
+      role: roleForParticipantType(participant.type),
+      tokenHash: token.tokenHash,
       expiresAt: getInvitationExpiresAt(now),
     });
 
+    const delivered = await this.deliverInvitation(
+      context.workspaceId,
+      invitation,
+      participant.name,
+      token.rawToken,
+      now,
+    );
+
+    return toWorkspaceInvitationDto(delivered);
+  }
+
+  async resendInvitation(
+    auth: AuthContext | undefined,
+    invitationId: string,
+    now = new Date(),
+  ): Promise<CreateWorkspaceInvitationResponseDto> {
+    const context = requireInviteMembers(auth);
+    const invitation = await this.repository.findPendingInvitation(
+      context.workspaceId,
+      invitationId,
+    );
+
+    if (!invitation) {
+      throw new ApiError(404, 'workspace_invitation_not_found', 'Pending workspace invitation not found.');
+    }
+
+    const participant = await this.repository.findActiveParticipantForWorkspace(
+      context.workspaceId,
+      invitation.participantId,
+    );
+
+    if (!participant) {
+      throw new ApiError(404, 'participant_not_found', 'Participant not found.');
+    }
+
+    const token = issueInvitationToken();
+    const rotated = await this.repository.rotateInvitationToken(
+      context.workspaceId,
+      invitation.id,
+      token.tokenHash,
+      getInvitationExpiresAt(now),
+    );
+    const delivered = await this.deliverInvitation(
+      context.workspaceId,
+      rotated,
+      participant.name,
+      token.rawToken,
+      now,
+    );
+
+    return toWorkspaceInvitationDto(delivered);
+  }
+
+  async linkParticipantToExistingMember(
+    auth: AuthContext | undefined,
+    participantId: string,
+    input: LinkParticipantToExistingMemberRequestDto,
+  ): Promise<ParticipantAccessAssociationDto> {
+    const context = requireInviteMembers(auth);
+    const member = await this.repository.linkExistingMemberToParticipant(
+      context.workspaceId,
+      participantId,
+      input.email,
+      input.email,
+    );
+
     return {
-      invitationId: invitation.id,
-      email: invitation.email,
-      displayName: invitation.displayName ?? undefined,
-      role: invitation.role,
-      status: invitation.status,
-      createdAt: invitation.createdAt,
-      expiresAt: invitation.expiresAt,
+      participantId,
+      email: member.email ?? input.email,
+      accessStatus: 'active',
     };
   }
 
@@ -221,6 +300,49 @@ export class WorkspaceService {
       context.workspaceId,
       invitationId,
     );
+  }
+
+  private async deliverInvitation(
+    workspaceId: string,
+    invitation: RepositoryWorkspaceInvitationDto,
+    participantName: string,
+    rawToken: string,
+    now: Date,
+  ) {
+    const attemptedAt = now.toISOString();
+
+    try {
+      await this.sendInvitationEmail(invitation.email, {
+        participantName,
+        invitationUrl: this.buildInvitationUrl(rawToken),
+      });
+
+      return await this.repository.updateInvitationDelivery(
+        workspaceId,
+        invitation.id,
+        {
+          deliveryStatus: 'sent',
+          attemptedAt,
+          sentAt: attemptedAt,
+        },
+      );
+    } catch (error) {
+      try {
+        await this.repository.updateInvitationDelivery(
+          workspaceId,
+          invitation.id,
+          { deliveryStatus: 'failed', attemptedAt },
+        );
+      } catch (deliveryUpdateError) {
+        throw deliveryUpdateError;
+      }
+
+      throw new ApiError(
+        503,
+        'invitation_delivery_failed',
+        'The invitation was saved, but the email could not be delivered. Please try again.',
+      );
+    }
   }
 
   private async loadWorkspace(context: AuthContext) {

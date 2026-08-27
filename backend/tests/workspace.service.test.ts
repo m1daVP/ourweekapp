@@ -69,11 +69,13 @@ function invitation(
   return {
     id: 'invitation-1',
     workspaceId: 'workspace-1',
+    participantId: 'participant-1',
     email: 'alex@example.com',
     emailNormalized: 'alex@example.com',
     displayName: 'Alex',
     role: 'adult_member',
     status: 'pending',
+    deliveryStatus: 'sent',
     createdAt: '2026-06-06T10:00:00.000Z',
     expiresAt: '2026-06-13T10:00:00.000Z',
     ...overrides,
@@ -84,6 +86,8 @@ function createRepository(input: {
   targetMember?: RepositoryWorkspaceMemberDto | null;
   workspace?: RepositoryWorkspaceDto | null;
   invitations?: RepositoryWorkspaceInvitationDto[];
+  participantType?: 'adult' | 'child' | 'other';
+  sendInvitationEmail?: (to: string, input: { participantName: string; invitationUrl: string }) => Promise<void>;
 } = {}) {
   const targetMember = input.targetMember ?? member();
   const repository = {
@@ -98,8 +102,25 @@ function createRepository(input: {
     })),
     revokePendingInvitation: vi.fn(async () => invitation({ status: 'revoked' })),
     findActiveMemberByEmailForWorkspace: vi.fn(async () => null),
+    findActiveParticipantForWorkspace: vi.fn(async () => ({
+      id: 'participant-1',
+      workspaceId: 'workspace-1',
+      name: 'Alex',
+      type: input.participantType ?? 'adult',
+    })),
     createInvitation: vi.fn(async () => ({
       ...invitation(),
+    })),
+    updateInvitationDelivery: vi.fn(async (_workspaceId, _invitationId, update) => ({
+      ...invitation(),
+      deliveryStatus: update.deliveryStatus,
+    })),
+    findPendingInvitation: vi.fn(async () => invitation()),
+    rotateInvitationToken: vi.fn(async () => invitation({ deliveryStatus: 'pending' })),
+    linkExistingMemberToParticipant: vi.fn(async () => member({
+      userId: 'alex-user-1',
+      email: 'alex@example.com',
+      role: 'adult_member',
     })),
   };
 
@@ -107,6 +128,8 @@ function createRepository(input: {
     repository,
     service: new WorkspaceService(
       repository as unknown as WorkspacesRepository,
+      input.sendInvitationEmail ?? vi.fn(async () => undefined),
+      (token) => `https://ourweekapp.com/invite?token=${token}`,
     ),
   };
 }
@@ -138,10 +161,11 @@ describe('WorkspaceService member management', () => {
     expect(result.invitations).toEqual([
       {
         invitationId: 'invitation-1',
-        displayName: 'Alex',
+        participantId: 'participant-1',
         email: 'alex@example.com',
         role: 'adult_member',
         status: 'pending',
+        deliveryStatus: 'sent',
         createdAt: '2026-06-06T10:00:00.000Z',
         expiresAt: '2026-06-13T10:00:00.000Z',
       },
@@ -244,29 +268,105 @@ describe('WorkspaceService member management', () => {
     const { repository, service } = createRepository();
 
     const result = await service.createInvitation(adultAuth, {
+      participantId: 'participant-1',
       email: 'alex@example.com',
-      displayName: 'Alex',
-      role: 'adult_member',
     });
 
     expect(repository.createInvitation).toHaveBeenCalledWith(
       expect.objectContaining({
         workspaceId: 'workspace-1',
+        participantId: 'participant-1',
         email: 'alex@example.com',
         emailNormalized: 'alex@example.com',
-        displayName: 'Alex',
         role: 'adult_member',
       }),
     );
     expect(result).toEqual({
       invitationId: 'invitation-1',
-      displayName: 'Alex',
+      participantId: 'participant-1',
       email: 'alex@example.com',
       role: 'adult_member',
       status: 'pending',
+      deliveryStatus: 'sent',
       createdAt: '2026-06-06T10:00:00.000Z',
       expiresAt: '2026-06-13T10:00:00.000Z',
     });
     expect(result).not.toHaveProperty('userId');
+  });
+
+  it.each([
+    ['adult', 'adult_member'],
+    ['child', 'viewer'],
+    ['other', 'viewer'],
+  ] as const)('derives %s participant invitation access as %s', async (type, role) => {
+    const { repository, service } = createRepository({ participantType: type });
+
+    await service.createInvitation(ownerAuth, {
+      participantId: 'participant-1',
+      email: 'alex@example.com',
+    });
+
+    expect(repository.createInvitation).toHaveBeenCalledWith(
+      expect.objectContaining({ role }),
+    );
+  });
+
+  it('marks a saved invitation as failed when email delivery fails', async () => {
+    const sendInvitationEmail = vi.fn(async () => {
+      throw new Error('SMTP unavailable');
+    });
+    const { repository, service } = createRepository({ sendInvitationEmail });
+
+    await expect(service.createInvitation(ownerAuth, {
+      participantId: 'participant-1',
+      email: 'alex@example.com',
+    })).rejects.toMatchObject({
+      statusCode: 503,
+      code: 'invitation_delivery_failed',
+    });
+    expect(repository.updateInvitationDelivery).toHaveBeenCalledWith(
+      'workspace-1',
+      'invitation-1',
+      expect.objectContaining({ deliveryStatus: 'failed' }),
+    );
+  });
+
+  it('rotates the pending invitation token before resending email', async () => {
+    const sendInvitationEmail = vi.fn(async () => undefined);
+    const { repository, service } = createRepository({ sendInvitationEmail });
+
+    const result = await service.resendInvitation(ownerAuth, 'invitation-1');
+
+    expect(repository.rotateInvitationToken).toHaveBeenCalledWith(
+      'workspace-1',
+      'invitation-1',
+      expect.any(String),
+      expect.any(String),
+    );
+    expect(sendInvitationEmail).toHaveBeenCalledWith('alex@example.com', {
+      participantName: 'Alex',
+      invitationUrl: expect.stringContaining('https://ourweekapp.com/invite?token='),
+    });
+    expect(result.deliveryStatus).toBe('sent');
+  });
+
+  it('links an already active member to the requested participant without sending email', async () => {
+    const { repository, service } = createRepository();
+
+    const result = await service.linkParticipantToExistingMember(ownerAuth, 'participant-1', {
+      email: 'alex@example.com',
+    });
+
+    expect(repository.linkExistingMemberToParticipant).toHaveBeenCalledWith(
+      'workspace-1',
+      'participant-1',
+      'alex@example.com',
+      'alex@example.com',
+    );
+    expect(result).toEqual({
+      participantId: 'participant-1',
+      email: 'alex@example.com',
+      accessStatus: 'active',
+    });
   });
 });

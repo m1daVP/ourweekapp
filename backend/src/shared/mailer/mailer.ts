@@ -43,3 +43,24 @@ export async function sendPasswordResetEmail(to: string, code: string) {
     ].join('\n'),
   });
 }
+
+export async function sendWorkspaceInvitationEmail(
+  to: string,
+  input: { participantName: string; invitationUrl: string },
+) {
+  await getTransporter().sendMail({
+    from: env.EMAIL_FROM,
+    to,
+    subject: `${appName} workspace invitation`,
+    text: [
+      `You have been invited to join ${appName} as ${input.participantName}.`,
+      '',
+      'Open this invitation in the OurWeek app:',
+      input.invitationUrl,
+      '',
+      'This invitation expires in 7 days and can be used only once.',
+      '',
+      'If you were not expecting this invitation, you can safely ignore this email.',
+    ].join('\n'),
+  });
+}

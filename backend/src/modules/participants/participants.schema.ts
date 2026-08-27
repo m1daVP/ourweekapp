@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   avatarColorSchema,
   createTypedSyncConflictSchema,
+  emailSchema,
   isoDateTimeStringSchema,
   serverRevisionSchema,
   trimmedString,
@@ -23,7 +24,7 @@ export const participantInitialsSchema = trimmedString(
   VALIDATION_LIMITS.participantInitialsMaxLength,
 );
 
-export const participantSchema = z.object({
+const participantProfileSchema = z.object({
   id: participantIdSchema,
   name: participantNameSchema,
   initials: participantInitialsSchema,
@@ -36,9 +37,15 @@ export const participantSchema = z.object({
   deletedAt: isoDateTimeStringSchema.optional(),
 });
 
+export const participantSchema = participantProfileSchema.extend({
+  email: emailSchema.optional(),
+});
+
+export const participantSyncProfileSchema = participantProfileSchema.strict();
+
 export const syncParticipantsRequestSchema = z.object({
   participants: z
-    .array(participantSchema)
+    .array(participantSyncProfileSchema)
     .max(VALIDATION_LIMITS.participantsPerWorkspaceMax)
     .superRefine((participants, ctx) => {
       const seenIds = new Set<string>();

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  createWorkspaceInvitationRequestSchema,
   createWorkspaceInvitationResponseSchema,
   updateWorkspaceMemberRequestSchema,
   workspaceSchema,
@@ -9,6 +10,21 @@ import {
 const now = '2026-06-06T12:00:00.000Z';
 
 describe('workspace schemas', () => {
+  it('accepts only participant-scoped invitation inputs', () => {
+    expect(createWorkspaceInvitationRequestSchema.safeParse({
+      participantId: '11111111-1111-4111-8111-111111111111',
+      email: 'alex@example.com',
+    }).success).toBe(true);
+    expect(createWorkspaceInvitationRequestSchema.safeParse({
+      email: 'alex@example.com',
+    }).success).toBe(false);
+    expect(createWorkspaceInvitationRequestSchema.safeParse({
+      participantId: '11111111-1111-4111-8111-111111111111',
+      email: 'alex@example.com',
+      role: 'owner',
+    }).success).toBe(false);
+  });
+
   it('requires at least one member update field', () => {
     expect(updateWorkspaceMemberRequestSchema.safeParse({}).success).toBe(false);
     expect(
@@ -46,10 +62,11 @@ describe('workspace schemas', () => {
       invitations: [
         {
           invitationId: 'invitation-1',
-          displayName: 'Alex',
+          participantId: 'participant-1',
           email: 'ALEX@example.com',
           role: 'adult_member',
           status: 'pending',
+          deliveryStatus: 'sent',
           createdAt: now,
           expiresAt: '2026-06-13T12:00:00.000Z',
           tokenHash: 'sha256:secret',
@@ -72,10 +89,11 @@ describe('workspace schemas', () => {
   it('returns invitation IDs distinctly from user IDs and hides token hashes', () => {
     const parsed = createWorkspaceInvitationResponseSchema.parse({
       invitationId: 'invitation-1',
-      displayName: 'Alex',
+      participantId: 'participant-1',
       email: 'alex@example.com',
       role: 'adult_member',
       status: 'pending',
+      deliveryStatus: 'sent',
       createdAt: now,
       expiresAt: '2026-06-13T12:00:00.000Z',
       tokenHash: 'sha256:secret',

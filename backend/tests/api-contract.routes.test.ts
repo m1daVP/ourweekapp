@@ -34,6 +34,7 @@ const tasksService = vi.hoisted(() => ({
 const workspaceService = vi.hoisted(() => ({
   createInvitation: vi.fn(),
   getWorkspace: vi.fn(),
+  linkParticipantToExistingMember: vi.fn(),
   removeMember: vi.fn(),
   revokeInvitation: vi.fn(),
   updateMember: vi.fn(),
@@ -46,6 +47,7 @@ const subscriptionService = vi.hoisted(() => ({
 }));
 const signInUser = vi.hoisted(() => vi.fn());
 const signInWithGoogle = vi.hoisted(() => vi.fn());
+const acceptWorkspaceInvitation = vi.hoisted(() => vi.fn());
 const authMe = vi.hoisted(() => vi.fn());
 
 Object.assign(process.env, {
@@ -128,6 +130,7 @@ vi.mock('../src/modules/billing/subscriptions.repository.js', () => ({
 }));
 
 vi.mock('../src/modules/auth/auth.service.js', () => ({
+  acceptWorkspaceInvitation,
   confirmPasswordReset: vi.fn(),
   getCurrentUser: authMe,
   refreshSession: vi.fn(),
@@ -278,6 +281,7 @@ describe('API route contracts', () => {
     tasksService.listTasks.mockReset();
     tasksService.syncTasks.mockReset();
     workspaceService.createInvitation.mockReset();
+    workspaceService.linkParticipantToExistingMember.mockReset();
     workspaceService.getWorkspace.mockReset();
     workspaceService.removeMember.mockReset();
     workspaceService.revokeInvitation.mockReset();
@@ -288,6 +292,7 @@ describe('API route contracts', () => {
     subscriptionService.restore.mockReset();
     signInUser.mockReset();
     signInWithGoogle.mockReset();
+    acceptWorkspaceInvitation.mockReset();
     authMe.mockReset();
   });
 
@@ -482,14 +487,41 @@ describe('API route contracts', () => {
       url: '/v1/workspace/invitations',
       headers: { authorization: 'Bearer valid-token' },
       payload: {
+        participantId: participantId,
         email: 'alex@example.com',
-        displayName: 'Alex',
-        role: 'adult_member',
       },
     });
 
     expect(response.statusCode).toBe(409);
     expect(response.json()).toMatchObject({ code: 'workspace_member_already_exists' });
+    await app.close();
+  });
+
+  it('links an existing workspace member to a participant through the scoped route', async () => {
+    workspaceService.linkParticipantToExistingMember.mockResolvedValueOnce({
+      participantId,
+      email: 'alex@example.com',
+      accessStatus: 'active',
+    });
+    const app = await buildRouteApp('workspace');
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/workspace/participants/${participantId}/link-member`,
+      headers: { authorization: 'Bearer valid-token' },
+      payload: { email: 'alex@example.com' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(workspaceService.linkParticipantToExistingMember).toHaveBeenCalledWith(
+      authContext,
+      participantId,
+      { email: 'alex@example.com' },
+    );
+    expect(response.json()).toEqual({
+      participantId,
+      email: 'alex@example.com',
+      accessStatus: 'active',
+    });
     await app.close();
   });
 
@@ -548,6 +580,25 @@ describe('API route contracts', () => {
     expect(response.statusCode).toBe(422);
     expect(response.json()).toMatchObject({ code: 'validation_failed' });
     expect(workspaceService.revokeInvitation).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('accepts an invitation only for an authenticated session', async () => {
+    acceptWorkspaceInvitation.mockResolvedValueOnce(authSessionResponse());
+    const app = await buildRouteApp('auth');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/invitations/accept',
+      headers: { authorization: 'Bearer valid-token' },
+      payload: { token: 'invitation-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(acceptWorkspaceInvitation).toHaveBeenCalledWith(
+      {},
+      authContext,
+      { token: 'invitation-token' },
+    );
     await app.close();
   });
 

@@ -3,7 +3,7 @@ import type { SupabaseRepositoryClient } from '../../shared/repositories/index.j
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
 const PARTICIPANT_COLUMNS =
-  'id,workspace_id,name,initials,avatar_color,type,is_active,server_revision,created_at,updated_at,deleted_at' as const;
+  'id,workspace_id,name,initials,avatar_color,type,is_active,email,email_normalized,server_revision,created_at,updated_at,deleted_at' as const;
 
 type ParticipantRow = {
   id: string;
@@ -13,6 +13,8 @@ type ParticipantRow = {
   avatar_color: string;
   type: 'adult' | 'child' | 'other';
   is_active: boolean;
+  email: string | null;
+  email_normalized: string | null;
   server_revision: number;
   created_at: string;
   updated_at: string;
@@ -32,6 +34,8 @@ export type ParticipantDto = {
   avatarColor: string;
   type: ParticipantRow['type'];
   isActive: boolean;
+  email: string | null;
+  emailNormalized: string | null;
   serverRevision: number;
   createdAt: string;
   updatedAt: string;
@@ -79,6 +83,8 @@ export function mapParticipantRowToDto(row: ParticipantRow): ParticipantDto {
     avatarColor: row.avatar_color,
     type: row.type,
     isActive: row.is_active,
+    email: row.email,
+    emailNormalized: row.email_normalized,
     serverRevision: row.server_revision,
     createdAt: formatApiDateTime(row.created_at),
     updatedAt: formatApiDateTime(row.updated_at),

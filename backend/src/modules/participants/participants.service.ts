@@ -67,6 +67,10 @@ function toParticipantDto(participant: RepositoryParticipantDto): ParticipantDto
     dto.deletedAt = participant.deletedAt;
   }
 
+  if (participant.email) {
+    dto.email = participant.email;
+  }
+
   return dto;
 }
 

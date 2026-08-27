@@ -44,6 +44,7 @@ export const registerRequestSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   displayName: displayNameSchema,
+  invitationToken: authTokenSchema.optional(),
 });
 
 export const signInRequestSchema = z.object({
@@ -53,6 +54,11 @@ export const signInRequestSchema = z.object({
 
 export const googleSignInRequestSchema = z.object({
   idToken: authTokenSchema,
+  invitationToken: authTokenSchema.optional(),
+});
+
+export const acceptWorkspaceInvitationRequestSchema = z.object({
+  token: authTokenSchema,
 });
 
 export const refreshTokenRequestSchema = z.object({
@@ -88,6 +94,9 @@ export type AuthSessionResponseDto = z.infer<typeof authSessionResponseSchema>;
 export type RegisterRequestDto = z.infer<typeof registerRequestSchema>;
 export type SignInRequestDto = z.infer<typeof signInRequestSchema>;
 export type GoogleSignInRequestDto = z.infer<typeof googleSignInRequestSchema>;
+export type AcceptWorkspaceInvitationRequestDto = z.infer<
+  typeof acceptWorkspaceInvitationRequestSchema
+>;
 export type RefreshTokenRequestDto = z.infer<typeof refreshTokenRequestSchema>;
 export type SignOutRequestDto = z.infer<typeof signOutRequestSchema>;
 export type PasswordResetRequestDto = z.infer<typeof passwordResetRequestSchema>;

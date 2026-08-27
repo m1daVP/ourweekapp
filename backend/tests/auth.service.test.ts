@@ -33,7 +33,7 @@ async function loadAuthModules() {
 
 type SupabaseOperation = {
   table: string;
-  action: 'from' | 'insert';
+  action: 'from' | 'insert' | 'rpc';
   payload?: unknown;
 };
 
@@ -80,6 +80,16 @@ function createSequentialSupabase(
       }
 
       return createQuery(result, table, operations);
+    }),
+    rpc: vi.fn((name: string) => {
+      operations.push({ table: name, action: 'rpc' });
+      const result = results.shift();
+
+      if (!result) {
+        throw new Error('Unexpected Supabase RPC call');
+      }
+
+      return createQuery(result, name, operations);
     }),
   } as unknown as SupabaseClient;
 }
@@ -159,7 +169,7 @@ function workspaceRow() {
   };
 }
 
-function memberRow() {
+function memberRow(overrides: Record<string, unknown> = {}) {
   return {
     workspace_id: 'workspace-1',
     user_id: 'user-1',
@@ -169,6 +179,7 @@ function memberRow() {
     status: 'active',
     created_at: '2026-06-06T10:00:00.000Z',
     updated_at: '2026-06-06T10:00:00.000Z',
+    ...overrides,
   };
 }
 
@@ -308,6 +319,9 @@ describe('auth.service', () => {
         avatar_color: '#496a8f',
         type: 'adult',
         is_active: true,
+        email: 'rita@example.com',
+        email_normalized: 'rita@example.com',
+        user_id: 'user-1',
       },
       {
         workspace_id: 'workspace-1',
@@ -336,6 +350,107 @@ describe('auth.service', () => {
       statusCode: 409,
       code: 'email_already_registered',
       message: 'An account with this email address already exists. Sign in instead.',
+    });
+  });
+
+  it('registers an invited password user into the invited workspace without bootstrap rows', async () => {
+    const { authService } = await loadAuthModules();
+    const operations: SupabaseOperation[] = [];
+    const supabase = createSequentialSupabase([
+      {
+        data: {
+          id: 'invitation-1',
+          workspace_id: 'workspace-invited',
+          email_normalized: 'rita@example.com',
+          status: 'pending',
+          expires_at: '2026-06-13T10:00:00.000Z',
+        },
+        error: null,
+      },
+      { data: userRow(), error: null },
+      {
+        data: memberRow({
+          workspace_id: 'workspace-invited',
+          role: 'viewer',
+        }),
+        error: null,
+      },
+      { data: sessionRow(), error: null },
+    ], operations);
+
+    const response = await authService.registerUser(supabase, {
+      email: 'rita@example.com',
+      password: 'password123',
+      displayName: 'Rita',
+      invitationToken: 'invitation-token',
+    });
+
+    expect(response.user.workspaceId).toBe('workspace-invited');
+    expect(response.user.role).toBe('viewer');
+    expect(
+      operations.some(
+        (operation) =>
+          operation.table === 'workspaces' || operation.table === 'participants',
+      ),
+    ).toBe(false);
+    expect(
+      operations.some(
+        (operation) =>
+          operation.action === 'rpc' &&
+          operation.table === 'accept_participant_invitation',
+      ),
+    ).toBe(true);
+  });
+
+  it('accepts an invitation into the invited workspace and issues a scoped session', async () => {
+    const { authService } = await loadAuthModules();
+    const operations: SupabaseOperation[] = [];
+    const supabase = createSequentialSupabase([
+      { data: userRow(), error: null },
+      {
+        data: [memberRow({
+          workspace_id: 'workspace-invited',
+          role: 'viewer',
+        })],
+        error: null,
+      },
+      { data: sessionRow(), error: null },
+    ], operations);
+
+    const response = await authService.acceptWorkspaceInvitation(supabase, {
+      userId: 'user-1',
+      sessionId: 'session-1',
+      workspaceId: 'workspace-original',
+      role: 'owner',
+      planType: 'free',
+    }, { token: 'invitation-token' });
+
+    expect(response.user).toMatchObject({
+      workspaceId: 'workspace-invited',
+      role: 'viewer',
+    });
+    expect(operations).toContainEqual({
+      table: 'accept_participant_invitation',
+      action: 'rpc',
+    });
+  });
+
+  it('rejects invitation acceptance when the signed-in email does not match', async () => {
+    const { authService } = await loadAuthModules();
+    const supabase = createSequentialSupabase([
+      { data: userRow(), error: null },
+      { data: null, error: { message: 'invitation_email_mismatch' } },
+    ]);
+
+    await expect(authService.acceptWorkspaceInvitation(supabase, {
+      userId: 'user-1',
+      sessionId: 'session-1',
+      workspaceId: 'workspace-original',
+      role: 'owner',
+      planType: 'free',
+    }, { token: 'invitation-token' })).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'invitation_email_mismatch',
     });
   });
 
@@ -380,12 +495,59 @@ describe('auth.service', () => {
         workspace_id: 'workspace-1',
         name: 'Rita',
         initials: 'R',
+        email: 'rita@example.com',
+        email_normalized: 'rita@example.com',
+        user_id: 'user-1',
       }),
       expect.objectContaining({
         workspace_id: 'workspace-1',
         name: 'Partner',
       }),
     ]);
+  });
+
+  it('registers an invited Google user into the invited workspace without bootstrap rows', async () => {
+    const { authService } = await loadAuthModules();
+    const operations: SupabaseOperation[] = [];
+    const supabase = createSequentialSupabase([
+      { data: null, error: null },
+      { data: null, error: null },
+      {
+        data: {
+          id: 'invitation-1',
+          workspace_id: 'workspace-invited',
+          email_normalized: 'rita@example.com',
+          status: 'pending',
+          expires_at: '2026-06-13T10:00:00.000Z',
+        },
+        error: null,
+      },
+      { data: userRow({ password_hash: null }), error: null },
+      { data: googleIdentityRow(), error: null },
+      {
+        data: memberRow({
+          workspace_id: 'workspace-invited',
+          role: 'adult_member',
+        }),
+        error: null,
+      },
+      { data: sessionRow(), error: null },
+    ], operations);
+
+    const response = await authService.signInWithGoogle(
+      supabase,
+      { idToken: 'google-id-token', invitationToken: 'invitation-token' },
+      googleProvider(),
+    );
+
+    expect(response.user.workspaceId).toBe('workspace-invited');
+    expect(response.user.role).toBe('adult_member');
+    expect(
+      operations.some(
+        (operation) =>
+          operation.table === 'workspaces' || operation.table === 'participants',
+      ),
+    ).toBe(false);
   });
 
   it('signs in through an existing Google identity', async () => {

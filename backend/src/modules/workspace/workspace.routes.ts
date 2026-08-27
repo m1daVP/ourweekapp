@@ -6,6 +6,9 @@ import { errorResponseSchema } from '../../shared/schemas/index.js';
 import {
   createWorkspaceInvitationRequestSchema,
   createWorkspaceInvitationResponseSchema,
+  linkParticipantToExistingMemberRequestSchema,
+  participantAccessAssociationSchema,
+  participantMemberLinkParamsSchema,
   updateWorkspaceMemberRequestSchema,
   updateWorkspaceRequestSchema,
   workspaceInvitationParamsSchema,
@@ -21,6 +24,7 @@ const workspaceErrorResponses = {
   404: errorResponseSchema,
   409: errorResponseSchema,
   422: errorResponseSchema,
+  503: errorResponseSchema,
   500: errorResponseSchema,
 };
 
@@ -75,6 +79,43 @@ export const workspaceRoutes: FastifyPluginAsyncZod = async (app) => {
     const invitation = await service.createInvitation(request.auth, request.body);
 
     return reply.status(201).send(invitation);
+  });
+
+  app.post('/invitations/:invitationId/resend', {
+    config: {
+      authRequired: true,
+    },
+    preHandler: authPreHandler,
+    schema: {
+      params: workspaceInvitationParamsSchema,
+      response: {
+        200: createWorkspaceInvitationResponseSchema,
+        ...workspaceErrorResponses,
+      },
+    },
+  }, async (request) => {
+    return service.resendInvitation(request.auth, request.params.invitationId);
+  });
+
+  app.post('/participants/:participantId/link-member', {
+    config: {
+      authRequired: true,
+    },
+    preHandler: authPreHandler,
+    schema: {
+      params: participantMemberLinkParamsSchema,
+      body: linkParticipantToExistingMemberRequestSchema,
+      response: {
+        200: participantAccessAssociationSchema,
+        ...workspaceErrorResponses,
+      },
+    },
+  }, async (request) => {
+    return service.linkParticipantToExistingMember(
+      request.auth,
+      request.params.participantId,
+      request.body,
+    );
   });
 
   app.delete('/invitations/:invitationId', {

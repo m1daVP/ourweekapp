@@ -1,10 +1,17 @@
 import argon2 from 'argon2';
 import type { FastifyBaseLogger } from 'fastify';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createHash } from 'node:crypto';
 
 import { env } from '../../config/env.js';
+
 import { ApiError } from '../../shared/errors/index.js';
-import type { PlanType, UserRole } from '../../shared/auth/index.js';
+import {
+  requireAuthenticatedContext,
+  type AuthContext,
+  type PlanType,
+  type UserRole,
+} from '../../shared/auth/index.js';
 import { AuthRepository } from './auth.repository.js';
 import {
   googleAuthProvider,
@@ -24,6 +31,7 @@ import type {
   PasswordResetConfirmRequestDto,
   PasswordResetRequestDto,
   RefreshTokenRequestDto,
+  AcceptWorkspaceInvitationRequestDto,
   GoogleSignInRequestDto,
   RegisterRequestDto,
   SignInRequestDto,
@@ -98,6 +106,14 @@ type AuthIdentityRow = {
   updated_at: string;
 };
 
+type InvitationRegistrationRow = {
+  id: string;
+  workspace_id: string;
+  email_normalized: string;
+  status: 'pending' | 'accepted' | 'expired' | 'revoked';
+  expires_at: string;
+};
+
 export type AuthUserDto = {
   id: string;
   workspaceId: string;
@@ -145,6 +161,32 @@ const unauthenticatedError = new ApiError(
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function mapInvitationAcceptanceError(error: { message?: string } | null) {
+  if (!error) {
+    return;
+  }
+
+  if (error.message === 'invitation_email_mismatch') {
+    throw new ApiError(
+      403,
+      'invitation_email_mismatch',
+      'Sign in with the email address that received this invitation.',
+    );
+  }
+
+  if (error.message === 'invitation_invalid_or_expired') {
+    throw new ApiError(
+      422,
+      'invitation_invalid_or_expired',
+      'This invitation is invalid or has expired.',
+    );
+  }
+}
+
+function hashInvitationToken(token: string) {
+  return createHash('sha256').update(token, 'utf8').digest('base64url');
 }
 
 function googleDisplayName(identity: VerifiedGoogleIdentity) {
@@ -304,6 +346,8 @@ async function createInitialParticipants(
   supabase: SupabaseClient,
   workspaceId: string,
   ownerDisplayName: string,
+  ownerEmail: string,
+  ownerUserId: string,
 ) {
   const { error } = await supabase.from('participants').insert(
     [
@@ -314,6 +358,9 @@ async function createInitialParticipants(
         avatar_color: '#496a8f',
         type: 'adult',
         is_active: true,
+        email: ownerEmail,
+        email_normalized: ownerEmail,
+        user_id: ownerUserId,
       },
       {
         workspace_id: workspaceId,
@@ -329,6 +376,110 @@ async function createInitialParticipants(
       'Something went wrong. Please try again.',
     );
   }
+}
+
+async function resolveInvitationForRegistration(
+  supabase: SupabaseClient,
+  invitationToken: string | undefined,
+  email: string,
+) {
+  if (!invitationToken) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('workspace_invitations')
+    .select('id,workspace_id,email_normalized,status,expires_at')
+    .eq('token_hash', hashInvitationToken(invitationToken))
+    .returns<InvitationRegistrationRow[]>()
+    .maybeSingle();
+
+  if (error) {
+    throw new ApiError(
+      500,
+      'invitation_lookup_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  if (
+    !data ||
+    data.status !== 'pending' ||
+    new Date(data.expires_at).getTime() <= Date.now()
+  ) {
+    throw new ApiError(
+      422,
+      'invitation_invalid_or_expired',
+      'This invitation is invalid or has expired.',
+    );
+  }
+
+  if (data.email_normalized !== email) {
+    throw new ApiError(
+      403,
+      'invitation_email_mismatch',
+      'Sign in or register with the email address that received this invitation.',
+    );
+  }
+
+  return {
+    tokenHash: hashInvitationToken(invitationToken),
+    workspaceId: data.workspace_id,
+  };
+}
+
+async function acceptInvitationForNewUser(
+  supabase: SupabaseClient,
+  invitation: { tokenHash: string },
+  user: UserRow,
+) {
+  const { data, error } = await supabase
+    .rpc('accept_participant_invitation', {
+      p_token_hash: invitation.tokenHash,
+      p_user_id: user.id,
+      p_email_normalized: normalizeEmail(user.email),
+      p_now: new Date().toISOString(),
+    })
+    .single<WorkspaceMemberRow>();
+
+  if (error) {
+    const message = error.message;
+
+    if (message === 'invitation_email_mismatch') {
+      throw new ApiError(
+        403,
+        'invitation_email_mismatch',
+        'Sign in or register with the email address that received this invitation.',
+      );
+    }
+
+    if (
+      message === 'invitation_invalid_or_expired' ||
+      message === 'participant_not_found'
+    ) {
+      throw new ApiError(
+        422,
+        'invitation_invalid_or_expired',
+        'This invitation is invalid or has expired.',
+      );
+    }
+
+    if (message === 'workspace_member_already_linked') {
+      throw new ApiError(
+        409,
+        'workspace_member_already_linked',
+        'This account is already linked to another participant in this workspace.',
+      );
+    }
+
+    throw new ApiError(
+      500,
+      'invitation_accept_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  return data;
 }
 
 async function getGoogleIdentityBySubject(
@@ -458,6 +609,11 @@ export async function registerUser(
   body: RegisterRequestDto,
 ): Promise<AuthSessionDto> {
   const email = normalizeEmail(body.email);
+  const invitation = await resolveInvitationForRegistration(
+    supabase,
+    body.invitationToken,
+    email,
+  );
   const passwordHash = await hashPassword(body.password);
   const created: { userId?: string; workspaceId?: string } = {};
 
@@ -496,6 +652,12 @@ export async function registerUser(
   created.userId = user.id;
 
   try {
+    if (invitation) {
+      const member = await acceptInvitationForNewUser(supabase, invitation, user);
+
+      return await createSessionResponse(supabase, user, member);
+    }
+
     const workspaceName = `${body.displayName}'s home`;
     const { data: workspace, error: workspaceError } = await supabase
       .from('workspaces')
@@ -541,7 +703,13 @@ export async function registerUser(
       );
     }
 
-    await createInitialParticipants(supabase, workspace.id, body.displayName);
+    await createInitialParticipants(
+      supabase,
+      workspace.id,
+      body.displayName,
+      email,
+      user.id,
+    );
 
     return await createSessionResponse(supabase, user, member);
   } catch (error) {
@@ -555,9 +723,15 @@ export async function registerUser(
 async function registerGoogleUser(
   supabase: SupabaseClient,
   identity: VerifiedGoogleIdentity,
+  invitationToken?: string,
 ) {
   const email = normalizeEmail(identity.email);
   const displayName = googleDisplayName(identity);
+  const invitation = await resolveInvitationForRegistration(
+    supabase,
+    invitationToken,
+    email,
+  );
   const created: { userId?: string; workspaceId?: string } = {};
 
   const { data: user, error: userError } = await supabase
@@ -596,6 +770,12 @@ async function registerGoogleUser(
 
   try {
     await linkGoogleIdentity(supabase, user.id, identity);
+
+    if (invitation) {
+      const member = await acceptInvitationForNewUser(supabase, invitation, user);
+
+      return await createSessionResponse(supabase, user, member);
+    }
 
     const workspaceName = `${displayName}'s home`;
     const { data: workspace, error: workspaceError } = await supabase
@@ -642,7 +822,13 @@ async function registerGoogleUser(
       );
     }
 
-    await createInitialParticipants(supabase, workspace.id, displayName);
+    await createInitialParticipants(
+      supabase,
+      workspace.id,
+      displayName,
+      email,
+      user.id,
+    );
 
     return await createSessionResponse(supabase, user, member);
   } catch (error) {
@@ -684,7 +870,7 @@ export async function signInWithGoogle(
     return createSessionResponse(supabase, user, member);
   }
 
-  return registerGoogleUser(supabase, identity);
+  return registerGoogleUser(supabase, identity, body.invitationToken);
 }
 
 export async function signInUser(
@@ -711,6 +897,49 @@ export async function signInUser(
 
   if (!member) {
     throw genericAuthFailure;
+  }
+
+  return createSessionResponse(supabase, user, member);
+}
+
+export async function acceptWorkspaceInvitation(
+  supabase: SupabaseClient,
+  auth: AuthContext | undefined,
+  body: AcceptWorkspaceInvitationRequestDto,
+): Promise<AuthSessionDto> {
+  const context = requireAuthenticatedContext(auth);
+  const user = await getUserById(supabase, context.userId);
+
+  if (!user) {
+    throw invalidSessionError;
+  }
+
+  const { data, error } = await supabase
+    .rpc('accept_participant_invitation', {
+      p_token_hash: hashInvitationToken(body.token),
+      p_user_id: user.id,
+      p_email_normalized: normalizeEmail(user.email),
+      p_now: new Date().toISOString(),
+    })
+    .returns<WorkspaceMemberRow[]>();
+
+  mapInvitationAcceptanceError(error);
+
+  if (error) {
+    throw new ApiError(
+      500,
+      'invitation_accept_failed',
+      'Unable to accept the invitation. Please try again.',
+    );
+  }
+
+  const member = (Array.isArray(data) ? data : [])[0];
+  if (!member) {
+    throw new ApiError(
+      422,
+      'invitation_invalid_or_expired',
+      'This invitation is invalid or has expired.',
+    );
   }
 
   return createSessionResponse(supabase, user, member);

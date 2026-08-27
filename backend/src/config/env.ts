@@ -81,6 +81,7 @@ const envInput = z
     SMTP_USER: optionalString,
     SMTP_PASSWORD: optionalString,
     EMAIL_FROM: optionalString,
+    INVITATION_HANDOFF_URL: optionalUrl,
   })
   .superRefine((value, context) => {
     const aiApiKey = value.AI_API_KEY;
@@ -127,6 +128,7 @@ const envInput = z
       value.EMAIL_FROM,
     ];
     const smtpTouched = smtpFields.some(Boolean);
+    const smtpConfigured = smtpFields.every(Boolean);
 
     if (
       (value.NODE_ENV === 'production' || value.APP_ENV === 'production') &&
@@ -141,6 +143,17 @@ const envInput = z
     }
 
     if (!smtpTouched) {
+      if (
+        (value.NODE_ENV === 'production' || value.APP_ENV === 'production') &&
+        !value.INVITATION_HANDOFF_URL
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['INVITATION_HANDOFF_URL'],
+          message: 'INVITATION_HANDOFF_URL is required in production',
+        });
+      }
+
       return;
     }
 
@@ -160,6 +173,15 @@ const envInput = z
           message: `${field} is required when SMTP is configured`,
         });
       }
+    }
+
+    if (smtpConfigured && !value.INVITATION_HANDOFF_URL) {
+      context.addIssue({
+        code: 'custom',
+        path: ['INVITATION_HANDOFF_URL'],
+        message:
+          'INVITATION_HANDOFF_URL is required when SMTP is configured',
+      });
     }
   });
 
@@ -198,6 +220,8 @@ const envSchema = envInput.transform((value) => {
         value.GOOGLE_OAUTH_CLIENT_SECRET &&
         googleOAuthRedirectUri,
     ),
+    INVITATION_HANDOFF_URL: value.INVITATION_HANDOFF_URL ?? '',
+    INVITATION_HANDOFF_CONFIGURED: Boolean(value.INVITATION_HANDOFF_URL),
     SMTP_CONFIGURED: Boolean(
       value.SMTP_HOST &&
         value.SMTP_PORT &&

@@ -14,6 +14,7 @@ import type {
   ParticipantDto,
   SyncParticipantsRequestDto,
 } from '../src/modules/participants/participants.schema.js';
+import { syncParticipantsRequestSchema } from '../src/modules/participants/participants.schema.js';
 import { VALIDATION_LIMITS } from '../src/shared/schemas/index.js';
 
 const now = '2026-06-06T10:00:00.000Z';
@@ -39,6 +40,8 @@ function repositoryParticipant(
     avatarColor: '#7A8C6B',
     type: 'adult',
     isActive: true,
+    email: null,
+    emailNormalized: null,
     serverRevision: 1,
     createdAt: now,
     updatedAt: now,
@@ -228,7 +231,12 @@ class FakeParticipantRepository implements ParticipantSyncRepository {
 describe('participant sync service', () => {
   it('lists active participants for the requested workspace as public DTOs', async () => {
     const repository = new FakeParticipantRepository([
-      repositoryParticipant({ id: participantOneId, name: 'Rita' }),
+      repositoryParticipant({
+        id: participantOneId,
+        name: 'Rita',
+        email: 'rita@example.com',
+        emailNormalized: 'rita@example.com',
+      }),
       repositoryParticipant({
         id: participantTwoId,
         name: 'Deleted',
@@ -244,9 +252,30 @@ describe('participant sync service', () => {
       { workspaceId: 'workspace-1', includeDeleted: false },
     ]);
     expect(response.participants).toEqual([
-      expect.objectContaining({ id: participantOneId, name: 'Rita' }),
+      expect.objectContaining({
+        id: participantOneId,
+        name: 'Rita',
+        email: 'rita@example.com',
+      }),
     ]);
     expect(response.participants[0]).not.toHaveProperty('workspaceId');
+    expect(response.participants[0]).not.toHaveProperty('userId');
+  });
+
+  it('exposes participant emails but rejects identity fields in client sync payloads', () => {
+    const parsed = syncParticipantsRequestSchema.safeParse({
+      participants: [
+        {
+          ...clientParticipant(),
+          email: 'rita@example.com',
+          emailNormalized: 'rita@example.com',
+          userId: 'user-1',
+        },
+      ],
+      clientUpdatedAt: later,
+    });
+
+    expect(parsed.success).toBe(false);
   });
 
   it('keeps server participants when the client sends an empty list', async () => {
