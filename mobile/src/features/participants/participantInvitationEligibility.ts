@@ -16,7 +16,6 @@ export function canOfferParticipantInvitation({
 }: ParticipantInvitationEligibilityInput) {
   return Boolean(
     participant &&
-    participant.type === 'adult' &&
     !isCurrentParticipant &&
     canInviteMembers &&
     accessStatus === 'none'
@@ -31,7 +30,6 @@ export function shouldShowParticipantAccessStatus({
 }: ParticipantInvitationEligibilityInput) {
   return Boolean(
     participant &&
-    participant.type === 'adult' &&
     !isCurrentParticipant &&
     canInviteMembers &&
     accessStatus !== 'none'
@@ -49,7 +47,6 @@ export function canRevokeParticipantInvitation({
 }) {
   return Boolean(
     participant &&
-    participant.type === 'adult' &&
     !isCurrentParticipant &&
     canInviteMembers &&
     accessStatus === 'pending' &&

@@ -5,6 +5,8 @@ export type WorkspaceMemberStatus = 'active' | 'invited' | 'removed';
 export type WorkspaceInvitationStatus =
   'pending' | 'accepted' | 'revoked' | 'expired';
 
+export type WorkspaceInvitationDeliveryStatus = 'pending' | 'sent' | 'failed';
+
 export type ParticipantAccessStatus = 'none' | 'pending' | 'active';
 
 export type WorkspacePermission =
@@ -31,18 +33,14 @@ export interface WorkspaceMember {
 
 export interface WorkspaceInvitation {
   invitationId: string;
+  participantId: string;
   email: string;
   displayName?: string;
   role: Exclude<UserRole, 'owner'>;
   status: WorkspaceInvitationStatus;
   createdAt: string;
   expiresAt: string;
-}
-
-export interface ParticipantInvitationLink {
-  participantId: string;
-  email: string;
-  invitationId?: string;
+  deliveryStatus: WorkspaceInvitationDeliveryStatus;
 }
 
 export interface ParticipantAccessState {

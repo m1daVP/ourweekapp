@@ -286,7 +286,6 @@ async function sendInvite() {
   inviteError.value = '';
   const accessRecord = await workspaceStore.inviteParticipant(
     participant.id,
-    participant.name,
     email
   );
 
@@ -296,12 +295,35 @@ async function sendInvite() {
     return;
   }
 
+  const deliveryFailed =
+    'deliveryStatus' in accessRecord && accessRecord.deliveryStatus === 'failed';
   setParticipantMessage(
     accessRecord.status === 'active'
       ? t('settings.appAccessLinked')
-      : t('settings.invitationSent')
+      : deliveryFailed
+        ? workspaceStore.errorMessage || t('workspace.saveInviteFailed')
+        : t('settings.invitationSent'),
+    deliveryFailed ? 'error' : 'status'
   );
   closeSheet();
+}
+
+async function resendSelectedInvitation() {
+  const participant = selectedParticipant.value;
+
+  if (!participant) {
+    return;
+  }
+
+  const resent = await workspaceStore.resendParticipantInvitation(
+    participant.id
+  );
+
+  if (resent) {
+    setParticipantMessage(t('settings.invitationSent'));
+  } else {
+    revokeError.value = workspaceStore.errorMessage || t('workspace.saveInviteFailed');
+  }
 }
 
 function openRevokeStep() {
@@ -844,6 +866,15 @@ function enableParticipant(participantId: string) {
             @click="openRevokeStep"
           >
             {{ t('settings.revokeInvitation') }}
+          </button>
+          <button
+            v-if="selectedPendingInvitation?.deliveryStatus === 'failed'"
+            class="participant-secondary-action"
+            type="button"
+            :disabled="workspaceStore.isSaving"
+            @click="resendSelectedInvitation"
+          >
+            {{ t('workspace.sendInvitation') }}
           </button>
         </div>
 

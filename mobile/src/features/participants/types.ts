@@ -9,6 +9,8 @@ export interface Participant {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Server-owned identity; never included in participant-sync writes. */
+  email?: string;
   serverRevision?: number;
   deletedAt?: string;
 }

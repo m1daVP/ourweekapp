@@ -1,4 +1,3 @@
-import type { UserRole } from '@/features/access/types';
 import type {
   Workspace,
   WorkspaceInvitation,
@@ -14,9 +13,8 @@ export interface UpdateWorkspaceRequestDto {
 }
 
 export interface CreateWorkspaceInvitationRequestDto {
+  participantId: string;
   email: string;
-  displayName?: string;
-  role: Exclude<UserRole, 'owner'>;
 }
 
 export type WorkspaceInvitationDto = WorkspaceInvitation;
@@ -77,6 +75,32 @@ export async function revokeWorkspaceInvitation(
     `/workspace/invitations/${encodeURIComponent(invitationId)}`,
     {
       method: 'DELETE',
+      requiresAuth: true,
+    }
+  );
+}
+
+export async function resendWorkspaceInvitation(
+  invitationId: string
+): Promise<WorkspaceInvitationDto> {
+  return apiRequest<WorkspaceInvitationDto>(
+    `/workspace/invitations/${encodeURIComponent(invitationId)}/resend`,
+    {
+      method: 'POST',
+      requiresAuth: true,
+    }
+  );
+}
+
+export async function linkWorkspaceParticipantToMember(
+  participantId: string,
+  payload: Pick<CreateWorkspaceInvitationRequestDto, 'email'>
+): Promise<void> {
+  await apiRequest<void>(
+    `/workspace/participants/${encodeURIComponent(participantId)}/link-member`,
+    {
+      method: 'POST',
+      body: payload,
       requiresAuth: true,
     }
   );

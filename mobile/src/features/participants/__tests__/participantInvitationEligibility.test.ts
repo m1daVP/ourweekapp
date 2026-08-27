@@ -38,13 +38,13 @@ describe('participant invitation eligibility', () => {
     expect(canOfferParticipantInvitation(eligibleInput)).toBe(true);
   });
 
-  it('rejects children, linked adults, and users without permission', () => {
+  it('allows an unlinked child but rejects linked participants and users without permission', () => {
     expect(
       canOfferParticipantInvitation({
         ...eligibleInput,
         participant: { ...adult, type: 'child' },
       })
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canOfferParticipantInvitation({
         ...eligibleInput,
@@ -91,7 +91,7 @@ describe('participant invitation eligibility', () => {
         ...input,
         participant: { ...adult, type: 'child' },
       })
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canRevokeParticipantInvitation({
         ...input,

@@ -1,12 +1,14 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useParticipantsStore } from '@/app/stores/participants';
 import { useWorkspaceStore } from '@/app/stores/workspace';
-import { ApiClientError } from '@/shared/api/httpClient';
 import {
   createWorkspaceInvitation,
   getWorkspace,
-  revokeWorkspaceInvitation,
+  linkWorkspaceParticipantToMember,
+  resendWorkspaceInvitation,
 } from '@/shared/api/workspaceApi';
+import { listParticipants } from '@/shared/api/participantsApi';
 
 const mocks = vi.hoisted(() => ({
   storedWorkspace: null as unknown,
@@ -16,29 +18,51 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/features/localization/i18n', () => ({
   translate: (key: string) => key,
 }));
-
 vi.mock('@/shared/services/storageService', () => ({
+  readStorageSlice: (_key: string, fallback: unknown) => fallback,
+  writeStorageSlice: vi.fn(),
   readSettingsStorage: (_key: string, fallback: unknown) =>
     mocks.storedWorkspace ?? fallback,
   writeSettingsStorage: mocks.writeSettingsStorage,
 }));
-
 vi.mock('@/shared/api/workspaceApi', () => ({
   createWorkspaceInvitation: vi.fn(),
   getWorkspace: vi.fn(),
+  linkWorkspaceParticipantToMember: vi.fn(),
   removeWorkspaceMember: vi.fn(),
+  resendWorkspaceInvitation: vi.fn(),
   revokeWorkspaceInvitation: vi.fn(),
   updateWorkspace: vi.fn(),
   updateWorkspaceMember: vi.fn(),
 }));
+vi.mock('@/shared/api/participantsApi', () => ({
+  listParticipants: vi.fn(),
+}));
 
 const createInvitationMock = vi.mocked(createWorkspaceInvitation);
+const linkParticipantMock = vi.mocked(linkWorkspaceParticipantToMember);
 const getWorkspaceMock = vi.mocked(getWorkspace);
-const revokeInvitationMock = vi.mocked(revokeWorkspaceInvitation);
+const listParticipantsMock = vi.mocked(listParticipants);
+const resendInvitationMock = vi.mocked(resendWorkspaceInvitation);
 
-function storedState() {
+function invitation(overrides: Record<string, unknown> = {}) {
   return {
-    version: 1,
+    invitationId: 'invite-1',
+    participantId: 'participant-1',
+    email: 'alex@example.com',
+    displayName: 'Alex',
+    role: 'adult_member' as const,
+    status: 'pending' as const,
+    deliveryStatus: 'sent' as const,
+    createdAt: '2026-08-12T09:00:00.000Z',
+    expiresAt: '2026-08-19T09:00:00.000Z',
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  mocks.storedWorkspace = {
+    version: 3,
     currentUserId: 'owner-1',
     workspace: {
       id: 'workspace-1',
@@ -53,174 +77,46 @@ function storedState() {
           status: 'active',
         },
       ],
+      invitations: [],
       createdAt: '2026-08-12T08:00:00.000Z',
       updatedAt: '2026-08-12T08:00:00.000Z',
     },
   };
-}
-
-function pendingInvitation(invitationId: string, email: string) {
-  return {
-    invitationId,
-    email,
-    displayName: 'Alex',
-    role: 'adult_member' as const,
-    status: 'pending' as const,
-    createdAt: '2026-08-12T09:00:00.000Z',
-    expiresAt: '2026-08-19T09:00:00.000Z',
-  };
-}
-
-beforeEach(() => {
-  mocks.storedWorkspace = storedState();
   mocks.writeSettingsStorage.mockReset();
   createInvitationMock.mockReset();
+  linkParticipantMock.mockReset();
   getWorkspaceMock.mockReset();
-  revokeInvitationMock.mockReset();
+  listParticipantsMock.mockReset();
+  resendInvitationMock.mockReset();
   setActivePinia(createPinia());
 });
 
 describe('workspace participant access', () => {
-  it('migrates version-one workspace state with no invitation links', () => {
+  it('derives pending state from the server invitation participant ID', () => {
     const store = useWorkspaceStore();
+    store.applyWorkspace({ ...store.workspace, invitations: [invitation()] });
 
-    expect(store.participantInvitationLinks).toEqual({});
+    expect(store.getParticipantAccessState('participant-1')).toEqual({
+      status: 'pending',
+      email: 'alex@example.com',
+    });
   });
 
-  it('migrates workspace storage without invitations to version three', () => {
-    mocks.storedWorkspace = { ...storedState(), version: 2 };
-    const store = useWorkspaceStore();
-
-    expect(store.version).toBe(3);
-    expect(store.workspace.invitations).toEqual([]);
-  });
-
-  it('normalizes valid stored invitations and discards malformed records', () => {
-    mocks.storedWorkspace = {
-      ...storedState(),
-      version: 3,
-      workspace: {
-        ...storedState().workspace,
-        invitations: [
-          {
-            invitationId: ' invite-1 ',
-            email: ' Alex@Example.com ',
-            displayName: ' Alex ',
-            role: 'adult_member',
-            status: 'pending',
-            createdAt: '2026-08-12T09:00:00.000Z',
-            expiresAt: '2026-08-19T09:00:00.000Z',
-          },
-          { invitationId: '', email: 'broken@example.com' },
-        ],
-      },
-    };
-
-    expect(useWorkspaceStore().workspace.invitations).toEqual([
+  it('derives active state from a server participant email and active member', () => {
+    useParticipantsStore().applyParticipants([
       {
-        invitationId: 'invite-1',
-        email: 'alex@example.com',
-        displayName: 'Alex',
-        role: 'adult_member',
-        status: 'pending',
-        createdAt: '2026-08-12T09:00:00.000Z',
-        expiresAt: '2026-08-19T09:00:00.000Z',
+        id: 'participant-1',
+        name: 'Alex',
+        initials: 'A',
+        avatarColor: '#496a8f',
+        type: 'adult',
+        email: 'Alex@Example.com',
+        isActive: true,
+        createdAt: '2026-08-12T08:00:00.000Z',
+        updatedAt: '2026-08-12T08:00:00.000Z',
       },
     ]);
-  });
-
-  it('invites an adult member and stores a normalized participant link', async () => {
-    createInvitationMock.mockResolvedValue({
-      invitationId: 'invite-1',
-      email: 'Alex@Example.com',
-      displayName: 'Alex',
-      role: 'adult_member',
-      status: 'pending',
-      createdAt: '2026-08-12T09:00:00.000Z',
-      expiresAt: '2026-08-19T09:00:00.000Z',
-    });
     const store = useWorkspaceStore();
-
-    await store.inviteParticipant(
-      'participant-1',
-      'Alex',
-      ' Alex@Example.com '
-    );
-
-    expect(createInvitationMock).toHaveBeenCalledWith({
-      displayName: 'Alex',
-      email: 'alex@example.com',
-      role: 'adult_member',
-    });
-    expect(store.participantInvitationLinks['participant-1']).toEqual({
-      participantId: 'participant-1',
-      email: 'alex@example.com',
-      invitationId: 'invite-1',
-    });
-    expect(store.workspace.invitations).toContainEqual(
-      pendingInvitation('invite-1', 'alex@example.com')
-    );
-    expect(
-      store.workspace.members.some((member) => member.userId === 'invite-1')
-    ).toBe(false);
-    expect(store.getParticipantAccessState('participant-1')).toEqual({
-      status: 'pending',
-      email: 'alex@example.com',
-    });
-  });
-
-  it('keeps a participant link matched by a pending backend invitation', () => {
-    const store = useWorkspaceStore();
-    store.participantInvitationLinks = {
-      'participant-1': {
-        participantId: 'participant-1',
-        email: 'alex@example.com',
-        invitationId: 'invite-1',
-      },
-    };
-
-    store.applyWorkspace({
-      ...store.workspace,
-      invitations: [pendingInvitation('invite-1', ' Alex@Example.com ')],
-    });
-
-    expect(store.getParticipantAccessState('participant-1')).toEqual({
-      status: 'pending',
-      email: 'alex@example.com',
-    });
-  });
-
-  it('rehydrates the persisted pending invitation in a fresh store', () => {
-    const firstStore = useWorkspaceStore();
-    firstStore.participantInvitationLinks = {
-      'participant-1': {
-        participantId: 'participant-1',
-        email: 'alex@example.com',
-        invitationId: 'invite-1',
-      },
-    };
-    firstStore.applyWorkspace({
-      ...firstStore.workspace,
-      invitations: [pendingInvitation('invite-1', 'alex@example.com')],
-    });
-    mocks.storedWorkspace = mocks.writeSettingsStorage.mock.lastCall?.[1];
-    setActivePinia(createPinia());
-
-    expect(
-      useWorkspaceStore().getParticipantAccessState('participant-1')
-    ).toEqual({ status: 'pending', email: 'alex@example.com' });
-  });
-
-  it('uses a matching active member after an invitation is accepted', () => {
-    const store = useWorkspaceStore();
-    store.participantInvitationLinks = {
-      'participant-1': {
-        participantId: 'participant-1',
-        email: 'alex@example.com',
-        invitationId: 'invite-1',
-      },
-    };
-
     store.applyWorkspace({
       ...store.workspace,
       members: [
@@ -228,15 +124,9 @@ describe('workspace participant access', () => {
         {
           userId: 'member-1',
           displayName: 'Alex',
-          email: ' Alex@Example.com ',
+          email: 'alex@example.com',
           role: 'adult_member',
           status: 'active',
-        },
-      ],
-      invitations: [
-        {
-          ...pendingInvitation('invite-1', 'alex@example.com'),
-          status: 'accepted',
         },
       ],
     });
@@ -247,189 +137,50 @@ describe('workspace participant access', () => {
     });
   });
 
-  it('removes links backed only by expired or revoked invitations', () => {
+  it('posts only the participant ID and normalized email when inviting', async () => {
+    createInvitationMock.mockResolvedValue(invitation());
     const store = useWorkspaceStore();
-    store.participantInvitationLinks = {
-      expired: {
-        participantId: 'expired',
-        email: 'expired@example.com',
-      },
-      revoked: {
-        participantId: 'revoked',
-        email: 'revoked@example.com',
-      },
-    };
 
-    store.applyWorkspace({
-      ...store.workspace,
-      invitations: [
-        {
-          ...pendingInvitation('expired-invite', 'expired@example.com'),
-          status: 'expired',
-        },
-        {
-          ...pendingInvitation('revoked-invite', 'revoked@example.com'),
-          status: 'revoked',
-        },
-      ],
+    await store.inviteParticipant(' participant-1 ', ' Alex@Example.com ');
+
+    expect(createInvitationMock).toHaveBeenCalledWith({
+      participantId: 'participant-1',
+      email: 'alex@example.com',
     });
-
-    expect(store.participantInvitationLinks).toEqual({});
+    expect(store.getParticipantAccessState('participant-1')).toEqual({
+      status: 'pending',
+      email: 'alex@example.com',
+    });
   });
 
-  it('links an existing member by case-insensitive email without posting', async () => {
+  it('uses the dedicated server link operation for an active workspace member', async () => {
     const store = useWorkspaceStore();
+    linkParticipantMock.mockResolvedValue();
+    getWorkspaceMock.mockResolvedValue(store.workspace);
+    listParticipantsMock.mockResolvedValue({ participants: [] });
 
-    const member = await store.inviteParticipant(
-      'participant-me',
-      'Rita',
+    const linkedMember = await store.inviteParticipant(
+      'participant-1',
       ' RITA@example.com '
     );
 
-    expect(member?.userId).toBe('owner-1');
-    expect(createInvitationMock).not.toHaveBeenCalled();
-    expect(store.getParticipantAccessState('participant-me')).toEqual({
-      status: 'active',
+    expect(linkParticipantMock).toHaveBeenCalledWith('participant-1', {
       email: 'rita@example.com',
     });
-  });
-
-  it('rejects an email already connected to a different participant', async () => {
-    const store = useWorkspaceStore();
-    store.participantInvitationLinks = {
-      'participant-1': {
-        participantId: 'participant-1',
-        email: 'alex@example.com',
-      },
-    };
-
-    const member = await store.inviteParticipant(
-      'participant-2',
-      'Other Alex',
-      'alex@example.com'
-    );
-
-    expect(member).toBeNull();
-    expect(store.errorMessage).toBe('workspace.emailAlreadyLinked');
     expect(createInvitationMock).not.toHaveBeenCalled();
+    expect(linkedMember?.status).toBe('active');
   });
 
-  it('derives active access and clears orphan links after refresh', () => {
+  it('keeps delivery failures visible and can resend that invitation', async () => {
     const store = useWorkspaceStore();
-    store.participantInvitationLinks = {
-      active: { participantId: 'active', email: 'rita@example.com' },
-      missing: { participantId: 'missing', email: 'missing@example.com' },
-    };
-
-    store.applyWorkspace(store.workspace);
-
-    expect(store.getParticipantAccessState('active').status).toBe('active');
-    expect(store.getParticipantAccessState('missing').status).toBe('none');
-    expect(store.participantInvitationLinks.missing).toBeUndefined();
-  });
-
-  it('revokes a linked pending invitation without changing unrelated records', async () => {
-    revokeInvitationMock.mockResolvedValue();
-    const store = useWorkspaceStore();
-    store.workspace.invitations = [
-      pendingInvitation('invite-1', 'alex@example.com'),
-      pendingInvitation('invite-2', 'sam@example.com'),
-    ];
-    store.participantInvitationLinks = {
-      'participant-1': {
-        participantId: 'participant-1',
-        email: 'alex@example.com',
-        invitationId: 'invite-1',
-      },
-      'participant-2': {
-        participantId: 'participant-2',
-        email: 'sam@example.com',
-        invitationId: 'invite-2',
-      },
-    };
-
-    expect(store.getParticipantPendingInvitation('participant-1')).toEqual(
-      pendingInvitation('invite-1', 'alex@example.com')
-    );
-    expect(await store.revokeParticipantInvitation('participant-1')).toBe(true);
-    expect(revokeInvitationMock).toHaveBeenCalledWith('invite-1');
-    expect(store.workspace.invitations).toEqual([
-      pendingInvitation('invite-2', 'sam@example.com'),
-    ]);
-    expect(store.participantInvitationLinks['participant-1']).toBeUndefined();
-    expect(store.participantInvitationLinks['participant-2']).toBeDefined();
-    expect(mocks.writeSettingsStorage).toHaveBeenCalled();
-  });
-
-  it('falls back to normalized email for a legacy invitation link', () => {
-    const store = useWorkspaceStore();
-    store.workspace.invitations = [
-      pendingInvitation('invite-1', 'alex@example.com'),
-    ];
-    store.participantInvitationLinks = {
-      'participant-1': {
-        participantId: 'participant-1',
-        email: ' Alex@Example.com ',
-      },
-    };
-
-    expect(
-      store.getParticipantPendingInvitation('participant-1')?.invitationId
-    ).toBe('invite-1');
-  });
-
-  it('does not call the API without a local pending invitation', async () => {
-    const store = useWorkspaceStore();
-
-    expect(await store.revokeParticipantInvitation('missing')).toBe(false);
-    expect(revokeInvitationMock).not.toHaveBeenCalled();
-  });
-
-  it('reloads and reconciles the workspace when revoke returns 404', async () => {
-    revokeInvitationMock.mockRejectedValue(
-      new ApiClientError('Missing', { status: 404 })
-    );
-    const store = useWorkspaceStore();
-    const invitation = pendingInvitation('invite-1', 'alex@example.com');
-    store.workspace.invitations = [invitation];
-    store.participantInvitationLinks = {
-      'participant-1': {
-        participantId: 'participant-1',
-        email: invitation.email,
-        invitationId: invitation.invitationId,
-      },
-    };
-    getWorkspaceMock.mockResolvedValue({
+    store.applyWorkspace({
       ...store.workspace,
-      invitations: [],
+      invitations: [invitation({ deliveryStatus: 'failed' })],
     });
+    resendInvitationMock.mockResolvedValue(invitation({ deliveryStatus: 'sent' }));
 
-    expect(await store.revokeParticipantInvitation('participant-1')).toBe(
-      false
-    );
-    expect(getWorkspaceMock).toHaveBeenCalled();
-    expect(store.participantInvitationLinks['participant-1']).toBeUndefined();
-    expect(store.errorMessage).toBe('workspace.invitationNoLongerPending');
-  });
-
-  it('retains local invitation state for non-404 revoke failures', async () => {
-    revokeInvitationMock.mockRejectedValue(new Error('raw backend detail'));
-    const store = useWorkspaceStore();
-    const invitation = pendingInvitation('invite-1', 'alex@example.com');
-    store.workspace.invitations = [invitation];
-    store.participantInvitationLinks = {
-      'participant-1': {
-        participantId: 'participant-1',
-        email: invitation.email,
-        invitationId: invitation.invitationId,
-      },
-    };
-
-    expect(await store.revokeParticipantInvitation('participant-1')).toBe(
-      false
-    );
-    expect(store.workspace.invitations).toEqual([invitation]);
-    expect(store.participantInvitationLinks['participant-1']).toBeDefined();
-    expect(store.errorMessage).toBe('workspace.revokeInvitationFailed');
+    expect(await store.resendParticipantInvitation('participant-1')).toBe(true);
+    expect(resendInvitationMock).toHaveBeenCalledWith('invite-1');
+    expect(store.workspace.invitations[0]?.deliveryStatus).toBe('sent');
   });
 });

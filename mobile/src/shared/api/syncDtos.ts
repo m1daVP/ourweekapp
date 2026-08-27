@@ -113,7 +113,10 @@ export function toParticipantDto(participant: Participant): ParticipantDto {
 }
 
 export function fromParticipantDto(participant: ParticipantDto): Participant {
-  return toParticipantDto(participant);
+  return {
+    ...toParticipantDto(participant),
+    email: participant.email?.trim() || undefined,
+  };
 }
 
 export function toReviewDecisionDto(
