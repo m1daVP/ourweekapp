@@ -1,67 +1,28 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import { privacyPolicy } from '@/features/legal/productionLegalContent';
 
 const { t } = useI18n();
-
-const privacySections = [
-  {
-    title: 'legal.privacy.accountTitle',
-    text: 'legal.privacy.accountText',
-  },
-  {
-    title: 'legal.privacy.syncTitle',
-    text: 'legal.privacy.syncText',
-  },
-  {
-    title: 'legal.privacy.localStorageTitle',
-    text: 'legal.privacy.localStorageText',
-  },
-  {
-    title: 'legal.privacy.privateNotesTitle',
-    text: 'legal.privacy.privateNotesText',
-  },
-  {
-    title: 'legal.privacy.aiTitle',
-    text: 'legal.privacy.aiText',
-  },
-  {
-    title: 'legal.privacy.subscriptionTitle',
-    text: 'legal.privacy.subscriptionText',
-  },
-  {
-    title: 'legal.privacy.calendarTitle',
-    text: 'legal.privacy.calendarText',
-  },
-  {
-    title: 'legal.privacy.notificationsTitle',
-    text: 'legal.privacy.notificationsText',
-  },
-  {
-    title: 'legal.privacy.exportTitle',
-    text: 'legal.privacy.exportText',
-  },
-  {
-    title: 'legal.privacy.rightsTitle',
-    text: 'legal.privacy.rightsText',
-  },
-];
 </script>
 
 <template>
   <section class="page-stack legal-page">
     <header>
-      <p class="page-kicker">{{ t('legal.privacy.kicker') }}</p>
-      <h1>{{ t('legal.privacy.title') }}</h1>
-      <p class="page-copy">{{ t('legal.privacy.intro') }}</p>
+      <p class="page-kicker">OurWeek</p>
+      <h1>{{ privacyPolicy.title }}</h1>
+      <p class="page-copy">{{ privacyPolicy.intro }}</p>
+      <p>{{ privacyPolicy.effectiveDate }}</p>
     </header>
 
     <section
-      v-for="section in privacySections"
-      :key="section.title"
+      v-for="section in privacyPolicy.sections"
+      :key="section.heading"
       class="content-panel"
     >
-      <h2>{{ t(section.title) }}</h2>
-      <p>{{ t(section.text) }}</p>
+      <h2>{{ section.heading }}</h2>
+      <p v-for="paragraph in section.paragraphs" :key="paragraph">
+        {{ paragraph }}
+      </p>
     </section>
 
     <RouterLink class="secondary-button link-button" :to="{ name: 'settings' }">

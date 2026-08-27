@@ -15,6 +15,7 @@ import {
   AccountDeletionCleanupError,
   deleteAccountAndClearLocalData,
 } from '@/features/auth/accountDeletionLifecycle';
+import { PUBLIC_LEGAL_URLS } from '@/features/legal/productionLegalContent';
 import { cancelReminderNotifications } from '@/features/reminders/reminderService';
 import {
   deleteAccount as deleteAccountRequest,
@@ -351,6 +352,13 @@ async function continueAfterCleanupFailure() {
             : t('account.deleteAccount')
         }}
       </button>
+      <a
+        class="secondary-button link-button"
+        :href="PUBLIC_LEGAL_URLS.deleteAccount"
+        data-testid="external-delete-account"
+      >
+        Delete account online
+      </a>
       <p v-if="dataActionError" class="meeting-error" role="alert">
         {{ dataActionError }}
       </p>
