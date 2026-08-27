@@ -150,16 +150,18 @@ watch(
         aria-live="polite"
         aria-atomic="true"
       >
-        <span
-          :class="[
-            'material-symbols-outlined',
-            { 'pull-to-refresh__spinner': pullPhase === 'refreshing' },
-          ]"
-          aria-hidden="true"
-        >
-          refresh
-        </span>
-        <span v-if="pullPhase !== 'idle'">{{ pullStatusText }}</span>
+        <div class="pull-to-refresh__content">
+          <span
+            :class="[
+              'material-symbols-outlined',
+              { 'pull-to-refresh__spinner': pullPhase === 'refreshing' },
+            ]"
+            aria-hidden="true"
+          >
+            refresh
+          </span>
+          <span v-if="pullPhase !== 'idle'">{{ pullStatusText }}</span>
+        </div>
       </div>
       <aside
         v-if="recoveryMessages.length"

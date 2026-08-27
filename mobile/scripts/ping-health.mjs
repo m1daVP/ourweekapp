@@ -1,6 +1,6 @@
 /* global AbortSignal, URL, console, fetch, process, setTimeout */
 
-const INTERVAL_MS = 30_000;
+const INTERVAL_MS = 40_000;
 const REQUEST_TIMEOUT_MS = 10_000;
 const apiBaseUrl = process.env.VITE_API_BASE_URL?.trim();
 
