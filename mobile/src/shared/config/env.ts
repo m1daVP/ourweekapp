@@ -14,6 +14,7 @@ export interface AppConfig {
   isRevenueCatEnabled: boolean;
   googleWebClientId: string | null;
   googleIosClientId: string | null;
+  contactEmail: string | null;
 }
 
 export interface AppConfigEnv {
@@ -26,6 +27,7 @@ export interface AppConfigEnv {
   VITE_REVENUECAT_ANDROID_YEARLY_PRODUCT_ID?: string;
   VITE_GOOGLE_WEB_CLIENT_ID?: string;
   VITE_GOOGLE_IOS_CLIENT_ID?: string;
+  VITE_CONTACT_EMAIL?: string;
   MODE?: string;
   PROD?: boolean;
 }
@@ -158,6 +160,7 @@ export function createAppConfig(env: AppConfigEnv): AppConfig {
     ),
     googleWebClientId: normalizeOptionalString(env.VITE_GOOGLE_WEB_CLIENT_ID),
     googleIosClientId: normalizeOptionalString(env.VITE_GOOGLE_IOS_CLIENT_ID),
+    contactEmail: normalizeOptionalString(env.VITE_CONTACT_EMAIL),
   };
 }
 

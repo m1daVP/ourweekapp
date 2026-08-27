@@ -64,4 +64,20 @@ describe('createAppConfig', () => {
     expect(config.revenueCatAndroidMonthlyProductId).toBe('monthly');
     expect(config.revenueCatAndroidYearlyProductId).toBe('yearly');
   });
+
+  it('normalizes the optional contact email', () => {
+    expect(
+      createAppConfig({
+        VITE_API_BASE_URL: apiBaseUrl,
+        VITE_CONTACT_EMAIL: ' support@example.com ',
+      }).contactEmail
+    ).toBe('support@example.com');
+
+    expect(
+      createAppConfig({
+        VITE_API_BASE_URL: apiBaseUrl,
+        VITE_CONTACT_EMAIL: '   ',
+      }).contactEmail
+    ).toBeNull();
+  });
 });

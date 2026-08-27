@@ -596,6 +596,8 @@ export const messages = {
       support: 'Support',
       supportText:
         'Check app status and copy diagnostics that avoid family content.',
+      contactUs: 'Contact us',
+      contactUsText: 'Email OurWeek support.',
       supportDiagnostics: 'Support diagnostics',
       legal: 'Legal',
       legalText:
@@ -2065,6 +2067,8 @@ export const messages = {
       support: 'Підтримка',
       supportText:
         'Перевірте стан застосунку й скопіюйте діагностику без сімейного вмісту.',
+      contactUs: 'Зв’язатися з нами',
+      contactUsText: 'Напишіть до служби підтримки OurWeek.',
       supportDiagnostics: 'Діагностика підтримки',
       legal: 'Юридичне',
       legalText:
@@ -3570,6 +3574,8 @@ export const messages = {
       support: 'Soporte',
       supportText:
         'Revisa el estado de la app y copia un diagnóstico sin contenido familiar.',
+      contactUs: 'Contáctanos',
+      contactUsText: 'Escribe al soporte de OurWeek.',
       supportDiagnostics: 'Diagnóstico de soporte',
       legal: 'Legal',
       legalText:
