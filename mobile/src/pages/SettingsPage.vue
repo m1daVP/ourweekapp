@@ -22,6 +22,7 @@ import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useNotifications } from '@/shared/composables/useNotifications';
+import { appConfig } from '@/shared/config/env';
 
 const route = useRoute();
 const { t } = useI18n();
@@ -68,6 +69,7 @@ const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
 const isWorkspaceOwner = computed(() =>
   canPurchasePremium(workspaceStore.currentUserRole)
 );
+const canRestorePurchases = computed(() => appConfig.isRevenueCatEnabled);
 const currentPlanLabel = computed(() =>
   hasPremium.value ? t('settings.plan.premium') : t('settings.plan.free')
 );
@@ -322,6 +324,30 @@ function openReminderSheet() {
         <p v-else-if="!hasPremium" class="settings-subscription-card__note">
           {{ t('settings.subscriptionOwnerManaged') }}
         </p>
+        <button
+          v-if="isWorkspaceOwner"
+          class="settings-subscription-card__secondary-action"
+          type="button"
+          data-testid="restore-purchases"
+          :disabled="subscriptionStore.isRestoring || !canRestorePurchases"
+          @click="subscriptionStore.restorePurchases()"
+        >
+          {{ t('common.restorePurchases') }}
+        </button>
+        <p
+          v-if="isWorkspaceOwner && subscriptionStore.statusMessage"
+          class="meeting-status settings-subscription-card__feedback"
+          role="status"
+        >
+          {{ subscriptionStore.statusMessage }}
+        </p>
+        <p
+          v-if="isWorkspaceOwner && subscriptionStore.errorMessage"
+          class="meeting-error settings-subscription-card__feedback"
+          role="alert"
+        >
+          {{ subscriptionStore.errorMessage }}
+        </p>
       </article>
     </section>
 
@@ -331,8 +357,28 @@ function openReminderSheet() {
       </h2>
 
       <div class="settings-redesign-card settings-redesign-card--flush">
+        <a
+          v-if="appConfig.contactEmail"
+          class="settings-redesign-row settings-redesign-row--trailing-icon"
+          :href="`mailto:${appConfig.contactEmail}`"
+        >
+          <span class="settings-redesign-row__body">
+            <span class="settings-redesign-row__title">
+              {{ t('settings.contactUs') }}
+            </span>
+            <span class="settings-redesign-row__text">
+              {{ t('settings.contactUsText') }}
+            </span>
+          </span>
+          <span
+            class="settings-redesign-row__chevron material-symbols-outlined"
+            aria-hidden="true"
+          >
+            mail
+          </span>
+        </a>
         <RouterLink
-          class="settings-redesign-row"
+          class="settings-redesign-row settings-redesign-row--trailing-icon"
           :to="{ name: 'support-diagnostics' }"
         >
           <span class="settings-redesign-row__body">
@@ -349,7 +395,10 @@ function openReminderSheet() {
             chevron_right
           </span>
         </RouterLink>
-        <RouterLink class="settings-redesign-row" :to="{ name: 'privacy' }">
+        <RouterLink
+          class="settings-redesign-row settings-redesign-row--trailing-icon"
+          :to="{ name: 'privacy' }"
+        >
           <span class="settings-redesign-row__body">
             <span class="settings-redesign-row__title">
               {{ t('settings.privacyPolicy') }}
@@ -361,7 +410,10 @@ function openReminderSheet() {
             chevron_right
           </span>
         </RouterLink>
-        <RouterLink class="settings-redesign-row" :to="{ name: 'terms' }">
+        <RouterLink
+          class="settings-redesign-row settings-redesign-row--trailing-icon"
+          :to="{ name: 'terms' }"
+        >
           <span class="settings-redesign-row__body">
             <span class="settings-redesign-row__title">
               {{ t('settings.terms') }}
