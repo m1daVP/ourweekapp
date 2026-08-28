@@ -227,6 +227,69 @@ describe('SubscriptionService', () => {
     });
   });
 
+  it('revokes a previously active entitlement when RevenueCat no longer returns it', async () => {
+    const client = new FakeRevenueCatClient(true);
+    client.getSubscriber.mockResolvedValue({
+      request_date: now,
+      subscriber: {
+        original_app_user_id: 'workspace-1',
+        entitlements: {},
+      },
+    });
+    const { service, repository } = serviceWith({
+      client,
+      repository: new FakeSubscriptionRepository(
+        subscription({
+          provider: 'google_play',
+          planType: 'premium',
+          status: 'active',
+          expiresAt: future,
+        }),
+      ),
+    });
+
+    const status = await service.getStatus(auth);
+
+    expect(status.planType).toBe('free');
+    expect(status.enabledFeatures).not.toContain('aiSummary');
+    expect(repository.upserts.at(-1)).toMatchObject({
+      workspaceId: 'workspace-1',
+      planType: 'free',
+      status: 'not_found',
+    });
+  });
+
+  it('retains Premium during a current RevenueCat grace period', async () => {
+    const client = new FakeRevenueCatClient(true);
+    client.getSubscriber.mockResolvedValue({
+      request_date: now,
+      subscriber: {
+        original_app_user_id: 'workspace-1',
+        entitlements: {
+          premium: {
+            expires_date: past,
+            grace_period_expires_date: future,
+            store: 'play_store',
+          },
+        },
+      },
+    });
+    const { service, repository } = serviceWith({ client });
+
+    const status = await service.getStatus(auth);
+
+    expect(status).toMatchObject({
+      planType: 'premium',
+      provider: 'google_play',
+      expiresAt: future,
+    });
+    expect(repository.upserts[0]).toMatchObject({
+      planType: 'premium',
+      status: 'grace_period',
+      expiresAt: future,
+    });
+  });
+
   it('uses a recently checked cached premium record when status refresh fails', async () => {
     const client = new FakeRevenueCatClient(true);
     client.getSubscriber.mockRejectedValue(new Error('network unavailable'));

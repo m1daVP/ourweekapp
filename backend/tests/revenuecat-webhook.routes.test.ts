@@ -62,6 +62,18 @@ const body = {
   },
 };
 
+function webhookBody(type: string, appUserId = 'workspace-1') {
+  return {
+    api_version: '1.0',
+    event: {
+      id: `event-${type}`,
+      type,
+      store: 'PLAY_STORE',
+      app_user_id: appUserId,
+    },
+  };
+}
+
 describe('RevenueCat webhook routes', () => {
   it.each([
     ['missing authorization', undefined],
@@ -109,6 +121,31 @@ describe('RevenueCat webhook routes', () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ received: true });
+    expect(service.syncEntitlementForWorkspace).toHaveBeenCalledWith(
+      'workspace-1',
+    );
+    await app.close();
+  });
+
+  it.each([
+    'INITIAL_PURCHASE',
+    'RENEWAL',
+    'CANCELLATION',
+    'EXPIRATION',
+    'REFUND',
+  ])('refreshes the event workspace for %s', async (eventType) => {
+    const service = serviceThat();
+    const app = await buildApp({ service });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/revenuecat',
+      headers: { authorization: secret },
+      payload: webhookBody(eventType),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ received: true });
+    expect(service.syncEntitlementForWorkspace).toHaveBeenCalledOnce();
     expect(service.syncEntitlementForWorkspace).toHaveBeenCalledWith(
       'workspace-1',
     );
