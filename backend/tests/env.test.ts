@@ -86,6 +86,46 @@ describe('env AI provider configuration', () => {
     ).rejects.toThrow('required in production');
   });
 
+  it('rejects a production API with incomplete RevenueCat configuration', async () => {
+    await expect(
+      loadEnv({
+        NODE_ENV: 'production',
+        APP_ENV: 'production',
+        CORS_ALLOWED_ORIGINS: 'https://example.com',
+        SMTP_HOST: 'smtp.example.com',
+        SMTP_PORT: '587',
+        SMTP_USER: 'mailer@example.com',
+        SMTP_PASSWORD: 'smtp-password',
+        EMAIL_FROM: 'OurWeek <no-reply@example.com>',
+        INVITATION_HANDOFF_URL: 'https://ourweekapp.com/invite',
+        REVENUECAT_PROJECT_ID: 'proj123',
+        REVENUECAT_API_KEY: 'secret-key',
+        REVENUECAT_ENTITLEMENT_ID: 'premium',
+        REVENUECAT_WEBHOOK_SHARED_SECRET: '',
+      }),
+    ).rejects.toThrow('REVENUECAT_WEBHOOK_SHARED_SECRET is required in production');
+  });
+
+  it('accepts complete RevenueCat configuration in production', async () => {
+    const { env } = await loadEnv({
+      NODE_ENV: 'production',
+      APP_ENV: 'production',
+      CORS_ALLOWED_ORIGINS: 'https://example.com',
+      SMTP_HOST: 'smtp.example.com',
+      SMTP_PORT: '587',
+      SMTP_USER: 'mailer@example.com',
+      SMTP_PASSWORD: 'smtp-password',
+      EMAIL_FROM: 'OurWeek <no-reply@example.com>',
+      INVITATION_HANDOFF_URL: 'https://ourweekapp.com/invite',
+      REVENUECAT_PROJECT_ID: 'proj123',
+      REVENUECAT_API_KEY: 'secret-key',
+      REVENUECAT_ENTITLEMENT_ID: 'premium',
+      REVENUECAT_WEBHOOK_SHARED_SECRET: 'webhook-secret',
+    });
+
+    expect(env.REVENUECAT_CONFIGURED).toBe(true);
+  });
+
   it('allows a fully configured SMTP setup in production', async () => {
     const { env } = await loadEnv({
       NODE_ENV: 'production',
@@ -97,6 +137,10 @@ describe('env AI provider configuration', () => {
       SMTP_PASSWORD: 'smtp-password',
       EMAIL_FROM: 'OurWeek <no-reply@example.com>',
       INVITATION_HANDOFF_URL: 'https://ourweekapp.com/invite',
+      REVENUECAT_PROJECT_ID: 'proj123',
+      REVENUECAT_API_KEY: 'secret-key',
+      REVENUECAT_ENTITLEMENT_ID: 'premium',
+      REVENUECAT_WEBHOOK_SHARED_SECRET: 'webhook-secret',
     });
 
     expect(env.SMTP_CONFIGURED).toBe(true);

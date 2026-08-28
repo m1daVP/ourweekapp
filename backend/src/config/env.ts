@@ -85,6 +85,8 @@ const envInput = z
   })
   .superRefine((value, context) => {
     const aiApiKey = value.AI_API_KEY;
+    const isProduction =
+      value.NODE_ENV === 'production' || value.APP_ENV === 'production';
     const corsOrigins =
       value.CORS_ALLOWED_ORIGINS.length > 0
         ? value.CORS_ALLOWED_ORIGINS
@@ -98,26 +100,37 @@ const envInput = z
       });
     }
 
-    // if (
-    //   value.AI_PROVIDER === 'mock' &&
-    //   (value.NODE_ENV === 'production' || value.APP_ENV === 'production')
-    // ) {
-    //   context.addIssue({
-    //     code: 'custom',
-    //     path: ['AI_PROVIDER'],
-    //     message: 'AI_PROVIDER=mock is not allowed in production',
-    //   });
-    // }
+    if (value.AI_PROVIDER === 'mock' && isProduction) {
+      context.addIssue({
+        code: 'custom',
+        path: ['AI_PROVIDER'],
+        message: 'AI_PROVIDER=mock is not allowed in production',
+      });
+    }
 
-    if (
-      (value.NODE_ENV === 'production' || value.APP_ENV === 'production') &&
-      corsOrigins.length === 0
-    ) {
+    if (isProduction && corsOrigins.length === 0) {
       context.addIssue({
         code: 'custom',
         path: ['CORS_ALLOWED_ORIGINS'],
         message: 'CORS_ALLOWED_ORIGINS must list trusted origins in production',
       });
+    }
+
+    if (isProduction) {
+      for (const [field, fieldValue] of [
+        ['REVENUECAT_PROJECT_ID', value.REVENUECAT_PROJECT_ID],
+        ['REVENUECAT_API_KEY', value.REVENUECAT_API_KEY],
+        ['REVENUECAT_ENTITLEMENT_ID', value.REVENUECAT_ENTITLEMENT_ID],
+        ['REVENUECAT_WEBHOOK_SHARED_SECRET', value.REVENUECAT_WEBHOOK_SHARED_SECRET],
+      ] as const) {
+        if (!fieldValue) {
+          context.addIssue({
+            code: 'custom',
+            path: [field],
+            message: `${field} is required in production`,
+          });
+        }
+      }
     }
 
     const smtpFields = [
@@ -130,10 +143,7 @@ const envInput = z
     const smtpTouched = smtpFields.some(Boolean);
     const smtpConfigured = smtpFields.every(Boolean);
 
-    if (
-      (value.NODE_ENV === 'production' || value.APP_ENV === 'production') &&
-      !smtpFields.every(Boolean)
-    ) {
+    if (isProduction && !smtpFields.every(Boolean)) {
       context.addIssue({
         code: 'custom',
         path: ['SMTP_HOST'],
@@ -144,8 +154,7 @@ const envInput = z
 
     if (!smtpTouched) {
       if (
-        (value.NODE_ENV === 'production' || value.APP_ENV === 'production') &&
-        !value.INVITATION_HANDOFF_URL
+        isProduction && !value.INVITATION_HANDOFF_URL
       ) {
         context.addIssue({
           code: 'custom',

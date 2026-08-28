@@ -1,0 +1,123 @@
+services:
+  - type: web
+    name: weekly-us-api
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/ready
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PUBLIC_API_BASE_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: ACCESS_TOKEN_SECRET
+        generateValue: true
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+      - key: PASSWORD_RESET_TOKEN_SECRET
+        generateValue: true
+      - key: TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_TTL_SECONDS
+        value: 900
+      - key: REFRESH_TOKEN_TTL_DAYS
+        value: 30
+      - key: ARGON2_MEMORY_COST
+        value: 65536
+      - key: ARGON2_TIME_COST
+        value: 3
+      - key: ARGON2_PARALLELISM
+        value: 1
+      - key: AI_PROVIDER
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      - key: REVENUECAT_PROJECT_ID
+        sync: false
+      - key: REVENUECAT_API_KEY
+        sync: false
+      - key: REVENUECAT_ENTITLEMENT_ID
+        value: premium
+      - key: REVENUECAT_WEBHOOK_SHARED_SECRET
+        sync: false
+      - key: GOOGLE_PLAY_PACKAGE_NAME
+        sync: false
+      - key: GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64
+        sync: false
+      - key: GOOGLE_SIGN_IN_CLIENT_IDS
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+
+# PARKED (M3, 2026-07): background worker suspended - webhook events are
+# processed inline in the web service. Queue code, migration
+# (20260619120000_create_background_job_queues.sql), and tests stay in the repo.
+# To re-enable: uncomment AND resume weekly-us-worker in the Render dashboard.
+# If a Blueprint sync flags weekly-us-worker as removed, do NOT confirm deletion.
+#  - type: worker
+#    name: weekly-us-worker
+#    runtime: docker
+#    plan: starter
+#    region: frankfurt
+#    branch: main
+#    dockerfilePath: ./Dockerfile
+#    dockerContext: .
+#    dockerCommand: node dist/worker.js
+#    autoDeployTrigger: commit
+#    envVars:
+#      - key: NODE_ENV
+#        value: production
+#      - key: LOG_LEVEL
+#        value: info
+#      - key: SUPABASE_URL
+#        sync: false
+#      - key: SUPABASE_SERVICE_ROLE_KEY
+#        sync: false
+#      - key: QUEUE_POLL_INTERVAL_MS
+#        value: 1000
+#      - key: QUEUE_VISIBILITY_TIMEOUT_SECONDS
+#        value: 300
+#      - key: QUEUE_MAX_ATTEMPTS
+#        value: 5
+#      - key: QUEUE_MAX_CONSECUTIVE_FAILURES
+#        value: 10
+#      - key: QUEUE_HANDLER_TIMEOUT_SECONDS
+#        value: 600
+#      - key: QUEUE_DEAD_LETTER_RETENTION_DAYS
+#        value: 30
