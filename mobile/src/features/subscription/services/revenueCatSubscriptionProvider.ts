@@ -122,30 +122,28 @@ function createActionResult(
 
 async function getRevenueCatPlans() {
   if (!isRevenueCatAvailable()) {
-    return premiumPlanOptions;
+    return [];
   }
 
   try {
     const offering = await getCurrentOffering();
 
     if (!offering) {
-      return premiumPlanOptions;
+      return [];
     }
 
-    return premiumPlanOptions.map((plan) => {
+    return premiumPlanOptions.flatMap((plan) => {
       const productId = getPlanProductId(plan);
       const matchingPackage = offering.availablePackages.find(
         (candidate) => candidate.product.identifier === productId
       );
+      const priceLabel = matchingPackage?.product.priceString?.trim();
 
-      return {
-        ...plan,
-        priceLabel: matchingPackage?.product.priceString ?? plan.priceLabel,
-      };
+      return priceLabel ? [{ ...plan, priceLabel }] : [];
     });
   } catch (error) {
     warnSafely('Unable to load RevenueCat offerings.', error);
-    return premiumPlanOptions;
+    return [];
   }
 }
 

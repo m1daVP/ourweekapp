@@ -507,7 +507,7 @@ export const messages = {
       premiumActive: 'Premium active',
       startPremium: 'Start Premium',
       billingNote:
-        'Premium unlocks only after your subscription is validated by the backend.',
+        'Premium unlocks only after backend validation. Subscriptions renew automatically unless cancelled; the workspace owner can manage or cancel through Google Play or the App Store.',
       comparisonTitle: 'Plan comparison',
       comparisonText:
         'No pressure. Free keeps the core weekly meeting flow available.',
@@ -538,6 +538,8 @@ export const messages = {
       manageFailed:
         'Something went wrong while opening subscription management.',
       plans: {
+        monthlyBillingPeriod: 'per month',
+        yearlyBillingPeriod: 'per year',
         premiumMonthly: {
           name: 'Monthly',
           priceLabel: 'Price pending',
@@ -1977,7 +1979,7 @@ export const messages = {
       premiumActive: 'Premium активний',
       startPremium: 'Почати Premium',
       billingNote:
-        'Premium відкривається лише після перевірки підписки сервером.',
+        'Premium відкривається лише після перевірки сервером. Підписки поновлюються автоматично, якщо їх не скасувати; власник простору може керувати або скасувати підписку через Google Play чи App Store.',
       comparisonTitle: 'Порівняння планів',
       comparisonText:
         'Без тиску. Безкоштовний план залишає доступним основний потік щотижневої зустрічі.',
@@ -2007,6 +2009,8 @@ export const messages = {
       restoreFailed: 'Щось пішло не так під час відновлення покупок.',
       manageFailed: 'Щось пішло не так під час відкриття керування підпискою.',
       plans: {
+        monthlyBillingPeriod: 'на місяць',
+        yearlyBillingPeriod: 'на рік',
         premiumMonthly: {
           name: 'Щомісячний',
           priceLabel: 'Ціна очікується',
@@ -3494,7 +3498,7 @@ export const messages = {
       manageUnavailable:
         'Todavía no hay una suscripción activa de la tienda para gestionar.',
       billingNote:
-        'Premium se desbloquea solo después de que el servidor valide tu suscripción.',
+        'Premium se desbloquea solo después de la validación del servidor. Las suscripciones se renuevan automáticamente a menos que se cancelen; la persona propietaria del espacio puede gestionarlas o cancelarlas en Google Play o App Store.',
       localDeviceMode: 'Modo local del dispositivo',
       storeBillingNotConnected:
         'No se pudo contactar la facturación de la tienda.',
@@ -3514,6 +3518,8 @@ export const messages = {
       restoreFailed: 'Algo salió mal al restaurar compras.',
       manageFailed: 'Algo salió mal al abrir la gestión de suscripción.',
       plans: {
+        monthlyBillingPeriod: 'al mes',
+        yearlyBillingPeriod: 'al año',
         premiumMonthly: {
           name: 'Mensual',
           priceLabel: 'Precio pendiente',

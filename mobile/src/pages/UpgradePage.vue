@@ -128,7 +128,12 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
         <div class="upgrade-plan-card__content">
           <div>
             <h3>{{ t(`${getPlanMessageKey(plan)}.name`) }}</h3>
-            <p class="upgrade-plan-card__price">{{ plan.priceLabel }}</p>
+            <p class="upgrade-plan-card__price">
+              {{ plan.priceLabel }}
+              <span class="upgrade-plan-card__period">
+                {{ t(`upgrade.plans.${plan.cadence}BillingPeriod`) }}
+              </span>
+            </p>
             <p v-if="isYearlyPlan(plan)" class="upgrade-plan-card__note">
               {{ t('upgrade.yearlyNote') }}
             </p>

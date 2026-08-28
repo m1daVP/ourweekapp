@@ -201,7 +201,7 @@ describe('createRevenueCatSubscriptionProvider', () => {
     ]);
   });
 
-  it('keeps live provider prices available for plan card rendering', async () => {
+  it('returns only live provider prices available for plan card rendering', async () => {
     mockedGetCurrentOffering.mockResolvedValue({
       availablePackages: [
         {
@@ -216,8 +216,28 @@ describe('createRevenueCatSubscriptionProvider', () => {
     const provider = createRevenueCatSubscriptionProvider();
     const plans = await provider.getAvailablePlans();
 
-    expect(plans[0]?.priceLabel).toBe('$4.99');
-    expect(plans[1]?.priceLabel).toBe('Price pending');
+    expect(plans).toMatchObject([
+      { id: 'premium_monthly', priceLabel: '$4.99' },
+    ]);
+    expect(plans).toHaveLength(1);
+  });
+
+  it('returns no saleable plans when RevenueCat has no current offering', async () => {
+    mockedGetCurrentOffering.mockResolvedValue(null);
+
+    await expect(
+      createRevenueCatSubscriptionProvider().getAvailablePlans()
+    ).resolves.toEqual([]);
+  });
+
+  it('returns no saleable plans when the current offering cannot be loaded', async () => {
+    mockedGetCurrentOffering.mockRejectedValue(
+      new Error('network unavailable')
+    );
+
+    await expect(
+      createRevenueCatSubscriptionProvider().getAvailablePlans()
+    ).resolves.toEqual([]);
   });
 
   it('keeps a completed purchase pending after repeated free backend snapshots', async () => {
