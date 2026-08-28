@@ -31,24 +31,24 @@ accounts or payments.
 ### Implementation evidence
 
 - [x] Canonical English mobile Privacy Policy and Terms are implemented and
-  verified in every supported app locale.
+      verified in every supported app locale.
 - [ ] Public landing Privacy Policy and Terms are implemented and published.
 - [ ] The public no-login deletion route is implemented and deployed at
-  `https://ourweekapp.com/delete-account`.
+      `https://ourweekapp.com/delete-account`.
 - [x] Authenticated in-app account deletion is implemented through the existing
-  account-deletion workflow; release testing must still confirm the deployed
-  behavior and local-data cleanup.
+      account-deletion workflow; release testing must still confirm the deployed
+      behavior and local-data cleanup.
 - [x] Mobile and landing build verification has been recorded for the final
-  implementation.
+      implementation.
 - [ ] Qualified legal review of the English Privacy Policy and Terms is
-  complete.
+      complete.
 - [ ] Production provider configuration (backend/Supabase, Google Play and
-  RevenueCat, Sentry, OpenAI, Google Calendar, notifications, and local
-  storage) has been verified against the Data Safety evidence checklist.
+      RevenueCat, Sentry, OpenAI, Google Calendar, notifications, and local
+      storage) has been verified against the Data Safety evidence checklist.
 - [ ] Landing-site deployment and unauthenticated HTTP 200 verification of the
-  public deletion route are complete.
+      public deletion route are complete.
 - [ ] Google Play Console Data Safety submission is complete, including the
-  account-deletion URL.
+      account-deletion URL.
 
 ## Milestone 2: Production billing validation
 
@@ -73,6 +73,20 @@ trusted by the backend.
 - RevenueCat webhook events update the correct workspace subscription state.
 - The backend rejects untrusted or stale Premium state.
 - Store-facing subscription copy has been reviewed against final product terms.
+
+### Implementation evidence
+
+- [x] Repository-controlled billing safeguards, regression coverage, and
+      store-facing subscription disclosures are implemented. See the
+      [production billing validation runbook](./production-billing-validation.md)
+      for the required console configuration and real-device evidence.
+- [ ] Production RevenueCat project, products, entitlement, offering, API key,
+      and webhook are configured and verified.
+- [ ] Google Play monthly and yearly products are configured and available to
+      internal testers.
+- [ ] The runbook evidence table records passing purchase, restore,
+      management/cancellation, renewal, expiration, refund, reinstall, outage,
+      and non-owner scenarios on physical Android devices.
 
 ## Milestone 3: Billing UI consistency
 
