@@ -18,6 +18,7 @@ import {
   type SubscriptionsRepository,
 } from './subscriptions.repository.js';
 import { AssistantRepository } from '../assistant/assistant.repository.js';
+import { recapAllowanceForPlan } from './plan-limits.js';
 import {
   RevenueCatClientError,
   type RevenueCatCustomerInfo,
@@ -45,7 +46,7 @@ type EntitlementProviderClient = Pick<
 
 type AssistantCreditRepository = Pick<
   AssistantRepository,
-  'getRemainingFreeRecapCredits'
+  'countUsedRecaps'
 >;
 
 type RevenueCatEntitlementWithStore = RevenueCatEntitlement & {
@@ -115,9 +116,7 @@ async function subscriptionStatusFromRecord(
 
   if (!subscription || planType === 'free') {
     const features = resolveFeatureAccessMap({ planType: 'free', role });
-    const remainingFreeCredits = await assistantCredits.getRemainingFreeRecapCredits(
-      workspaceId,
-    );
+    const used = await assistantCredits.countUsedRecaps(workspaceId, null);
 
     return {
       planType: 'free',
@@ -126,14 +125,12 @@ async function subscriptionStatusFromRecord(
       features,
       expiresAt: null,
       checkedAt: subscription?.lastCheckedAt ?? now.toISOString(),
-      assistantRecap: {
-        remainingFreeCredits,
-        canGenerate: role !== 'viewer' && remainingFreeCredits > 0,
-      },
+      assistantRecap: recapAllowanceForPlan({ planType: 'free', expiresAt: null, used, role }),
     };
   }
 
   const features = resolveFeatureAccessMap({ planType: 'premium', role });
+  const used = await assistantCredits.countUsedRecaps(workspaceId, subscription.expiresAt);
 
   return {
     planType: 'premium',
@@ -142,10 +139,7 @@ async function subscriptionStatusFromRecord(
     features,
     expiresAt: subscription.expiresAt,
     checkedAt: subscription.lastCheckedAt,
-    assistantRecap: {
-      remainingFreeCredits: null,
-      canGenerate: role !== 'viewer',
-    },
+    assistantRecap: recapAllowanceForPlan({ planType: 'premium', expiresAt: subscription.expiresAt, used, role }),
   };
 }
 
@@ -156,9 +150,7 @@ async function freeStatus(
   assistantCredits: AssistantCreditRepository,
 ): Promise<SubscriptionStatusDto> {
   const features = resolveFeatureAccessMap({ planType: 'free', role });
-  const remainingFreeCredits = await assistantCredits.getRemainingFreeRecapCredits(
-    workspaceId,
-  );
+  const used = await assistantCredits.countUsedRecaps(workspaceId, null);
 
   return {
     planType: 'free',
@@ -167,10 +159,7 @@ async function freeStatus(
     features,
     expiresAt: null,
     checkedAt: now.toISOString(),
-    assistantRecap: {
-      remainingFreeCredits,
-      canGenerate: role !== 'viewer' && remainingFreeCredits > 0,
-    },
+    assistantRecap: recapAllowanceForPlan({ planType: 'free', expiresAt: null, used, role }),
   };
 }
 
@@ -233,8 +222,8 @@ export class SubscriptionService {
     private readonly revenueCatClient: EntitlementProviderClient,
     private readonly entitlementId = 'premium',
     private readonly assistantCredits: AssistantCreditRepository = {
-      async getRemainingFreeRecapCredits() {
-        return 3;
+      async countUsedRecaps() {
+        return 0;
       },
     },
   ) {}

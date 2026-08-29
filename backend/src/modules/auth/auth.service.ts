@@ -183,6 +183,10 @@ function mapInvitationAcceptanceError(error: { message?: string } | null) {
       'This invitation is invalid or has expired.',
     );
   }
+
+  if (error.message === 'household_member_limit_reached') {
+    throw new ApiError(409, 'household_member_limit_reached', 'This household has reached its member limit.');
+  }
 }
 
 function hashInvitationToken(token: string) {

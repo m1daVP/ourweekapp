@@ -23,6 +23,7 @@ import {
   type WorkspaceDto as RepositoryWorkspaceDto,
   type WorkspaceMemberDto as RepositoryWorkspaceMemberDto,
 } from './workspaces.repository.js';
+import { householdMemberLimitForPlan } from '../billing/plan-limits.js';
 
 const invitationTokenByteLength = 32;
 const invitationTtlDays = 7;
@@ -174,6 +175,13 @@ export class WorkspaceService {
     now = new Date(),
   ): Promise<CreateWorkspaceInvitationResponseDto> {
     const context = requireInviteMembers(auth);
+    const activeMembers = await this.repository.listActiveMembersForWorkspace(context.workspaceId);
+    const memberLimit = householdMemberLimitForPlan(context.planType);
+    if (activeMembers.length >= memberLimit) {
+      throw new ApiError(409, 'household_member_limit_reached', 'This household has reached its member limit.', {
+        limit: memberLimit, currentCount: activeMembers.length,
+      });
+    }
     const participant = await this.repository.findActiveParticipantForWorkspace(
       context.workspaceId,
       input.participantId,

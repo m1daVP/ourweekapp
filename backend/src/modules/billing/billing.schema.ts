@@ -54,7 +54,10 @@ export const subscriptionStatusSchema = z.object({
   expiresAt: nullableIsoDateTimeStringSchema,
   checkedAt: isoDateTimeStringSchema,
   assistantRecap: z.object({
-    remainingFreeCredits: z.number().int().min(0).max(3).nullable(),
+    limit: z.number().int().positive(),
+    used: z.number().int().min(0),
+    remaining: z.number().int().min(0),
+    periodEndsAt: nullableIsoDateTimeStringSchema,
     canGenerate: z.boolean(),
   }),
 });

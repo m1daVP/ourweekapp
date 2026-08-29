@@ -5,8 +5,6 @@ import { ApiError } from '../../shared/errors/index.js';
 import type { AuthContext } from '../../shared/auth/index.js';
 import { env } from '../../config/env.js';
 import { buildAuthPreHandler } from '../auth/auth.middleware.js';
-import { requireFeature } from '../billing/require-feature.middleware.js';
-import { SubscriptionsRepository } from '../billing/subscriptions.repository.js';
 import {
   aiMeetingSummaryRequestSchema,
   aiMeetingSummaryResponseSchema,
@@ -59,7 +57,6 @@ export function createAiSummaryProvider(config: AiProviderConfig): AiSummaryProv
 
 export const aiRoutes: FastifyPluginAsyncZod = async (app) => {
   const requireAuth = buildAuthPreHandler(app);
-  const subscriptionsRepository = new SubscriptionsRepository(app.supabase);
 
   app.post(
     '/meeting-summary',
@@ -71,7 +68,7 @@ export const aiRoutes: FastifyPluginAsyncZod = async (app) => {
           timeWindow: '1 hour',
         },
       },
-      preHandler: [requireAuth, requireFeature(subscriptionsRepository, 'aiSummary')],
+      preHandler: [requireAuth],
       schema: {
         body: aiMeetingSummaryRequestSchema,
         response: {

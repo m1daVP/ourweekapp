@@ -5,6 +5,10 @@ import { ApiError, isApiError } from '../../shared/errors/index.js';
 import type { JsonValue } from '../../shared/repositories/index.js';
 import { MeetingsRepository } from '../meetings/meetings.repository.js';
 import { ParticipantsRepository } from '../participants/participants.repository.js';
+import { AssistantRepository } from '../assistant/assistant.repository.js';
+import { SubscriptionsRepository, type SubscriptionDto } from '../billing/subscriptions.repository.js';
+import { resolveEffectivePlan } from '../../shared/repositories/index.js';
+import { recapAllowanceForPlan } from '../billing/plan-limits.js';
 import { meetingSummarySchema, type AiMeetingSummaryRequestDto } from './ai.schema.js';
 import { AiRepository } from './ai.repository.js';
 import type { AiSummaryProvider } from './openai.client.js';
@@ -44,6 +48,9 @@ type ParticipantsRepositoryPort = Pick<
   'listParticipantNamesForWorkspace'
 >;
 
+type AssistantAllowanceRepository = Pick<AssistantRepository, 'countUsedRecaps' | 'reserveRecap' | 'settleRecap' | 'releaseRecap'>;
+type SubscriptionRepositoryPort = Pick<SubscriptionsRepository, 'findCurrentSubscriptionForWorkspace'>;
+
 type AiSummaryServiceOptions = {
   aiConfigured?: boolean;
   model?: string;
@@ -75,6 +82,8 @@ export class AiSummaryService {
     private readonly participantsRepository: ParticipantsRepositoryPort,
     private readonly provider: AiSummaryProvider,
     private readonly options: AiSummaryServiceOptions = {},
+    private readonly assistantRepository?: AssistantAllowanceRepository,
+    private readonly subscriptionsRepository?: SubscriptionRepositoryPort,
   ) {}
 
   async generateMeetingSummary(
@@ -143,25 +152,7 @@ export class AiSummaryService {
       );
     }
 
-    try {
-      await this.requireWithinRateLimits(auth, now);
-    } catch (error) {
-      if (isApiError(error)) {
-        this.options.logger?.warn({
-          event: 'ai_summary_generation_rejected',
-          status: 'failed',
-          errorCode: error.code,
-          workspaceId: auth.workspaceId,
-          meetingId: meeting.id,
-          templateId: meeting.templateId,
-          provider: providerName,
-          model,
-          durationMs: durationMsSince(startedAtMs),
-        }, 'AI summary generation rejected');
-      }
-
-      throw error;
-    }
+    await this.requireWithinRateLimits(auth, now);
 
     const participants =
       await this.participantsRepository.listParticipantNamesForWorkspace(
@@ -227,6 +218,14 @@ export class AiSummaryService {
       // given the write-then-mark-completed ordering) — fall through and regenerate.
     }
 
+    const allowance = await this.resolveAllowance(auth, now);
+    if (!allowance.canGenerate) {
+      throw new ApiError(429, 'recap_allowance_exhausted', 'No AI recaps are available right now.', {
+        limit: allowance.limit, used: allowance.used, remaining: allowance.remaining,
+        resetAt: allowance.periodEndsAt,
+      });
+    }
+
     const summaryRequest = await this.aiRepository.createSummaryRequest({
       workspaceId: auth.workspaceId,
       userId: auth.userId,
@@ -235,6 +234,7 @@ export class AiSummaryService {
       status: 'pending',
       inputHash,
     });
+    let reserved = false;
 
     this.options.logger?.info({
       event: 'ai_summary_generation_started',
@@ -250,6 +250,16 @@ export class AiSummaryService {
     }, 'AI summary generation started');
 
     try {
+      if (this.assistantRepository) {
+        reserved = await this.assistantRepository.reserveRecap(
+          auth.workspaceId, summaryRequest.id, allowance.periodEndsAt, allowance.limit,
+        );
+        if (!reserved) {
+          throw new ApiError(429, 'recap_allowance_exhausted', 'No AI recaps are available right now.', {
+            limit: allowance.limit, used: allowance.limit, remaining: 0, resetAt: allowance.periodEndsAt,
+          });
+        }
+      }
       await this.requireReservedRequestWithinRateLimits(
         auth,
         now,
@@ -287,6 +297,9 @@ export class AiSummaryService {
         now.toISOString(),
         usage,
       );
+      if (reserved && this.assistantRepository) {
+        await this.assistantRepository.settleRecap(auth.workspaceId, summaryRequest.id);
+      }
 
       this.options.logger?.info({
         event: 'ai_summary_generation_completed',
@@ -309,6 +322,9 @@ export class AiSummaryService {
         generatedAt: createdAt,
       };
     } catch (error) {
+      if (reserved && this.assistantRepository) {
+        await this.assistantRepository.releaseRecap(auth.workspaceId, summaryRequest.id);
+      }
       const errorCode = isApiError(error)
         ? error.code
         : 'ai_summary_generation_failed';
@@ -343,6 +359,19 @@ export class AiSummaryService {
         'AI summaries are not available right now.',
       );
     }
+  }
+
+  private async resolveAllowance(auth: AuthContext, now: Date) {
+    if (!this.assistantRepository || !this.subscriptionsRepository) {
+      return recapAllowanceForPlan({ planType: auth.planType, expiresAt: null, used: 0, role: auth.role });
+    }
+    const subscription = await this.subscriptionsRepository.findCurrentSubscriptionForWorkspace(auth.workspaceId) as SubscriptionDto | null;
+    const planType = resolveEffectivePlan(subscription ? {
+      plan_type: subscription.planType, status: subscription.status, expires_at: subscription.expiresAt,
+    } : null, now);
+    const periodEndsAt = planType === 'premium' ? subscription?.expiresAt ?? null : null;
+    const used = await this.assistantRepository.countUsedRecaps(auth.workspaceId, periodEndsAt);
+    return recapAllowanceForPlan({ planType, expiresAt: periodEndsAt, used, role: auth.role });
   }
 
   private async requireWithinRateLimits(auth: AuthContext, now: Date) {
@@ -421,5 +450,7 @@ export function createDefaultAiSummaryService(
     new ParticipantsRepository(supabase),
     provider,
     options,
+    new AssistantRepository(supabase),
+    new SubscriptionsRepository(supabase),
   );
 }
