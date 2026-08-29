@@ -6,6 +6,7 @@ import {
   useParticipantsStore,
 } from '@/app/stores/participants';
 import { useWorkspaceStore } from '@/app/stores/workspace';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useTasksStore } from '@/app/stores/tasks';
 import type {
@@ -26,6 +27,7 @@ type SheetMode = 'create' | 'edit' | 'invite' | 'revoke';
 const { t } = useI18n();
 const participantsStore = useParticipantsStore();
 const workspaceStore = useWorkspaceStore();
+const subscriptionStore = useSubscriptionStore();
 const meetingsStore = useMeetingsStore();
 const tasksStore = useTasksStore();
 const { can } = useWorkspacePermissions();
@@ -65,6 +67,12 @@ function getParticipantDisplayKey(participant: Participant) {
 
 const visibleParticipants = computed(
   () => participantsStore.householdParticipants
+);
+const memberLimit = computed(() =>
+  subscriptionStore.currentPlan === 'premium' ? 8 : 4
+);
+const memberCapacityLabel = computed(
+  () => `${workspaceStore.activeMembers.length} of ${memberLimit.value} members`
 );
 const selectedParticipant = computed(() =>
   selectedParticipantId.value
@@ -232,6 +240,8 @@ function getInvitationEligibilityInput(participant: Participant | null) {
       : false,
     canInviteMembers: can('inviteMembers'),
     accessStatus,
+    activeMemberCount: workspaceStore.activeMembers.length,
+    memberLimit: memberLimit.value,
   };
 }
 
@@ -296,7 +306,8 @@ async function sendInvite() {
   }
 
   const deliveryFailed =
-    'deliveryStatus' in accessRecord && accessRecord.deliveryStatus === 'failed';
+    'deliveryStatus' in accessRecord &&
+    accessRecord.deliveryStatus === 'failed';
   setParticipantMessage(
     accessRecord.status === 'active'
       ? t('settings.appAccessLinked')
@@ -322,7 +333,8 @@ async function resendSelectedInvitation() {
   if (resent) {
     setParticipantMessage(t('settings.invitationSent'));
   } else {
-    revokeError.value = workspaceStore.errorMessage || t('workspace.saveInviteFailed');
+    revokeError.value =
+      workspaceStore.errorMessage || t('workspace.saveInviteFailed');
   }
 }
 
@@ -554,6 +566,7 @@ function enableParticipant(participantId: string) {
 
       <div class="household-settings-members">
         <span class="settings-field-label">{{ t('settings.members') }}</span>
+        <small>{{ memberCapacityLabel }}</small>
 
         <ul class="household-member-list">
           <li

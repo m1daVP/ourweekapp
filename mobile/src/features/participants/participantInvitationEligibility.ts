@@ -6,6 +6,8 @@ interface ParticipantInvitationEligibilityInput {
   isCurrentParticipant: boolean;
   canInviteMembers: boolean;
   accessStatus: ParticipantAccessStatus;
+  activeMemberCount?: number;
+  memberLimit?: number;
 }
 
 export function canOfferParticipantInvitation({
@@ -13,11 +15,14 @@ export function canOfferParticipantInvitation({
   isCurrentParticipant,
   canInviteMembers,
   accessStatus,
+  activeMemberCount = 0,
+  memberLimit = Number.POSITIVE_INFINITY,
 }: ParticipantInvitationEligibilityInput) {
   return Boolean(
     participant &&
     !isCurrentParticipant &&
     canInviteMembers &&
+    activeMemberCount < memberLimit &&
     accessStatus === 'none'
   );
 }
