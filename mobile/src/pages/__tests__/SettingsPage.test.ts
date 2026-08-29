@@ -121,6 +121,36 @@ beforeEach(() => {
 });
 
 describe('SettingsPage restore purchases', () => {
+  it('shows locked Premium benefits for a Free household', () => {
+    const icons = mountSettingsPage().findAll(
+      '[data-testid="subscription-benefit-icon"]'
+    );
+
+    expect(icons).toHaveLength(3);
+    expect(icons.every((icon) => icon.text() === 'lock')).toBe(true);
+    expect(
+      icons.every((icon) =>
+        icon.classes('settings-subscription-benefit__icon--locked')
+      )
+    ).toBe(true);
+  });
+
+  it('shows enabled Premium benefits for an active Premium household', () => {
+    state.subscription.hasPremiumEntitlement = true;
+
+    const icons = mountSettingsPage().findAll(
+      '[data-testid="subscription-benefit-icon"]'
+    );
+
+    expect(icons).toHaveLength(3);
+    expect(icons.every((icon) => icon.text() === 'check')).toBe(true);
+    expect(
+      icons.some((icon) =>
+        icon.classes('settings-subscription-benefit__icon--locked')
+      )
+    ).toBe(false);
+  });
+
   it('shows Restore purchases to an owner and invokes the store action', async () => {
     const wrapper = mountSettingsPage();
 

@@ -2265,6 +2265,10 @@ input[type='radio'] {
   font-size: 1rem;
 }
 
+.settings-subscription-benefits .settings-subscription-benefit__icon--locked {
+  color: var(--color-outline);
+}
+
 .settings-subscription-card__button {
   display: inline-flex;
   width: 100%;

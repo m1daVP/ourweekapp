@@ -286,20 +286,41 @@ function openReminderSheet() {
 
         <ul class="settings-subscription-benefits">
           <li>
-            <span class="material-symbols-outlined" aria-hidden="true">
-              check
+            <span
+              class="material-symbols-outlined settings-subscription-benefit__icon"
+              :class="{
+                'settings-subscription-benefit__icon--locked': !hasPremium,
+              }"
+              aria-hidden="true"
+              data-testid="subscription-benefit-icon"
+            >
+              {{ hasPremium ? 'check' : 'lock' }}
             </span>
             {{ t('settings.subscriptionBenefits.aiSummaries') }}
           </li>
           <li>
-            <span class="material-symbols-outlined" aria-hidden="true">
-              check
+            <span
+              class="material-symbols-outlined settings-subscription-benefit__icon"
+              :class="{
+                'settings-subscription-benefit__icon--locked': !hasPremium,
+              }"
+              aria-hidden="true"
+              data-testid="subscription-benefit-icon"
+            >
+              {{ hasPremium ? 'check' : 'lock' }}
             </span>
             {{ t('settings.subscriptionBenefits.calendarSync') }}
           </li>
           <li>
-            <span class="material-symbols-outlined" aria-hidden="true">
-              check
+            <span
+              class="material-symbols-outlined settings-subscription-benefit__icon"
+              :class="{
+                'settings-subscription-benefit__icon--locked': !hasPremium,
+              }"
+              aria-hidden="true"
+              data-testid="subscription-benefit-icon"
+            >
+              {{ hasPremium ? 'check' : 'lock' }}
             </span>
             {{ t('settings.subscriptionBenefits.export') }}
           </li>
