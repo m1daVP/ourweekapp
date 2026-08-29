@@ -4,7 +4,6 @@ import {
   getMeetingSectionTitle,
   getMeetingTemplateDescription,
   getMeetingTemplateName,
-  getMeetingTemplateOutcomeTags,
 } from '@/features/meeting/meetingTemplates';
 import type { MeetingTemplate } from '@/features/meeting/types';
 
@@ -50,9 +49,6 @@ function getTemplateDescription(template: MeetingTemplate) {
   return getMeetingTemplateDescription(template.id, template.description);
 }
 
-function getTemplateOutcomeTags(template: MeetingTemplate) {
-  return getMeetingTemplateOutcomeTags(template.id);
-}
 </script>
 
 <template>
@@ -110,14 +106,6 @@ function getTemplateOutcomeTags(template: MeetingTemplate) {
         <p>
           {{ getTemplateDescription(template) }}
         </p>
-        <ul
-          class="template-card__tags"
-          :aria-label="t('templatePage.outcomesLabel')"
-        >
-          <li v-for="tag in getTemplateOutcomeTags(template)" :key="tag">
-            {{ tag }}
-          </li>
-        </ul>
       </div>
     </div>
 
