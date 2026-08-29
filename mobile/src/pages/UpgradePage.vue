@@ -158,6 +158,7 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
         v-if="isWorkspaceOwner"
         class="meeting-primary upgrade-purchase-dock__primary"
         type="button"
+        data-testid="start-premium"
         :disabled="
           subscriptionStore.isPurchasing ||
           !subscriptionStore.availablePlans.length ||
@@ -175,6 +176,7 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
         v-if="isWorkspaceOwner"
         class="upgrade-purchase-dock__link"
         type="button"
+        data-testid="restore-purchases"
         :disabled="subscriptionStore.isRestoring || !canRestorePurchases"
         @click="subscriptionStore.restorePurchases()"
       >
@@ -194,6 +196,7 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
         <button
           class="upgrade-purchase-dock__link"
           type="button"
+          data-testid="manage-subscription"
           :disabled="subscriptionStore.isManaging"
           @click="subscriptionStore.manageSubscription()"
         >

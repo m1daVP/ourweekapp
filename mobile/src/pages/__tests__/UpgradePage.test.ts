@@ -5,6 +5,9 @@ import { shallowMount } from '@vue/test-utils';
 const state = vi.hoisted(() => ({
   revenueCatEnabled: true,
   role: 'owner' as 'owner' | 'adult_member' | 'viewer',
+  presentPremiumPaywall: vi.fn(),
+  restorePurchases: vi.fn(),
+  manageSubscription: vi.fn(),
   subscription: {
     availablePlans: [
       {
@@ -35,9 +38,9 @@ vi.mock('vue-i18n', () => ({
 vi.mock('@/app/stores/subscription', () => ({
   useSubscriptionStore: () => ({
     ...state.subscription,
-    presentPremiumPaywall: vi.fn(),
-    restorePurchases: vi.fn(),
-    manageSubscription: vi.fn(),
+    presentPremiumPaywall: state.presentPremiumPaywall,
+    restorePurchases: state.restorePurchases,
+    manageSubscription: state.manageSubscription,
   }),
 }));
 
@@ -68,6 +71,9 @@ function mountUpgradePage() {
 beforeEach(() => {
   state.revenueCatEnabled = true;
   state.role = 'owner';
+  state.presentPremiumPaywall.mockReset();
+  state.restorePurchases.mockReset();
+  state.manageSubscription.mockReset();
   Object.assign(state.subscription, {
     availablePlans: [
       {
@@ -111,5 +117,73 @@ describe('UpgradePage billing disclosure', () => {
         .get('button.upgrade-purchase-dock__primary')
         .attributes('disabled')
     ).toBeDefined();
+  });
+
+  it.each(['adult_member', 'viewer'] as const)(
+    'hides all Upgrade billing actions from %s',
+    (role) => {
+      state.role = role;
+      state.subscription.canManageSubscription = true;
+
+      const wrapper = mountUpgradePage();
+
+      expect(wrapper.find('[data-testid="start-premium"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('[data-testid="restore-purchases"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('[data-testid="manage-subscription"]').exists()).toBe(
+        false
+      );
+    }
+  );
+
+  it.each([
+    ['a purchase is running', 'start-premium', { isPurchasing: true }],
+    ['a restore is running', 'restore-purchases', { isRestoring: true }],
+    [
+      'management is running',
+      'manage-subscription',
+      { canManageSubscription: true, isManaging: true },
+    ],
+  ] as const)(
+    'disables the Upgrade action while %s',
+    (_, testId, subscription) => {
+      Object.assign(state.subscription, subscription);
+
+      expect(
+        mountUpgradePage()
+          .get(`[data-testid="${testId}"]`)
+          .attributes('disabled')
+      ).toBeDefined();
+    }
+  );
+
+  it('disables purchase and Restore when native billing is unavailable', () => {
+    state.revenueCatEnabled = false;
+
+    const wrapper = mountUpgradePage();
+
+    expect(
+      wrapper.get('[data-testid="start-premium"]').attributes('disabled')
+    ).toBeDefined();
+    expect(
+      wrapper.get('[data-testid="restore-purchases"]').attributes('disabled')
+    ).toBeDefined();
+  });
+
+  it('renders safe status and error feedback in the Upgrade billing dock', () => {
+    state.subscription.statusMessage = 'upgrade.premiumRestored';
+    state.subscription.errorMessage = 'upgrade.restoreFailed';
+
+    const wrapper = mountUpgradePage();
+
+    expect(wrapper.get('[role="status"]').text()).toContain(
+      'upgrade.premiumRestored'
+    );
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'upgrade.restoreFailed'
+    );
   });
 });

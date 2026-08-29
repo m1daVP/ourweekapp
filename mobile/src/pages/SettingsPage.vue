@@ -306,9 +306,14 @@ function openReminderSheet() {
         </ul>
 
         <button
-          v-if="hasPremium && subscriptionStore.canManageSubscription"
+          v-if="
+            hasPremium &&
+            isWorkspaceOwner &&
+            subscriptionStore.canManageSubscription
+          "
           class="settings-subscription-card__button"
           type="button"
+          data-testid="manage-subscription"
           :disabled="subscriptionStore.isManaging"
           @click="subscriptionStore.manageSubscription()"
         >

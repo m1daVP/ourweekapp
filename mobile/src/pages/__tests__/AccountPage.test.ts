@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { shallowMount } from '@vue/test-utils';
 
 const state = vi.hoisted(() => ({
@@ -7,6 +7,19 @@ const state = vi.hoisted(() => ({
     email: 'member@example.com',
     displayName: 'Member',
     createdAt: '2026-08-01T00:00:00.000Z',
+  },
+  role: 'owner' as 'owner' | 'adult_member' | 'viewer',
+  revenueCatEnabled: true,
+  restorePurchases: vi.fn(),
+  subscription: {
+    currentPlan: 'free' as const,
+    hasPremiumEntitlement: false,
+    premiumEntitlement: null,
+    canManageSubscription: false,
+    isRestoring: false,
+    isManaging: false,
+    statusMessage: '',
+    errorMessage: '',
   },
 }));
 
@@ -55,24 +68,26 @@ vi.mock('@/app/stores/tasks', () => ({
 }));
 
 vi.mock('@/app/stores/workspace', () => ({
-  useWorkspaceStore: () => ({ $reset: vi.fn() }),
+  useWorkspaceStore: () => ({
+    currentUserRole: state.role,
+    $reset: vi.fn(),
+  }),
 }));
 
 vi.mock('@/app/stores/subscription', () => ({
   useSubscriptionStore: () => ({
-    currentPlan: 'free',
-    hasPremiumEntitlement: false,
-    premiumEntitlement: null,
-    canManageSubscription: false,
-    isRestoring: false,
-    statusMessage: '',
-    restorePurchases: vi.fn(),
+    ...state.subscription,
+    restorePurchases: state.restorePurchases,
     $reset: vi.fn(),
   }),
 }));
 
 vi.mock('@/shared/config/env', () => ({
-  appConfig: { isRevenueCatEnabled: false },
+  appConfig: {
+    get isRevenueCatEnabled() {
+      return state.revenueCatEnabled;
+    },
+  },
 }));
 
 vi.mock('@/features/auth/accountDeletionLifecycle', () => ({
@@ -91,17 +106,37 @@ vi.mock('@/features/reminders/reminderService', () => ({
 
 import AccountPage from '../AccountPage.vue';
 
+function mountAccountPage() {
+  return shallowMount(AccountPage, {
+    global: {
+      stubs: {
+        ConfirmationDialog: true,
+        PremiumBadge: true,
+        RouterLink: { template: '<a><slot /></a>' },
+      },
+    },
+  });
+}
+
+beforeEach(() => {
+  state.role = 'owner';
+  state.revenueCatEnabled = true;
+  state.restorePurchases.mockReset();
+  Object.assign(state.subscription, {
+    currentPlan: 'free',
+    hasPremiumEntitlement: false,
+    premiumEntitlement: null,
+    canManageSubscription: false,
+    isRestoring: false,
+    isManaging: false,
+    statusMessage: '',
+    errorMessage: '',
+  });
+});
+
 describe('AccountPage', () => {
   it('shows the public deletion fallback without changing the in-app action', () => {
-    const wrapper = shallowMount(AccountPage, {
-      global: {
-        stubs: {
-          ConfirmationDialog: true,
-          PremiumBadge: true,
-          RouterLink: { template: '<a><slot /></a>' },
-        },
-      },
-    });
+    const wrapper = mountAccountPage();
 
     const fallback = wrapper.get('[data-testid="external-delete-account"]');
 
@@ -110,5 +145,58 @@ describe('AccountPage', () => {
     );
     expect(fallback.text()).toContain('Delete account online');
     expect(wrapper.find('button.history-item__delete').exists()).toBe(true);
+  });
+
+  it('shows Restore purchases to an owner and invokes the store action', async () => {
+    const wrapper = mountAccountPage();
+
+    await wrapper.get('[data-testid="restore-purchases"]').trigger('click');
+
+    expect(state.restorePurchases).toHaveBeenCalledOnce();
+  });
+
+  it.each(['adult_member', 'viewer'] as const)(
+    'keeps subscription details but hides billing actions from %s',
+    (role) => {
+      state.role = role;
+
+      const wrapper = mountAccountPage();
+
+      expect(wrapper.find('.subscription-status-list').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="restore-purchases"]').exists()).toBe(
+        false
+      );
+    }
+  );
+
+  it.each([
+    ['a restore is already running', { isRestoring: true }, true],
+    ['native billing is unavailable', {}, false],
+  ] as const)(
+    'disables Restore purchases when %s',
+    (_, subscription, configured) => {
+      Object.assign(state.subscription, subscription);
+      state.revenueCatEnabled = configured;
+
+      expect(
+        mountAccountPage()
+          .get('[data-testid="restore-purchases"]')
+          .attributes('disabled')
+      ).toBeDefined();
+    }
+  );
+
+  it('shows the store success and safe error result beside Account billing actions', () => {
+    state.subscription.statusMessage = 'upgrade.premiumRestored';
+    state.subscription.errorMessage = 'upgrade.restoreFailed';
+
+    const wrapper = mountAccountPage();
+
+    expect(wrapper.get('[role="status"]').text()).toContain(
+      'upgrade.premiumRestored'
+    );
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'upgrade.restoreFailed'
+    );
   });
 });

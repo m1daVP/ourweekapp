@@ -15,6 +15,7 @@ import {
   AccountDeletionCleanupError,
   deleteAccountAndClearLocalData,
 } from '@/features/auth/accountDeletionLifecycle';
+import { canPurchasePremium } from '@/features/access/premiumPurchasePolicy';
 import { PUBLIC_LEGAL_URLS } from '@/features/legal/productionLegalContent';
 import { cancelReminderNotifications } from '@/features/reminders/reminderService';
 import {
@@ -31,6 +32,7 @@ import PremiumBadge from '@/shared/components/PremiumBadge.vue';
 
 const authStore = useAuthStore();
 const subscriptionStore = useSubscriptionStore();
+const workspaceStore = useWorkspaceStore();
 const router = useRouter();
 const { t, locale } = useI18n();
 const displayName = ref(authStore.user?.displayName ?? '');
@@ -50,6 +52,9 @@ const currentPlanLabel = computed(() =>
     : t('common.free')
 );
 const canRestorePurchases = computed(() => appConfig.isRevenueCatEnabled);
+const isWorkspaceOwner = computed(() =>
+  canPurchasePremium(workspaceStore.currentUserRole)
+);
 
 function formatDate(value?: string) {
   if (!value) {
@@ -285,19 +290,28 @@ async function continueAfterCleanupFailure() {
         {{ t('account.viewPremium') }}
       </RouterLink>
       <button
+        v-if="isWorkspaceOwner"
         class="secondary-button"
         type="button"
+        data-testid="restore-purchases"
         :disabled="subscriptionStore.isRestoring || !canRestorePurchases"
         @click="subscriptionStore.restorePurchases()"
       >
         {{ t('account.restorePurchases') }}
       </button>
       <p
-        v-if="subscriptionStore.statusMessage"
+        v-if="isWorkspaceOwner && subscriptionStore.statusMessage"
         class="meeting-status"
         role="status"
       >
         {{ subscriptionStore.statusMessage }}
+      </p>
+      <p
+        v-if="isWorkspaceOwner && subscriptionStore.errorMessage"
+        class="meeting-error"
+        role="alert"
+      >
+        {{ subscriptionStore.errorMessage }}
       </p>
     </section>
 
