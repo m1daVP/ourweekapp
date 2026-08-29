@@ -3603,17 +3603,41 @@ input[type='radio'] {
 .upgrade-plan-card {
   position: relative;
   overflow: hidden;
+  width: 100%;
   min-height: 104px;
+  cursor: pointer;
+  appearance: none;
   border: 2px solid transparent;
   border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--color-surface-low) 58%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-surface-low) 58%,
+    transparent
+  );
   padding: 20px 26px;
+  text-align: left;
+  transform: translateY(0) scale(1);
+  transition:
+    border-color 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .upgrade-plan-card--yearly {
+  background-color: var(--color-surface-lowest);
+}
+
+.upgrade-plan-card--selected {
   border-color: #6f8f72;
-  background: var(--color-surface-lowest);
+  background-color: var(--color-surface-lowest);
   box-shadow: var(--shadow-card);
+  transform: translateY(-2px) scale(1.01);
+}
+
+.upgrade-plan-card:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
 }
 
 .upgrade-plan-card__badge {
@@ -3690,13 +3714,31 @@ input[type='radio'] {
   color: var(--color-on-primary);
 }
 
-.upgrade-plan-card--yearly .upgrade-plan-card__indicator {
+.upgrade-plan-card--selected .upgrade-plan-card__indicator {
   border-color: #6f8f72;
   background: #6f8f72;
 }
 
 .upgrade-plan-card__indicator .material-symbols-outlined {
   font-size: 1.15rem;
+  opacity: 0;
+  transform: scale(0.72);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.upgrade-plan-card__check--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upgrade-plan-card,
+  .upgrade-plan-card__indicator .material-symbols-outlined {
+    transition: none;
+    transform: none;
+  }
 }
 
 .upgrade-purchase-dock {

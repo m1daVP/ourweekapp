@@ -6,6 +6,7 @@ const state = vi.hoisted(() => ({
   revenueCatEnabled: true,
   role: 'owner' as 'owner' | 'adult_member' | 'viewer',
   presentPremiumPaywall: vi.fn(),
+  purchasePlan: vi.fn(),
   restorePurchases: vi.fn(),
   manageSubscription: vi.fn(),
   subscription: {
@@ -19,6 +20,16 @@ const state = vi.hoisted(() => ({
         planType: 'premium' as const,
         entitlementKey: 'premium' as const,
         productIds: { android: 'monthly' },
+      },
+      {
+        id: 'premium_yearly' as const,
+        name: 'Yearly',
+        priceLabel: '$39.99',
+        description: 'Yearly Premium',
+        cadence: 'yearly' as const,
+        planType: 'premium' as const,
+        entitlementKey: 'premium' as const,
+        productIds: { android: 'yearly' },
       },
     ],
     hasPremiumEntitlement: false,
@@ -39,6 +50,7 @@ vi.mock('@/app/stores/subscription', () => ({
   useSubscriptionStore: () => ({
     ...state.subscription,
     presentPremiumPaywall: state.presentPremiumPaywall,
+    purchasePlan: state.purchasePlan,
     restorePurchases: state.restorePurchases,
     manageSubscription: state.manageSubscription,
   }),
@@ -72,6 +84,7 @@ beforeEach(() => {
   state.revenueCatEnabled = true;
   state.role = 'owner';
   state.presentPremiumPaywall.mockReset();
+  state.purchasePlan.mockReset();
   state.restorePurchases.mockReset();
   state.manageSubscription.mockReset();
   Object.assign(state.subscription, {
@@ -85,6 +98,16 @@ beforeEach(() => {
         planType: 'premium',
         entitlementKey: 'premium',
         productIds: { android: 'monthly' },
+      },
+      {
+        id: 'premium_yearly',
+        name: 'Yearly',
+        priceLabel: '$39.99',
+        description: 'Yearly Premium',
+        cadence: 'yearly',
+        planType: 'premium',
+        entitlementKey: 'premium',
+        productIds: { android: 'yearly' },
       },
     ],
     hasPremiumEntitlement: false,
@@ -104,6 +127,39 @@ describe('UpgradePage billing disclosure', () => {
     expect(wrapper.text()).toContain('$4.99');
     expect(wrapper.text()).toContain('upgrade.plans.monthlyBillingPeriod');
     expect(wrapper.text()).toContain('upgrade.billingNote');
+  });
+
+  it('selects Yearly by default and lets the owner switch to Monthly', async () => {
+    const wrapper = mountUpgradePage();
+
+    expect(
+      wrapper
+        .get('[data-testid="plan-premium_yearly"]')
+        .attributes('aria-pressed')
+    ).toBe('true');
+
+    await wrapper.get('[data-testid="plan-premium_monthly"]').trigger('click');
+
+    expect(
+      wrapper
+        .get('[data-testid="plan-premium_monthly"]')
+        .attributes('aria-pressed')
+    ).toBe('true');
+    expect(
+      wrapper
+        .get('[data-testid="plan-premium_yearly"]')
+        .attributes('aria-pressed')
+    ).toBe('false');
+  });
+
+  it('purchases the selected plan instead of opening the generic paywall', async () => {
+    const wrapper = mountUpgradePage();
+
+    await wrapper.get('[data-testid="plan-premium_monthly"]').trigger('click');
+    await wrapper.get('[data-testid="start-premium"]').trigger('click');
+
+    expect(state.purchasePlan).toHaveBeenCalledWith('premium_monthly');
+    expect(state.presentPremiumPaywall).not.toHaveBeenCalled();
   });
 
   it('disables purchase when no live store plan is available', () => {

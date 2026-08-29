@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
@@ -50,6 +50,19 @@ const displayPlans = computed(() =>
     )
     .filter((plan): plan is SubscriptionPlanOption => Boolean(plan))
 );
+const selectedPlanId = ref<SubscriptionPlanOption['id'] | null>(null);
+const selectedPlan = computed(() => {
+  const explicitlySelectedPlan = displayPlans.value.find(
+    (plan) => plan.id === selectedPlanId.value
+  );
+
+  return (
+    explicitlySelectedPlan ??
+    displayPlans.value.find((plan) => plan.id === 'premium_yearly') ??
+    displayPlans.value[0] ??
+    null
+  );
+});
 const hasPremium = computed(() => subscriptionStore.hasPremiumEntitlement);
 const isPurchaseUnavailable = computed(() => !appConfig.isRevenueCatEnabled);
 const canRestorePurchases = computed(() => appConfig.isRevenueCatEnabled);
@@ -66,8 +79,16 @@ const purchaseButtonLabel = computed(() => {
     : t('upgrade.startPremium');
 });
 
-function openPremiumOptions() {
-  subscriptionStore.presentPremiumPaywall();
+function selectPlan(planId: SubscriptionPlanOption['id']) {
+  selectedPlanId.value = planId;
+}
+
+async function purchaseSelectedPlan() {
+  if (!selectedPlan.value) {
+    return;
+  }
+
+  await subscriptionStore.purchasePlan(selectedPlan.value.id);
 }
 
 function isYearlyPlan(plan: SubscriptionPlanOption) {
@@ -114,13 +135,20 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
       class="upgrade-plan-section"
       :aria-label="t('upgrade.planOptionsLabel')"
     >
-      <article
+      <button
         v-for="plan in displayPlans"
         :key="plan.id"
         :class="[
           'upgrade-plan-card',
-          { 'upgrade-plan-card--yearly': isYearlyPlan(plan) },
+          {
+            'upgrade-plan-card--yearly': isYearlyPlan(plan),
+            'upgrade-plan-card--selected': selectedPlan?.id === plan.id,
+          },
         ]"
+        type="button"
+        :data-testid="`plan-${plan.id}`"
+        :aria-pressed="selectedPlan?.id === plan.id"
+        @click="selectPlan(plan.id)"
       >
         <span v-if="isYearlyPlan(plan)" class="upgrade-plan-card__badge">
           {{ t('upgrade.bestValue') }}
@@ -140,14 +168,17 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
           </div>
           <span class="upgrade-plan-card__indicator" aria-hidden="true">
             <span
-              v-if="isYearlyPlan(plan)"
               class="material-symbols-outlined filled"
+              :class="{
+                'upgrade-plan-card__check--visible':
+                  selectedPlan?.id === plan.id,
+              }"
             >
               check
             </span>
           </span>
         </div>
-      </article>
+      </button>
       <p v-if="!displayPlans.length" class="upgrade-plan-section__empty">
         {{ t('upgrade.planUnavailable') }}
       </p>
@@ -165,7 +196,7 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
           hasPremium ||
           isPurchaseUnavailable
         "
-        @click="openPremiumOptions"
+        @click="purchaseSelectedPlan"
       >
         {{ purchaseButtonLabel }}
       </button>
