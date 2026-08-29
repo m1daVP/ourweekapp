@@ -41,6 +41,13 @@ export interface SubscriptionEntitlementStatus {
   verification: EntitlementVerificationSource;
   expiresAt?: string;
   checkedAt: string;
+  assistantRecap?: {
+    limit: number;
+    used: number;
+    remaining: number;
+    periodEndsAt: string | null;
+    canGenerate: boolean;
+  } | null;
 }
 
 export interface SubscriptionManagementInfo {

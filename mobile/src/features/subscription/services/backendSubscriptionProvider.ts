@@ -38,6 +38,7 @@ function createPremiumEntitlement(
     verification: status.planType === 'premium' ? 'backend' : 'none',
     expiresAt: status.expiresAt ?? undefined,
     checkedAt: status.checkedAt,
+    assistantRecap: status.assistantRecap ?? null,
   };
 }
 

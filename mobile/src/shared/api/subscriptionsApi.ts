@@ -15,6 +15,13 @@ export interface SubscriptionStatusDto {
   features?: FeatureAccessMap;
   expiresAt: string | null;
   checkedAt: string;
+  assistantRecap?: {
+    limit: number;
+    used: number;
+    remaining: number;
+    periodEndsAt: string | null;
+    canGenerate: boolean;
+  };
 }
 
 export interface RestoreSubscriptionStatusRequestDto {

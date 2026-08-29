@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
   generateMeetingSummary,
   getAiQuotaMessage,
@@ -54,6 +55,7 @@ const router = useRouter();
 const { t, te, locale } = useI18n();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
+const subscriptionStore = useSubscriptionStore();
 const { canUseFeature } = useFeatureAccess();
 const shareError = ref('');
 const isSharing = ref(false);
@@ -111,7 +113,20 @@ const hiddenParticipantCount = computed(() =>
   Math.max(0, (meetingSummary.value?.participants.length ?? 0) - 2)
 );
 
-const canUseAiSummary = computed(() => canUseFeature('aiSummary'));
+const canUseAiSummary = computed(
+  () =>
+    subscriptionStore.assistantRecap?.canGenerate ?? canUseFeature('aiSummary')
+);
+const assistantRecapStatus = computed(() => {
+  const recap = subscriptionStore.assistantRecap;
+  if (!recap) return '';
+  if (!recap.periodEndsAt) return `${recap.remaining} free recaps left`;
+  const until = new Intl.DateTimeFormat(locale.value, {
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date(recap.periodEndsAt));
+  return `${recap.remaining} of ${recap.limit} recaps available until ${until}`;
+});
 
 const canGenerateAiSummary = computed(() =>
   Boolean(
@@ -411,6 +426,7 @@ async function handleGenerateSummary() {
   try {
     const summary = await generateMeetingSummary(accessibleMeeting.value);
     meetingsStore.saveAiSummary(accessibleMeeting.value.id, summary);
+    await subscriptionStore.refreshCurrentPlan();
   } catch (error) {
     aiSummaryError.value =
       getAiQuotaMessage(error) ?? meetingSummaryText('aiFailed');
@@ -503,6 +519,9 @@ function goBack() {
           {{ aiSummaryErrorMessage }}
         </p>
         <p v-else>{{ meetingSummaryText('aiEmpty') }}</p>
+        <p v-if="assistantRecapStatus" class="meeting-summary-ai-card__note">
+          {{ assistantRecapStatus }}
+        </p>
         <button
           v-if="canGenerateAiSummary"
           class="meeting-summary-ai-card__button"

@@ -27,6 +27,11 @@ interface SubscriptionState {
   lastCheckedAt: string | null;
   managementUrl: string | null;
   canManageSubscription: boolean;
+  assistantRecap:
+    | Awaited<
+        ReturnType<typeof subscriptionsService.getCurrentPlan>
+      >['assistantRecap']
+    | null;
 }
 
 export const useSubscriptionStore = defineStore('subscription', {
@@ -45,6 +50,7 @@ export const useSubscriptionStore = defineStore('subscription', {
     lastCheckedAt: null,
     managementUrl: null,
     canManageSubscription: false,
+    assistantRecap: null,
   }),
   getters: {
     hasPremiumEntitlement: (state) =>
@@ -53,6 +59,8 @@ export const useSubscriptionStore = defineStore('subscription', {
       state.premiumEntitlement?.unlockedFeatures ?? [],
     getFeatureAccess: (state) => (featureKey: FeatureKey) =>
       state.featureAccess[featureKey],
+    canGenerateAssistantRecap: (state) =>
+      Boolean(state.assistantRecap?.canGenerate),
   },
   actions: {
     applySnapshot(
@@ -65,6 +73,7 @@ export const useSubscriptionStore = defineStore('subscription', {
       this.lastCheckedAt = snapshot.checkedAt;
       this.managementUrl = snapshot.management.url ?? null;
       this.canManageSubscription = snapshot.management.supported;
+      this.assistantRecap = snapshot.assistantRecap;
     },
     async initializeSubscriptions() {
       this.isLoading = true;
