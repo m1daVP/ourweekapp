@@ -98,6 +98,7 @@ export async function scheduleReminderNotifications(
       body: translate('reminders.weeklyMeetingBody'),
       channelId: ANDROID_CHANNEL_ID,
       autoCancel: true,
+      smallIcon: 'ic_stat_ourweek',
       schedule: createWeeklySchedule(settings.weeklyMeetingReminder),
     },
   ];
@@ -109,6 +110,7 @@ export async function scheduleReminderNotifications(
       body: createUnfinishedReminderBody(counts),
       channelId: ANDROID_CHANNEL_ID,
       autoCancel: true,
+      smallIcon: 'ic_stat_ourweek',
       schedule: createWeeklySchedule(settings.unfinishedTaskReminder),
     });
   }
