@@ -307,13 +307,42 @@ input[type='radio'] {
   text-decoration: none;
 }
 
+.app-top-bar__avatar--premium {
+  position: relative;
+}
+
+.app-top-bar__avatar--premium::before {
+  position: absolute;
+  inset: 1px;
+  animation: premium-profile-ring-rotate 36s linear infinite;
+  background: conic-gradient(
+    from 45deg,
+    #4285f4,
+    #ea4335,
+    #fbbc05,
+    #34a853,
+    #4285f4
+  );
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+}
+
+@keyframes premium-profile-ring-rotate {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 .app-top-bar__avatar span {
   display: grid;
   width: 32px;
   height: 32px;
   place-items: center;
+  position: relative;
+  z-index: 1;
   overflow: hidden;
-  border: 2px solid var(--color-surface-lowest);
+  /* border: 2px solid var(--color-surface-lowest); */
   border-radius: var(--radius-pill);
   color: var(--color-on-primary);
   font-size: var(--font-size-label-sm);
@@ -655,6 +684,10 @@ input[type='radio'] {
   .app-toast__spinner,
   .pull-to-refresh__spinner,
   .app-skeleton::after {
+    animation: none;
+  }
+
+  .app-top-bar__avatar--premium::before {
     animation: none;
   }
 
@@ -3175,11 +3208,17 @@ input[type='radio'] {
 }
 
 .export-format-options label,
-.calendar-sync-option {
+.calendar-sync-option__toggle {
   display: grid;
   grid-template-columns: auto 1fr;
   min-height: 56px;
   align-items: start;
+  gap: 12px;
+  box-shadow: none;
+}
+
+.calendar-sync-option {
+  display: grid;
   gap: 12px;
   box-shadow: none;
 }
@@ -3192,9 +3231,23 @@ input[type='radio'] {
 }
 
 .export-format-options span,
-.calendar-sync-option span {
+.calendar-sync-option__toggle span {
   display: grid;
   gap: 4px;
+}
+
+.calendar-weekly-schedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.calendar-weekly-schedule label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-label-lg);
+  font-weight: 700;
 }
 
 .ai-summary-panel__summary {

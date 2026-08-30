@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useCalendarSyncStore } from '@/app/stores/calendarSync';
 import { parseCalendarCallbackQuery } from '@/features/calendar/services/calendarCallback';
+import type { CalendarWeekday } from '@/features/calendar/types';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useToast } from '@/shared/composables/useToast';
@@ -61,6 +62,23 @@ const calendarOptions: Array<{
   },
 ];
 
+const calendarWeekdays: CalendarWeekday[] = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+];
+
+const weekdayOptions = computed(() =>
+  calendarWeekdays.map((value) => ({
+    value,
+    label: t(`calendar.schedule.weekdays.${value}`),
+  }))
+);
+
 const connectionStatusText = computed(() => {
   if (calendarSyncStore.isCheckingConnection) {
     return t('calendar.checkingConnection');
@@ -83,15 +101,44 @@ function updateCalendarOption(
       ? {
           weeklyMeetingDay: preferences?.weeklyMeetingDay ?? 'sunday',
           weeklyMeetingTime: preferences?.weeklyMeetingTime ?? '18:00',
-          timeZone:
-            preferences?.timeZone ??
-            Intl.DateTimeFormat().resolvedOptions().timeZone ??
-            'UTC',
+          timeZone: getDeviceTimeZone(),
         }
       : {}),
   };
 
   void calendarSyncStore.updateSettings({ ...payload, [key]: enabled });
+}
+
+function getDeviceTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
+}
+
+function updateWeeklyMeetingSchedule(input: {
+  weeklyMeetingDay?: CalendarWeekday;
+  weeklyMeetingTime?: string;
+}) {
+  const preferences = calendarSyncStore.connectionStatus?.preferences;
+
+  void calendarSyncStore.updateSettings({
+    weeklyMeetingDay:
+      input.weeklyMeetingDay ?? preferences?.weeklyMeetingDay ?? 'sunday',
+    weeklyMeetingTime:
+      input.weeklyMeetingTime ?? preferences?.weeklyMeetingTime ?? '18:00',
+    timeZone: getDeviceTimeZone(),
+  });
+}
+
+function updateWeeklyMeetingDay(event: Event) {
+  updateWeeklyMeetingSchedule({
+    weeklyMeetingDay: (event.target as HTMLSelectElement)
+      .value as CalendarWeekday,
+  });
+}
+
+function updateWeeklyMeetingTime(event: Event) {
+  updateWeeklyMeetingSchedule({
+    weeklyMeetingTime: (event.target as HTMLInputElement).value,
+  });
 }
 
 function confirmDisconnect() {
@@ -154,25 +201,67 @@ function confirmDisconnect() {
         </div>
 
         <div class="calendar-sync-options">
-          <label
+          <div
             v-for="option in calendarOptions"
             :key="option.key"
             class="calendar-sync-option"
           >
-            <input
-              type="checkbox"
-              :checked="
-                calendarSyncStore.connectionStatus?.preferences[option.key] ??
-                false
-              "
-              :disabled="!calendarSyncStore.isConnected"
-              @change="updateCalendarOption(option.key, $event)"
-            />
-            <span>
-              <strong>{{ option.label }}</strong>
-              <small>{{ option.description }}</small>
-            </span>
-          </label>
+            <label class="calendar-sync-option__toggle">
+              <input
+                type="checkbox"
+                :checked="
+                  calendarSyncStore.connectionStatus?.preferences[option.key] ??
+                  false
+                "
+                :disabled="!calendarSyncStore.isConnected"
+                @change="updateCalendarOption(option.key, $event)"
+              />
+              <span>
+                <strong>{{ option.label }}</strong>
+                <small>{{ option.description }}</small>
+              </span>
+            </label>
+
+            <div
+              v-if="option.key === 'weeklyMeetingSyncEnabled'"
+              class="calendar-weekly-schedule"
+            >
+              <label>
+                <span>{{ t('calendar.schedule.day') }}</span>
+                <select
+                  data-testid="calendar-weekday"
+                  :value="
+                    calendarSyncStore.connectionStatus?.preferences
+                      .weeklyMeetingDay ?? 'sunday'
+                  "
+                  :disabled="!calendarSyncStore.isConnected"
+                  @change="updateWeeklyMeetingDay"
+                >
+                  <option
+                    v-for="weekday in weekdayOptions"
+                    :key="weekday.value"
+                    :value="weekday.value"
+                  >
+                    {{ weekday.label }}
+                  </option>
+                </select>
+              </label>
+
+              <label>
+                <span>{{ t('calendar.schedule.time') }}</span>
+                <input
+                  data-testid="calendar-time"
+                  type="time"
+                  :value="
+                    calendarSyncStore.connectionStatus?.preferences
+                      .weeklyMeetingTime ?? '18:00'
+                  "
+                  :disabled="!calendarSyncStore.isConnected"
+                  @change="updateWeeklyMeetingTime"
+                />
+              </label>
+            </div>
+          </div>
         </div>
 
         <p class="meeting-help">

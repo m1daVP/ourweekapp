@@ -452,6 +452,19 @@ export const messages = {
           description: 'Keep agreed revisit dates visible between meetings.',
         },
       },
+      schedule: {
+        day: 'Day',
+        time: 'Time',
+        weekdays: {
+          monday: 'Monday',
+          tuesday: 'Tuesday',
+          wednesday: 'Wednesday',
+          thursday: 'Thursday',
+          friday: 'Friday',
+          saturday: 'Saturday',
+          sunday: 'Sunday',
+        },
+      },
       unavailable:
         'Google Calendar sync could not be reached. Your OurWeek data remains saved without Calendar access.',
       addMeetingDate: 'Add a meeting date before syncing a calendar reminder.',
@@ -1922,6 +1935,19 @@ export const messages = {
           label: 'Додати дати повернення до тем у календар',
           description:
             'Тримати узгоджені дати перегляду видимими між зустрічами.',
+        },
+      },
+      schedule: {
+        day: 'День',
+        time: 'Час',
+        weekdays: {
+          monday: 'Понеділок',
+          tuesday: 'Вівторок',
+          wednesday: 'Середа',
+          thursday: 'Четвер',
+          friday: 'П’ятниця',
+          saturday: 'Субота',
+          sunday: 'Неділя',
         },
       },
       addMeetingDate:
@@ -3428,6 +3454,19 @@ export const messages = {
           label: 'Agregar fechas de seguimiento al calendario',
           description:
             'Mantén visibles las fechas acordadas de revisión entre reuniones.',
+        },
+      },
+      schedule: {
+        day: 'Día',
+        time: 'Hora',
+        weekdays: {
+          monday: 'Lunes',
+          tuesday: 'Martes',
+          wednesday: 'Miércoles',
+          thursday: 'Jueves',
+          friday: 'Viernes',
+          saturday: 'Sábado',
+          sunday: 'Domingo',
         },
       },
       addMeetingDate:
