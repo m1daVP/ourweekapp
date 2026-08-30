@@ -405,24 +405,6 @@ function openReminderSheet() {
         </a>
         <RouterLink
           class="settings-redesign-row settings-redesign-row--trailing-icon"
-          :to="{ name: 'support-diagnostics' }"
-        >
-          <span class="settings-redesign-row__body">
-            <span class="settings-redesign-row__title">
-              {{ t('settings.supportDiagnostics') }}
-            </span>
-            <span class="settings-redesign-row__text">
-              {{ t('settings.supportText') }}
-            </span>
-          </span>
-          <span
-            class="settings-redesign-row__chevron material-symbols-outlined"
-          >
-            chevron_right
-          </span>
-        </RouterLink>
-        <RouterLink
-          class="settings-redesign-row settings-redesign-row--trailing-icon"
           :to="{ name: 'privacy' }"
         >
           <span class="settings-redesign-row__body">

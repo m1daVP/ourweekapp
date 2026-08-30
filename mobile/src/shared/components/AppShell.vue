@@ -52,7 +52,6 @@ const pageTitle = computed(() => {
     'private-notes': t('app.routeTitles.privateNotes'),
     'calendar-sync': t('app.routeTitles.calendarSync'),
     account: t('app.routeTitles.account'),
-    'support-diagnostics': t('app.routeTitles.supportDiagnostics'),
     'meeting-details': t('app.routeTitles.meetingDetails'),
     'meeting-summary': t('app.routeTitles.meetingSummary'),
   };
