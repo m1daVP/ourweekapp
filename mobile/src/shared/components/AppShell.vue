@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router';
 import BottomNavigation from '@/shared/components/BottomNavigation.vue';
 import smallLogoUrl from '@/assets/small-logo.svg';
 import { useParticipantsStore } from '@/app/stores/participants';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
   clearStorageRecoveryMessages,
   storageRecoveryState,
@@ -30,6 +31,7 @@ const route = useRoute();
 const { t } = useI18n();
 const mainElement = ref<HTMLElement | null>(null);
 const participantsStore = useParticipantsStore();
+const subscriptionStore = useSubscriptionStore();
 const { dismissToast, showToast, toastState } = useToast();
 const recoveryMessages = computed(() => storageRecoveryState.value.messages);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
@@ -128,7 +130,13 @@ watch(
       </span>
       <h1>{{ pageTitle }}</h1>
       <RouterLink
-        class="app-top-bar__avatar"
+        :class="[
+          'app-top-bar__avatar',
+          {
+            'app-top-bar__avatar--premium':
+              subscriptionStore.hasPremiumEntitlement,
+          },
+        ]"
         :to="{ name: 'settings' }"
         :aria-label="t('app.openSettings')"
       >
