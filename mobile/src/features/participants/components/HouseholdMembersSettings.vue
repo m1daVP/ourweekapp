@@ -21,6 +21,7 @@ import {
 import type { ParticipantAccessState } from '@/features/workspace/types';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
+import AvatarColorPickerSheet from './AvatarColorPickerSheet.vue';
 
 type SheetMode = 'create' | 'edit' | 'invite' | 'revoke';
 
@@ -40,6 +41,7 @@ const isInitialsEditorOpen = ref(false);
 const isHouseholdNameSheetOpen = ref(false);
 const householdNameDraft = ref('');
 const householdNameError = ref('');
+const isAvatarColorPickerOpen = ref(false);
 const inviteEmail = ref('');
 const inviteError = ref('');
 const revokeError = ref('');
@@ -54,7 +56,6 @@ const participantDraft = reactive({
   avatarColor: participantColors[0],
   type: 'adult' as ParticipantType,
 });
-const customAvatarColorInput = ref<HTMLInputElement | null>(null);
 
 function getParticipantDisplayKey(participant: Participant) {
   return [
@@ -147,15 +148,16 @@ function getInitials(name: string) {
 }
 
 function openCustomAvatarColorPicker() {
-  customAvatarColorInput.value?.click();
+  isAvatarColorPickerOpen.value = true;
 }
 
-function setCustomAvatarColor(event: Event) {
-  const input = event.target as HTMLInputElement;
+function closeCustomAvatarColorPicker() {
+  isAvatarColorPickerOpen.value = false;
+}
 
-  if (input.value) {
-    participantDraft.avatarColor = input.value.toLocaleLowerCase();
-  }
+function selectCustomAvatarColor(color: string) {
+  participantDraft.avatarColor = color;
+  closeCustomAvatarColorPicker();
 }
 
 function getTypeLabel(type: ParticipantType) {
@@ -225,6 +227,7 @@ function closeSheet() {
 
   inviteError.value = '';
   revokeError.value = '';
+  closeCustomAvatarColorPicker();
   isSheetOpen.value = false;
 }
 
@@ -778,15 +781,6 @@ function enableParticipant(participantId: string) {
             <span :style="{ backgroundColor: color }" />
           </label>
           <label class="color-selector__custom">
-            <input
-              ref="customAvatarColorInput"
-              class="color-selector__native-input"
-              :value="participantDraft.avatarColor"
-              tabindex="-1"
-              type="color"
-              aria-hidden="true"
-              @input="setCustomAvatarColor"
-            />
             <button
               class="color-selector__custom-trigger"
               :class="{ 'is-selected': isCustomAvatarColor }"
@@ -913,6 +907,13 @@ function enableParticipant(participantId: string) {
         </button>
       </form>
     </BaseBottomSheet>
+
+    <AvatarColorPickerSheet
+      :open="isAvatarColorPickerOpen"
+      :color="participantDraft.avatarColor"
+      @close="closeCustomAvatarColorPicker"
+      @select="selectCustomAvatarColor"
+    />
 
     <BaseBottomSheet
       :open="isHouseholdNameSheetOpen"

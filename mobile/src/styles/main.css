@@ -1829,18 +1829,6 @@ input[type='radio'] {
   height: 38px;
 }
 
-.color-selector input.color-selector__native-input {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  width: 1px;
-  height: 1px;
-  min-height: 0;
-  margin: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .color-selector__custom-trigger {
   display: block;
   width: 100%;
