@@ -425,7 +425,7 @@ export const messages = {
       disconnect: 'Disconnect',
       disconnectConfirmTitle: 'Disconnect Google Calendar?',
       disconnectConfirmText:
-        'OurWeek will stop future Calendar sync. Events already in Google will remain.',
+        'OurWeek will remove every event it created in Google Calendar, then disconnect your account.',
       noTokens: 'No Google tokens are stored in this mobile app.',
       callback: {
         connected: 'Google Calendar is connected.',
@@ -440,10 +440,14 @@ export const messages = {
         weeklyMeeting: {
           label: 'Add weekly meeting reminder to calendar',
           description: 'Create one calendar event for the household check-in.',
+          cleanupDescription:
+            'Turning this off removes the weekly meeting from Google Calendar.',
         },
         taskDueDates: {
           label: 'Add task due dates to calendar',
           description: 'Use due dates from tasks that need a clear follow-up.',
+          cleanupDescription:
+            'Turning this off removes synced task due dates from Google Calendar.',
         },
         followUpDates: {
           label: 'Add follow-up dates to calendar',
@@ -1846,7 +1850,7 @@ export const messages = {
       disconnect: 'Відключити',
       disconnectConfirmTitle: 'Відключити Google Calendar?',
       disconnectConfirmText:
-        'OurWeek припинить майбутню синхронізацію. Події, які вже є в Google, залишаться.',
+        'OurWeek видалить усі створені ним події з Google Calendar, а потім відключить обліковий запис.',
       noTokens: 'У цьому мобільному додатку токени Google не зберігаються.',
       callback: {
         connected: 'Google Calendar підключено.',
@@ -1862,11 +1866,15 @@ export const messages = {
         weeklyMeeting: {
           label: 'Додати нагадування про щотижневу зустріч до календаря',
           description: 'Створити одну подію календаря для домашньої зустрічі.',
+          cleanupDescription:
+            'Якщо вимкнути цю опцію, OurWeek видалить щотижневу зустріч із Google Calendar.',
         },
         taskDueDates: {
           label: 'Додати дати виконання завдань до календаря',
           description:
             'Використовувати дати завдань, які потребують чіткого нагадування.',
+          cleanupDescription:
+            'Якщо вимкнути цю опцію, OurWeek видалить синхронізовані дати завдань із Google Calendar.',
         },
         followUpDates: {
           label: 'Додати дати повернення до тем у календар',
@@ -3302,7 +3310,7 @@ export const messages = {
       disconnect: 'Desconectar',
       disconnectConfirmTitle: '¿Desconectar Google Calendar?',
       disconnectConfirmText:
-        'OurWeek detendrá la sincronización futura. Los eventos que ya están en Google permanecerán.',
+        'OurWeek eliminará todos los eventos que creó en Google Calendar y luego desconectará tu cuenta.',
       noTokens: 'No se guardan tokens de Google en esta app móvil.',
       callback: {
         connected: 'Google Calendar está conectado.',
@@ -3320,11 +3328,15 @@ export const messages = {
           label: 'Agregar recordatorio de reunión semanal al calendario',
           description:
             'Crear un evento de calendario para la revisión del hogar.',
+          cleanupDescription:
+            'Al desactivar esta opción, OurWeek eliminará la reunión semanal de Google Calendar.',
         },
         taskDueDates: {
           label: 'Agregar fechas de tareas al calendario',
           description:
             'Usa fechas de tareas que necesitan un seguimiento claro.',
+          cleanupDescription:
+            'Al desactivar esta opción, OurWeek eliminará las fechas de tareas sincronizadas de Google Calendar.',
         },
         followUpDates: {
           label: 'Agregar fechas de seguimiento al calendario',

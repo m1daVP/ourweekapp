@@ -24,6 +24,14 @@ describe('calendar schedule translations', () => {
       weekdays.forEach((weekday) => {
         expect(schedule.weekdays[weekday].length).toBeGreaterThan(0);
       });
+
+      expect(messages[locale].calendar.disconnectConfirmText.length).toBeGreaterThan(0);
+      expect(
+        messages[locale].calendar.options.weeklyMeeting.cleanupDescription.length,
+      ).toBeGreaterThan(0);
+      expect(
+        messages[locale].calendar.options.taskDueDates.cleanupDescription.length,
+      ).toBeGreaterThan(0);
     }
   );
 });

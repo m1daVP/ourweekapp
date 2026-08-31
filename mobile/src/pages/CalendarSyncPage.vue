@@ -49,16 +49,19 @@ const calendarOptions: Array<{
   key: 'weeklyMeetingSyncEnabled' | 'assignedTaskSyncEnabled';
   label: string;
   description: string;
+  cleanupDescription: string;
 }> = [
   {
     key: 'weeklyMeetingSyncEnabled',
     label: t('calendar.options.weeklyMeeting.label'),
     description: t('calendar.options.weeklyMeeting.description'),
+    cleanupDescription: t('calendar.options.weeklyMeeting.cleanupDescription'),
   },
   {
     key: 'assignedTaskSyncEnabled',
     label: t('calendar.options.taskDueDates.label'),
     description: t('calendar.options.taskDueDates.description'),
+    cleanupDescription: t('calendar.options.taskDueDates.cleanupDescription'),
   },
 ];
 
@@ -219,6 +222,7 @@ function confirmDisconnect() {
               <span>
                 <strong>{{ option.label }}</strong>
                 <small>{{ option.description }}</small>
+                <small>{{ option.cleanupDescription }}</small>
               </span>
             </label>
 
