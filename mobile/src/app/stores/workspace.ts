@@ -20,6 +20,7 @@ import { createPrefixedId } from '@/shared/utils/ids';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { listParticipants } from '@/shared/api/participantsApi';
 import { fromParticipantDto } from '@/shared/api/syncDtos';
+import { roleCan } from '@/features/workspace/permissions';
 import type { UserRole } from '@/features/access/types';
 import type {
   ParticipantAccessState,
@@ -143,7 +144,9 @@ function normalizeInvitation(
     status,
     createdAt,
     expiresAt,
-    deliveryStatus: normalizeInvitationDeliveryStatus(invitation.deliveryStatus),
+    deliveryStatus: normalizeInvitationDeliveryStatus(
+      invitation.deliveryStatus
+    ),
   };
 }
 
@@ -388,6 +391,10 @@ export const useWorkspaceStore = defineStore('workspace', {
       }
     },
     async saveWorkspaceName(name: string) {
+      if (!roleCan(this.currentUserRole, 'manageWorkspace')) {
+        return false;
+      }
+
       const nextName = name.trim();
 
       if (!nextName) {
@@ -412,7 +419,8 @@ export const useWorkspaceStore = defineStore('workspace', {
       }
     },
     getParticipantAccessState(participantId: string): ParticipantAccessState {
-      const pendingInvitation = this.getParticipantPendingInvitation(participantId);
+      const pendingInvitation =
+        this.getParticipantPendingInvitation(participantId);
 
       if (pendingInvitation) {
         return { status: 'pending', email: pendingInvitation.email };
@@ -420,9 +428,8 @@ export const useWorkspaceStore = defineStore('workspace', {
 
       // Participant emails are hydrated from the server. Matching them to an
       // active member is deliberately the only active-access signal.
-      const participant = useParticipantsStore().getParticipantById(
-        participantId
-      );
+      const participant =
+        useParticipantsStore().getParticipantById(participantId);
       const email = participant?.email ? normalizeEmail(participant.email) : '';
       const member = email
         ? this.workspace.members.find(
@@ -492,6 +499,10 @@ export const useWorkspaceStore = defineStore('workspace', {
       participantId: string,
       emailValue: string
     ): Promise<WorkspaceInvitation | WorkspaceMember | null> {
+      if (!roleCan(this.currentUserRole, 'inviteMembers')) {
+        return null;
+      }
+
       const normalizedParticipantId = participantId.trim();
       const email = normalizeEmail(emailValue);
 
@@ -574,6 +585,10 @@ export const useWorkspaceStore = defineStore('workspace', {
       }
     },
     async resendParticipantInvitation(participantId: string) {
+      if (!roleCan(this.currentUserRole, 'inviteMembers')) {
+        return false;
+      }
+
       const invitation = this.getParticipantPendingInvitation(participantId);
 
       if (!invitation) {
@@ -595,7 +610,8 @@ export const useWorkspaceStore = defineStore('workspace', {
         }
 
         const invitationIndex = this.workspace.invitations.findIndex(
-          (candidate) => candidate.invitationId === resentInvitation.invitationId
+          (candidate) =>
+            candidate.invitationId === resentInvitation.invitationId
         );
         if (invitationIndex >= 0) {
           this.workspace.invitations[invitationIndex] = resentInvitation;

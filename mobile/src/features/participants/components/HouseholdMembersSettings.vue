@@ -32,6 +32,7 @@ const subscriptionStore = useSubscriptionStore();
 const meetingsStore = useMeetingsStore();
 const tasksStore = useTasksStore();
 const { can } = useWorkspacePermissions();
+const canManageHouseholdParticipants = computed(() => can('manageWorkspace'));
 
 const isSheetOpen = ref(false);
 const sheetMode = ref<SheetMode>('create');
@@ -185,6 +186,10 @@ function resetDraftForCreate() {
 }
 
 function openCreateSheet() {
+  if (!canManageHouseholdParticipants.value) {
+    return;
+  }
+
   participantMessage.text = '';
   sheetMode.value = 'create';
   selectedParticipantId.value = null;
@@ -389,6 +394,10 @@ async function confirmRevoke() {
 }
 
 function openHouseholdNameSheet() {
+  if (!canManageHouseholdParticipants.value) {
+    return;
+  }
+
   householdNameDraft.value = workspaceStore.workspace.name;
   householdNameError.value = '';
   isHouseholdNameSheetOpen.value = true;
@@ -400,6 +409,10 @@ function closeHouseholdNameSheet() {
 }
 
 async function saveHouseholdName() {
+  if (!canManageHouseholdParticipants.value) {
+    return;
+  }
+
   if (!householdNameDraft.value.trim()) {
     householdNameError.value = t('settings.addHouseholdName');
     return;
@@ -446,6 +459,10 @@ function saveParticipantDraft() {
   };
 
   if (sheetMode.value === 'create') {
+    if (!canManageHouseholdParticipants.value) {
+      return;
+    }
+
     const participant = participantsStore.createParticipant(payload);
 
     if (!participant) {
@@ -555,6 +572,7 @@ function enableParticipant(participantId: string) {
         <div class="household-settings-name__row">
           <strong>{{ workspaceStore.workspace.name }}</strong>
           <button
+            v-if="canManageHouseholdParticipants"
             class="household-settings-edit"
             type="button"
             :aria-label="t('settings.editHouseholdName')"
@@ -604,6 +622,7 @@ function enableParticipant(participantId: string) {
       </div>
 
       <button
+        v-if="canManageHouseholdParticipants"
         class="household-settings-add-button"
         type="button"
         @click="openCreateSheet"
