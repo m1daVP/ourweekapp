@@ -1389,6 +1389,7 @@ export const messages = {
       unavailable: 'Notifications are not available in this environment.',
       premiumOnly: 'Reminder scheduling is a premium feature.',
       updateFailed: 'Reminder scheduling could not be updated.',
+      permissionDeclined: 'Notifications access was declined',
     },
     api: {
       backendContactFailed:
@@ -2050,7 +2051,7 @@ export const messages = {
       day: 'День',
       time: 'Час',
       reminderExample:
-        'Приклад: м’яке нагадування переглянути незавершені домовленості.',
+        'Приклад: лагідне нагадування переглянути незавершені домовленості.',
       reminderLocked: 'Налаштування нагадувань доступні з Premium.',
       remindersOff: 'Нагадування вимкнені.',
       notificationsUnavailable:
@@ -2740,13 +2741,13 @@ export const messages = {
       title: 'OurWeek',
       channelName: 'Нагадування OurWeek',
       channelDescription:
-        'М’які нагадування про зустрічі та незавершені справи.',
-      weeklyMeetingBody: 'М’яке нагадування про вашу щотижневу зустріч.',
+        'Лагідні нагадування про зустрічі та незавершені справи.',
+      weeklyMeetingBody: 'Лагідне нагадування про вашу щотижневу зустріч.',
       unfinishedBoth:
-        'М’яке нагадування переглянути незавершені домовленості й завдання.',
-      unfinishedTasks: 'М’яке нагадування переглянути незавершені завдання.',
+        'Лагідне нагадування переглянути незавершені домовленості й завдання.',
+      unfinishedTasks: 'Лагідне нагадування переглянути незавершені завдання.',
       unfinishedAgreements:
-        'М’яке нагадування переглянути незавершені домовленості.',
+        'Лагідне нагадування переглянути незавершені домовленості.',
     },
     export: {
       meetingTitle: 'Зустріч OurWeek',
@@ -2841,6 +2842,7 @@ export const messages = {
       unavailable: 'Сповіщення недоступні в цьому середовищі.',
       premiumOnly: 'Планування нагадувань є Premium-функцією.',
       updateFailed: 'Не вдалося оновити планування нагадувань.',
+      permissionDeclined: 'Доступ до сповіщень відхилено',
     },
     api: {
       backendContactFailed: 'Щось пішло не так під час зв’язку із сервером.',
@@ -4313,6 +4315,7 @@ export const messages = {
       unavailable: 'Las notificaciones no están disponibles en este entorno.',
       premiumOnly: 'La programación de recordatorios es una función Premium.',
       updateFailed: 'No se pudo actualizar la programación de recordatorios.',
+      permissionDeclined: 'Se rechazó el acceso a las notificaciones',
     },
     api: {
       backendContactFailed: 'Algo salió mal al contactar el servidor.',

@@ -22,6 +22,7 @@ import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useNotifications } from '@/shared/composables/useNotifications';
+import { useToast } from '@/shared/composables/useToast';
 import { appConfig } from '@/shared/config/env';
 
 const route = useRoute();
@@ -32,6 +33,7 @@ const remindersStore = useRemindersStore();
 const subscriptionStore = useSubscriptionStore();
 const workspaceStore = useWorkspaceStore();
 const { canUseFeature } = useFeatureAccess();
+const { showToast } = useToast();
 const {
   disableReminders,
   enableReminders,
@@ -131,10 +133,19 @@ function toReminderDay(value: string) {
 }
 
 async function handleReminderEnabledChange(event: Event) {
-  const enabled = (event.target as HTMLInputElement).checked;
+  const input = event.target as HTMLInputElement;
+  const enabled = input.checked;
 
   if (enabled) {
-    await enableReminders();
+    const result = await enableReminders();
+
+    if (result === 'permission-denied') {
+      input.checked = false;
+      await showToast(t('notifications.permissionDeclined'));
+    } else if (result === 'error' || result === 'premium-only') {
+      input.checked = false;
+    }
+
     return;
   }
 

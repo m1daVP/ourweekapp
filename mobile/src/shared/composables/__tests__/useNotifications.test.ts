@@ -66,7 +66,7 @@ describe('useNotifications free-plan reminder scheduling', () => {
 
     const result = await enableReminders();
 
-    expect(result).toBe(true);
+    expect(result).toBe('enabled');
     expect(
       reminderServiceMocks.scheduleReminderNotifications
     ).toHaveBeenCalled();
@@ -123,8 +123,52 @@ describe('useNotifications free-plan reminder scheduling', () => {
 
     const result = await enableReminders();
 
-    expect(result).toBe(false);
+    expect(result).toBe('permission-denied');
     expect(remindersStore.settings.enabled).toBe(false);
     expect(reminderServiceMocks.cancelReminderNotifications).toHaveBeenCalled();
+  });
+
+  it('does not re-request permission after Android reports it denied', async () => {
+    reminderServiceMocks.checkNotificationPermission.mockResolvedValue({
+      display: 'denied',
+    });
+
+    const { useNotifications } =
+      await import('@/shared/composables/useNotifications');
+    const { useRemindersStore } = await import('@/app/stores/reminders');
+
+    const remindersStore = useRemindersStore();
+    remindersStore.setEnabled(true);
+    const { enableReminders } = useNotifications();
+
+    const result = await enableReminders();
+
+    expect(result).toBe('permission-denied');
+    expect(remindersStore.settings.enabled).toBe(false);
+    expect(
+      reminderServiceMocks.requestNotificationPermission
+    ).not.toHaveBeenCalled();
+    expect(reminderServiceMocks.cancelReminderNotifications).toHaveBeenCalled();
+  });
+
+  it('disables reminders when requesting native permission fails', async () => {
+    reminderServiceMocks.requestNotificationPermission.mockRejectedValue(
+      new Error('native request failed')
+    );
+
+    const { useNotifications } =
+      await import('@/shared/composables/useNotifications');
+    const { useRemindersStore } = await import('@/app/stores/reminders');
+
+    const remindersStore = useRemindersStore();
+    remindersStore.setEnabled(true);
+    const { enableReminders, lastError } = useNotifications();
+
+    const result = await enableReminders();
+
+    expect(result).toBe('error');
+    expect(remindersStore.settings.enabled).toBe(false);
+    expect(reminderServiceMocks.cancelReminderNotifications).toHaveBeenCalled();
+    expect(lastError.value).toBe('notifications.updateFailed');
   });
 });

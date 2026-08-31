@@ -7,6 +7,10 @@ const state = vi.hoisted(() => ({
   revenueCatEnabled: true,
   restorePurchases: vi.fn(),
   manageSubscription: vi.fn(),
+  enableReminders: vi.fn(),
+  showToast: vi.fn(),
+  canUseReminders: false,
+  reminderSettings: { enabled: false },
   subscription: {
     hasPremiumEntitlement: false,
     canManageSubscription: false,
@@ -35,7 +39,7 @@ vi.mock('@/app/stores/localization', () => ({
 
 vi.mock('@/app/stores/reminders', () => ({
   reminderDayOptions: [],
-  useRemindersStore: () => ({ settings: { enabled: false } }),
+  useRemindersStore: () => ({ settings: state.reminderSettings }),
 }));
 
 vi.mock('@/app/stores/subscription', () => ({
@@ -51,19 +55,25 @@ vi.mock('@/app/stores/workspace', () => ({
 }));
 
 vi.mock('@/shared/composables/useFeatureAccess', () => ({
-  useFeatureAccess: () => ({ canUseFeature: () => false }),
+  useFeatureAccess: () => ({
+    canUseFeature: () => state.canUseReminders,
+  }),
 }));
 
 vi.mock('@/shared/composables/useNotifications', () => ({
   useNotifications: () => ({
     disableReminders: vi.fn(),
-    enableReminders: vi.fn(),
+    enableReminders: state.enableReminders,
     isAvailable: { value: false },
     lastError: { value: '' },
     lastReminderResult: { value: null },
     permissionStatus: { value: 'unknown' },
     syncPermissionStatus: vi.fn(),
   }),
+}));
+
+vi.mock('@/shared/composables/useToast', () => ({
+  useToast: () => ({ showToast: state.showToast }),
 }));
 
 vi.mock('@/shared/config/env', () => ({
@@ -110,6 +120,10 @@ beforeEach(() => {
   state.revenueCatEnabled = true;
   state.restorePurchases.mockReset();
   state.manageSubscription.mockReset();
+  state.enableReminders.mockReset();
+  state.showToast.mockReset();
+  state.canUseReminders = false;
+  state.reminderSettings.enabled = false;
   Object.assign(state.subscription, {
     hasPremiumEntitlement: false,
     canManageSubscription: false,
@@ -233,5 +247,35 @@ describe('SettingsPage restore purchases', () => {
         .get('[data-testid="manage-subscription"]')
         .attributes('disabled')
     ).toBeDefined();
+  });
+});
+
+describe('SettingsPage notification permissions', () => {
+  it('shows a toast and keeps reminders off when notification access is declined', async () => {
+    state.canUseReminders = true;
+    state.enableReminders.mockResolvedValue('permission-denied');
+    const wrapper = mountSettingsPage();
+
+    await wrapper.get('input[type="checkbox"]').setValue(true);
+    await wrapper.vm.$forceUpdate();
+
+    expect(state.enableReminders).toHaveBeenCalledOnce();
+    expect(state.showToast).toHaveBeenCalledWith(
+      'notifications.permissionDeclined'
+    );
+    expect(
+      (wrapper.get('input[type="checkbox"]').element as HTMLInputElement)
+        .checked
+    ).toBe(false);
+  });
+
+  it('does not show a declined-access toast after permission is granted', async () => {
+    state.canUseReminders = true;
+    state.enableReminders.mockResolvedValue('enabled');
+    const wrapper = mountSettingsPage();
+
+    await wrapper.get('input[type="checkbox"]').setValue(true);
+
+    expect(state.showToast).not.toHaveBeenCalled();
   });
 });

@@ -17,6 +17,9 @@ import {
 
 type NotificationStatus = PermissionState | 'unknown' | 'unavailable';
 
+export type EnableRemindersResult =
+  'enabled' | 'permission-denied' | 'unavailable' | 'error' | 'premium-only';
+
 const permissionStatus = ref<NotificationStatus>('unknown');
 const lastReminderResult = ref<ReminderScheduleResult | null>(null);
 const lastError = ref<string | null>(null);
@@ -39,6 +42,16 @@ export function useNotifications() {
     () => canUseReminderFeature() && remindersStore.settings.enabled
   );
 
+  async function disableAfterUnsuccessfulEnable() {
+    remindersStore.setEnabled(false);
+
+    try {
+      await cancelReminderNotifications();
+    } catch {
+      // The setting must stay off even if native cleanup is unavailable.
+    }
+  }
+
   async function syncPermissionStatus() {
     lastError.value = null;
 
@@ -51,35 +64,56 @@ export function useNotifications() {
     }
   }
 
-  async function enableReminders() {
+  async function enableReminders(): Promise<EnableRemindersResult> {
     lastError.value = null;
 
     if (!canUseReminderFeature()) {
       lastError.value = translate('notifications.premiumOnly');
-      remindersStore.setEnabled(false);
-      await cancelReminderNotifications();
-      return false;
+      await disableAfterUnsuccessfulEnable();
+      return 'premium-only';
     }
 
     if (!localNotificationsAvailable()) {
       permissionStatus.value = 'unavailable';
       remindersStore.setEnabled(true);
       lastReminderResult.value = { scheduled: false, reason: 'unavailable' };
-      return true;
+      return 'unavailable';
     }
 
-    const permission = await requestNotificationPermission();
-    permissionStatus.value = permission?.display ?? 'unavailable';
+    try {
+      const currentPermission = await checkNotificationPermission();
+      permissionStatus.value = currentPermission?.display ?? 'unavailable';
 
-    if (permission?.display !== 'granted') {
-      remindersStore.setEnabled(false);
-      await cancelReminderNotifications();
-      return false;
+      if (currentPermission?.display === 'denied') {
+        lastReminderResult.value = {
+          scheduled: false,
+          reason: 'permission-denied',
+        };
+        await disableAfterUnsuccessfulEnable();
+        return 'permission-denied';
+      }
+
+      const permission = await requestNotificationPermission();
+      permissionStatus.value = permission?.display ?? 'unavailable';
+
+      if (permission?.display !== 'granted') {
+        lastReminderResult.value = {
+          scheduled: false,
+          reason: 'permission-denied',
+        };
+        await disableAfterUnsuccessfulEnable();
+        return 'permission-denied';
+      }
+
+      remindersStore.setEnabled(true);
+      await rescheduleReminders();
+      return 'enabled';
+    } catch {
+      await disableAfterUnsuccessfulEnable();
+      lastError.value = translate('notifications.updateFailed');
+      lastReminderResult.value = { scheduled: false, reason: 'unavailable' };
+      return 'error';
     }
-
-    remindersStore.setEnabled(true);
-    await rescheduleReminders();
-    return true;
   }
 
   async function disableReminders() {
