@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import BottomNavigation from '@/shared/components/BottomNavigation.vue';
 import smallLogoUrl from '@/assets/small-logo.svg';
+import { useAuthStore } from '@/app/stores/auth';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
@@ -30,12 +31,25 @@ withDefaults(
 const route = useRoute();
 const { t } = useI18n();
 const mainElement = ref<HTMLElement | null>(null);
+const authStore = useAuthStore();
 const participantsStore = useParticipantsStore();
 const subscriptionStore = useSubscriptionStore();
 const { dismissToast, showToast, toastState } = useToast();
 const recoveryMessages = computed(() => storageRecoveryState.value.messages);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
-const firstParticipant = computed(() => activeParticipants.value[0] ?? null);
+const currentUserParticipant = computed(() => {
+  const email = authStore.user?.email.trim().toLocaleLowerCase();
+
+  if (!email) {
+    return null;
+  }
+
+  return (
+    activeParticipants.value.find(
+      (participant) => participant.email?.trim().toLocaleLowerCase() === email
+    ) ?? null
+  );
+});
 const isMeetingRoute = computed(() => route.name === 'meeting');
 const pullToRefreshEnabled = computed(() => isPullToRefreshRoute(route.name));
 const pageTitle = computed(() => {
@@ -140,10 +154,10 @@ watch(
         :aria-label="t('app.openSettings')"
       >
         <span
-          v-if="firstParticipant"
-          :style="{ backgroundColor: firstParticipant.avatarColor }"
+          v-if="currentUserParticipant"
+          :style="{ backgroundColor: currentUserParticipant.avatarColor }"
         >
-          {{ firstParticipant.initials }}
+          {{ currentUserParticipant.initials }}
         </span>
         <span v-else>WU</span>
       </RouterLink>
