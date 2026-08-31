@@ -52,4 +52,9 @@ async function ping() {
   }
 }
 
+function blueUnderlinedText(text) {
+  return `\x1b[36m\x1b[4m${text}\x1b[0m`;
+}
+
 void ping();
+console.log(`[${timestamp()}] Ping started for ${blueUnderlinedText(healthUrl)}`);
