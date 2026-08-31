@@ -72,8 +72,11 @@ function openMeeting(meetingId: string) {
         :key="period.value"
         type="button"
         :class="[
-          'filter-chip',
-          { 'filter-chip--active': store.selectedPeriod === period.value },
+          'insights-periods__button',
+          {
+            'insights-periods__button--active':
+              store.selectedPeriod === period.value,
+          },
         ]"
         :disabled="store.isLoading"
         @click="selectPeriod(period.value)"
@@ -82,12 +85,15 @@ function openMeeting(meetingId: string) {
       </button>
     </div>
 
-    <p v-if="store.isLoading" class="content-panel insights-message">
+    <p
+      v-if="store.isLoading"
+      class="content-panel insights-message insights-message--loading"
+    >
       {{ t('insights.loading') }}
     </p>
     <section
       v-else-if="store.errorMessage"
-      class="content-panel insights-message"
+      class="content-panel insights-message insights-message--error"
       aria-live="polite"
     >
       <p>{{ store.errorMessage }}</p>
@@ -109,7 +115,7 @@ function openMeeting(meetingId: string) {
           <p class="insights-card__eyebrow">
             {{ t('insights.meetingConsistency') }}
           </p>
-          <strong>{{
+          <strong class="insights-card__metric">{{
             t('insights.meetingsCompleted', {
               count: store.insights.meetingConsistency.completedMeetings,
             })
@@ -118,6 +124,7 @@ function openMeeting(meetingId: string) {
             v-if="
               store.insights.meetingConsistency.averageIntervalDays !== null
             "
+            class="insights-card__detail"
           >
             {{
               t('insights.averageInterval', {
@@ -127,7 +134,9 @@ function openMeeting(meetingId: string) {
               })
             }}
           </small>
-          <small v-else>{{ t('insights.intervalUnavailable') }}</small>
+          <small v-else class="insights-card__detail">{{
+            t('insights.intervalUnavailable')
+          }}</small>
         </article>
 
         <article class="content-panel insights-card">
@@ -136,6 +145,7 @@ function openMeeting(meetingId: string) {
           </p>
           <strong
             v-if="store.insights.taskFollowThrough.completionRate !== null"
+            class="insights-card__metric"
           >
             {{
               t('insights.completionRate', {
@@ -145,7 +155,9 @@ function openMeeting(meetingId: string) {
               })
             }}
           </strong>
-          <strong v-else>{{ t('insights.insufficientData') }}</strong>
+          <strong v-else class="insights-card__metric">{{
+            t('insights.insufficientData')
+          }}</strong>
           <div class="insights-tags">
             <span>{{
               t('insights.doneTag', {
@@ -169,7 +181,7 @@ function openMeeting(meetingId: string) {
           <p class="insights-card__eyebrow">
             {{ t('insights.agreementFollowThrough') }}
           </p>
-          <strong>{{
+          <strong class="insights-card__metric">{{
             t('insights.resolvedTag', {
               count: store.insights.agreementFollowThrough.resolved,
             })
@@ -192,7 +204,10 @@ function openMeeting(meetingId: string) {
           <p class="insights-card__eyebrow">
             {{ t('insights.recurringTopics') }}
           </p>
-          <p v-if="!store.insights.recurringTopics.length">
+          <p
+            v-if="!store.insights.recurringTopics.length"
+            class="insights-card__empty"
+          >
             {{ t('insights.noRecurringTopics') }}
           </p>
           <ul v-else class="insights-topic-list">
@@ -200,8 +215,10 @@ function openMeeting(meetingId: string) {
               v-for="topic in store.insights.recurringTopics"
               :key="topic.title"
             >
-              <strong>{{ topic.title }}</strong>
-              <span>{{
+              <strong class="insights-topic-list__title">{{
+                topic.title
+              }}</strong>
+              <span class="insights-topic-list__meta">{{
                 t('insights.meetingCount', { count: topic.meetingCount })
               }}</span>
               <button
@@ -218,7 +235,7 @@ function openMeeting(meetingId: string) {
 
       <section class="content-panel insights-search">
         <h2>{{ t('insights.searchLabel') }}</h2>
-        <form @submit.prevent="submitSearch">
+        <form class="insights-search__form" @submit.prevent="submitSearch">
           <label class="sr-only" for="insights-search">{{
             t('insights.searchLabel')
           }}</label>
@@ -257,6 +274,7 @@ function openMeeting(meetingId: string) {
               { key: 'agreements', label: t('insights.agreements') },
             ]"
             :key="group.key"
+            class="insights-search-group"
           >
             <h3>{{ group.label }}</h3>
             <ul
@@ -290,59 +308,296 @@ function openMeeting(meetingId: string) {
 </template>
 
 <style scoped>
-.insights-page__header p {
-  color: var(--color-text-muted);
+.insights-page {
+  gap: var(--section-gap);
 }
+
+.insights-page__header {
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-1) 0;
+}
+
+.insights-page__header p {
+  max-width: 34rem;
+  color: var(--color-on-surface-variant);
+}
+
+.insights-page__header .page-kicker {
+  color: var(--color-outline);
+}
+
 .insights-periods,
 .insights-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
+
+.insights-periods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+  border: 1px solid
+    color-mix(in srgb, var(--color-outline-variant) 50%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-low);
+  padding: var(--space-1);
+}
+
+.insights-periods__button {
+  min-height: var(--touch-target-min);
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-md) - 4px);
+  background: transparent;
+  padding: 0 var(--space-2);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-label-lg);
+  font-weight: 800;
+  line-height: 1.2;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
+}
+
+.insights-periods__button--active {
+  border-color: color-mix(
+    in srgb,
+    var(--color-outline-variant) 44%,
+    transparent
+  );
+  background: var(--color-surface-lowest);
+  color: var(--color-primary);
+  box-shadow: 0 2px 6px rgba(47, 42, 38, 0.07);
+}
+
+.insights-periods__button:focus-visible,
+.insights-topic-list .text-button:focus-visible,
+.insights-result-list a:focus-visible {
+  outline: 3px solid
+    color-mix(in srgb, var(--color-primary-fixed) 82%, transparent);
+  outline-offset: 2px;
+}
+
+.insights-periods__button:disabled {
+  opacity: 0.56;
+}
+
 .insights-card-grid,
 .insights-search-groups {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
+
 .insights-card {
   display: grid;
-  gap: 0.5rem;
+  min-height: 148px;
+  align-content: start;
+  gap: var(--space-2);
+  border-color: color-mix(
+    in srgb,
+    var(--color-outline-variant) 58%,
+    transparent
+  );
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-lowest);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
 }
+
 .insights-card__eyebrow {
   margin: 0;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
+  color: var(--color-outline);
+  font-size: var(--font-size-label-sm);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
+
+.insights-card__metric {
+  color: var(--color-on-surface);
+  font-family: var(--font-display);
+  font-size: var(--font-size-headline-lg);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.insights-card__detail,
+.insights-card__empty {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-label-lg);
+  line-height: 1.45;
+}
+
 .insights-tags span {
-  border-radius: 999px;
-  background: var(--color-surface-muted);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8125rem;
+  border: 1px solid
+    color-mix(in srgb, var(--color-primary-fixed) 72%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(
+    in srgb,
+    var(--color-primary-fixed) 48%,
+    var(--color-surface-lowest)
+  );
+  padding: 5px var(--space-2);
+  color: var(--color-primary);
+  font-size: var(--font-size-label-sm);
+  font-weight: 700;
+  line-height: 1.25;
 }
+
 .insights-topic-list,
 .insights-result-list {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-2);
   list-style: none;
   margin: 0;
   padding: 0;
 }
+
 .insights-topic-list li,
 .insights-result-list a {
   display: grid;
-  gap: 0.2rem;
+  gap: var(--space-1);
+  border: 1px solid
+    color-mix(in srgb, var(--color-outline-variant) 54%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-low);
+  padding: var(--space-3);
 }
-.insights-search form {
-  display: flex;
-  gap: 0.5rem;
-  margin-block: 0.75rem;
+
+.insights-topic-list__title,
+.insights-result-list strong {
+  overflow-wrap: anywhere;
+  color: var(--color-on-surface);
+  font-size: var(--font-size-body-md);
+  line-height: 1.3;
 }
-.insights-search input {
-  flex: 1;
+
+.insights-topic-list__meta,
+.insights-result-list small {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-label-sm);
+  font-weight: 700;
+}
+
+.insights-topic-list .text-button {
+  justify-self: start;
+  min-height: var(--touch-target-min);
+  margin-top: var(--space-1);
+  font-size: var(--font-size-label-lg);
+}
+
+.insights-search {
+  gap: var(--space-3);
+  border-color: color-mix(
+    in srgb,
+    var(--color-outline-variant) 58%,
+    transparent
+  );
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.insights-search h2 {
+  margin: 0;
+}
+
+.insights-search__form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.insights-search__form input {
   min-width: 0;
 }
+
+.insights-search__form .secondary-button {
+  min-width: 108px;
+}
+
+.insights-search-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.insights-search-group h3 {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+  font-family: var(--font-body);
+  font-size: var(--font-size-label-lg);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.insights-result-list a {
+  min-height: var(--touch-target-min);
+  align-content: center;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 120ms ease;
+}
+
+.insights-result-list a:active {
+  transform: scale(0.985);
+}
+
 .insights-message {
   display: grid;
-  gap: 0.75rem;
+  min-height: 104px;
+  align-content: center;
+  gap: var(--space-3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.insights-message--loading {
+  color: var(--color-on-surface-variant);
+}
+
+.insights-message--error {
+  border-color: color-mix(
+    in srgb,
+    var(--color-error-container) 78%,
+    transparent
+  );
+  background: color-mix(
+    in srgb,
+    var(--color-error-container) 36%,
+    var(--color-surface-lowest)
+  );
+}
+
+@media (max-width: 380px) {
+  .insights-periods {
+    gap: 2px;
+    padding: 2px;
+  }
+
+  .insights-periods__button {
+    padding-inline: var(--space-1);
+    font-size: var(--font-size-label-sm);
+  }
+
+  .insights-search__form {
+    grid-template-columns: 1fr;
+  }
+
+  .insights-search__form .secondary-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insights-periods__button,
+  .insights-result-list a {
+    transition: none;
+  }
 }
 </style>
