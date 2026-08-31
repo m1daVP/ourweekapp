@@ -469,6 +469,30 @@ describe('CalendarService', () => {
     });
   });
 
+  it('syncs the recurring weekly meeting as a 15-minute event', async () => {
+    const { calendarRepository, provider, service } = createHarness();
+    calendarRepository.preferences = {
+      weeklyMeetingSyncEnabled: true,
+      assignedTaskSyncEnabled: false,
+      weeklyMeetingDay: 'monday',
+      weeklyMeetingTime: '18:00',
+      timeZone: 'Europe/Warsaw',
+    };
+    await connectThroughCallback(service);
+
+    await service.syncWeeklyMeetingForUser(auth, now);
+
+    expect(provider.upsertEvent).toHaveBeenCalledWith(expect.objectContaining({
+      event: {
+        title: 'OurWeek weekly meeting',
+        dateTime: '2026-06-08T18:00:00',
+        timeZone: 'Europe/Warsaw',
+        durationMinutes: 15,
+        recurrence: ['RRULE:FREQ=WEEKLY;BYDAY=MO'],
+      },
+    }));
+  });
+
   it('isolates stored event IDs by connected user', async () => {
     const { calendarRepository, provider, service } = createHarness();
     await connectThroughCallback(service);

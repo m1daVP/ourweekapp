@@ -7,6 +7,8 @@ const GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/userinfo.email',
 ];
+const DEFAULT_TIMED_EVENT_DURATION_MINUTES = 60;
+const OFFSET_BEARING_DATE_TIME = /(Z|[+-]\d{2}:\d{2})$/i;
 
 export type GoogleCalendarTokens = {
   accessToken: string | null;
@@ -19,6 +21,7 @@ export type GoogleCalendarEventInput = {
   date?: string;
   dateTime?: string;
   timeZone?: string;
+  durationMinutes?: number;
   recurrence?: string[];
 };
 
@@ -59,8 +62,40 @@ function toTokens(tokens: {
   };
 }
 
-function addHours(value: string, hours: number) {
-  return new Date(new Date(value).getTime() + hours * 60 * 60 * 1000).toISOString();
+function addMinutes(value: string, minutes: number) {
+  if (OFFSET_BEARING_DATE_TIME.test(value)) {
+    return new Date(new Date(value).getTime() + minutes * 60 * 1000).toISOString();
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
+
+  if (!match) {
+    throw new Error('Invalid local calendar date-time.');
+  }
+
+  const [, year, month, day, hour, minute, second = '00'] = match;
+  const date = new Date(Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second),
+  ));
+  date.setUTCMinutes(date.getUTCMinutes() + minutes);
+
+  const datePart = [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, '0'),
+    String(date.getUTCDate()).padStart(2, '0'),
+  ].join('-');
+  const timePart = [
+    String(date.getUTCHours()).padStart(2, '0'),
+    String(date.getUTCMinutes()).padStart(2, '0'),
+    String(date.getUTCSeconds()).padStart(2, '0'),
+  ].join(':');
+
+  return `${datePart}T${timePart}`;
 }
 
 function addDays(value: string, days: number) {
@@ -72,10 +107,16 @@ function addDays(value: string, days: number) {
 
 function toGoogleEvent(event: GoogleCalendarEventInput): calendar_v3.Schema$Event {
   if (event.dateTime) {
+    const durationMinutes =
+      event.durationMinutes ?? DEFAULT_TIMED_EVENT_DURATION_MINUTES;
+
     return {
       summary: event.title,
       start: { dateTime: event.dateTime, timeZone: event.timeZone },
-      end: { dateTime: addHours(event.dateTime, 1), timeZone: event.timeZone },
+      end: {
+        dateTime: addMinutes(event.dateTime, durationMinutes),
+        timeZone: event.timeZone,
+      },
       ...(event.recurrence ? { recurrence: event.recurrence } : {}),
     };
   }

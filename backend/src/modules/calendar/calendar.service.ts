@@ -71,6 +71,7 @@ const defaultPreferences: CalendarPreferencesDto = {
   weeklyMeetingTime: '18:00',
   timeZone: 'UTC',
 };
+const WEEKLY_MEETING_DURATION_MINUTES = 15;
 
 const googleWeekday: Record<CalendarPreferencesDto['weeklyMeetingDay'], string> = {
   sunday: 'SU',
@@ -423,6 +424,7 @@ export class CalendarService {
         title: 'OurWeek weekly meeting',
         dateTime: nextWeeklyOccurrence(preferences, now),
         timeZone: preferences.timeZone,
+        durationMinutes: WEEKLY_MEETING_DURATION_MINUTES,
         recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${googleWeekday[preferences.weeklyMeetingDay]}`],
       },
       now,
