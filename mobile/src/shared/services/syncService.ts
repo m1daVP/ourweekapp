@@ -33,6 +33,7 @@ import {
 } from '@/shared/api/syncDtos';
 import { latestIso, nowIso } from '@/shared/utils/dates';
 import type { Meeting } from '@/features/meeting/types';
+import type { Participant } from '@/features/participants/types';
 import {
   beginRemoteSync,
   endRemoteSyncSoon,
@@ -252,14 +253,38 @@ function applyTasksFromBackend(
   tasksStore.persist();
 }
 
+function mergeParticipants(
+  localParticipants: Participant[],
+  remoteParticipants: ParticipantDto[]
+) {
+  const localEmailsById = new Map(
+    localParticipants.map((participant) => [participant.id, participant.email])
+  );
+  const remoteEmailsById = new Map(
+    remoteParticipants.map((participant) => [participant.id, participant.email])
+  );
+
+  return mergeSyncItems<ParticipantDto>(
+    localParticipants.map(toParticipantDto),
+    remoteParticipants
+  ).map((participant) =>
+    fromParticipantDto({
+      ...participant,
+      email:
+        remoteEmailsById.get(participant.id) ??
+        localEmailsById.get(participant.id),
+    })
+  );
+}
+
 function applyParticipantsFromBackend(
   response: Awaited<ReturnType<typeof listParticipants>>
 ) {
   const participantsStore = useParticipantsStore();
-  const mergedParticipants = mergeSyncItems<ParticipantDto>(
-    participantsStore.participants.map(toParticipantDto),
+  const mergedParticipants = mergeParticipants(
+    participantsStore.participants,
     response.participants
-  ).map(fromParticipantDto);
+  );
 
   participantsStore.applyParticipants(mergedParticipants);
 }
@@ -492,10 +517,10 @@ export async function syncParticipants(): Promise<SyncResult> {
       : [];
     const syncedAt = response.syncedAt ?? nowIso();
 
-    participantsStore.participants = mergeSyncItems<ParticipantDto>(
-      localParticipants.map(toParticipantDto),
+    participantsStore.participants = mergeParticipants(
+      localParticipants,
       remoteParticipants
-    ).map(fromParticipantDto);
+    );
     participantsStore.persist();
     markSyncSuccess('participants', syncedAt, remoteConflicts.length);
 

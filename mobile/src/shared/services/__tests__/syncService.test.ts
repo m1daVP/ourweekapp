@@ -260,6 +260,30 @@ describe('syncService', () => {
     ]);
   });
 
+  it('preserves a server-owned participant email when timestamps are equal', async () => {
+    const participantsStore = useParticipantsStore();
+    participantsStore.participants = [participant('participant-1', 'Rita', 3)];
+    mocks.listParticipants.mockResolvedValueOnce({
+      participants: [
+        { ...participant('participant-1', 'Rita', 3), email: 'rita@example.com' },
+      ],
+    });
+    mocks.apiRequest.mockImplementationOnce(async (_path, options) => ({
+      participants: (options?.body as { participants: unknown[] }).participants,
+      conflicts: [],
+      syncedAt,
+    }));
+
+    await retrySync();
+
+    expect(participantsStore.participants).toEqual([
+      expect.objectContaining({
+        id: 'participant-1',
+        email: 'rita@example.com',
+      }),
+    ]);
+  });
+
   it('does not push any core data when participant hydration fails', async () => {
     mocks.listParticipants.mockRejectedValueOnce(
       new Error('participant hydration failed')
