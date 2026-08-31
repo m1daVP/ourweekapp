@@ -109,7 +109,7 @@ export function requireManageWorkspace(auth: AuthContext | undefined) {
 export function requireInviteMembers(auth: AuthContext | undefined) {
   const context = requireAuthenticatedContext(auth);
 
-  if (context.role === 'viewer') {
+  if (context.role !== 'owner') {
     throw new ApiError(
       403,
       'forbidden',

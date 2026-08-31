@@ -140,9 +140,9 @@ describe('workspace permissions', () => {
     expect(() => requireManageWorkspace(adultAuth)).toThrow(ApiError);
   });
 
-  it('allows owners and adult members to invite members', () => {
+  it('allows only owners to invite or link workspace members', () => {
     expect(requireInviteMembers(ownerAuth)).toEqual(ownerAuth);
-    expect(requireInviteMembers(adultAuth)).toEqual(adultAuth);
+    expect(() => requireInviteMembers(adultAuth)).toThrow(ApiError);
     expect(() => requireInviteMembers(viewerAuth)).toThrow(ApiError);
   });
 });
@@ -267,7 +267,7 @@ describe('WorkspaceService member management', () => {
   it('returns a safe pending invitation DTO', async () => {
     const { repository, service } = createRepository();
 
-    const result = await service.createInvitation(adultAuth, {
+    const result = await service.createInvitation(ownerAuth, {
       participantId: 'participant-1',
       email: 'alex@example.com',
     });
@@ -292,6 +292,47 @@ describe('WorkspaceService member management', () => {
       expiresAt: '2026-06-13T10:00:00.000Z',
     });
     expect(result).not.toHaveProperty('userId');
+  });
+
+  it('rejects adult members before creating invitations', async () => {
+    const { repository, service } = createRepository();
+
+    await expect(
+      service.createInvitation(adultAuth, {
+        participantId: 'participant-1',
+        email: 'alex@example.com',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'forbidden',
+    });
+    expect(repository.createInvitation).not.toHaveBeenCalled();
+  });
+
+  it('rejects adult members before resending invitations', async () => {
+    const { repository, service } = createRepository();
+
+    await expect(
+      service.resendInvitation(adultAuth, 'invitation-1'),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'forbidden',
+    });
+    expect(repository.findPendingInvitation).not.toHaveBeenCalled();
+  });
+
+  it('rejects adult members before linking existing members', async () => {
+    const { repository, service } = createRepository();
+
+    await expect(
+      service.linkParticipantToExistingMember(adultAuth, 'participant-1', {
+        email: 'alex@example.com',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'forbidden',
+    });
+    expect(repository.linkExistingMemberToParticipant).not.toHaveBeenCalled();
   });
 
   it.each([
