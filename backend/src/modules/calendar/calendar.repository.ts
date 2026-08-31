@@ -289,6 +289,39 @@ export class CalendarRepository {
     throwOnSupabaseError(error, 'calendar_event_delete_failed', 'Unable to disconnect calendar events.');
   }
 
+  async listEventsForUserBySourceTypes(
+    workspaceId: string,
+    userId: string,
+    sourceTypes: CalendarSourceType[],
+  ) {
+    const { data, error } = await this.supabase
+      .from('calendar_events')
+      .select(EVENT_COLUMNS)
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .eq('provider', 'google')
+      .in('source_type', sourceTypes);
+
+    throwOnSupabaseError(error, 'calendar_event_list_failed', 'Unable to load calendar events.');
+    return (data ?? []).map(mapCalendarEventRowToDto);
+  }
+
+  async clearEventMappingsForUserBySourceTypes(
+    workspaceId: string,
+    userId: string,
+    sourceTypes: CalendarSourceType[],
+  ) {
+    const { error } = await this.supabase
+      .from('calendar_events')
+      .delete()
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .eq('provider', 'google')
+      .in('source_type', sourceTypes);
+
+    throwOnSupabaseError(error, 'calendar_event_delete_failed', 'Unable to remove calendar events.');
+  }
+
   async findEventBySource(
     workspaceId: string,
     userId: string,

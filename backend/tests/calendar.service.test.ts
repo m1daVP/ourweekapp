@@ -106,6 +106,24 @@ function agreement(overrides: Partial<AgreementDto> = {}): AgreementDto {
   };
 }
 
+function calendarEvent(
+  sourceType: CalendarSourceType,
+  sourceId: string,
+  providerEventId: string,
+): CalendarEventDto {
+  return {
+    id: `${userId}-${sourceType}-${sourceId}`,
+    workspaceId,
+    userId,
+    provider: 'google',
+    sourceType,
+    sourceId,
+    providerEventId,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+  };
+}
+
 class FakeCalendarRepository {
   public connection: CalendarConnectionRecord | null = null;
   public events = new Map<string, CalendarEventDto>();
@@ -120,6 +138,9 @@ class FakeCalendarRepository {
     timeZone: 'UTC',
   };
   public clearedMappings: Array<{ workspaceId: string; userId: string }> = [];
+  public clearedMappingSourceTypes: CalendarSourceType[][] = [];
+  public preferenceUpserts: CalendarPreferencesDto[] = [];
+  public operationLog: string[] = [];
 
   async findConnectionForUser(_workspaceId: string, _userId: string) {
     return this.connection;
@@ -151,6 +172,7 @@ class FakeCalendarRepository {
 
   async disconnectConnection(workspaceId: string, userId: string, disconnectedAt: string) {
     this.disconnects.push({ workspaceId, userId, disconnectedAt });
+    this.operationLog.push('disconnect');
     this.connection = {
       id: 'connection-1',
       workspaceId,
@@ -178,12 +200,44 @@ class FakeCalendarRepository {
     userId: string;
     preferences: CalendarPreferencesDto;
   }) {
+    this.preferenceUpserts.push(input.preferences);
     this.preferences = input.preferences;
     return input.preferences;
   }
 
   async clearEventMappingsForUser(workspaceId: string, userId: string) {
     this.clearedMappings.push({ workspaceId, userId });
+  }
+
+  async listEventsForUserBySourceTypes(
+    workspaceIdValue: string,
+    userIdValue: string,
+    sourceTypes: CalendarSourceType[],
+  ) {
+    return [...this.events.values()].filter((event) => (
+      event.workspaceId === workspaceIdValue &&
+      event.userId === userIdValue &&
+      sourceTypes.includes(event.sourceType)
+    ));
+  }
+
+  async clearEventMappingsForUserBySourceTypes(
+    workspaceIdValue: string,
+    userIdValue: string,
+    sourceTypes: CalendarSourceType[],
+  ) {
+    this.clearedMappingSourceTypes.push(sourceTypes);
+    this.operationLog.push('clear-mappings');
+
+    for (const [key, event] of this.events.entries()) {
+      if (
+        event.workspaceId === workspaceIdValue &&
+        event.userId === userIdValue &&
+        sourceTypes.includes(event.sourceType)
+      ) {
+        this.events.delete(key);
+      }
+    }
   }
 
   async findEventBySource(
@@ -223,7 +277,13 @@ class FakeGoogleProvider implements GoogleCalendarProvider {
   };
   public exchangeError: unknown;
   public upsertEvent = vi.fn().mockResolvedValue({ providerEventId: 'google-event-new' });
-  public revoke = vi.fn().mockResolvedValue(undefined);
+  public operationLog: string[] = [];
+  public deleteEvent = vi.fn(async (input: { providerEventId: string }) => {
+    this.operationLog.push(`delete:${input.providerEventId}`);
+  });
+  public revoke = vi.fn(async () => {
+    this.operationLog.push('revoke');
+  });
 
   buildAuthorizationUrl(state: string) {
     return `https://accounts.google.test/oauth?state=${encodeURIComponent(state)}`;
@@ -262,6 +322,7 @@ function createHarness(input: {
     ),
   };
   const provider = new FakeGoogleProvider();
+  provider.operationLog = calendarRepository.operationLog;
   const service = new CalendarService(
     calendarRepository,
     meetingsRepository,
@@ -275,6 +336,16 @@ function createHarness(input: {
   );
 
   return { calendarRepository, meetingsRepository, tasksRepository, provider, service };
+}
+
+function addCalendarEvent(
+  repository: FakeCalendarRepository,
+  sourceType: CalendarSourceType,
+  sourceId: string,
+  providerEventId: string,
+) {
+  const event = calendarEvent(sourceType, sourceId, providerEventId);
+  repository.events.set(`${userId}:${sourceType}:${sourceId}`, event);
 }
 
 async function authorizationState(
@@ -429,6 +500,139 @@ describe('CalendarService', () => {
       accessTokenEncrypted: null,
       refreshTokenEncrypted: null,
     });
+  });
+
+  it('deletes only the weekly event before disabling weekly sync', async () => {
+    const { calendarRepository, provider, service } = createHarness();
+    calendarRepository.preferences = {
+      weeklyMeetingSyncEnabled: true,
+      assignedTaskSyncEnabled: true,
+      weeklyMeetingDay: 'sunday',
+      weeklyMeetingTime: '18:00',
+      timeZone: 'UTC',
+    };
+    await connectThroughCallback(service);
+    addCalendarEvent(
+      calendarRepository,
+      'weekly_meeting',
+      'personal-weekly-meeting',
+      'weekly-event',
+    );
+    addCalendarEvent(calendarRepository, 'task_due_date', taskId, 'task-event');
+
+    await service.updateGoogleSettings(auth, { weeklyMeetingSyncEnabled: false }, now);
+
+    expect(provider.deleteEvent).toHaveBeenCalledTimes(1);
+    expect(provider.deleteEvent).toHaveBeenCalledWith(expect.objectContaining({
+      providerEventId: 'weekly-event',
+    }));
+    expect(calendarRepository.clearedMappingSourceTypes).toEqual([['weekly_meeting']]);
+    expect(calendarRepository.preferences).toMatchObject({ weeklyMeetingSyncEnabled: false });
+    expect([...calendarRepository.events.values()]).toMatchObject([
+      { providerEventId: 'task-event' },
+    ]);
+  });
+
+  it('deletes only assigned-task events before disabling task sync', async () => {
+    const { calendarRepository, provider, service } = createHarness();
+    await connectThroughCallback(service);
+    addCalendarEvent(
+      calendarRepository,
+      'weekly_meeting',
+      'personal-weekly-meeting',
+      'weekly-event',
+    );
+    addCalendarEvent(calendarRepository, 'task_due_date', taskId, 'task-event');
+
+    await service.updateGoogleSettings(auth, { assignedTaskSyncEnabled: false }, now);
+
+    expect(provider.deleteEvent).toHaveBeenCalledTimes(1);
+    expect(provider.deleteEvent).toHaveBeenCalledWith(expect.objectContaining({
+      providerEventId: 'task-event',
+    }));
+    expect(calendarRepository.clearedMappingSourceTypes).toEqual([['task_due_date']]);
+    expect(calendarRepository.preferences).toMatchObject({ assignedTaskSyncEnabled: false });
+    expect([...calendarRepository.events.values()]).toMatchObject([
+      { providerEventId: 'weekly-event' },
+    ]);
+  });
+
+  it('removes all mapped OurWeek events before revoking and disconnecting Google', async () => {
+    const { calendarRepository, provider, service } = createHarness();
+    await connectThroughCallback(service);
+    addCalendarEvent(
+      calendarRepository,
+      'weekly_meeting',
+      'personal-weekly-meeting',
+      'weekly-event',
+    );
+    addCalendarEvent(calendarRepository, 'task_due_date', taskId, 'task-event');
+    addCalendarEvent(calendarRepository, 'meeting_reminder', meetingId, 'meeting-event');
+    addCalendarEvent(calendarRepository, 'follow_up_date', followUpId, 'follow-up-event');
+
+    await service.disconnectGoogle(auth, now);
+
+    expect(calendarRepository.operationLog).toEqual([
+      'delete:weekly-event',
+      'delete:task-event',
+      'delete:meeting-event',
+      'delete:follow-up-event',
+      'clear-mappings',
+      'revoke',
+      'disconnect',
+    ]);
+    expect(calendarRepository.events.size).toBe(0);
+  });
+
+  it('preserves settings, mappings, and connection when a cleanup delete fails', async () => {
+    const { calendarRepository, provider, service } = createHarness();
+    calendarRepository.preferences = {
+      weeklyMeetingSyncEnabled: true,
+      assignedTaskSyncEnabled: true,
+      weeklyMeetingDay: 'sunday',
+      weeklyMeetingTime: '18:00',
+      timeZone: 'UTC',
+    };
+    await connectThroughCallback(service);
+    addCalendarEvent(
+      calendarRepository,
+      'weekly_meeting',
+      'personal-weekly-meeting',
+      'weekly-event',
+    );
+    addCalendarEvent(calendarRepository, 'task_due_date', taskId, 'task-event');
+    provider.deleteEvent.mockRejectedValueOnce(new Error('delete failed'));
+
+    await expect(service.updateGoogleSettings(auth, {
+      weeklyMeetingSyncEnabled: false,
+      assignedTaskSyncEnabled: false,
+    }, now)).rejects.toThrow('delete failed');
+
+    expect(calendarRepository.preferenceUpserts).toEqual([]);
+    expect(calendarRepository.clearedMappingSourceTypes).toEqual([]);
+    expect(calendarRepository.connection?.state).toBe('connected');
+    expect(calendarRepository.events.size).toBe(2);
+  });
+
+  it('clears only local mappings before disabling sync when there is no connection', async () => {
+    const { calendarRepository, provider, service } = createHarness();
+    addCalendarEvent(
+      calendarRepository,
+      'weekly_meeting',
+      'personal-weekly-meeting',
+      'weekly-event',
+    );
+    addCalendarEvent(calendarRepository, 'task_due_date', taskId, 'task-event');
+
+    await service.updateGoogleSettings(auth, { assignedTaskSyncEnabled: false }, now);
+
+    expect(provider.deleteEvent).not.toHaveBeenCalled();
+    expect(calendarRepository.clearedMappingSourceTypes).toEqual([['task_due_date']]);
+    expect(calendarRepository.preferences).toMatchObject({ assignedTaskSyncEnabled: false });
+    expect(calendarRepository.events.size).toBe(1);
+    expect([...calendarRepository.events.values()]).toMatchObject([
+      { providerEventId: 'weekly-event' },
+    ]);
   });
 
   it('creates a Google event and stores the provider event ID for the connected user', async () => {

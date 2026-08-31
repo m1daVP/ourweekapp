@@ -37,6 +37,10 @@ export type GoogleCalendarProvider = {
     providerEventId?: string;
     event: GoogleCalendarEventInput;
   }): Promise<{ providerEventId: string }>;
+  deleteEvent(input: {
+    tokens: GoogleCalendarTokens;
+    providerEventId: string;
+  }): Promise<void>;
   revoke(tokens: GoogleCalendarTokens): Promise<void>;
 };
 
@@ -183,6 +187,37 @@ export const googleCalendarProvider: GoogleCalendarProvider = {
     }
 
     return { providerEventId: response.data.id };
+  },
+
+  async deleteEvent(input) {
+    const client = createOAuthClient();
+    client.setCredentials({
+      access_token: input.tokens.accessToken ?? undefined,
+      refresh_token: input.tokens.refreshToken ?? undefined,
+      expiry_date: input.tokens.expiresAt
+        ? new Date(input.tokens.expiresAt).getTime()
+        : undefined,
+    });
+
+    const calendar = google.calendar({ version: 'v3', auth: client });
+
+    try {
+      await calendar.events.delete({
+        calendarId: 'primary',
+        eventId: input.providerEventId,
+      });
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 404
+      ) {
+        return;
+      }
+
+      throw error;
+    }
   },
 
   async revoke(tokens) {

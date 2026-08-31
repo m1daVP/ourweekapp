@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const originalEnv = { ...process.env };
 const insert = vi.hoisted(() => vi.fn());
 const update = vi.hoisted(() => vi.fn());
+const remove = vi.hoisted(() => vi.fn());
 const setCredentials = vi.hoisted(() => vi.fn());
 
 vi.mock('googleapis', () => ({
@@ -12,7 +13,7 @@ vi.mock('googleapis', () => ({
         return { setCredentials };
       }),
     },
-    calendar: vi.fn(() => ({ events: { insert, update } })),
+    calendar: vi.fn(() => ({ events: { insert, update, delete: remove } })),
   },
 }));
 
@@ -54,9 +55,11 @@ describe('googleCalendarProvider', () => {
   beforeEach(() => {
     insert.mockReset();
     update.mockReset();
+    remove.mockReset();
     setCredentials.mockReset();
     insert.mockResolvedValue({ data: { id: 'google-event-1' } });
     update.mockResolvedValue({ data: { id: 'google-event-1' } });
+    remove.mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -198,5 +201,29 @@ describe('googleCalendarProvider', () => {
         end: { date: '2026-09-01' },
       }),
     }));
+  });
+
+  it('deletes a mapped event from the connected user primary calendar', async () => {
+    const { googleCalendarProvider } = await loadGoogleCalendarProvider();
+
+    await googleCalendarProvider.deleteEvent({
+      tokens,
+      providerEventId: 'google-event-1',
+    });
+
+    expect(remove).toHaveBeenCalledWith({
+      calendarId: 'primary',
+      eventId: 'google-event-1',
+    });
+  });
+
+  it('treats a Google 404 event deletion as successful cleanup', async () => {
+    remove.mockRejectedValueOnce({ code: 404 });
+    const { googleCalendarProvider } = await loadGoogleCalendarProvider();
+
+    await expect(googleCalendarProvider.deleteEvent({
+      tokens,
+      providerEventId: 'already-gone',
+    })).resolves.toBeUndefined();
   });
 });

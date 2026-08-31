@@ -39,7 +39,8 @@ type CalendarRepositoryPort = Pick<
   | 'disconnectConnection'
   | 'findPreferencesForUser'
   | 'upsertPreferences'
-  | 'clearEventMappingsForUser'
+  | 'listEventsForUserBySourceTypes'
+  | 'clearEventMappingsForUserBySourceTypes'
   | 'findEventBySource'
   | 'upsertEvent'
 >;
@@ -72,6 +73,12 @@ const defaultPreferences: CalendarPreferencesDto = {
   timeZone: 'UTC',
 };
 const WEEKLY_MEETING_DURATION_MINUTES = 15;
+const ALL_CALENDAR_SOURCE_TYPES: CalendarSourceType[] = [
+  'weekly_meeting',
+  'task_due_date',
+  'meeting_reminder',
+  'follow_up_date',
+];
 
 const googleWeekday: Record<CalendarPreferencesDto['weeklyMeetingDay'], string> = {
   sunday: 'SU',
@@ -347,6 +354,8 @@ export class CalendarService {
     );
 
     if (connection) {
+      await this.removeMappedGoogleEvents(auth, connection, ALL_CALENDAR_SOURCE_TYPES);
+
       try {
         await this.googleProvider.revoke(this.decryptConnectionTokens(connection));
       } catch {
@@ -357,10 +366,6 @@ export class CalendarService {
         auth.workspaceId,
         auth.userId,
         now.toISOString(),
-      );
-      await this.calendarRepository.clearEventMappingsForUser(
-        auth.workspaceId,
-        auth.userId,
       );
     }
 
@@ -386,6 +391,31 @@ export class CalendarService {
       lastSyncErrorCode: undefined,
       lastSyncAttemptedAt: undefined,
     };
+    const disabledSourceTypes: CalendarSourceType[] = [
+      ...(current.weeklyMeetingSyncEnabled && !preferences.weeklyMeetingSyncEnabled
+        ? ['weekly_meeting' as const]
+        : []),
+      ...(current.assignedTaskSyncEnabled && !preferences.assignedTaskSyncEnabled
+        ? ['task_due_date' as const]
+        : []),
+    ];
+
+    if (disabledSourceTypes.length > 0) {
+      const connection = await this.calendarRepository.findConnectionForUser(
+        auth.workspaceId,
+        auth.userId,
+      );
+
+      if (connection) {
+        await this.removeMappedGoogleEvents(auth, connection, disabledSourceTypes);
+      } else {
+        await this.calendarRepository.clearEventMappingsForUserBySourceTypes(
+          auth.workspaceId,
+          auth.userId,
+          disabledSourceTypes,
+        );
+      }
+    }
 
     await this.calendarRepository.upsertPreferences({
       workspaceId: auth.workspaceId,
@@ -650,6 +680,45 @@ export class CalendarService {
         : 'Google Calendar event was created.',
       providerEventId: savedEvent.providerEventId,
     };
+  }
+
+  private async removeMappedGoogleEvents(
+    auth: AuthContext,
+    connection: CalendarConnectionRecord,
+    sourceTypes: CalendarSourceType[],
+  ) {
+    const events = await this.calendarRepository.listEventsForUserBySourceTypes(
+      auth.workspaceId,
+      auth.userId,
+      sourceTypes,
+    );
+
+    if (events.length === 0) {
+      return;
+    }
+
+    if (!this.connectionReady(connection)) {
+      throw new ApiError(
+        409,
+        'calendar_cleanup_connection_unavailable',
+        'Reconnect Google Calendar before removing synced events.',
+      );
+    }
+
+    const tokens = this.decryptConnectionTokens(connection);
+
+    for (const event of events) {
+      await this.googleProvider.deleteEvent({
+        tokens,
+        providerEventId: event.providerEventId,
+      });
+    }
+
+    await this.calendarRepository.clearEventMappingsForUserBySourceTypes(
+      auth.workspaceId,
+      auth.userId,
+      sourceTypes,
+    );
   }
 
   private async getPreferences(auth: AuthContext) {
