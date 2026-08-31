@@ -598,7 +598,9 @@ export class WorkspacesRepository {
       'Unable to create the workspace invitation.',
     );
 
-    const row = (Array.isArray(data) ? data : [])[0];
+    const row = Array.isArray(data)
+      ? data[0]
+      : data as unknown as WorkspaceInvitationRow | null;
     if (!row) {
       throw new ApiError(
         500,

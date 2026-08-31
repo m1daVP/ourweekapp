@@ -210,6 +210,41 @@ describe('WorkspacesRepository', () => {
     });
   });
 
+  it('maps a single-object participant invitation RPC response', async () => {
+    const { calls, client } = createRpcClient({ data: invitationRow, error: null });
+    const repository = new WorkspacesRepository(client);
+
+    const result = await repository.createInvitation({
+      workspaceId: 'workspace-1',
+      participantId: 'participant-1',
+      email: 'alex@example.com',
+      emailNormalized: 'alex@example.com',
+      role: 'adult_member',
+      tokenHash: 'token-hash',
+      expiresAt: '2026-06-13T10:00:00.000Z',
+    });
+
+    expect(calls).toEqual([
+      {
+        name: 'create_participant_invitation',
+        args: {
+          p_workspace_id: 'workspace-1',
+          p_participant_id: 'participant-1',
+          p_email: 'alex@example.com',
+          p_email_normalized: 'alex@example.com',
+          p_role: 'adult_member',
+          p_token_hash: 'token-hash',
+          p_expires_at: '2026-06-13T10:00:00.000Z',
+        },
+      },
+    ]);
+    expect(result).toMatchObject({
+      id: 'invitation-1',
+      participantId: 'participant-1',
+      email: 'alex@example.com',
+    });
+  });
+
   it('lists pending invitations with safe public fields', async () => {
     const { calls, client } = createFromClient({
       data: [
