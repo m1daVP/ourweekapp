@@ -762,6 +762,9 @@ export const messages = {
         localStorageTitle: 'Local storage and offline cache',
         localStorageText:
           'OurWeek keeps app data on this device so the app can work between sessions and tolerate offline use. Secure auth tokens use native secure storage where available. Non-sensitive settings use device preferences or the versioned local app data store.',
+        dataTitle: 'Current data model',
+        dataText:
+          'OurWeek may store data locally on this device and sync selected account, household, meeting, task, agreement, and participant data through the backend.',
         privateNotesTitle: 'Private notes',
         privateNotesText:
           'Private notes are stored on this device unless a reviewed sync design is implemented. They are not included in meeting exports or AI summaries by default.',
@@ -771,6 +774,8 @@ export const messages = {
         subscriptionTitle: 'Subscriptions and billing',
         subscriptionText:
           'Premium access is based on backend or app-store subscription validation. The mobile app does not collect payment card details directly. Subscription status, validation, restore, and management requests may be processed by the backend and the applicable store provider.',
+        premiumText:
+          'Premium access depends on a subscription validated by the backend or store, not only on local device state.',
         calendarTitle: 'Google Calendar sync',
         calendarText:
           'If Google Calendar sync is enabled, OurWeek uses a backend-supported OAuth flow to connect or disconnect Google Calendar and sync selected meeting reminders, task due dates, and follow-up dates. Google access or refresh tokens must not be stored in the mobile app.',
@@ -792,6 +797,9 @@ export const messages = {
         serviceTitle: 'What OurWeek provides',
         serviceText:
           'OurWeek is a practical guided weekly check-in app for couples and families. It helps households record notes, tasks, agreements, follow-ups, reminders, summaries, and exports.',
+        testingTitle: 'Service availability',
+        testingText:
+          'Available features may depend on your account, subscription, device, network connection, and backend services.',
         adviceTitle: 'Not professional advice',
         adviceText:
           'OurWeek is a practical household check-in tool. It is not therapy, legal advice, financial advice, or emergency support.',
@@ -813,6 +821,9 @@ export const messages = {
         availabilityTitle: 'Availability and data review',
         availabilityText:
           'Backend services, billing validation, AI summaries, Calendar sync, export, and notifications may be unavailable at times. Users should review important agreements before relying on them.',
+        localDataTitle: 'Local data responsibility',
+        localDataText:
+          'OurWeek stores data on this device and may sync selected records through the backend. Users should review important agreements before relying on them.',
       },
     },
     days: {
@@ -967,6 +978,30 @@ export const messages = {
         familyCare: 'A family care note to remember is...',
         plans: 'Something coming up next week is...',
         finalAgreements: 'A decision we want to keep is...',
+        practicalAgreements: 'A practical agreement to keep clear is...',
+        childRoutines: 'A child routine that needs attention is...',
+        school: 'Something to remember for school or kindergarten is...',
+        health: 'A health or care detail to remember is...',
+        activities: 'An activity that needs planning or support is...',
+        parentResponsibilities:
+          'A parenting responsibility to make clear is...',
+        purchases: 'A purchase to discuss or decide about is...',
+        upcomingExpenses: 'An upcoming expense to plan for is...',
+        subscriptionsBills: 'A bill or subscription to review is...',
+        savingGoals: 'A saving goal to revisit is...',
+        financialConcerns: 'A money concern to name clearly is...',
+        decisions: 'A decision we made is...',
+        whatHappened: 'What happened was...',
+        personNeeds: 'Something a person needs right now is...',
+        whatShouldChange: 'A change that would help next time is...',
+        concreteNextStep: 'The next clear step is...',
+        followUpDate: 'A good time to revisit this is...',
+        scheduleOverview: 'A schedule detail to plan around is...',
+        meals: 'A meal decision that would help is...',
+        childcare: 'A childcare need to plan for is...',
+        shopping: 'A shopping task to remember is...',
+        adminTasks: 'An admin task to keep in view is...',
+        backupPlans: 'A helpful backup plan is...',
         default: 'Add a short practical note...',
       },
       taskTitlePlaceholder: 'What needs care?',
@@ -1060,6 +1095,20 @@ export const messages = {
         name: 'Busy week planning',
         description:
           'A practical plan for schedule, errands, and backup options.',
+      },
+      outcomes: {
+        weeklyRhythm: 'Weekly rhythm',
+        sharedPlan: 'Shared plan',
+        reconnect: 'Reconnect',
+        clearNextStep: 'Clear next step',
+        smootherRoutines: 'Smoother routines',
+        shareTheLoad: 'Share the load',
+        makeMoneyDecision: 'Make a money decision',
+        planAhead: 'Plan ahead',
+        talkItThrough: 'Talk it through',
+        agreeWhatChanges: 'Agree what changes',
+        makeWeekWorkable: 'Make the week workable',
+        backupPlan: 'Backup plan',
       },
       sections: {
         goodThings: {
@@ -2412,6 +2461,34 @@ export const messages = {
         familyCare: 'Нотатка про сімейний догляд...',
         plans: 'Наступного тижня буде...',
         finalAgreements: 'Рішення, яке хочемо зберегти...',
+        practicalAgreements:
+          'Практична домовленість, яку варто чітко зафіксувати, — це...',
+        childRoutines: 'Рутина дитини, що потребує уваги, — це...',
+        school: 'Щось, про що варто пам’ятати для школи чи садочка, — це...',
+        health: 'Деталь про здоров’я чи догляд, яку варто пам’ятати, — це...',
+        activities: 'Заняття, яке потребує планування або підтримки, — це...',
+        parentResponsibilities:
+          'Батьківська відповідальність, яку варто узгодити, — це...',
+        purchases: 'Покупка, яку варто обговорити чи вирішити, — це...',
+        upcomingExpenses: 'Найближча витрата, яку варто запланувати, — це...',
+        subscriptionsBills: 'Рахунок або підписка для перегляду — це...',
+        savingGoals: 'Ціль заощадження, до якої варто повернутися, — це...',
+        financialConcerns:
+          'Фінансове питання, яке варто чітко назвати, — це...',
+        decisions: 'Наше рішення — це...',
+        whatHappened: 'Сталося таке...',
+        personNeeds: 'Те, що комусь потрібно зараз, — це...',
+        whatShouldChange: 'Зміна, яка допоможе наступного разу, — це...',
+        concreteNextStep: 'Наступний чіткий крок — це...',
+        followUpDate: 'Вдалий час, щоб повернутися до цього, — це...',
+        scheduleOverview: 'Деталь розкладу, яку варто врахувати, — це...',
+        meals: 'Рішення щодо їжі, яке допоможе, — це...',
+        childcare:
+          'Потреба в догляді за дітьми, яку варто запланувати, — це...',
+        shopping: 'Покупка, про яку варто пам’ятати, — це...',
+        adminTasks:
+          'Адміністративне завдання, яке варто тримати в полі зору, — це...',
+        backupPlans: 'Корисний запасний план — це...',
         default: 'Додайте коротку практичну нотатку...',
       },
       taskTitlePlaceholder: 'Що потребує уваги?',
@@ -2510,6 +2587,20 @@ export const messages = {
         name: 'Планування насиченого тижня',
         description:
           'Практичний план для розкладу, справ і запасних варіантів.',
+      },
+      outcomes: {
+        weeklyRhythm: 'Щотижневий ритм',
+        sharedPlan: 'Спільний план',
+        reconnect: 'Відновити зв’язок',
+        clearNextStep: 'Чіткий наступний крок',
+        smootherRoutines: 'Спокійніші рутини',
+        shareTheLoad: 'Розподілити навантаження',
+        makeMoneyDecision: 'Ухвалити фінансове рішення',
+        planAhead: 'Планувати наперед',
+        talkItThrough: 'Обговорити разом',
+        agreeWhatChanges: 'Домовитися про зміни',
+        makeWeekWorkable: 'Зробити тиждень керованим',
+        backupPlan: 'Запасний план',
       },
       sections: {
         goodThings: {
@@ -3883,6 +3974,31 @@ export const messages = {
         familyCare: 'Una nota de cuidado familiar para recordar es...',
         plans: 'Algo que viene la próxima semana es...',
         finalAgreements: 'Una decisión que queremos mantener es...',
+        practicalAgreements: 'Un acuerdo práctico para dejar claro es...',
+        childRoutines: 'Una rutina infantil que necesita atención es...',
+        school: 'Algo para recordar para la escuela o el jardín de niños es...',
+        health: 'Un detalle de salud o cuidado para recordar es...',
+        activities: 'Una actividad que necesita planificación o apoyo es...',
+        parentResponsibilities:
+          'Una responsabilidad de crianza para dejar clara es...',
+        purchases: 'Una compra para conversar o decidir es...',
+        upcomingExpenses: 'Un gasto próximo para planificar es...',
+        subscriptionsBills: 'Una factura o suscripción para revisar es...',
+        savingGoals: 'Una meta de ahorro para retomar es...',
+        financialConcerns:
+          'Una preocupación de dinero para nombrar claramente es...',
+        decisions: 'Una decisión que tomamos es...',
+        whatHappened: 'Lo que pasó fue...',
+        personNeeds: 'Algo que una persona necesita ahora es...',
+        whatShouldChange: 'Un cambio que ayudaría la próxima vez es...',
+        concreteNextStep: 'El siguiente paso claro es...',
+        followUpDate: 'Un buen momento para revisar esto de nuevo es...',
+        scheduleOverview: 'Un detalle del horario para planificar es...',
+        meals: 'Una decisión sobre comida que ayudaría es...',
+        childcare: 'Una necesidad de cuidado infantil para planificar es...',
+        shopping: 'Una compra para recordar es...',
+        adminTasks: 'Una tarea administrativa para tener presente es...',
+        backupPlans: 'Un plan de respaldo útil es...',
         default: 'Agrega una nota práctica corta...',
       },
       taskTitlePlaceholder: '¿Qué necesita atención?',
@@ -3979,6 +4095,20 @@ export const messages = {
         name: 'Planificación de semana ocupada',
         description:
           'Un plan práctico para horarios, mandados y opciones de respaldo.',
+      },
+      outcomes: {
+        weeklyRhythm: 'Ritmo semanal',
+        sharedPlan: 'Plan compartido',
+        reconnect: 'Reconectar',
+        clearNextStep: 'Siguiente paso claro',
+        smootherRoutines: 'Rutinas más fluidas',
+        shareTheLoad: 'Repartir la carga',
+        makeMoneyDecision: 'Tomar una decisión de dinero',
+        planAhead: 'Planificar con anticipación',
+        talkItThrough: 'Hablarlo',
+        agreeWhatChanges: 'Acordar qué cambia',
+        makeWeekWorkable: 'Hacer que la semana sea manejable',
+        backupPlan: 'Plan de respaldo',
       },
       sections: {
         goodThings: {
