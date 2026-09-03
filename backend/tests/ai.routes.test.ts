@@ -5,6 +5,7 @@ import {
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../src/shared/errors/api-error.js';
 
 const routeGenerateMeetingSummary = vi.hoisted(() => vi.fn());
 
@@ -60,26 +61,6 @@ vi.mock('../src/modules/auth/auth.middleware.js', async () => {
       }
 
       throw new ApiError(401, 'unauthenticated', 'Authentication is required.');
-    },
-  };
-});
-
-vi.mock('../src/modules/billing/require-feature.middleware.js', async () => {
-  const { ApiError } = await vi.importActual<typeof import('../src/shared/errors/index.js')>(
-    '../src/shared/errors/index.js',
-  );
-
-  return {
-    requireFeature: () => async (request: {
-      auth?: { role?: string; planType?: string };
-    }) => {
-      if (request.auth?.role !== 'adult_member' && request.auth?.role !== 'owner') {
-        throw new ApiError(403, 'feature_role_restricted', 'Your workspace role cannot use this feature.');
-      }
-
-      if (request.auth?.planType !== 'premium') {
-        throw new ApiError(403, 'premium_required', 'Premium is required for this feature.');
-      }
     },
   };
 });
@@ -156,7 +137,10 @@ describe('AI summary routes', () => {
     await app.close();
   });
 
-  it('returns 403 for insufficient role before the service is called', async () => {
+  it('propagates the service role restriction for a viewer', async () => {
+    routeGenerateMeetingSummary.mockRejectedValueOnce(
+      new ApiError(403, 'role_restricted', 'Your workspace role cannot use this feature.'),
+    );
     const app = await buildAiRoutesApp();
     const response = await app.inject({
       method: 'POST',
@@ -166,12 +150,17 @@ describe('AI summary routes', () => {
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.json()).toMatchObject({ code: 'feature_role_restricted' });
-    expect(routeGenerateMeetingSummary).not.toHaveBeenCalled();
+    expect(response.json()).toMatchObject({ code: 'role_restricted' });
+    expect(routeGenerateMeetingSummary).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'viewer' }), expect.any(Object),
+    );
     await app.close();
   });
 
-  it('returns 403 for non-premium adult members before the service is called', async () => {
+  it('delegates Free recap allowance enforcement to the service', async () => {
+    routeGenerateMeetingSummary.mockRejectedValueOnce(
+      new ApiError(429, 'recap_allowance_exhausted', 'No AI recaps are available right now.'),
+    );
     const app = await buildAiRoutesApp();
     const response = await app.inject({
       method: 'POST',
@@ -180,9 +169,11 @@ describe('AI summary routes', () => {
       payload: { meetingId: '11111111-1111-4111-8111-111111111111' },
     });
 
-    expect(response.statusCode).toBe(403);
-    expect(response.json()).toMatchObject({ code: 'premium_required' });
-    expect(routeGenerateMeetingSummary).not.toHaveBeenCalled();
+    expect(response.statusCode).toBe(429);
+    expect(response.json()).toMatchObject({ code: 'recap_allowance_exhausted' });
+    expect(routeGenerateMeetingSummary).toHaveBeenCalledWith(
+      expect.objectContaining({ planType: 'free' }), expect.any(Object),
+    );
     await app.close();
   });
 
@@ -202,6 +193,12 @@ describe('AI summary routes', () => {
   });
 
   it('returns a successful AI summary response through route wiring', async () => {
+    const meetingSync = {
+      meetingId: '11111111-1111-4111-8111-111111111111',
+      sourceServerRevision: 3,
+      serverRevision: 4,
+      updatedAt: '2026-06-07T12:00:05.000Z',
+    };
     routeGenerateMeetingSummary.mockResolvedValueOnce({
       summary: {
         id: '44444444-4444-4444-8444-444444444444',
@@ -216,6 +213,7 @@ describe('AI summary routes', () => {
       },
       disclaimer: 'AI summaries can miss context. Please review before relying on them.',
       generatedAt: '2026-06-07T12:00:00.000Z',
+      meetingSync,
     });
     const app = await buildAiRoutesApp();
     const response = await app.inject({
@@ -225,6 +223,7 @@ describe('AI summary routes', () => {
       payload: {
         meetingId: '11111111-1111-4111-8111-111111111111',
         locale: 'en',
+        expectedServerRevision: 3,
       },
     });
 
@@ -236,6 +235,7 @@ describe('AI summary routes', () => {
       },
       disclaimer: expect.stringContaining('AI summaries'),
       generatedAt: '2026-06-07T12:00:00.000Z',
+      meetingSync,
     });
     expect(routeGenerateMeetingSummary).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -246,8 +246,28 @@ describe('AI summary routes', () => {
       {
         meetingId: '11111111-1111-4111-8111-111111111111',
         locale: 'en',
+        expectedServerRevision: 3,
       },
     );
     await app.close();
   });
+
+  it.each([0, -1, 1.5, '3'])(
+    'rejects invalid source revision %s',
+    async (expectedServerRevision) => {
+      const app = await buildAiRoutesApp();
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/ai/meeting-summary',
+        headers: { authorization: 'Bearer premium-token' },
+        payload: {
+          meetingId: '11111111-1111-4111-8111-111111111111',
+          expectedServerRevision,
+        },
+      });
+      expect(response.statusCode).toBe(422);
+      expect(routeGenerateMeetingSummary).not.toHaveBeenCalled();
+      await app.close();
+    },
+  );
 });

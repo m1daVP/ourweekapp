@@ -31,6 +31,7 @@ function meeting(overrides: Partial<MeetingRepositoryDto> = {}): MeetingReposito
     title: 'Weekly check-in',
     status: 'completed',
     participantIds: ['participant_1'],
+    checkInCompleted: true,
     sections: [
       {
         id: 'section_1',
@@ -160,6 +161,51 @@ function createHarness(input: {
 }
 
 describe('AiSummaryService', () => {
+  it('rejects a stale synchronized revision before reserving or generating', async () => {
+    const { ai, provider, service } = createHarness({
+      meeting: meeting({ serverRevision: 3 }),
+    });
+
+    await expect(
+      service.generateMeetingSummary(auth, {
+        meetingId,
+        expectedServerRevision: 2,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'meeting_update_conflict',
+    });
+    expect(ai.createSummaryRequest).not.toHaveBeenCalled();
+    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+  });
+
+  it('returns persisted sync metadata and saves against the original source revision', async () => {
+    const updatedAt = '2026-06-06T10:00:15.000Z';
+    const { meetings, service } = createHarness({
+      meeting: meeting({ serverRevision: 3 }),
+      updatedMeeting: meeting({ serverRevision: 4, updatedAt }),
+    });
+
+    const response = await service.generateMeetingSummary(
+      auth,
+      { meetingId, expectedServerRevision: 3 },
+      new Date(now),
+    );
+
+    expect(response.meetingSync).toEqual({
+      meetingId,
+      sourceServerRevision: 3,
+      serverRevision: 4,
+      updatedAt,
+    });
+    expect(meetings.updateMeetingSummary).toHaveBeenCalledWith(
+      workspaceId,
+      meetingId,
+      expect.any(Object),
+      3,
+    );
+  });
+
   it('generates, validates, stores, and returns a meeting summary with a disclaimer', async () => {
     const { ai, meetings, provider, service } = createHarness();
 
@@ -195,6 +241,7 @@ describe('AiSummaryService', () => {
         meetingId,
         shortSummary: 'You reviewed pickup logistics and agreed on a next step.',
       }),
+      1,
     );
     expect(ai.markSummaryRequestCompleted).toHaveBeenCalledWith(
       workspaceId,
@@ -520,6 +567,7 @@ describe('AiSummaryService', () => {
       expect.objectContaining({
         tasks: [{ title: 'Book dentist' }],
       }),
+      1,
     );
   });
 
@@ -678,6 +726,12 @@ describe('AiSummaryService', () => {
 
     expect(response.summary).toMatchObject({ shortSummary: 'Cached summary text.' });
     expect(response.generatedAt).toBe('2026-06-01T00:00:00.000Z');
+    expect(response.meetingSync).toEqual({
+      meetingId,
+      sourceServerRevision: 1,
+      serverRevision: 1,
+      updatedAt: meeting().updatedAt,
+    });
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
     expect(ai.createSummaryRequest).not.toHaveBeenCalled();
     expect(meetings.updateMeetingSummary).not.toHaveBeenCalled();

@@ -130,6 +130,17 @@ export class AiSummaryService {
       throw new ApiError(404, 'meeting_not_found', 'Meeting not found.');
     }
 
+    if (
+      request.expectedServerRevision !== undefined &&
+      request.expectedServerRevision !== meeting.serverRevision
+    ) {
+      throw new ApiError(
+        409,
+        'meeting_update_conflict',
+        'Meeting changed. Please sync and try again.',
+      );
+    }
+
     const model = resolveSummaryModel(meeting.templateId, this.options.model);
 
     if (meeting.status !== 'completed') {
@@ -212,6 +223,12 @@ export class AiSummaryService {
           summary: parsedCachedSummary.data,
           disclaimer: AI_SUMMARY_DISCLAIMER,
           generatedAt: parsedCachedSummary.data.createdAt,
+          meetingSync: {
+            meetingId: meeting.id,
+            sourceServerRevision: meeting.serverRevision,
+            serverRevision: meeting.serverRevision,
+            updatedAt: meeting.updatedAt,
+          },
         };
       }
       // Cached row exists but meeting.aiSummary doesn't validate (shouldn't happen
@@ -281,6 +298,7 @@ export class AiSummaryService {
         auth.workspaceId,
         meeting.id,
         toJsonValue(summary),
+        meeting.serverRevision,
       );
 
       if (!updated) {
@@ -320,6 +338,12 @@ export class AiSummaryService {
         summary,
         disclaimer: AI_SUMMARY_DISCLAIMER,
         generatedAt: createdAt,
+        meetingSync: {
+          meetingId: updated.id,
+          sourceServerRevision: meeting.serverRevision,
+          serverRevision: updated.serverRevision,
+          updatedAt: updated.updatedAt,
+        },
       };
     } catch (error) {
       if (reserved && this.assistantRepository) {

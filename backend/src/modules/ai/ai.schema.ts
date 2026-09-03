@@ -4,6 +4,7 @@ import {
   apiIdSchema,
   isoDateStringSchema,
   isoDateTimeStringSchema,
+  serverRevisionSchema,
   trimmedString,
   VALIDATION_LIMITS,
 } from '../../shared/schemas/index.js';
@@ -46,12 +47,21 @@ export const meetingSummarySchema = z.object({
 export const aiMeetingSummaryRequestSchema = z.object({
   meetingId: apiIdSchema,
   locale: trimmedString(1, VALIDATION_LIMITS.aiLocaleMaxLength).optional(),
+  expectedServerRevision: serverRevisionSchema.optional(),
+});
+
+export const aiMeetingSyncSchema = z.object({
+  meetingId: apiIdSchema,
+  sourceServerRevision: serverRevisionSchema,
+  serverRevision: serverRevisionSchema,
+  updatedAt: isoDateTimeStringSchema,
 });
 
 export const aiMeetingSummaryResponseSchema = z.object({
   summary: meetingSummarySchema,
   disclaimer: requiredSummaryTextSchema,
   generatedAt: isoDateTimeStringSchema,
+  meetingSync: aiMeetingSyncSchema,
 });
 
 export type MeetingSummaryTaskDto = z.infer<typeof meetingSummaryTaskSchema>;
