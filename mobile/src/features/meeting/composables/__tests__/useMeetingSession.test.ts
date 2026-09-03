@@ -5,6 +5,7 @@ import {
   getMeetingNotes,
   getMeetingReviewCounts,
   getMeetingReviewTasks,
+  isMeetingCheckInStep,
   normalizeCheckedInParticipantIds,
   chooseSelectedParticipantId,
   resolveTaskResponsibility,
@@ -18,6 +19,7 @@ function createMeeting(overrides: Partial<Meeting> = {}): Meeting {
     title: 'Weekly family check-in',
     status: 'draft',
     participantIds: ['participant-1'],
+    checkInCompleted: false,
     sections: [
       {
         id: 'goodThings',
@@ -61,6 +63,18 @@ describe('meeting session helpers', () => {
     expect(getMeetingRouteDecision(true, null, [completedMeeting])).toEqual({
       type: 'templates',
     });
+  });
+
+  it('uses durable check-in completion instead of component-local state', () => {
+    expect(isMeetingCheckInStep(createMeeting())).toBe(true);
+    expect(
+      isMeetingCheckInStep(createMeeting({ checkInCompleted: true }))
+    ).toBe(false);
+    expect(
+      isMeetingCheckInStep(
+        createMeeting({ currentSectionIndex: 1, checkInCompleted: false })
+      )
+    ).toBe(false);
   });
 
   it('normalizes checked-in participants to available ids and falls back safely', () => {

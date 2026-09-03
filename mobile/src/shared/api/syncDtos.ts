@@ -54,6 +54,7 @@ export function toMeetingDto(meeting: Meeting): MeetingDto {
 export function fromMeetingDto(meeting: MeetingDto): Meeting {
   return {
     ...meeting,
+    checkInCompleted: meeting.checkInCompleted ?? false,
     ...syncMetadataFields(meeting),
   };
 }

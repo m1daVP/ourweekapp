@@ -96,6 +96,15 @@ export function getMeetingRouteDecision(
     : { type: 'templates' };
 }
 
+export function isMeetingCheckInStep(meeting: Meeting | null) {
+  return Boolean(
+    meeting &&
+    meeting.status !== 'completed' &&
+    meeting.currentSectionIndex === 0 &&
+    !meeting.checkInCompleted
+  );
+}
+
 export function normalizeCheckedInParticipantIds(
   availableParticipantIds: string[],
   selectedParticipantIds: string[],
@@ -250,7 +259,6 @@ export function useMeetingSession() {
   const agreementParticipantIds = ref<string[]>([]);
   const formError = ref('');
   const statusMessage = ref('');
-  const hasStartedRitual = ref(false);
   const isFinishingMeeting = ref(false);
   const isGuestDrawerOpen = ref(false);
   const isRitualMenuOpen = ref(false);
@@ -307,12 +315,8 @@ export function useMeetingSession() {
     () => activeMeeting.value?.status === 'completed'
   );
   const isPaused = computed(() => activeMeeting.value?.status === 'paused');
-  const isParticipantCheckInStep = computed(
-    () =>
-      Boolean(activeMeeting.value) &&
-      !isCompleted.value &&
-      activeMeeting.value?.currentSectionIndex === 0 &&
-      !hasStartedRitual.value
+  const isParticipantCheckInStep = computed(() =>
+    isMeetingCheckInStep(activeMeeting.value)
   );
   const totalSteps = computed(() =>
     activeMeeting.value ? activeMeeting.value.sections.length + 1 : 0
@@ -532,10 +536,6 @@ export function useMeetingSession() {
     () =>
       participantsStore.activeParticipants.map((participant) => participant.id),
     () => {
-      if (!isParticipantCheckInStep.value) {
-        meetingsStore.syncActiveMeetingParticipants();
-      }
-
       syncCheckedInParticipants();
       ensureSelectedParticipants();
     },
@@ -1077,7 +1077,7 @@ export function useMeetingSession() {
     }
 
     if (meeting.currentSectionIndex === 0) {
-      hasStartedRitual.value = false;
+      meetingsStore.setCheckInCompleted(false);
       return;
     }
 
@@ -1137,7 +1137,7 @@ export function useMeetingSession() {
 
     clearMessages();
     setCheckedInParticipants(checkedInParticipantIds.value);
-    hasStartedRitual.value = true;
+    meetingsStore.setCheckInCompleted(true);
   }
 
   function saveDraft() {
@@ -1239,8 +1239,7 @@ export function useMeetingSession() {
 
         if (completedMeeting) {
           try {
-            const summary = await generateMeetingSummary(completedMeeting);
-            meetingsStore.saveAiSummary(meetingId, summary);
+            await generateMeetingSummary(completedMeeting);
           } catch (error) {
             aiSummaryFailed = true;
             aiQuotaInfo = parseAiQuotaError(error);

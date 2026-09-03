@@ -137,6 +137,7 @@ export interface Meeting {
   title: string;
   status: MeetingStatus;
   participantIds: string[];
+  checkInCompleted: boolean;
   sections: MeetingSection[];
   currentSectionIndex: number;
   createdAt: string;

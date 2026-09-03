@@ -26,6 +26,7 @@ describe('sync DTO mapping', () => {
       title: 'Weekly family check-in',
       status: 'draft',
       participantIds: ['participant-1'],
+      checkInCompleted: false,
       sections: [
         {
           id: 'tasks',
@@ -63,6 +64,7 @@ describe('sync DTO mapping', () => {
       title: 'Weekly family check-in',
       status: 'draft',
       participantIds: ['participant-1'],
+      checkInCompleted: false,
       sections: [
         expect.objectContaining({
           tasks: [

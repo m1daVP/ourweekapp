@@ -30,6 +30,8 @@ import type {
   MeetingTemplate,
   MeetingTemplateId,
 } from '@/features/meeting/types';
+import type { AiMeetingSyncDto } from '@/shared/api/aiApi';
+import { meetingLocalSnapshot } from '@/features/meeting/meetingSyncSnapshot';
 
 interface MeetingsState {
   meetings: Meeting[];
@@ -135,6 +137,7 @@ interface LegacyMeeting {
   status?: Meeting['status'];
   participants?: LegacyParticipant[];
   participantIds?: string[];
+  checkInCompleted?: boolean;
   sections?: LegacyMeetingSection[];
   currentSectionIndex?: number;
   createdAt?: string;
@@ -176,6 +179,7 @@ function createDefaultMeeting(
     title: getMeetingTemplateName(template.id, template.name),
     status: 'in_progress',
     participantIds,
+    checkInCompleted: false,
     sections: createSections(template),
     currentSectionIndex: 0,
     createdAt,
@@ -339,6 +343,7 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
     title: meeting.title?.trim() || getMeetingTemplateName(template.id),
     status: meeting.status ?? 'in_progress',
     participantIds,
+    checkInCompleted: meeting.checkInCompleted ?? false,
     sections,
     currentSectionIndex: Math.min(
       Math.max(meeting.currentSectionIndex ?? 0, 0),
@@ -427,22 +432,6 @@ function meetingHasContent(meeting: Meeting) {
   );
 }
 
-function syncMeetingParticipants(meeting: Meeting) {
-  const activeIds = getActiveParticipantIds();
-  const nextParticipantIds = uniqueStrings([
-    ...meeting.participantIds,
-    ...activeIds,
-  ]);
-
-  if (nextParticipantIds.length === meeting.participantIds.length) {
-    return false;
-  }
-
-  meeting.participantIds = nextParticipantIds;
-  meeting.updatedAt = nowIso();
-  return true;
-}
-
 export const useMeetingsStore = defineStore('meetings', {
   state: (): MeetingsState => getStoredState(),
   getters: {
@@ -467,10 +456,6 @@ export const useMeetingsStore = defineStore('meetings', {
       const activeMeeting = this.activeMeeting;
 
       if (activeMeeting && activeMeeting.status !== 'completed') {
-        if (syncMeetingParticipants(activeMeeting)) {
-          this.persist();
-        }
-
         return activeMeeting;
       }
 
@@ -480,7 +465,6 @@ export const useMeetingsStore = defineStore('meetings', {
 
       if (existingDraft) {
         this.activeMeetingId = existingDraft.id;
-        syncMeetingParticipants(existingDraft);
         this.persist();
         return existingDraft;
       }
@@ -515,7 +499,6 @@ export const useMeetingsStore = defineStore('meetings', {
       }
 
       this.activeMeetingId = meeting.id;
-      syncMeetingParticipants(meeting);
       meeting.status = 'in_progress';
       meeting.updatedAt = nowIso();
       this.persist();
@@ -548,17 +531,6 @@ export const useMeetingsStore = defineStore('meetings', {
       this.persist();
       return true;
     },
-    syncActiveMeetingParticipants() {
-      const meeting = this.activeMeeting;
-
-      if (!meeting) {
-        return;
-      }
-
-      if (syncMeetingParticipants(meeting)) {
-        this.persist();
-      }
-    },
     setActiveMeetingParticipants(participantIds: string[]) {
       const meeting = this.activeMeeting;
 
@@ -576,6 +548,17 @@ export const useMeetingsStore = defineStore('meetings', {
       }
 
       meeting.participantIds = selectedParticipantIds;
+      meeting.updatedAt = nowIso();
+      this.persist();
+    },
+    setCheckInCompleted(checkInCompleted: boolean) {
+      const meeting = this.activeMeeting;
+
+      if (!meeting || meeting.status === 'completed') {
+        return;
+      }
+
+      meeting.checkInCompleted = checkInCompleted;
       meeting.updatedAt = nowIso();
       this.persist();
     },
@@ -988,6 +971,44 @@ export const useMeetingsStore = defineStore('meetings', {
       meeting.aiSummary = summary;
       meeting.updatedAt = nowIso();
       this.persist();
+    },
+    applyRemoteAiSummary(
+      source: Meeting,
+      summary: MeetingSummary,
+      sync: AiMeetingSyncDto
+    ) {
+      const meeting = this.meetings.find((item) => item.id === source.id);
+      const validUpdatedAt = !Number.isNaN(Date.parse(sync.updatedAt));
+
+      if (
+        !meeting ||
+        summary.meetingId !== meeting.id ||
+        sync.meetingId !== meeting.id ||
+        sync.sourceServerRevision !== source.serverRevision ||
+        !Number.isInteger(sync.serverRevision) ||
+        sync.serverRevision < sync.sourceServerRevision ||
+        !validUpdatedAt
+      ) {
+        return false;
+      }
+
+      if (
+        meeting.aiSummary?.id === summary.id &&
+        Number.isInteger(meeting.serverRevision) &&
+        meeting.serverRevision! >= sync.serverRevision
+      ) {
+        return true;
+      }
+
+      if (meetingLocalSnapshot(meeting) !== meetingLocalSnapshot(source)) {
+        return false;
+      }
+
+      meeting.aiSummary = summary;
+      meeting.serverRevision = sync.serverRevision;
+      meeting.updatedAt = sync.updatedAt;
+      this.persist();
+      return true;
     },
     saveDraft() {
       const meeting = this.activeMeeting;

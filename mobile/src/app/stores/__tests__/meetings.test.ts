@@ -26,6 +26,7 @@ function createMeeting(status: Meeting['status'] = 'in_progress'): Meeting {
     title: 'Weekly family check-in',
     status,
     participantIds: ['participant-1', 'participant-2'],
+    checkInCompleted: false,
     sections: [
       {
         id: 'goodThings',
@@ -75,6 +76,26 @@ beforeEach(() => {
 });
 
 describe('meetings store note editing', () => {
+  it('preserves selected attendees while changing the check-in phase or resuming', () => {
+    const { meeting, meetingsStore } = setMeeting();
+    meeting.participantIds.push('participant-3');
+
+    meetingsStore.setCheckInCompleted(true);
+    meetingsStore.resumeMeeting(meeting.id);
+
+    expect(meeting).toMatchObject({
+      checkInCompleted: true,
+      participantIds: ['participant-1', 'participant-2', 'participant-3'],
+    });
+
+    meetingsStore.setCheckInCompleted(false);
+
+    expect(meeting).toMatchObject({
+      checkInCompleted: false,
+      participantIds: ['participant-1', 'participant-2', 'participant-3'],
+    });
+  });
+
   it('updates and trims the note text and changes its author', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-22T10:05:00.000Z'));
