@@ -52,6 +52,7 @@ function apiMeeting(overrides: Partial<MeetingDto> = {}): MeetingDto {
     title: 'Weekly check-in',
     status: 'draft',
     participantIds: ['participant_1'],
+    checkInCompleted: false,
     sections: [
       {
         id: 'section_1',
@@ -78,6 +79,7 @@ function repositoryMeeting(overrides: Partial<MeetingRepositoryDto> = {}): Meeti
     title: meeting.title,
     status: meeting.status,
     participantIds: meeting.participantIds,
+    checkInCompleted: meeting.checkInCompleted,
     sections: meeting.sections,
     currentSectionIndex: meeting.currentSectionIndex,
     aiSummary: null,
@@ -129,6 +131,15 @@ describe('MeetingsService', () => {
   it('requires UUID-shaped meeting IDs', () => {
     expect(meetingSchema.safeParse(apiMeeting()).success).toBe(true);
     expect(meetingSchema.safeParse(apiMeeting({ id: 'meeting_1' })).success).toBe(false);
+  });
+
+  it('defaults omitted legacy check-in state to false', () => {
+    const legacyMeeting = { ...apiMeeting() } as Record<string, unknown>;
+    delete legacyMeeting.checkInCompleted;
+
+    expect(meetingSchema.parse(legacyMeeting)).toMatchObject({
+      checkInCompleted: false,
+    });
   });
 
   it('uses text for section agreements while tolerating legacy stored titles', () => {
@@ -331,6 +342,32 @@ describe('MeetingsService', () => {
     );
     expect(response.conflicts).toEqual([]);
     expect(response.meetings[0]?.serverRevision).toBe(3);
+  });
+
+  it('persists check-in completion through meeting sync', async () => {
+    const repos = createRepositories();
+    const server = repositoryMeeting({ checkInCompleted: false, serverRevision: 2 });
+    const client = apiMeeting({ checkInCompleted: true, serverRevision: 2 });
+    const updated = repositoryMeeting({ checkInCompleted: true, serverRevision: 3 });
+    repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(server);
+    repos.meetings.updateMeeting.mockResolvedValue(updated);
+    repos.meetings.listMeetingsForWorkspace.mockResolvedValue([updated]);
+
+    const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
+    const response = await service.syncMeetings(auth, {
+      meetings: [client],
+      activeMeetingId: meetingId,
+      draftSavedAt: null,
+      clientUpdatedAt: now,
+    }, new Date(now));
+
+    expect(repos.meetings.updateMeeting).toHaveBeenCalledWith(
+      'workspace_1',
+      meetingId,
+      2,
+      expect.objectContaining({ checkInCompleted: true }),
+    );
+    expect(response.meetings[0]).toMatchObject({ checkInCompleted: true });
   });
 
   it('accepts the free weekly family check-in template during sync', async () => {

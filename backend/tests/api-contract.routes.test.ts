@@ -218,6 +218,7 @@ function meetingPayload() {
     title: 'Weekly check-in',
     status: 'draft',
     participantIds: [participantId],
+    checkInCompleted: false,
     sections: [
       {
         id: 'section-1',

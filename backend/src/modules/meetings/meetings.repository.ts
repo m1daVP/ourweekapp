@@ -3,7 +3,7 @@ import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositor
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 
 const MEETING_COLUMNS =
-  'id,workspace_id,template_id,title,status,participant_ids,sections,current_section_index,ai_summary,server_revision,created_at,updated_at,completed_at,deleted_at' as const;
+  'id,workspace_id,template_id,title,status,participant_ids,check_in_completed,sections,current_section_index,ai_summary,server_revision,created_at,updated_at,completed_at,deleted_at' as const;
 
 type MeetingRow = {
   id: string;
@@ -12,6 +12,7 @@ type MeetingRow = {
   title: string;
   status: 'draft' | 'in_progress' | 'paused' | 'incomplete' | 'completed';
   participant_ids: JsonValue;
+  check_in_completed: boolean;
   sections: JsonValue;
   current_section_index: number;
   ai_summary: JsonValue | null;
@@ -29,6 +30,7 @@ export type MeetingDto = {
   title: string;
   status: MeetingRow['status'];
   participantIds: string[];
+  checkInCompleted: boolean;
   sections: JsonValue[];
   currentSectionIndex: number;
   aiSummary: JsonValue | null;
@@ -46,6 +48,7 @@ export type UpsertMeetingInput = {
   title: string;
   status: MeetingRow['status'];
   participantIds: string[];
+  checkInCompleted: boolean;
   sections: JsonValue[];
   currentSectionIndex: number;
   aiSummary?: JsonValue | null;
@@ -73,6 +76,7 @@ export function mapMeetingRowToDto(row: MeetingRow): MeetingDto {
     title: row.title,
     status: row.status,
     participantIds: stringArrayFromJson(row.participant_ids),
+    checkInCompleted: row.check_in_completed,
     sections: jsonArrayFromJson(row.sections),
     currentSectionIndex: row.current_section_index,
     aiSummary: row.ai_summary,
@@ -141,6 +145,7 @@ export class MeetingsRepository {
       title: input.title,
       status: input.status,
       participant_ids: input.participantIds,
+      check_in_completed: input.checkInCompleted,
       sections: input.sections,
       current_section_index: input.currentSectionIndex,
       ai_summary: input.aiSummary ?? null,
@@ -168,6 +173,7 @@ export class MeetingsRepository {
       title: input.title,
       status: input.status,
       participant_ids: input.participantIds,
+      check_in_completed: input.checkInCompleted,
       sections: input.sections,
       current_section_index: input.currentSectionIndex,
       ai_summary: input.aiSummary ?? null,
@@ -202,6 +208,7 @@ export class MeetingsRepository {
         title: input.title,
         status: input.status,
         participant_ids: input.participantIds,
+        check_in_completed: input.checkInCompleted,
         sections: input.sections,
         current_section_index: input.currentSectionIndex,
         ai_summary: input.aiSummary ?? null,
@@ -224,22 +231,26 @@ export class MeetingsRepository {
     workspaceId: string,
     meetingId: string,
     aiSummary: JsonValue,
+    expectedServerRevision?: number,
   ) {
-    const current = await this.findMeetingByIdForWorkspace(workspaceId, meetingId);
-
-    if (!current) {
-      return null;
+    let sourceRevision = expectedServerRevision;
+    if (sourceRevision === undefined) {
+      const current = await this.findMeetingByIdForWorkspace(workspaceId, meetingId);
+      if (!current) {
+        return null;
+      }
+      sourceRevision = current.serverRevision;
     }
 
     const { data, error } = await this.supabase
       .from('meetings')
       .update({
         ai_summary: aiSummary,
-        server_revision: current.serverRevision + 1,
+        server_revision: sourceRevision + 1,
       })
       .eq('workspace_id', workspaceId)
       .eq('id', meetingId)
-      .eq('server_revision', current.serverRevision)
+      .eq('server_revision', sourceRevision)
       .is('deleted_at', null)
       .select(MEETING_COLUMNS)
       .maybeSingle<MeetingRow>();

@@ -17,6 +17,7 @@ function meeting(overrides: Partial<MeetingRepositoryDto> = {}): MeetingReposito
     title: 'Weekly check-in',
     status: 'completed',
     participantIds: ['participant_1', 'participant_2'],
+    checkInCompleted: true,
     sections: [
       {
         id: 'section_1',

@@ -134,6 +134,7 @@ export const meetingSchema = z.object({
   title: meetingTitleSchema,
   status: meetingStatusSchema,
   participantIds: z.array(apiIdSchema),
+  checkInCompleted: z.boolean().default(false),
   sections: z
     .array(meetingSectionSchema)
     .max(VALIDATION_LIMITS.meetingSectionsPerMeetingMax),
