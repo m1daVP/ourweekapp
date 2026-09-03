@@ -1,8 +1,12 @@
 import type { Meeting, MeetingSummary, MeetingSummaryTask } from './types';
 import { generateAiMeetingSummary } from '@/shared/api/aiApi';
-import type { AiMeetingSummaryDto } from '@/shared/api/aiApi';
+import type { AiMeetingSummaryDto, AiMeetingSyncDto } from '@/shared/api/aiApi';
 import { ApiClientError } from '@/shared/api/httpClient';
 import { i18n, translate } from '@/features/localization/i18n';
+import { useMeetingsStore } from '@/app/stores/meetings';
+import { listMeetings } from '@/shared/api/meetingsApi';
+import { syncCompletedMeetingForAi } from '@/shared/services/syncService';
+import { cloneMeeting } from './meetingSyncSnapshot';
 
 // Backend's OpenAI call worst-case is ~30-32s (15s timeout x 2 attempts +
 // backoff, see openai.client.ts) — keep this above that so the backend
@@ -119,7 +123,10 @@ function normalizeBackendSummary(
   };
 }
 
-async function generateBackendAiSummary(meetingId: string) {
+async function generateBackendAiSummary(
+  meetingId: string,
+  expectedServerRevision: number
+) {
   const abortController = new AbortController();
   const timeoutId = window.setTimeout(
     () => abortController.abort(),
@@ -131,6 +138,7 @@ async function generateBackendAiSummary(meetingId: string) {
       {
         meetingId,
         locale: i18n.global.locale.value,
+        expectedServerRevision,
       },
       { signal: abortController.signal }
     );
@@ -140,7 +148,44 @@ async function generateBackendAiSummary(meetingId: string) {
 }
 
 export async function generateMeetingSummary(meeting: Meeting) {
-  const response = await generateBackendAiSummary(meeting.id);
+  const acknowledged = await syncCompletedMeetingForAi(meeting.id);
+  if (!Number.isInteger(acknowledged.serverRevision)) {
+    throw new Error('AI summary requires an acknowledged server revision.');
+  }
+  const source = cloneMeeting(acknowledged);
+  const response = await generateBackendAiSummary(
+    meeting.id,
+    acknowledged.serverRevision!
+  );
+  const summary = normalizeBackendSummary(response.summary, meeting.id);
+  let meetingSync = response.meetingSync;
 
-  return normalizeBackendSummary(response.summary, meeting.id);
+  if (!meetingSync) {
+    const authoritative = (await listMeetings()).meetings.find(
+      (item) => item.id === meeting.id
+    );
+    if (
+      !authoritative?.aiSummary ||
+      authoritative.aiSummary.id !== summary.id ||
+      !Number.isInteger(authoritative.serverRevision)
+    ) {
+      throw new Error('AI summary could not be synchronized.');
+    }
+    meetingSync = {
+      meetingId: meeting.id,
+      sourceServerRevision: source.serverRevision!,
+      serverRevision: authoritative.serverRevision!,
+      updatedAt: authoritative.updatedAt,
+    } satisfies AiMeetingSyncDto;
+  }
+
+  const applied = useMeetingsStore().applyRemoteAiSummary(
+    source,
+    summary,
+    meetingSync
+  );
+  if (!applied)
+    throw new Error('Meeting changed while applying the AI summary.');
+
+  return summary;
 }

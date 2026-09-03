@@ -76,7 +76,10 @@ import { prepareSyncForAuthenticatedUser } from '@/shared/services/syncSessionSe
 import {
   resetSyncRuntimeStateForTests,
   retrySync,
+  syncStatus,
+  syncCompletedMeetingForAi,
   syncCoreData,
+  syncMeetings,
   syncTasks,
 } from '@/shared/services/syncService';
 
@@ -91,6 +94,7 @@ function meeting(id: string, title = id): Meeting {
     title,
     status: 'draft',
     participantIds: [],
+    checkInCompleted: false,
     sections: [],
     currentSectionIndex: 0,
     createdAt,
@@ -208,6 +212,201 @@ beforeEach(() => {
 });
 
 describe('syncService', () => {
+  it('acknowledges a completed meeting after participant and meeting sync', async () => {
+    const meetingsStore = useMeetingsStore();
+    const completed = meeting('meeting-ai', 'Completed meeting');
+    Object.assign(completed, {
+      status: 'completed',
+      completedAt: updatedAt,
+      serverRevision: 2,
+    });
+    meetingsStore.meetings = [completed];
+    mocks.syncMeetingsApi.mockImplementationOnce(async (payload) => ({
+      meetings: payload.meetings.map((item) => ({
+        ...item,
+        serverRevision: 3,
+      })),
+      activeMeetingId: null,
+      draftSavedAt: null,
+      conflicts: [],
+      syncedAt,
+    }));
+
+    const acknowledged = await syncCompletedMeetingForAi(completed.id);
+
+    expect(mocks.apiRequest.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.syncMeetingsApi.mock.invocationCallOrder[0]!
+    );
+    expect(acknowledged).toMatchObject({
+      status: 'completed',
+      serverRevision: 3,
+    });
+    expect(meetingsStore.meetings[0]).toMatchObject({ serverRevision: 3 });
+  });
+
+  it('rejects AI preflight while offline without attempting meeting sync', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    await expect(syncCompletedMeetingForAi('meeting-ai')).rejects.toMatchObject(
+      {
+        name: 'AiMeetingSyncRequiredError',
+        reason: 'offline',
+      }
+    );
+    expect(mocks.syncMeetingsApi).not.toHaveBeenCalled();
+  });
+
+  it('rejects a conflicted target meeting without accepting its revision', async () => {
+    const meetingsStore = useMeetingsStore();
+    const completed = Object.assign(meeting('meeting-ai'), {
+      status: 'completed' as const,
+      completedAt: updatedAt,
+      serverRevision: 2,
+    });
+    meetingsStore.meetings = [completed];
+    mocks.syncMeetingsApi.mockResolvedValueOnce({
+      meetings: [{ ...completed, serverRevision: 3 }],
+      activeMeetingId: null,
+      draftSavedAt: null,
+      conflicts: [{ resourceId: completed.id }],
+      syncedAt,
+    });
+    await expect(syncCompletedMeetingForAi(completed.id)).rejects.toMatchObject(
+      { reason: 'conflict' }
+    );
+    expect(meetingsStore.meetings[0]!.serverRevision).toBe(2);
+  });
+
+  it('rejects AI preflight when the server does not acknowledge the target', async () => {
+    const meetingsStore = useMeetingsStore();
+    meetingsStore.meetings = [
+      Object.assign(meeting('meeting-ai'), {
+        status: 'completed' as const,
+        completedAt: updatedAt,
+      }),
+    ];
+    mocks.syncMeetingsApi.mockResolvedValueOnce({
+      meetings: [],
+      activeMeetingId: null,
+      draftSavedAt: null,
+      conflicts: [],
+      syncedAt,
+    });
+    await expect(syncCompletedMeetingForAi('meeting-ai')).rejects.toMatchObject(
+      { reason: 'missing' }
+    );
+  });
+
+  it('preserves edits made while the meeting sync request is in flight', async () => {
+    const meetingsStore = useMeetingsStore();
+    const completed = Object.assign(meeting('meeting-ai'), {
+      status: 'completed' as const,
+      completedAt: updatedAt,
+      serverRevision: 2,
+    });
+    meetingsStore.meetings = [completed];
+    let respond!: () => void;
+    mocks.syncMeetingsApi.mockImplementationOnce(async (payload) => {
+      await new Promise<void>((resolve) => {
+        respond = resolve;
+      });
+      return {
+        meetings: payload.meetings.map((item) => ({
+          ...item,
+          serverRevision: 3,
+        })),
+        activeMeetingId: null,
+        draftSavedAt: null,
+        conflicts: [],
+        syncedAt,
+      };
+    });
+    const pending = syncCompletedMeetingForAi(completed.id);
+    await vi.waitFor(() =>
+      expect(mocks.syncMeetingsApi).toHaveBeenCalledOnce()
+    );
+    meetingsStore.meetings[0]!.title = 'Changed during sync';
+    respond();
+    await expect(pending).rejects.toMatchObject({ reason: 'changed' });
+    expect(meetingsStore.meetings[0]).toMatchObject({
+      title: 'Changed during sync',
+      serverRevision: 2,
+    });
+    expect(syncStatus.value.meetings.state).toBe('savedLocally');
+  });
+
+  it('serializes overlapping meeting sync requests', async () => {
+    const meetingsStore = useMeetingsStore();
+    meetingsStore.meetings = [meeting('meeting-ai')];
+    let respond!: () => void;
+    mocks.syncMeetingsApi.mockImplementationOnce(async (payload) => {
+      await new Promise<void>((resolve) => {
+        respond = resolve;
+      });
+      return {
+        meetings: payload.meetings,
+        activeMeetingId: null,
+        draftSavedAt: null,
+        conflicts: [],
+        syncedAt,
+      };
+    });
+    const first = syncMeetings();
+    const second = syncMeetings();
+    await vi.waitFor(() =>
+      expect(mocks.syncMeetingsApi).toHaveBeenCalledOnce()
+    );
+    respond();
+    await first;
+    await second;
+    expect(mocks.syncMeetingsApi).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps meetings that exist only in the server sync response', async () => {
+    const remote = Object.assign(meeting('remote-meeting'), {
+      serverRevision: 1,
+    });
+    mocks.syncMeetingsApi.mockResolvedValueOnce({
+      meetings: [remote],
+      activeMeetingId: null,
+      draftSavedAt: null,
+      conflicts: [],
+      syncedAt,
+    });
+    await syncMeetings();
+    expect(useMeetingsStore().meetings).toEqual([remote]);
+  });
+
+  it('syncs an authoritative AI revision again without manufacturing a conflict', async () => {
+    const meetingsStore = useMeetingsStore();
+    const authoritative = Object.assign(meeting('meeting-ai'), {
+      status: 'completed' as const,
+      completedAt: updatedAt,
+      serverRevision: 4,
+      aiSummary: {
+        id: 'summary-1',
+        meetingId: 'meeting-ai',
+        shortSummary: 'A useful conversation.',
+        mainTopics: [],
+        keyTensions: [],
+        agreements: [],
+        tasks: [],
+        suggestedNextMeetingFocus: [],
+        createdAt: syncedAt,
+      },
+    });
+    meetingsStore.meetings = [authoritative];
+    mocks.syncMeetingsApi.mockImplementationOnce(async (payload) => ({
+      meetings: payload.meetings,
+      activeMeetingId: null,
+      draftSavedAt: null,
+      conflicts: [],
+      syncedAt,
+    }));
+    const result = await syncMeetings();
+    expect(result.conflictCount).toBe(0);
+    expect(meetingsStore.meetings).toEqual([authoritative]);
+  });
+
   it('hydrates renamed server participants before a fresh-login push', async () => {
     const participantsStore = useParticipantsStore();
     const remoteParticipants = [
@@ -265,7 +464,10 @@ describe('syncService', () => {
     participantsStore.participants = [participant('participant-1', 'Rita', 3)];
     mocks.listParticipants.mockResolvedValueOnce({
       participants: [
-        { ...participant('participant-1', 'Rita', 3), email: 'rita@example.com' },
+        {
+          ...participant('participant-1', 'Rita', 3),
+          email: 'rita@example.com',
+        },
       ],
     });
     mocks.apiRequest.mockImplementationOnce(async (_path, options) => ({
@@ -380,6 +582,24 @@ describe('syncService', () => {
         ]),
       })
     );
+  });
+
+  it('keeps a locally selected active meeting during hydration', async () => {
+    const meetingsStore = useMeetingsStore();
+    const local = meeting('local-active', 'Local active');
+    const remote = meeting('server-active', 'Server active');
+    meetingsStore.meetings = [local, remote];
+    meetingsStore.activeMeetingId = local.id;
+    mocks.listMeetings.mockResolvedValueOnce({
+      meetings: [remote],
+      activeMeetingId: remote.id,
+      draftSavedAt: null,
+      syncedAt,
+    });
+
+    await retrySync();
+
+    expect(meetingsStore.activeMeetingId).toBe(local.id);
   });
 
   it('keeps synced data when preparing sync for the same account', () => {

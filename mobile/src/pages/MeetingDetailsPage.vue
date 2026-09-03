@@ -298,8 +298,7 @@ async function generateSummary() {
   isGeneratingSummary.value = true;
 
   try {
-    const summary = await generateMeetingSummary(meeting.value);
-    meetingsStore.saveAiSummary(meeting.value.id, summary);
+    await generateMeetingSummary(meeting.value);
   } catch (error) {
     aiSummaryError.value =
       getAiQuotaMessage(error) ?? t('meeting.generateFailed');

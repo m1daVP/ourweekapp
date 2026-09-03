@@ -5,6 +5,7 @@ import { apiRequest } from './httpClient';
 export interface GenerateMeetingSummaryRequestDto {
   meetingId: string;
   locale?: SupportedLocale;
+  expectedServerRevision?: number;
 }
 
 export interface AiMeetingSummaryTaskDto {
@@ -21,6 +22,14 @@ export interface GenerateMeetingSummaryResponseDto {
   summary: AiMeetingSummaryDto;
   disclaimer: string;
   generatedAt: string;
+  meetingSync?: AiMeetingSyncDto;
+}
+
+export interface AiMeetingSyncDto {
+  meetingId: string;
+  sourceServerRevision: number;
+  serverRevision: number;
+  updatedAt: string;
 }
 
 export interface GenerateMeetingSummaryOptions {

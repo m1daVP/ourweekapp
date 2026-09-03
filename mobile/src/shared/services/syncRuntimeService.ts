@@ -34,12 +34,13 @@ export function beginRemoteSync() {
 }
 
 export function endRemoteSyncSoon() {
+  remoteSyncDepth = Math.max(0, remoteSyncDepth - 1);
+  if (remoteSyncClearTimeout) clearTimeout(remoteSyncClearTimeout);
   remoteSyncClearTimeout = setTimeout(() => {
-    remoteSyncDepth = Math.max(0, remoteSyncDepth - 1);
-
     if (remoteSyncDepth === 0) {
       isApplyingRemoteSync.value = false;
     }
+    remoteSyncClearTimeout = null;
   }, 0);
 }
 

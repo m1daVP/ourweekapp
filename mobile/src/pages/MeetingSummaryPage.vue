@@ -424,8 +424,7 @@ async function handleGenerateSummary() {
   isGeneratingSummary.value = true;
 
   try {
-    const summary = await generateMeetingSummary(accessibleMeeting.value);
-    meetingsStore.saveAiSummary(accessibleMeeting.value.id, summary);
+    await generateMeetingSummary(accessibleMeeting.value);
     await subscriptionStore.refreshCurrentPlan();
   } catch (error) {
     aiSummaryError.value =

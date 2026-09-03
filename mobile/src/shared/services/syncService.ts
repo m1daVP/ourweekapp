@@ -33,6 +33,11 @@ import {
 } from '@/shared/api/syncDtos';
 import { latestIso, nowIso } from '@/shared/utils/dates';
 import type { Meeting } from '@/features/meeting/types';
+import {
+  cloneMeeting,
+  meetingLocalSnapshot,
+  meetingSyncContent,
+} from '@/features/meeting/meetingSyncSnapshot';
 import type { Participant } from '@/features/participants/types';
 import {
   beginRemoteSync,
@@ -64,7 +69,21 @@ export interface SyncResult {
   conflictCount: number;
   syncedAt: string;
   skippedReason?: string;
+  acknowledgedMeetings?: Meeting[];
+  conflictedMeetingIds?: string[];
 }
+
+export class AiMeetingSyncRequiredError extends Error {
+  constructor(
+    public readonly reason:
+      'offline' | 'conflict' | 'missing' | 'changed' | 'failed'
+  ) {
+    super(`AI summary requires a completed meeting sync: ${reason}`);
+    this.name = 'AiMeetingSyncRequiredError';
+  }
+}
+
+let meetingSyncQueue: Promise<unknown> = Promise.resolve();
 
 interface SyncParticipantsRequestDto {
   participants: ParticipantDto[];
@@ -178,32 +197,38 @@ function createOfflineResult(resource: SyncResource): SyncResult {
 export async function retrySync(
   resource?: SyncResource
 ): Promise<SyncResult[]> {
+  if (!resource) {
+    await hydrateCoreDataFromBackend();
+  }
+
+  if (resource === 'meetings') {
+    return [await syncMeetings()];
+  }
+
+  if (resource === 'tasks') {
+    return [await syncTasks()];
+  }
+
+  if (resource === 'participants') {
+    return [await syncParticipants()];
+  }
+
+  return await syncCoreData();
+}
+
+function applyRemoteSyncMutation(mutation: () => void) {
   beginRemoteSync();
-
   try {
-    if (!resource) {
-      await hydrateCoreDataFromBackend();
-    }
-
-    if (resource === 'meetings') {
-      return [await syncMeetings()];
-    }
-
-    if (resource === 'tasks') {
-      return [await syncTasks()];
-    }
-
-    if (resource === 'participants') {
-      return [await syncParticipants()];
-    }
-
-    return await syncCoreData();
+    mutation();
   } finally {
     endRemoteSyncSoon();
   }
 }
 
-export const resetSyncRuntimeStateForTests = resetSyncRuntimeState;
+export function resetSyncRuntimeStateForTests() {
+  meetingSyncQueue = Promise.resolve();
+  resetSyncRuntimeState();
+}
 
 function applyMeetingsFromBackend(
   response: Awaited<ReturnType<typeof listMeetings>>
@@ -213,14 +238,16 @@ function applyMeetingsFromBackend(
   const remoteMeetings = response.meetings.map(fromMeetingDto);
   const mergedMeetings = mergeSyncItems<Meeting>(localMeetings, remoteMeetings);
   const activeMeetingId =
-    response.activeMeetingId &&
-    mergedMeetings.some((meeting) => meeting.id === response.activeMeetingId)
-      ? response.activeMeetingId
-      : meetingsStore.activeMeetingId &&
+    meetingsStore.activeMeetingId &&
+    mergedMeetings.some(
+      (meeting) => meeting.id === meetingsStore.activeMeetingId
+    )
+      ? meetingsStore.activeMeetingId
+      : response.activeMeetingId &&
           mergedMeetings.some(
-            (meeting) => meeting.id === meetingsStore.activeMeetingId
+            (meeting) => meeting.id === response.activeMeetingId
           )
-        ? meetingsStore.activeMeetingId
+        ? response.activeMeetingId
         : null;
 
   meetingsStore.meetings = mergedMeetings;
@@ -313,9 +340,11 @@ async function hydrateCoreDataFromBackend() {
     const [participantsResponse, meetingsResponse, tasksResponse] =
       await Promise.all([listParticipants(), listMeetings(), listTasks()]);
 
-    applyParticipantsFromBackend(participantsResponse);
-    applyMeetingsFromBackend(meetingsResponse);
-    applyTasksFromBackend(tasksResponse);
+    applyRemoteSyncMutation(() => {
+      applyParticipantsFromBackend(participantsResponse);
+      applyMeetingsFromBackend(meetingsResponse);
+      applyTasksFromBackend(tasksResponse);
+    });
     markInitialHydrationComplete();
   } catch (error) {
     markSyncFailure('participants', error);
@@ -370,7 +399,21 @@ export function getAggregateSyncStatus(): AggregateSyncStatus {
   };
 }
 
-export async function syncMeetings(): Promise<SyncResult> {
+function conflictMeetingId(value: unknown) {
+  if (!value || typeof value !== 'object') return undefined;
+  const item = value as {
+    id?: unknown;
+    resourceId?: unknown;
+    serverVersion?: { id?: unknown };
+  };
+  if (typeof item.resourceId === 'string') return item.resourceId;
+  if (typeof item.id === 'string') return item.id;
+  return typeof item.serverVersion?.id === 'string'
+    ? item.serverVersion.id
+    : undefined;
+}
+
+async function performMeetingSync(): Promise<SyncResult> {
   const meetingsStore = useMeetingsStore();
   const attemptedAt = nowIso();
 
@@ -383,7 +426,7 @@ export async function syncMeetings(): Promise<SyncResult> {
 
   try {
     const metadata = readSyncResourceMetadata('meetings');
-    const localMeetings = meetingsStore.meetings;
+    const localMeetings = meetingsStore.meetings.map(cloneMeeting);
     const response = await syncMeetingsApi({
       meetings: localMeetings.map(toMeetingDto),
       activeMeetingId: meetingsStore.activeMeetingId,
@@ -391,10 +434,56 @@ export async function syncMeetings(): Promise<SyncResult> {
       clientUpdatedAt: attemptedAt,
       lastSyncedAt: metadata.lastSyncedAt,
     });
-    const mergedMeetings = mergeSyncItems<Meeting>(
-      localMeetings,
-      response.meetings.map(fromMeetingDto)
+    const currentMeetings = meetingsStore.meetings;
+    const remoteMeetings = response.meetings.map(fromMeetingDto);
+    const submittedById = new Map(
+      localMeetings.map((meeting) => [meeting.id, meeting])
     );
+    const remoteById = new Map(
+      remoteMeetings.map((meeting) => [meeting.id, meeting])
+    );
+    const conflictedMeetingIds = response.conflicts
+      .map(conflictMeetingId)
+      .filter((id): id is string => Boolean(id));
+    const conflictedIds = new Set(conflictedMeetingIds);
+    const currentById = new Map(
+      currentMeetings.map((meeting) => [meeting.id, meeting])
+    );
+    const mergedMeetings = [
+      ...new Set([...currentById.keys(), ...remoteById.keys()]),
+    ]
+      .map((id) => {
+        const current = currentById.get(id);
+        const submitted = submittedById.get(id);
+        const remote = remoteById.get(id);
+        if (!current) return remote;
+        if (
+          !submitted ||
+          meetingLocalSnapshot(current) !== meetingLocalSnapshot(submitted)
+        ) {
+          return current;
+        }
+        if (conflictedIds.has(id)) return current;
+        if (
+          remote &&
+          meetingSyncContent(current) === meetingSyncContent(remote)
+        ) {
+          return {
+            ...current,
+            aiSummary: remote.aiSummary ?? current.aiSummary,
+            serverRevision: remote.serverRevision,
+            updatedAt: remote.updatedAt,
+            deletedAt: remote.deletedAt,
+          };
+        }
+        return (
+          mergeSyncItems<Meeting>([current], remote ? [remote] : [])[0] ??
+          current
+        );
+      })
+      .filter((meeting): meeting is Meeting =>
+        Boolean(meeting && !meeting.deletedAt)
+      );
     const activeMeetingId =
       response.activeMeetingId &&
       mergedMeetings.some((meeting) => meeting.id === response.activeMeetingId)
@@ -406,15 +495,25 @@ export async function syncMeetings(): Promise<SyncResult> {
           ? meetingsStore.activeMeetingId
           : null;
 
-    meetingsStore.meetings = mergedMeetings;
-    meetingsStore.activeMeetingId = activeMeetingId;
-    meetingsStore.draftSavedAt = latestIso(
-      meetingsStore.draftSavedAt,
-      response.draftSavedAt
-    );
-    meetingsStore.persist();
-    useTasksStore().syncFromMeetings(mergedMeetings);
+    const hasConcurrentLocalChanges = currentMeetings.some((current) => {
+      const submitted = submittedById.get(current.id);
+      return (
+        !submitted ||
+        meetingLocalSnapshot(current) !== meetingLocalSnapshot(submitted)
+      );
+    });
+    applyRemoteSyncMutation(() => {
+      meetingsStore.meetings = mergedMeetings;
+      meetingsStore.activeMeetingId = activeMeetingId;
+      meetingsStore.draftSavedAt = latestIso(
+        meetingsStore.draftSavedAt,
+        response.draftSavedAt
+      );
+      meetingsStore.persist();
+      useTasksStore().syncFromMeetings(mergedMeetings);
+    });
     markSyncSuccess('meetings', response.syncedAt, response.conflicts.length);
+    if (hasConcurrentLocalChanges) markLocalChange('meetings');
 
     return {
       resource: 'meetings',
@@ -423,10 +522,60 @@ export async function syncMeetings(): Promise<SyncResult> {
       pulledCount: response.meetings.length,
       conflictCount: response.conflicts.length,
       syncedAt: response.syncedAt,
+      acknowledgedMeetings: remoteMeetings.map(cloneMeeting),
+      conflictedMeetingIds,
     };
   } catch (error) {
     markSyncFailure('meetings', error);
     throw error;
+  }
+}
+
+export function syncMeetings(): Promise<SyncResult> {
+  const result = meetingSyncQueue.then(performMeetingSync, performMeetingSync);
+  meetingSyncQueue = result.then(
+    () => undefined,
+    () => undefined
+  );
+  return result;
+}
+
+export async function syncCompletedMeetingForAi(
+  meetingId: string
+): Promise<Meeting> {
+  try {
+    const participantResult = await syncParticipants();
+    if (participantResult.skippedReason)
+      throw new AiMeetingSyncRequiredError('offline');
+    if (participantResult.conflictCount)
+      throw new AiMeetingSyncRequiredError('conflict');
+
+    const result = await syncMeetings();
+    if (result.skippedReason) throw new AiMeetingSyncRequiredError('offline');
+    if (result.conflictedMeetingIds?.includes(meetingId)) {
+      throw new AiMeetingSyncRequiredError('conflict');
+    }
+    const acknowledged = result.acknowledgedMeetings?.find(
+      (meeting) => meeting.id === meetingId
+    );
+    const current = useMeetingsStore().meetings.find(
+      (meeting) => meeting.id === meetingId
+    );
+    if (!acknowledged || !current)
+      throw new AiMeetingSyncRequiredError('missing');
+    if (
+      acknowledged.status !== 'completed' ||
+      !Number.isInteger(acknowledged.serverRevision)
+    ) {
+      throw new AiMeetingSyncRequiredError('changed');
+    }
+    if (meetingSyncContent(acknowledged) !== meetingSyncContent(current)) {
+      throw new AiMeetingSyncRequiredError('changed');
+    }
+    return cloneMeeting(current);
+  } catch (error) {
+    if (error instanceof AiMeetingSyncRequiredError) throw error;
+    throw new AiMeetingSyncRequiredError('failed');
   }
 }
 
@@ -454,19 +603,21 @@ export async function syncTasks(): Promise<SyncResult> {
       lastSyncedAt: metadata.lastSyncedAt,
     });
 
-    tasksStore.tasks = mergeSyncItems<Task>(
-      localTasks,
-      response.tasks.map(fromTaskDto)
-    );
-    tasksStore.agreements = mergeSyncItems<Agreement>(
-      localAgreements,
-      response.agreements.map(fromAgreementDto)
-    );
-    tasksStore.reviewDecisions = mergeReviewDecisions(
-      localReviewDecisions,
-      response.reviewDecisions.map(toReviewDecisionDto)
-    );
-    tasksStore.persist();
+    applyRemoteSyncMutation(() => {
+      tasksStore.tasks = mergeSyncItems<Task>(
+        localTasks,
+        response.tasks.map(fromTaskDto)
+      );
+      tasksStore.agreements = mergeSyncItems<Agreement>(
+        localAgreements,
+        response.agreements.map(fromAgreementDto)
+      );
+      tasksStore.reviewDecisions = mergeReviewDecisions(
+        localReviewDecisions,
+        response.reviewDecisions.map(toReviewDecisionDto)
+      );
+      tasksStore.persist();
+    });
     markSyncSuccess('tasks', response.syncedAt, response.conflicts.length);
 
     return {
@@ -517,11 +668,13 @@ export async function syncParticipants(): Promise<SyncResult> {
       : [];
     const syncedAt = response.syncedAt ?? nowIso();
 
-    participantsStore.participants = mergeParticipants(
-      localParticipants,
-      remoteParticipants
-    );
-    participantsStore.persist();
+    applyRemoteSyncMutation(() => {
+      participantsStore.participants = mergeParticipants(
+        localParticipants,
+        remoteParticipants
+      );
+      participantsStore.persist();
+    });
     markSyncSuccess('participants', syncedAt, remoteConflicts.length);
 
     return {
