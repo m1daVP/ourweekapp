@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { AiSummaryService } from '../src/modules/ai/ai.service.js';
-import type { AiSummaryProvider } from '../src/modules/ai/openai.client.js';
+import {
+  AiSummaryProviderError,
+  type AiSummaryProvider,
+  type AiSummaryProviderFailureClass,
+} from '../src/modules/ai/openai.client.js';
 import type { MeetingDto as MeetingRepositoryDto } from '../src/modules/meetings/meetings.repository.js';
 import type { AuthContext } from '../src/shared/auth/index.js';
 import { ApiError } from '../src/shared/errors/index.js';
@@ -105,6 +109,8 @@ function createHarness(input: {
   meeting?: MeetingRepositoryDto | null;
   providerOutput?: unknown;
   providerUsage?: { inputTokens: number; outputTokens: number; totalTokens: number } | null;
+  providerRequestId?: string | null;
+  providerDurationMs?: number;
   providerError?: unknown;
   userCount?: number;
   workspaceCount?: number;
@@ -137,6 +143,8 @@ function createHarness(input: {
       return {
         output: input.providerOutput ?? providerOutput(),
         usage: input.providerUsage ?? null,
+        providerRequestId: input.providerRequestId ?? null,
+        providerDurationMs: input.providerDurationMs ?? 0,
       };
     }),
   };
@@ -287,7 +295,12 @@ describe('AiSummaryService', () => {
       warn: vi.fn(),
     };
     const usage = { inputTokens: 320, outputTokens: 90, totalTokens: 410 };
-    const { ai, service } = createHarness({ providerUsage: usage, logger });
+    const { ai, service } = createHarness({
+      providerUsage: usage,
+      providerRequestId: 'req_safe_completed',
+      providerDurationMs: 321,
+      logger,
+    });
 
     await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
 
@@ -298,6 +311,8 @@ describe('AiSummaryService', () => {
         inputTokens: 320,
         outputTokens: 90,
         totalTokens: 410,
+        providerRequestId: 'req_safe_completed',
+        providerDurationMs: 321,
       }),
       'AI summary generation completed',
     );
@@ -546,9 +561,11 @@ describe('AiSummaryService', () => {
     expect(logger.info).not.toHaveBeenCalled();
   });
 
-  it('rejects malformed provider output before storing it', async () => {
+  it('rejects malformed provider output before storing it with a safe classification', async () => {
+    const logger = { info: vi.fn(), warn: vi.fn() };
     const { ai, meetings, service } = createHarness({
       providerOutput: providerOutput({ tasks: [{ title: '' }] }),
+      logger,
     });
 
     await expect(
@@ -562,7 +579,16 @@ describe('AiSummaryService', () => {
       workspaceId,
       'request_1',
       now,
-      'ai_summary_generation_failed',
+      'invalid_structured_output',
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'ai_summary_generation_failed',
+        errorCode: 'invalid_structured_output',
+        providerFailureClass: null,
+        providerRequestId: null,
+      }),
+      'AI summary generation failed',
     );
   });
 
@@ -611,6 +637,81 @@ describe('AiSummaryService', () => {
       'ai_summary_generation_failed',
     );
   });
+
+  it.each([
+    ['quota exhaustion', 'quota_exhausted', 429, 'insufficient_quota'],
+    ['authentication configuration', 'authentication_or_configuration', 401, 'invalid_api_key'],
+    ['rate limit', 'rate_limited', 429, 'rate_limit_exceeded'],
+    ['timeout network', 'timeout_or_network', null, null],
+    ['provider outage', 'provider_unavailable', 500, 'server_error'],
+    ['provider refusal', 'refused', null, null],
+    ['incomplete output', 'incomplete_output', null, null],
+    ['invalid structured output', 'invalid_structured_output', null, null],
+  ] as const)(
+    'records safe diagnostics for %s while returning the generic provider error',
+    async (_name, failureClass, status, providerCode) => {
+      const logger = { info: vi.fn(), warn: vi.fn() };
+      const providerError = Object.assign(new AiSummaryProviderError({
+        failureClass: failureClass as AiSummaryProviderFailureClass,
+        status,
+        providerCode,
+        providerRequestId: 'req_safe_provider',
+        model: 'test-model',
+        durationMs: 321,
+        usage: { inputTokens: 12, outputTokens: 8, totalTokens: 20 },
+      }), {
+        rawProviderBody: 'raw-provider-body-secret',
+        rawPrompt: 'prompt-secret-123',
+        authorization: 'Bearer sk-secret-123',
+        rawProviderMessage: 'raw provider error secret',
+      });
+      const { ai, service } = createHarness({ providerError, logger });
+
+      let thrown: unknown;
+      try {
+        await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toMatchObject({
+        statusCode: 503,
+        code: 'ai_summary_generation_failed',
+        message: 'AI summaries are not available right now.',
+        details: {},
+      });
+      expect(ai.markSummaryRequestFailed).toHaveBeenCalledWith(
+        workspaceId,
+        'request_1',
+        now,
+        failureClass,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'ai_summary_generation_failed',
+          errorCode: failureClass,
+          providerFailureClass: failureClass,
+          providerStatus: status,
+          providerCode,
+          providerRequestId: 'req_safe_provider',
+          providerDurationMs: 321,
+          providerInputTokens: 12,
+          providerOutputTokens: 8,
+          providerTotalTokens: 20,
+        }),
+        'AI summary generation failed',
+      );
+
+      const serialized = JSON.stringify({
+        logs: logger.warn.mock.calls,
+        error: thrown,
+      });
+      expect(serialized).not.toContain('raw-provider-body-secret');
+      expect(serialized).not.toContain('prompt-secret-123');
+      expect(serialized).not.toContain('sk-secret-123');
+      expect(serialized).not.toContain('raw provider error secret');
+    },
+  );
 
   it('preserves a provider failure when request-audit cleanup fails', async () => {
     const logger = { info: vi.fn(), warn: vi.fn() };

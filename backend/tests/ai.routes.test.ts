@@ -120,6 +120,8 @@ describe('AI summary routes', () => {
         ],
       },
       usage: null,
+      providerRequestId: null,
+      providerDurationMs: 0,
     });
   });
 

@@ -34,7 +34,12 @@ function requireAuthContext(request: { auth?: AuthContext }) {
 
 const unavailableAiProvider: AiSummaryProvider = {
   async generateMeetingSummary() {
-    return { output: null, usage: null };
+    return {
+      output: null,
+      usage: null,
+      providerRequestId: null,
+      providerDurationMs: 0,
+    };
   },
 };
 

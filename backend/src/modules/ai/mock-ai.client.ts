@@ -15,6 +15,8 @@ export class MockAiSummaryProvider implements AiSummaryProvider {
         ],
       },
       usage: null,
+      providerRequestId: null,
+      providerDurationMs: 0,
     };
   }
 }

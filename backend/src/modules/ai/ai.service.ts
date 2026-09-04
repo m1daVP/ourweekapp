@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 
+import { ZodError } from 'zod';
+
 import { requireMinimumRole, type AuthContext } from '../../shared/auth/index.js';
 import { ApiError, isApiError } from '../../shared/errors/index.js';
 import type { JsonValue } from '../../shared/repositories/index.js';
@@ -11,7 +13,10 @@ import { resolveEffectivePlan } from '../../shared/repositories/index.js';
 import { recapAllowanceForPlan } from '../billing/plan-limits.js';
 import { meetingSummarySchema, type AiMeetingSummaryRequestDto } from './ai.schema.js';
 import { AiRepository } from './ai.repository.js';
-import type { AiSummaryProvider } from './openai.client.js';
+import {
+  isAiSummaryProviderError,
+  type AiSummaryProvider,
+} from './openai.client.js';
 import {
   buildSummaryPromptPayload,
   normalizeSummaryProviderOutput,
@@ -314,7 +319,12 @@ export class AiSummaryService {
         now,
       );
 
-      const { output: providerOutput, usage } = await this.provider.generateMeetingSummary({
+      const {
+        output: providerOutput,
+        usage,
+        providerRequestId,
+        providerDurationMs,
+      } = await this.provider.generateMeetingSummary({
         systemPrompt,
         userPrompt: promptPayload,
         model,
@@ -373,6 +383,8 @@ export class AiSummaryService {
         inputTokens: usage?.inputTokens ?? null,
         outputTokens: usage?.outputTokens ?? null,
         totalTokens: usage?.totalTokens ?? null,
+        providerRequestId,
+        providerDurationMs,
         durationMs: durationMsSince(startedAtMs),
       }, 'AI summary generation completed');
 
@@ -388,9 +400,12 @@ export class AiSummaryService {
         },
       };
     } catch (error) {
-      const errorCode = isApiError(error)
-        ? error.code
-        : 'ai_summary_generation_failed';
+      const providerFailure = isAiSummaryProviderError(error)
+        ? error.metadata
+        : null;
+      const errorCode = providerFailure?.failureClass
+        ?? (error instanceof ZodError ? 'invalid_structured_output' : null)
+        ?? (isApiError(error) ? error.code : 'ai_summary_generation_failed');
 
       if (!finalizationAttempted) {
         await this.failSummaryRequestAndReleaseRecap(
@@ -413,6 +428,14 @@ export class AiSummaryService {
         provider: providerName,
         model,
         errorCode,
+        providerFailureClass: providerFailure?.failureClass ?? null,
+        providerStatus: providerFailure?.status ?? null,
+        providerCode: providerFailure?.providerCode ?? null,
+        providerRequestId: providerFailure?.providerRequestId ?? null,
+        providerDurationMs: providerFailure?.durationMs ?? null,
+        providerInputTokens: providerFailure?.usage?.inputTokens ?? null,
+        providerOutputTokens: providerFailure?.usage?.outputTokens ?? null,
+        providerTotalTokens: providerFailure?.usage?.totalTokens ?? null,
         durationMs: durationMsSince(startedAtMs),
       }, 'AI summary generation failed');
 
