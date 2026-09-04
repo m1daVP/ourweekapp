@@ -30,12 +30,11 @@ const AI_SUMMARY_DISCLAIMER =
 
 type AiRepositoryPort = Pick<
   AiRepository,
-  | 'createSummaryRequest'
+  | 'claimSummaryGeneration'
   | 'markSummaryRequestCompleted'
   | 'markSummaryRequestFailed'
   | 'countRecentSummaryRequestsForWorkspace'
   | 'countRecentSummaryRequestsForUserInWorkspace'
-  | 'findCompletedSummaryRequestByInputHash'
 >;
 
 type MeetingsRepositoryPort = Pick<
@@ -197,60 +196,74 @@ export class AiSummaryService {
     const createdAt = now.toISOString();
     const inputHash = shortHash([systemPrompt, promptPayload, model].join('\n\n'));
 
-    const cachedRequest = await this.aiRepository.findCompletedSummaryRequestByInputHash(
-      auth.workspaceId,
-      meeting.id,
-      inputHash,
-    );
-
-    if (cachedRequest) {
-      const parsedCachedSummary = meetingSummarySchema.safeParse(meeting.aiSummary);
-
-      if (parsedCachedSummary.success) {
-        this.options.logger?.info({
-          event: 'ai_summary_generation_cache_hit',
-          status: 'completed',
-          requestId: cachedRequest.id,
-          workspaceId: auth.workspaceId,
-          meetingId: meeting.id,
-          templateId: meeting.templateId,
-          provider: providerName,
-          model,
-          durationMs: durationMsSince(startedAtMs),
-        }, 'AI summary generation served from cache');
-
-        return {
-          summary: parsedCachedSummary.data,
-          disclaimer: AI_SUMMARY_DISCLAIMER,
-          generatedAt: parsedCachedSummary.data.createdAt,
-          meetingSync: {
-            meetingId: meeting.id,
-            sourceServerRevision: meeting.serverRevision,
-            serverRevision: meeting.serverRevision,
-            updatedAt: meeting.updatedAt,
-          },
-        };
-      }
-      // Cached row exists but meeting.aiSummary doesn't validate (shouldn't happen
-      // given the write-then-mark-completed ordering) — fall through and regenerate.
-    }
-
-    const allowance = await this.resolveAllowance(auth, now);
-    if (!allowance.canGenerate) {
-      throw new ApiError(429, 'recap_allowance_exhausted', 'No AI recaps are available right now.', {
-        limit: allowance.limit, used: allowance.used, remaining: allowance.remaining,
-        resetAt: allowance.periodEndsAt,
-      });
-    }
-
-    const summaryRequest = await this.aiRepository.createSummaryRequest({
+    const claim = await this.aiRepository.claimSummaryGeneration({
       workspaceId: auth.workspaceId,
-      userId: auth.userId,
       meetingId: meeting.id,
+      userId: auth.userId,
       provider: providerName,
-      status: 'pending',
       inputHash,
     });
+
+    if (claim.status === 'pending') {
+      this.options.logger?.info({
+        event: 'ai_summary_generation_duplicate',
+        status: 'pending',
+        requestId: claim.request.id,
+        workspaceId: auth.workspaceId,
+        meetingId: meeting.id,
+        templateId: meeting.templateId,
+        provider: providerName,
+        model,
+        durationMs: durationMsSince(startedAtMs),
+      }, 'AI summary generation already in progress');
+
+      throw new ApiError(
+        409,
+        'ai_summary_generation_in_progress',
+        'An identical AI summary is already being generated. Please try again shortly.',
+        { requestId: claim.request.id },
+      );
+    }
+
+    if (claim.status === 'completed') {
+      const parsedCachedSummary = meetingSummarySchema.safeParse(
+        claim.request.generatedSummary,
+      );
+
+      if (!parsedCachedSummary.success) {
+        throw new ApiError(
+          500,
+          'ai_summary_request_cache_invalid',
+          'Unable to load AI summary.',
+        );
+      }
+
+      this.options.logger?.info({
+        event: 'ai_summary_generation_cache_hit',
+        status: 'completed',
+        requestId: claim.request.id,
+        workspaceId: auth.workspaceId,
+        meetingId: meeting.id,
+        templateId: meeting.templateId,
+        provider: providerName,
+        model,
+        durationMs: durationMsSince(startedAtMs),
+      }, 'AI summary generation served from cache');
+
+      return {
+        summary: parsedCachedSummary.data,
+        disclaimer: AI_SUMMARY_DISCLAIMER,
+        generatedAt: parsedCachedSummary.data.createdAt,
+        meetingSync: {
+          meetingId: meeting.id,
+          sourceServerRevision: meeting.serverRevision,
+          serverRevision: meeting.serverRevision,
+          updatedAt: meeting.updatedAt,
+        },
+      };
+    }
+
+    const summaryRequest = claim.request;
     let reserved = false;
 
     this.options.logger?.info({
@@ -267,6 +280,14 @@ export class AiSummaryService {
     }, 'AI summary generation started');
 
     try {
+      const allowance = await this.resolveAllowance(auth, now);
+      if (!allowance.canGenerate) {
+        throw new ApiError(429, 'recap_allowance_exhausted', 'No AI recaps are available right now.', {
+          limit: allowance.limit, used: allowance.used, remaining: allowance.remaining,
+          resetAt: allowance.periodEndsAt,
+        });
+      }
+
       if (this.assistantRepository) {
         reserved = await this.assistantRepository.reserveRecap(
           auth.workspaceId, summaryRequest.id, allowance.periodEndsAt, allowance.limit,
@@ -314,6 +335,7 @@ export class AiSummaryService {
         summaryRequest.id,
         now.toISOString(),
         usage,
+        toJsonValue(summary),
       );
       if (reserved && this.assistantRepository) {
         await this.assistantRepository.settleRecap(auth.workspaceId, summaryRequest.id);

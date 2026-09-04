@@ -110,7 +110,10 @@ function createHarness(input: {
   updatedMeeting?: MeetingRepositoryDto | null;
   aiConfigured?: boolean;
   participants?: Array<{ id: string; name: string }>;
-  cachedRequest?: { id: string; completedAt?: string | null } | null;
+  claim?: {
+    status: 'created' | 'pending' | 'completed';
+    request: { id: string; generatedSummary?: unknown };
+  };
   logger?: {
     info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -137,14 +140,14 @@ function createHarness(input: {
     ),
   };
   const ai = {
-    createSummaryRequest: vi.fn().mockResolvedValue({ id: 'request_1' }),
+    claimSummaryGeneration: vi.fn().mockResolvedValue(input.claim ?? {
+      status: 'created',
+      request: { id: 'request_1' },
+    }),
     markSummaryRequestCompleted: vi.fn().mockResolvedValue({ id: 'request_1' }),
     markSummaryRequestFailed: vi.fn().mockResolvedValue({ id: 'request_1' }),
     countRecentSummaryRequestsForWorkspace: vi.fn().mockResolvedValue(input.workspaceCount ?? 0),
     countRecentSummaryRequestsForUserInWorkspace: vi.fn().mockResolvedValue(input.userCount ?? 0),
-    findCompletedSummaryRequestByInputHash: vi.fn().mockResolvedValue(
-      input.cachedRequest === undefined ? null : input.cachedRequest,
-    ),
   };
   const participants = {
     listParticipantNamesForWorkspace: vi.fn().mockResolvedValue(
@@ -175,7 +178,7 @@ describe('AiSummaryService', () => {
       statusCode: 409,
       code: 'meeting_update_conflict',
     });
-    expect(ai.createSummaryRequest).not.toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
   });
 
@@ -228,10 +231,9 @@ describe('AiSummaryService', () => {
         maxOutputTokens: 800,
       }),
     );
-    expect(ai.createSummaryRequest).toHaveBeenCalledWith(
+    expect(ai.claimSummaryGeneration).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: 'openai',
-        status: 'pending',
       }),
     );
     expect(meetings.updateMeetingSummary).toHaveBeenCalledWith(
@@ -248,6 +250,7 @@ describe('AiSummaryService', () => {
       'request_1',
       now,
       null,
+      expect.any(Object),
     );
   });
 
@@ -266,6 +269,7 @@ describe('AiSummaryService', () => {
       'request_1',
       now,
       usage,
+      expect.any(Object),
     );
     expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -451,7 +455,7 @@ describe('AiSummaryService', () => {
       workspaceId,
       meetingId,
     );
-    expect(ai.createSummaryRequest).not.toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
   });
 
@@ -466,7 +470,7 @@ describe('AiSummaryService', () => {
       statusCode: 409,
       code: 'meeting_not_completed',
     });
-    expect(ai.createSummaryRequest).not.toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
     expect(participants.listParticipantNamesForWorkspace).not.toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
   });
@@ -500,7 +504,7 @@ describe('AiSummaryService', () => {
       statusCode: 422,
       code: 'ai_summary_input_too_large',
     });
-    expect(ai.createSummaryRequest).not.toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -667,7 +671,7 @@ describe('AiSummaryService', () => {
         resetAt: '2026-06-06T11:00:00.000Z',
       },
     });
-    expect(ai.createSummaryRequest).toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).toHaveBeenCalled();
     expect(ai.markSummaryRequestFailed).toHaveBeenCalledWith(
       workspaceId,
       'request_1',
@@ -697,11 +701,11 @@ describe('AiSummaryService', () => {
         resetAt: '2026-06-06T11:00:00.000Z',
       },
     });
-    expect(ai.createSummaryRequest).toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
   });
 
-  it('returns a cached summary without calling the provider when the input hash matches', async () => {
+  it('returns a completed request snapshot without calling the provider', async () => {
     const cachedSummary = {
       id: 'summary_cached_1',
       meetingId,
@@ -714,8 +718,11 @@ describe('AiSummaryService', () => {
       createdAt: '2026-06-01T00:00:00.000Z',
     };
     const { ai, meetings, provider, service } = createHarness({
-      meeting: meeting({ aiSummary: cachedSummary }),
-      cachedRequest: { id: 'cached_request_1' },
+      meeting: meeting({ aiSummary: providerOutput() }),
+      claim: {
+        status: 'completed',
+        request: { id: 'cached_request_1', generatedSummary: cachedSummary },
+      },
     });
 
     const response = await service.generateMeetingSummary(
@@ -733,35 +740,121 @@ describe('AiSummaryService', () => {
       updatedAt: meeting().updatedAt,
     });
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
-    expect(ai.createSummaryRequest).not.toHaveBeenCalled();
-    expect(meetings.updateMeetingSummary).not.toHaveBeenCalled();
-    expect(ai.findCompletedSummaryRequestByInputHash).toHaveBeenCalledWith(
-      workspaceId,
-      meetingId,
-      expect.any(String),
+    expect(ai.claimSummaryGeneration).toHaveBeenCalledWith(
+      expect.objectContaining({ workspaceId, meetingId }),
     );
+    expect(meetings.updateMeetingSummary).not.toHaveBeenCalled();
   });
 
-  it('falls through to a fresh generation when no cached request matches the input hash', async () => {
-    const { ai, provider, service } = createHarness({ cachedRequest: null });
+  it('generates when the claim creates a new request', async () => {
+    const { ai, provider, service } = createHarness();
 
     await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
 
-    expect(ai.findCompletedSummaryRequestByInputHash).toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).toHaveBeenCalled();
     expect(provider.generateMeetingSummary).toHaveBeenCalled();
-    expect(ai.createSummaryRequest).toHaveBeenCalled();
   });
 
-  it('falls through to a fresh generation when the cached meeting summary fails validation', async () => {
+  it('fails safely when a completed claim contains an invalid request snapshot', async () => {
     const { ai, provider, service } = createHarness({
-      meeting: meeting({ aiSummary: { shortSummary: 'not a valid cached summary shape' } }),
-      cachedRequest: { id: 'cached_request_1' },
+      claim: {
+        status: 'completed',
+        request: { id: 'cached_request_1', generatedSummary: { shortSummary: 'invalid' } },
+      },
     });
 
-    await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({
+      statusCode: 500,
+      code: 'ai_summary_request_cache_invalid',
+    });
 
-    expect(provider.generateMeetingSummary).toHaveBeenCalled();
-    expect(ai.createSummaryRequest).toHaveBeenCalled();
+    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+    expect(ai.markSummaryRequestFailed).not.toHaveBeenCalled();
+  });
+
+  it('returns a retryable conflict without provider work for a pending identical request', async () => {
+    const { ai, provider, service } = createHarness({
+      claim: { status: 'pending', request: { id: 'owner_request_1' } },
+    });
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'ai_summary_generation_in_progress',
+      details: { requestId: 'owner_request_1' },
+    });
+
+    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+    expect(ai.markSummaryRequestFailed).not.toHaveBeenCalled();
+  });
+
+  it('calls the provider once when identical requests overlap', async () => {
+    let resolveProvider: ((value: ReturnType<typeof providerOutput>) => void) | undefined;
+    const { ai, provider, service } = createHarness();
+    ai.claimSummaryGeneration
+      .mockResolvedValueOnce({ status: 'created', request: { id: 'owner_request_1' } })
+      .mockResolvedValueOnce({ status: 'pending', request: { id: 'owner_request_1' } });
+    provider.generateMeetingSummary.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolveProvider = (output) => resolve({ output, usage: null });
+      }),
+    );
+
+    const owner = service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+    await vi.waitFor(() => expect(provider.generateMeetingSummary).toHaveBeenCalledTimes(1));
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({ code: 'ai_summary_generation_in_progress' });
+    expect(provider.generateMeetingSummary).toHaveBeenCalledTimes(1);
+
+    resolveProvider?.(providerOutput());
+    await owner;
+
+    expect(ai.markSummaryRequestCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows a failed claim to be retried through a new created claim', async () => {
+    const { ai, provider, service } = createHarness();
+    ai.claimSummaryGeneration
+      .mockResolvedValueOnce({ status: 'created', request: { id: 'failed_request_1' } })
+      .mockResolvedValueOnce({ status: 'created', request: { id: 'retry_request_2' } });
+    provider.generateMeetingSummary
+      .mockRejectedValueOnce(new Error('provider timeout'))
+      .mockResolvedValueOnce({ output: providerOutput(), usage: null });
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({ code: 'ai_summary_generation_failed' });
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).resolves.toMatchObject({ summary: { meetingId } });
+
+    expect(ai.markSummaryRequestFailed).toHaveBeenCalledWith(
+      workspaceId,
+      'failed_request_1',
+      now,
+      'ai_summary_generation_failed',
+    );
+    expect(provider.generateMeetingSummary).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses distinct claim identities for different locale inputs and workspaces', async () => {
+    const { ai, service } = createHarness();
+    const otherWorkspaceAuth = { ...auth, workspaceId: '66666666-6666-4666-8666-666666666666' };
+
+    await service.generateMeetingSummary(auth, { meetingId, locale: 'en' }, new Date(now));
+    await service.generateMeetingSummary(auth, { meetingId, locale: 'pl' }, new Date(now));
+    await service.generateMeetingSummary(otherWorkspaceAuth, { meetingId, locale: 'en' }, new Date(now));
+
+    const [first, second, third] = ai.claimSummaryGeneration.mock.calls.map(([input]) => input);
+    expect(first.inputHash).not.toBe(second.inputHash);
+    expect(first.workspaceId).toBe(workspaceId);
+    expect(third.workspaceId).toBe(otherWorkspaceAuth.workspaceId);
+    expect(first.inputHash).toBe(third.inputHash);
   });
 
   it('blocks viewers before checking rate limits or loading meeting text', async () => {

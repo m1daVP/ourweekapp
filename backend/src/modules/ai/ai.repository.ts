@@ -1,10 +1,9 @@
 import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
-import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
+import { ApiError } from '../../shared/errors/index.js';
+import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 import type { AiSummaryTokenUsage } from './openai.client.js';
 
-const AI_SUMMARY_REQUEST_COLUMNS =
-  'id,workspace_id,user_id,meeting_id,provider,status,input_hash,created_at,completed_at,error_code' as const;
 const PUBLIC_AI_SUMMARY_REQUEST_COLUMNS =
   'id,workspace_id,user_id,meeting_id,provider,status,created_at,completed_at,error_code' as const;
 
@@ -19,9 +18,13 @@ type AiSummaryRequestRow = {
   created_at: string;
   completed_at: string | null;
   error_code: string | null;
+  generated_summary: JsonValue | null;
 };
 
-type PublicAiSummaryRequestRow = Omit<AiSummaryRequestRow, 'input_hash'>;
+type PublicAiSummaryRequestRow = Omit<
+  AiSummaryRequestRow,
+  'input_hash' | 'generated_summary'
+>;
 
 export type AiSummaryRequestDto = {
   id: string;
@@ -37,15 +40,24 @@ export type AiSummaryRequestDto = {
 
 export type AiSummaryRequestRecord = AiSummaryRequestDto & {
   inputHash: string | null;
+  generatedSummary: JsonValue | null;
 };
 
-export type CreateAiSummaryRequestInput = {
+export type ClaimAiSummaryGenerationInput = {
   workspaceId: string;
-  userId: string;
   meetingId: string;
+  userId: string;
   provider: string;
-  status: string;
-  inputHash?: string | null;
+  inputHash: string;
+};
+
+export type AiSummaryGenerationClaim = {
+  status: 'created' | 'pending' | 'completed';
+  request: AiSummaryRequestRecord;
+};
+
+type AiSummaryGenerationClaimRow = AiSummaryRequestRow & {
+  claim_status: string;
 };
 
 export function mapAiSummaryRequestRowToDto(row: PublicAiSummaryRequestRow): AiSummaryRequestDto {
@@ -66,29 +78,47 @@ export function mapAiSummaryRequestRowToRecord(row: AiSummaryRequestRow): AiSumm
   return {
     ...mapAiSummaryRequestRowToDto(row),
     inputHash: row.input_hash,
+    generatedSummary: row.generated_summary,
   };
 }
 
 export class AiRepository {
   constructor(private readonly supabase: SupabaseRepositoryClient) {}
 
-  async createSummaryRequest(input: CreateAiSummaryRequestInput) {
+  async claimSummaryGeneration(input: ClaimAiSummaryGenerationInput): Promise<AiSummaryGenerationClaim> {
     const { data, error } = await this.supabase
-      .from('ai_summary_requests')
-      .insert({
-        workspace_id: input.workspaceId,
-        user_id: input.userId,
-        meeting_id: input.meetingId,
-        provider: input.provider,
-        status: input.status,
-        input_hash: input.inputHash ?? null,
+      .rpc('claim_ai_summary_generation', {
+        p_workspace_id: input.workspaceId,
+        p_meeting_id: input.meetingId,
+        p_user_id: input.userId,
+        p_provider: input.provider,
+        p_input_hash: input.inputHash,
       })
-      .select(AI_SUMMARY_REQUEST_COLUMNS)
-      .single<AiSummaryRequestRow>();
+      .single<AiSummaryGenerationClaimRow>();
 
-    return mapAiSummaryRequestRowToRecord(
-      requireRow(data, error, 'ai_summary_request_create_failed', 'Unable to create AI summary request.'),
+    const row = requireRow(
+      data,
+      error,
+      'ai_summary_request_claim_failed',
+      'Unable to claim AI summary generation.',
     );
+
+    if (
+      row.claim_status !== 'created'
+      && row.claim_status !== 'pending'
+      && row.claim_status !== 'completed'
+    ) {
+      throw new ApiError(
+        500,
+        'ai_summary_request_claim_invalid',
+        'Unable to claim AI summary generation.',
+      );
+    }
+
+    return {
+      status: row.claim_status,
+      request: mapAiSummaryRequestRowToRecord(row),
+    };
   }
 
   async findSummaryRequestByIdForWorkspace(workspaceId: string, requestId: string) {
@@ -104,32 +134,12 @@ export class AiRepository {
     return data ? mapAiSummaryRequestRowToDto(data) : null;
   }
 
-  async findCompletedSummaryRequestByInputHash(
-    workspaceId: string,
-    meetingId: string,
-    inputHash: string,
-  ) {
-    const { data, error } = await this.supabase
-      .from('ai_summary_requests')
-      .select(PUBLIC_AI_SUMMARY_REQUEST_COLUMNS)
-      .eq('workspace_id', workspaceId)
-      .eq('meeting_id', meetingId)
-      .eq('input_hash', inputHash)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle<PublicAiSummaryRequestRow>();
-
-    throwOnSupabaseError(error, 'ai_summary_request_lookup_failed', 'Unable to load AI summary request.');
-
-    return data ? mapAiSummaryRequestRowToDto(data) : null;
-  }
-
   async markSummaryRequestCompleted(
     workspaceId: string,
     requestId: string,
     completedAt: string,
     usage?: AiSummaryTokenUsage | null,
+    generatedSummary?: JsonValue | null,
   ) {
     const { data, error } = await this.supabase
       .from('ai_summary_requests')
@@ -140,6 +150,7 @@ export class AiRepository {
         input_tokens: usage?.inputTokens ?? null,
         output_tokens: usage?.outputTokens ?? null,
         total_tokens: usage?.totalTokens ?? null,
+        generated_summary: generatedSummary ?? null,
       })
       .eq('workspace_id', workspaceId)
       .eq('id', requestId)
