@@ -1,9 +1,10 @@
 import { formatApiDateTime, formatNullableApiDateTime } from '../../shared/dates.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
+import type { AvatarTypeDto } from './participants.schema.js';
 
 const PARTICIPANT_COLUMNS =
-  'id,workspace_id,name,initials,avatar_color,type,is_active,email,email_normalized,server_revision,created_at,updated_at,deleted_at' as const;
+  'id,workspace_id,name,initials,avatar_color,avatar_type,type,is_active,email,email_normalized,user_id,server_revision,created_at,updated_at,deleted_at' as const;
 
 type ParticipantRow = {
   id: string;
@@ -11,10 +12,12 @@ type ParticipantRow = {
   name: string;
   initials: string;
   avatar_color: string;
+  avatar_type: AvatarTypeDto | null;
   type: 'adult' | 'child' | 'other';
   is_active: boolean;
   email: string | null;
   email_normalized: string | null;
+  user_id: string | null;
   server_revision: number;
   created_at: string;
   updated_at: string;
@@ -32,10 +35,12 @@ export type ParticipantDto = {
   name: string;
   initials: string;
   avatarColor: string;
+  avatarType: AvatarTypeDto | null;
   type: ParticipantRow['type'];
   isActive: boolean;
   email: string | null;
   emailNormalized: string | null;
+  userId: string | null;
   serverRevision: number;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +53,7 @@ export type UpsertParticipantInput = {
   name: string;
   initials: string;
   avatarColor: string;
+  avatarType: AvatarTypeDto | null;
   type: ParticipantRow['type'];
   isActive: boolean;
   serverRevision?: number;
@@ -59,6 +65,7 @@ export type CreateParticipantInput = {
   name: string;
   initials: string;
   avatarColor: string;
+  avatarType: AvatarTypeDto | null;
   type: ParticipantRow['type'];
   isActive: boolean;
 };
@@ -69,6 +76,7 @@ export type UpdateParticipantIfRevisionMatchesInput = {
   name: string;
   initials: string;
   avatarColor: string;
+  avatarType: AvatarTypeDto | null;
   type: ParticipantRow['type'];
   isActive: boolean;
   expectedServerRevision: number;
@@ -81,10 +89,12 @@ export function mapParticipantRowToDto(row: ParticipantRow): ParticipantDto {
     name: row.name,
     initials: row.initials,
     avatarColor: row.avatar_color,
+    avatarType: row.avatar_type,
     type: row.type,
     isActive: row.is_active,
     email: row.email,
     emailNormalized: row.email_normalized,
+    userId: row.user_id,
     serverRevision: row.server_revision,
     createdAt: formatApiDateTime(row.created_at),
     updatedAt: formatApiDateTime(row.updated_at),
@@ -156,6 +166,7 @@ export class ParticipantsRepository {
       name: input.name,
       initials: input.initials,
       avatar_color: input.avatarColor,
+      avatar_type: input.avatarType,
       type: input.type,
       is_active: input.isActive,
       server_revision: input.serverRevision ?? 1,
@@ -182,6 +193,7 @@ export class ParticipantsRepository {
         name: input.name,
         initials: input.initials,
         avatar_color: input.avatarColor,
+        avatar_type: input.avatarType,
         type: input.type,
         is_active: input.isActive,
         server_revision: 1,
@@ -202,6 +214,7 @@ export class ParticipantsRepository {
         name: input.name,
         initials: input.initials,
         avatar_color: input.avatarColor,
+        avatar_type: input.avatarType,
         type: input.type,
         is_active: input.isActive,
         server_revision: input.expectedServerRevision + 1,

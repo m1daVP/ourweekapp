@@ -57,6 +57,10 @@ export const participantRoutes: FastifyPluginAsyncZod = async (app) => {
 
     return syncParticipantsWithSupabase(app.supabase, {
       workspaceId: auth.workspaceId,
+      actor: {
+        userId: auth.userId,
+        role: auth.role,
+      },
       body: request.body,
     });
   });

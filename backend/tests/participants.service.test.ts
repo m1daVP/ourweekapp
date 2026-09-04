@@ -38,10 +38,12 @@ function repositoryParticipant(
     name: 'Rita',
     initials: 'R',
     avatarColor: '#7A8C6B',
+    avatarType: null,
     type: 'adult',
     isActive: true,
     email: null,
     emailNormalized: null,
+    userId: null,
     serverRevision: 1,
     createdAt: now,
     updatedAt: now,
@@ -58,6 +60,7 @@ function clientParticipant(
     name: 'Rita',
     initials: 'R',
     avatarColor: '#7A8C6B',
+    avatarType: null,
     type: 'adult',
     isActive: true,
     createdAt: now,
@@ -128,6 +131,7 @@ class FakeParticipantRepository implements ParticipantSyncRepository {
       name: input.name,
       initials: input.initials,
       avatarColor: input.avatarColor,
+      avatarType: input.avatarType,
       type: input.type,
       isActive: input.isActive,
       serverRevision: 1,
@@ -170,6 +174,7 @@ class FakeParticipantRepository implements ParticipantSyncRepository {
       name: input.name,
       initials: input.initials,
       avatarColor: input.avatarColor,
+      avatarType: input.avatarType,
       type: input.type,
       isActive: input.isActive,
       serverRevision: input.expectedServerRevision + 1,
@@ -356,6 +361,49 @@ describe('participant sync service', () => {
     ]);
     expect(response.participants[0]?.name).toBe('Rita Updated');
     expect(response.participants[0]?.serverRevision).toBe(3);
+  });
+
+  it('allows a linked member to change only their own avatar', async () => {
+    const repository = new FakeParticipantRepository([
+      repositoryParticipant({ userId: 'user-1', serverRevision: 2 }),
+    ]);
+
+    const response = await syncParticipants(repository, {
+      workspaceId: 'workspace-1',
+      actor: { userId: 'user-1', role: 'adult_member' },
+      body: syncRequest([
+        clientParticipant({
+          avatarType: 'fox',
+          serverRevision: 2,
+        }),
+      ]),
+    });
+
+    expect(response.participants[0]?.avatarType).toBe('fox');
+    expect(repository.updates[0]?.avatarType).toBe('fox');
+  });
+
+  it('rejects an avatar change for another linked member', async () => {
+    const repository = new FakeParticipantRepository([
+      repositoryParticipant({ userId: 'user-2', serverRevision: 2 }),
+    ]);
+
+    await expect(
+      syncParticipants(repository, {
+        workspaceId: 'workspace-1',
+        actor: { userId: 'user-1', role: 'adult_member' },
+        body: syncRequest([
+          clientParticipant({
+            avatarType: 'fox',
+            serverRevision: 2,
+          }),
+        ]),
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'participant_avatar_forbidden',
+    });
+    expect(repository.updates).toEqual([]);
   });
 
   it('returns a conflict when the guarded update no longer matches', async () => {

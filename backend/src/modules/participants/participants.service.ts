@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { UserRole } from '../../shared/auth/index.js';
 import { ApiError } from '../../shared/errors/index.js';
 import type { SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { VALIDATION_LIMITS } from '../../shared/schemas/index.js';
@@ -13,6 +14,7 @@ import {
   participantSyncConflictSchema,
   type ListParticipantsResponseDto,
   type ParticipantDto,
+  type AvatarTypeDto,
   type SyncParticipantsRequestDto,
   type SyncParticipantsResponseDto,
 } from './participants.schema.js';
@@ -43,6 +45,10 @@ export type ParticipantSyncRepository = {
 
 type SyncParticipantsInput = {
   workspaceId: string;
+  actor: {
+    userId: string;
+    role: UserRole;
+  };
   body: SyncParticipantsRequestDto;
 };
 
@@ -56,6 +62,7 @@ function toParticipantDto(participant: RepositoryParticipantDto): ParticipantDto
     name: participant.name,
     initials: participant.initials,
     avatarColor: participant.avatarColor,
+    avatarType: participant.avatarType,
     type: participant.type,
     isActive: participant.isActive,
     createdAt: participant.createdAt,
@@ -99,8 +106,40 @@ function hasParticipantContentChanged(
     client.name !== server.name ||
     client.initials !== server.initials ||
     client.avatarColor !== server.avatarColor ||
+    client.avatarType !== server.avatarType ||
     client.type !== server.type ||
     client.isActive !== server.isActive
+  );
+}
+
+function resolveAvatarType(
+  client: ParticipantDto,
+  server: RepositoryParticipantDto,
+) {
+  return client.avatarType === undefined ? (server.avatarType ?? null) : client.avatarType;
+}
+
+function assertAvatarUpdateAuthorized(input: {
+  actor: SyncParticipantsInput['actor'];
+  participant: RepositoryParticipantDto;
+  avatarType: AvatarTypeDto | null;
+}) {
+  if (input.avatarType === (input.participant.avatarType ?? null)) {
+    return;
+  }
+
+  const isCurrentUserParticipant = input.participant.userId === input.actor.userId;
+  const canManageUnlinkedParticipant =
+    input.actor.role === 'owner' && input.participant.userId === null;
+
+  if (isCurrentUserParticipant || canManageUnlinkedParticipant) {
+    return;
+  }
+
+  throw new ApiError(
+    403,
+    'participant_avatar_forbidden',
+    'You cannot change this participant avatar.',
   );
 }
 
@@ -341,6 +380,7 @@ export async function syncParticipants(
         name: clientParticipant.name,
         initials: clientParticipant.initials,
         avatarColor: clientParticipant.avatarColor,
+        avatarType: clientParticipant.avatarType ?? null,
         type: clientParticipant.type,
         isActive: clientParticipant.isActive,
       });
@@ -361,16 +401,27 @@ export async function syncParticipants(
       continue;
     }
 
+    const effectiveClientParticipant: ParticipantDto = {
+      ...clientParticipant,
+      avatarType: resolveAvatarType(clientParticipant, serverParticipant),
+    };
+
+    assertAvatarUpdateAuthorized({
+      actor: input.actor,
+      participant: serverParticipant,
+      avatarType: effectiveClientParticipant.avatarType ?? null,
+    });
+
     if (
       shouldCreateConcurrentUpdateConflict(
-        clientParticipant,
+        effectiveClientParticipant,
         serverParticipant,
         input.body.lastSyncedAt,
       )
     ) {
       conflicts.push(
         createConflict({
-          client: clientParticipant,
+          client: effectiveClientParticipant,
           server: serverParticipant,
           reason: 'updated_on_client_and_server',
           detectedAt: syncedAt,
@@ -379,18 +430,19 @@ export async function syncParticipants(
       continue;
     }
 
-    if (!hasParticipantContentChanged(clientParticipant, serverParticipant)) {
+    if (!hasParticipantContentChanged(effectiveClientParticipant, serverParticipant)) {
       continue;
     }
 
     const updated = await repository.updateParticipantIfRevisionMatches({
-      id: clientParticipant.id,
+      id: effectiveClientParticipant.id,
       workspaceId: input.workspaceId,
-      name: clientParticipant.name,
-      initials: clientParticipant.initials,
-      avatarColor: clientParticipant.avatarColor,
-      type: clientParticipant.type,
-      isActive: clientParticipant.isActive,
+      name: effectiveClientParticipant.name,
+      initials: effectiveClientParticipant.initials,
+      avatarColor: effectiveClientParticipant.avatarColor,
+      avatarType: effectiveClientParticipant.avatarType ?? null,
+      type: effectiveClientParticipant.type,
+      isActive: effectiveClientParticipant.isActive,
       expectedServerRevision: serverParticipant.serverRevision,
     });
 
@@ -398,7 +450,7 @@ export async function syncParticipants(
       await addWriteGuardConflict({
         repository,
         workspaceId: input.workspaceId,
-        client: clientParticipant,
+        client: effectiveClientParticipant,
         fallbackServer: serverParticipant,
         conflicts,
         detectedAt: syncedAt,

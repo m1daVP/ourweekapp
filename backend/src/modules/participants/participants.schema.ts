@@ -14,6 +14,11 @@ export const participantIdSchema = z.uuid();
 
 export const participantTypeSchema = z.enum(['adult', 'child', 'other']);
 
+export const avatarTypeSchema = z
+  .string()
+  .max(80)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
 export const participantNameSchema = trimmedString(
   VALIDATION_LIMITS.participantNameMinLength,
   VALIDATION_LIMITS.participantNameMaxLength,
@@ -29,6 +34,7 @@ const participantProfileSchema = z.object({
   name: participantNameSchema,
   initials: participantInitialsSchema,
   avatarColor: avatarColorSchema,
+  avatarType: avatarTypeSchema.nullable().optional(),
   type: participantTypeSchema,
   isActive: z.boolean(),
   createdAt: isoDateTimeStringSchema,
@@ -82,6 +88,7 @@ export const syncParticipantsResponseSchema = z.object({
 });
 
 export type ParticipantTypeDto = z.infer<typeof participantTypeSchema>;
+export type AvatarTypeDto = z.infer<typeof avatarTypeSchema>;
 export type ParticipantDto = z.infer<typeof participantSchema>;
 export type ListParticipantsResponseDto = z.infer<
   typeof listParticipantsResponseSchema

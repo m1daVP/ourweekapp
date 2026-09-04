@@ -8404,6 +8404,18 @@
                                   "type": "string",
                                   "pattern": "^#[0-9A-Fa-f]{6}$"
                                 },
+                                "avatarType": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 80,
+                                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "type": {
                                   "type": "string",
                                   "enum": [
@@ -15122,6 +15134,18 @@
                             "type": "string",
                             "pattern": "^#[0-9A-Fa-f]{6}$"
                           },
+                          "avatarType": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 80,
+                                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "type": {
                             "type": "string",
                             "enum": [
@@ -15345,6 +15369,18 @@
                           "type": "string",
                           "pattern": "^#[0-9A-Fa-f]{6}$"
                         },
+                        "avatarType": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 80,
+                              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "type": {
                           "type": "string",
                           "enum": [
@@ -15445,6 +15481,18 @@
                           "avatarColor": {
                             "type": "string",
                             "pattern": "^#[0-9A-Fa-f]{6}$"
+                          },
+                          "avatarType": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 80,
+                                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           },
                           "type": {
                             "type": "string",
@@ -15556,6 +15604,18 @@
                                 "type": "string",
                                 "pattern": "^#[0-9A-Fa-f]{6}$"
                               },
+                              "avatarType": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
                               "type": {
                                 "type": "string",
                                 "enum": [
@@ -15626,6 +15686,18 @@
                               "avatarColor": {
                                 "type": "string",
                                 "pattern": "^#[0-9A-Fa-f]{6}$"
+                              },
+                              "avatarType": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               },
                               "type": {
                                 "type": "string",
