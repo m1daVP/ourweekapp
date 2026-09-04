@@ -835,7 +835,7 @@ function enableParticipant(participantId: string) {
           </select>
         </label>
 
-        <button
+        <!-- <button
           v-if="!isInitialsEditorOpen"
           class="participant-initials-toggle"
           type="button"
@@ -853,7 +853,7 @@ function enableParticipant(participantId: string) {
             maxlength="3"
             :placeholder="t('settings.auto')"
           />
-        </label>
+        </label> -->
 
         <p
           v-if="
