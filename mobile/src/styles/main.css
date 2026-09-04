@@ -2591,7 +2591,7 @@ input[type='radio'] {
 .base-bottom-sheet__panel {
   position: relative;
   width: min(100%, 440px);
-  max-height: calc(100dvh - 24px);
+  max-height: 75dvh;
   margin: 0;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding-bottom: calc(20px + env(safe-area-inset-bottom));
