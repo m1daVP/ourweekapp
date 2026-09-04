@@ -3,6 +3,7 @@ import { generateAiMeetingSummary } from '@/shared/api/aiApi';
 import type { AiMeetingSummaryDto, AiMeetingSyncDto } from '@/shared/api/aiApi';
 import { ApiClientError } from '@/shared/api/httpClient';
 import { i18n, translate } from '@/features/localization/i18n';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { listMeetings } from '@/shared/api/meetingsApi';
 import { syncCompletedMeetingForAi } from '@/shared/services/syncService';
@@ -12,6 +13,21 @@ import { cloneMeeting } from './meetingSyncSnapshot';
 // backoff, see openai.client.ts) — keep this above that so the backend
 // always gives up before the client does.
 const backendAiSummaryTimeoutMs = 45000;
+
+export class AiRecapUnavailableError extends Error {
+  constructor() {
+    super('Recap allowance is unavailable.');
+    this.name = 'AiRecapUnavailableError';
+  }
+}
+
+export function isRecapAllowanceExhausted(error: unknown): boolean {
+  return (
+    error instanceof ApiClientError &&
+    error.status === 429 &&
+    error.code === 'recap_allowance_exhausted'
+  );
+}
 
 export type AiQuotaScope = 'user' | 'workspace';
 
@@ -148,44 +164,71 @@ async function generateBackendAiSummary(
 }
 
 export async function generateMeetingSummary(meeting: Meeting) {
+  const subscription = useSubscriptionStore();
+  const epoch = subscription.subscriptionEpoch;
+  const isCurrentSession = () => subscription.subscriptionEpoch === epoch;
+  if (!subscription.canGenerateAssistantRecap)
+    throw new AiRecapUnavailableError();
   const acknowledged = await syncCompletedMeetingForAi(meeting.id);
+  if (!isCurrentSession() || !subscription.canGenerateAssistantRecap) {
+    throw new AiRecapUnavailableError();
+  }
   if (!Number.isInteger(acknowledged.serverRevision)) {
     throw new Error('AI summary requires an acknowledged server revision.');
   }
   const source = cloneMeeting(acknowledged);
-  const response = await generateBackendAiSummary(
-    meeting.id,
-    acknowledged.serverRevision!
-  );
-  const summary = normalizeBackendSummary(response.summary, meeting.id);
-  let meetingSync = response.meetingSync;
-
-  if (!meetingSync) {
-    const authoritative = (await listMeetings()).meetings.find(
-      (item) => item.id === meeting.id
+  let refreshAllowance = false;
+  try {
+    const response = await generateBackendAiSummary(
+      meeting.id,
+      acknowledged.serverRevision!
     );
-    if (
-      !authoritative?.aiSummary ||
-      authoritative.aiSummary.id !== summary.id ||
-      !Number.isInteger(authoritative.serverRevision)
-    ) {
-      throw new Error('AI summary could not be synchronized.');
+    refreshAllowance = true;
+    if (!isCurrentSession()) throw new AiRecapUnavailableError();
+    const summary = normalizeBackendSummary(response.summary, meeting.id);
+    let meetingSync = response.meetingSync;
+
+    if (!meetingSync) {
+      const authoritative = (await listMeetings()).meetings.find(
+        (item) => item.id === meeting.id
+      );
+      if (
+        !authoritative?.aiSummary ||
+        authoritative.aiSummary.id !== summary.id ||
+        !Number.isInteger(authoritative.serverRevision)
+      ) {
+        throw new Error('AI summary could not be synchronized.');
+      }
+      meetingSync = {
+        meetingId: meeting.id,
+        sourceServerRevision: source.serverRevision!,
+        serverRevision: authoritative.serverRevision!,
+        updatedAt: authoritative.updatedAt,
+      } satisfies AiMeetingSyncDto;
     }
-    meetingSync = {
-      meetingId: meeting.id,
-      sourceServerRevision: source.serverRevision!,
-      serverRevision: authoritative.serverRevision!,
-      updatedAt: authoritative.updatedAt,
-    } satisfies AiMeetingSyncDto;
+
+    if (!isCurrentSession()) throw new AiRecapUnavailableError();
+    const applied = useMeetingsStore().applyRemoteAiSummary(
+      source,
+      summary,
+      meetingSync
+    );
+    if (!applied)
+      throw new Error('Meeting changed while applying the AI summary.');
+
+    return summary;
+  } catch (error) {
+    if (isRecapAllowanceExhausted(error)) refreshAllowance = true;
+    throw error;
+  } finally {
+    if (refreshAllowance && isCurrentSession()) {
+      subscription.invalidateAssistantRecap();
+      try {
+        await subscription.refreshCurrentPlan();
+      } catch {
+        // Preserve the generation result/error even if a refresh implementation rejects.
+        if (isCurrentSession()) subscription.invalidateAssistantRecap();
+      }
+    }
   }
-
-  const applied = useMeetingsStore().applyRemoteAiSummary(
-    source,
-    summary,
-    meetingSync
-  );
-  if (!applied)
-    throw new Error('Meeting changed while applying the AI summary.');
-
-  return summary;
 }

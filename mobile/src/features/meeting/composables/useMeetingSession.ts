@@ -8,6 +8,7 @@ import type {
 } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
+import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
   generateMeetingSummary,
   parseAiQuotaError,
@@ -29,7 +30,6 @@ import type {
 } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
 import type { Task, TaskResponsibilityType } from '@/features/tasks/types';
-import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useToast } from '@/shared/composables/useToast';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
@@ -247,10 +247,10 @@ export function useMeetingSession() {
   const meetingsStore = useMeetingsStore();
   const participantsStore = useParticipantsStore();
   const tasksStore = useTasksStore();
+  const subscriptionStore = useSubscriptionStore();
   const router = useRouter();
   const { t, locale } = useI18n();
   const { can } = useWorkspacePermissions();
-  const { canUseFeature } = useFeatureAccess();
   const { showToast } = useToast();
 
   const noteText = ref('');
@@ -1232,7 +1232,7 @@ export function useMeetingSession() {
       let aiSummaryFailed = false;
       let aiQuotaInfo: ReturnType<typeof parseAiQuotaError> = null;
 
-      if (canUseFeature('aiSummary')) {
+      if (subscriptionStore.canGenerateAssistantRecap) {
         const completedMeeting = meetingsStore.meetings.find(
           (meeting) => meeting.id === meetingId
         );

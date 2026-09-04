@@ -16,6 +16,8 @@ vi.mock('@/shared/api/aiApi', () => ({
 vi.mock('@/shared/api/meetingsApi', () => ({ listMeetings: mocks.list }));
 
 import { useMeetingsStore } from '@/app/stores/meetings';
+import { useSubscriptionStore } from '@/app/stores/subscription';
+import { ApiClientError } from '@/shared/api/httpClient';
 import { generateMeetingSummary } from '../aiSummaryService';
 
 const source: Meeting = {
@@ -65,9 +67,98 @@ beforeEach(() => {
   useMeetingsStore().meetings = [structuredClone(source)];
   mocks.sync.mockResolvedValue(structuredClone(source));
   mocks.generate.mockResolvedValue(response());
+  const subscription = useSubscriptionStore();
+  subscription.assistantRecap = {
+    limit: 3,
+    used: 0,
+    remaining: 3,
+    periodEndsAt: null,
+    canGenerate: true,
+  };
+  vi.spyOn(subscription, 'refreshCurrentPlan').mockResolvedValue(undefined);
 });
 
 describe('acknowledged AI generation', () => {
+  it.each([
+    null,
+    { limit: 3, used: 3, remaining: 0, periodEndsAt: null, canGenerate: false },
+    { limit: 3, used: 0, remaining: 3, periodEndsAt: null, canGenerate: false },
+  ])(
+    'blocks unavailable allowance before sync or AI: %j',
+    async (allowance) => {
+      useSubscriptionStore().assistantRecap = allowance;
+      await expect(generateMeetingSummary(source)).rejects.toMatchObject({
+        name: 'AiRecapUnavailableError',
+      });
+      expect(mocks.sync).not.toHaveBeenCalled();
+      expect(mocks.generate).not.toHaveBeenCalled();
+    }
+  );
+
+  it('rechecks permission after completion sync', async () => {
+    mocks.sync.mockImplementationOnce(async () => {
+      useSubscriptionStore().assistantRecap = null;
+      return structuredClone(source);
+    });
+    await expect(generateMeetingSummary(source)).rejects.toMatchObject({
+      name: 'AiRecapUnavailableError',
+    });
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
+
+  it('refreshes allowance once after success', async () => {
+    await generateMeetingSummary(source);
+    expect(useSubscriptionStore().refreshCurrentPlan).toHaveBeenCalledOnce();
+  });
+
+  it('preserves success and server metadata when the allowance refresh fails', async () => {
+    vi.mocked(useSubscriptionStore().refreshCurrentPlan).mockRejectedValueOnce(
+      new Error('offline')
+    );
+    await expect(generateMeetingSummary(source)).resolves.toEqual(summary);
+    expect(useMeetingsStore().meetings[0]).toMatchObject({
+      aiSummary: summary,
+      serverRevision: 4,
+    });
+    expect(useSubscriptionStore().assistantRecap).toBeNull();
+  });
+
+  it('invalidates exhausted allowance before refresh and preserves the original error', async () => {
+    const error = new ApiClientError('No recaps remain.', {
+      status: 429,
+      code: 'recap_allowance_exhausted',
+    });
+    mocks.generate.mockRejectedValueOnce(error);
+    vi.mocked(useSubscriptionStore().refreshCurrentPlan).mockImplementationOnce(
+      async () => {
+        expect(useSubscriptionStore().canGenerateAssistantRecap).toBe(false);
+        throw new Error('offline');
+      }
+    );
+    await expect(generateMeetingSummary(source)).rejects.toBe(error);
+    expect(useSubscriptionStore().refreshCurrentPlan).toHaveBeenCalledOnce();
+    expect(useSubscriptionStore().canGenerateAssistantRecap).toBe(false);
+  });
+
+  it('does not refresh allowance after unrelated provider failures', async () => {
+    mocks.generate.mockRejectedValueOnce(new Error('provider unavailable'));
+    await expect(generateMeetingSummary(source)).rejects.toThrow(
+      'provider unavailable'
+    );
+    expect(useSubscriptionStore().refreshCurrentPlan).not.toHaveBeenCalled();
+  });
+
+  it('does not apply a late AI response after sign-out', async () => {
+    mocks.generate.mockImplementationOnce(async () => {
+      useSubscriptionStore().$reset();
+      return response();
+    });
+    await expect(generateMeetingSummary(source)).rejects.toMatchObject({
+      name: 'AiRecapUnavailableError',
+    });
+    expect(useMeetingsStore().meetings[0]!.aiSummary).toBeUndefined();
+    expect(useSubscriptionStore().refreshCurrentPlan).not.toHaveBeenCalled();
+  });
   it('waits for completion sync, sends its revision, and applies server metadata', async () => {
     let acknowledge!: (value: Meeting) => void;
     mocks.sync.mockReturnValueOnce(
@@ -111,6 +202,7 @@ describe('acknowledged AI generation', () => {
       serverRevision: 3,
     });
     expect(useMeetingsStore().meetings[0]!.aiSummary).toBeUndefined();
+    expect(useSubscriptionStore().refreshCurrentPlan).toHaveBeenCalledOnce();
   });
 
   it('never regresses a newer remote revision', async () => {

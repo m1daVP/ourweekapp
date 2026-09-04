@@ -1387,6 +1387,20 @@ export const messages = {
       },
     },
     ai: {
+      recap: {
+        checking: 'Checking recap availability…',
+        unavailable:
+          'Recap availability could not be confirmed. Refresh to try again.',
+        refresh: 'Refresh availability',
+        restricted: 'Your household role cannot generate AI recaps.',
+        freeRemaining: 'Free recaps remaining: {count}',
+        freeExhausted:
+          'No free recaps remain. Saved recaps are still available.',
+        premiumRemaining: 'Recaps available: {count} of {limit}, until {date}.',
+        premiumExhausted:
+          'No recaps remain for this period. Allowance renews on {date}.',
+        premiumNoDate: 'Recaps available: {count} of {limit}.',
+      },
       promptContract: [
         'Write a short, neutral summary.',
         'List the main topics discussed.',
@@ -2886,6 +2900,21 @@ export const messages = {
       },
     },
     ai: {
+      recap: {
+        checking: 'Перевіряємо доступність підсумків…',
+        unavailable:
+          'Не вдалося підтвердити доступність підсумків. Оновіть, щоб спробувати ще раз.',
+        refresh: 'Оновити доступність',
+        restricted:
+          'Ваша роль у домогосподарстві не дозволяє створювати ШІ-підсумки.',
+        freeRemaining: 'Залишилося безкоштовних підсумків: {count}',
+        freeExhausted:
+          'Безкоштовних підсумків більше немає. Збережені підсумки залишаються доступними.',
+        premiumRemaining: 'Доступно підсумків: {count} із {limit}, до {date}.',
+        premiumExhausted:
+          'Підсумків на цей період більше немає. Ліміт поновиться {date}.',
+        premiumNoDate: 'Доступно підсумків: {count} із {limit}.',
+      },
       promptContract: [
         'Напишіть короткий нейтральний підсумок.',
         'Перелічіть основні обговорені теми.',
@@ -4402,6 +4431,21 @@ export const messages = {
       },
     },
     ai: {
+      recap: {
+        checking: 'Comprobando la disponibilidad de resúmenes…',
+        unavailable:
+          'No se pudo confirmar la disponibilidad de resúmenes. Actualiza para intentarlo de nuevo.',
+        refresh: 'Actualizar disponibilidad',
+        restricted: 'Tu rol en el hogar no permite generar resúmenes con IA.',
+        freeRemaining: 'Resúmenes gratuitos restantes: {count}',
+        freeExhausted:
+          'No quedan resúmenes gratuitos. Los resúmenes guardados siguen disponibles.',
+        premiumRemaining:
+          'Resúmenes disponibles: {count} de {limit}, hasta el {date}.',
+        premiumExhausted:
+          'No quedan resúmenes para este período. La disponibilidad se renueva el {date}.',
+        premiumNoDate: 'Resúmenes disponibles: {count} de {limit}.',
+      },
       promptContract: [
         'Escribe un resumen breve y neutral.',
         'Enumera los temas principales conversados.',

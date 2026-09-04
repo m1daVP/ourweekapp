@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
+import { useSubscriptionStore } from '@/app/stores/subscription';
+import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
 import {
   copyExportToClipboard,
   createMeetingExportFile,
@@ -14,6 +16,8 @@ import {
 } from '@/features/export/services/exportService';
 import {
   generateMeetingSummary,
+  AiRecapUnavailableError,
+  isRecapAllowanceExhausted,
   getAiQuotaMessage,
 } from '@/features/meeting/aiSummaryService';
 import {
@@ -32,6 +36,7 @@ import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 const meetingsStore = useMeetingsStore();
 const { t, locale } = useI18n();
 const participantsStore = useParticipantsStore();
+const subscriptionStore = useSubscriptionStore();
 const route = useRoute();
 const router = useRouter();
 const { canUseFeature } = useFeatureAccess();
@@ -57,7 +62,7 @@ const canGenerateAiSummary = computed(() =>
     meeting.value &&
     meeting.value.status === 'completed' &&
     !aiSummary.value &&
-    canUseFeature('aiSummary')
+    subscriptionStore.canGenerateAssistantRecap
   )
 );
 
@@ -301,7 +306,10 @@ async function generateSummary() {
     await generateMeetingSummary(meeting.value);
   } catch (error) {
     aiSummaryError.value =
-      getAiQuotaMessage(error) ?? t('meeting.generateFailed');
+      error instanceof AiRecapUnavailableError ||
+      isRecapAllowanceExhausted(error)
+        ? ''
+        : (getAiQuotaMessage(error) ?? t('meeting.generateFailed'));
   } finally {
     isGeneratingSummary.value = false;
   }
@@ -359,109 +367,105 @@ async function generateSummary() {
         </section>
       </PremiumLock>
 
-      <PremiumLock
-        feature="aiSummary"
-        :title="t('meeting.aiPremiumTitle')"
-        :message="t('meeting.aiPremiumMessage')"
-      >
-        <section class="meeting-panel ai-summary-panel">
-          <div class="ai-summary-panel__header">
-            <div>
-              <h2>{{ t('meeting.aiSummary') }}</h2>
-              <p class="meeting-help">{{ t('meeting.aiDisclaimer') }}</p>
-            </div>
-            <button
-              v-if="canGenerateAiSummary"
-              type="button"
-              class="meeting-primary ai-summary-panel__button"
-              :disabled="isGeneratingSummary"
-              @click="generateSummary"
-            >
-              {{
-                t('meeting.generateSummary', { action: t('meeting.generate') })
-              }}
-            </button>
+      <section class="meeting-panel ai-summary-panel">
+        <div class="ai-summary-panel__header">
+          <div>
+            <h2>{{ t('meeting.aiSummary') }}</h2>
+            <p class="meeting-help">{{ t('meeting.aiDisclaimer') }}</p>
+          </div>
+          <button
+            v-if="canGenerateAiSummary"
+            data-testid="generate-meeting-recap"
+            type="button"
+            class="meeting-primary ai-summary-panel__button"
+            :disabled="isGeneratingSummary"
+            @click="generateSummary"
+          >
+            {{
+              t('meeting.generateSummary', { action: t('meeting.generate') })
+            }}
+          </button>
+        </div>
+
+        <RecapAllowanceStatus />
+        <p v-if="aiSummaryError" class="meeting-error">
+          {{ aiSummaryError }}
+        </p>
+
+        <template v-if="aiSummary">
+          <p class="ai-summary-panel__summary">
+            {{ aiSummary.shortSummary }}
+          </p>
+
+          <div class="meeting-summary__group">
+            <h3>{{ t('meeting.mainTopics') }}</h3>
+            <ul class="meeting-list">
+              <li v-for="topic in aiSummary.mainTopics" :key="topic">
+                <p>{{ topic }}</p>
+              </li>
+            </ul>
           </div>
 
-          <p v-if="aiSummaryError" class="meeting-error">
-            {{ aiSummaryError }}
-          </p>
+          <div class="meeting-summary__group">
+            <h3>{{ t('meeting.keyTensions') }}</h3>
+            <ul class="meeting-list">
+              <li v-for="tension in aiSummary.keyTensions" :key="tension">
+                <p>{{ tension }}</p>
+              </li>
+            </ul>
+          </div>
 
-          <template v-if="aiSummary">
-            <p class="ai-summary-panel__summary">
-              {{ aiSummary.shortSummary }}
+          <div class="meeting-summary__group">
+            <h3>{{ t('meeting.agreementsMade') }}</h3>
+            <ul class="meeting-list">
+              <li v-for="agreement in aiSummary.agreements" :key="agreement">
+                <p>{{ agreement }}</p>
+              </li>
+            </ul>
+          </div>
+
+          <div class="meeting-summary__group">
+            <h3>{{ t('meeting.openTasks') }}</h3>
+            <ul
+              v-if="aiSummary.tasks.length"
+              class="meeting-list meeting-task-list"
+            >
+              <li v-for="task in aiSummary.tasks" :key="task.title">
+                <div>
+                  <strong>{{ task.title }}</strong>
+                  <p v-if="task.description">{{ task.description }}</p>
+                  <small>
+                    {{ getTaskStatusLabel(task.status) }} -
+                    {{ getTaskResponsibleLabel(task) }}
+                    <template v-if="task.dueDate">
+                      - {{ t('common.due') }} {{ task.dueDate }}</template
+                    >
+                  </small>
+                </div>
+              </li>
+            </ul>
+            <p v-else class="meeting-empty">
+              {{ t('meeting.noOpenTasksSummarized') }}
             </p>
+          </div>
 
-            <div class="meeting-summary__group">
-              <h3>{{ t('meeting.mainTopics') }}</h3>
-              <ul class="meeting-list">
-                <li v-for="topic in aiSummary.mainTopics" :key="topic">
-                  <p>{{ topic }}</p>
-                </li>
-              </ul>
-            </div>
-
-            <div class="meeting-summary__group">
-              <h3>{{ t('meeting.keyTensions') }}</h3>
-              <ul class="meeting-list">
-                <li v-for="tension in aiSummary.keyTensions" :key="tension">
-                  <p>{{ tension }}</p>
-                </li>
-              </ul>
-            </div>
-
-            <div class="meeting-summary__group">
-              <h3>{{ t('meeting.agreementsMade') }}</h3>
-              <ul class="meeting-list">
-                <li v-for="agreement in aiSummary.agreements" :key="agreement">
-                  <p>{{ agreement }}</p>
-                </li>
-              </ul>
-            </div>
-
-            <div class="meeting-summary__group">
-              <h3>{{ t('meeting.openTasks') }}</h3>
-              <ul
-                v-if="aiSummary.tasks.length"
-                class="meeting-list meeting-task-list"
+          <div class="meeting-summary__group">
+            <h3>{{ t('meeting.revisitNextWeek') }}</h3>
+            <ul class="meeting-list">
+              <li
+                v-for="focus in aiSummary.suggestedNextMeetingFocus"
+                :key="focus"
               >
-                <li v-for="task in aiSummary.tasks" :key="task.title">
-                  <div>
-                    <strong>{{ task.title }}</strong>
-                    <p v-if="task.description">{{ task.description }}</p>
-                    <small>
-                      {{ getTaskStatusLabel(task.status) }} -
-                      {{ getTaskResponsibleLabel(task) }}
-                      <template v-if="task.dueDate">
-                        - {{ t('common.due') }} {{ task.dueDate }}</template
-                      >
-                    </small>
-                  </div>
-                </li>
-              </ul>
-              <p v-else class="meeting-empty">
-                {{ t('meeting.noOpenTasksSummarized') }}
-              </p>
-            </div>
+                <p>{{ focus }}</p>
+              </li>
+            </ul>
+          </div>
+        </template>
 
-            <div class="meeting-summary__group">
-              <h3>{{ t('meeting.revisitNextWeek') }}</h3>
-              <ul class="meeting-list">
-                <li
-                  v-for="focus in aiSummary.suggestedNextMeetingFocus"
-                  :key="focus"
-                >
-                  <p>{{ focus }}</p>
-                </li>
-              </ul>
-            </div>
-          </template>
-
-          <p v-else class="meeting-empty">
-            {{ t('meeting.generateEmpty') }}
-          </p>
-        </section>
-      </PremiumLock>
+        <p v-else class="meeting-empty">
+          {{ t('meeting.generateEmpty') }}
+        </p>
+      </section>
 
       <section
         v-for="section in meeting.sections"

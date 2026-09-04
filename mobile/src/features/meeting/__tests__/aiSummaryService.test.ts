@@ -3,6 +3,7 @@ import {
   formatAiQuotaMessage,
   getAiQuotaMessage,
   parseAiQuotaError,
+  isRecapAllowanceExhausted,
 } from '@/features/meeting/aiSummaryService';
 import { ApiClientError } from '@/shared/api/httpClient';
 
@@ -18,6 +19,18 @@ function quotaError(details: Record<string, unknown>) {
 }
 
 describe('parseAiQuotaError', () => {
+  it('keeps credit exhaustion separate from hourly anti-abuse limits', () => {
+    const exhausted = new ApiClientError('No recaps remain.', {
+      status: 429,
+      code: 'recap_allowance_exhausted',
+    });
+    expect(isRecapAllowanceExhausted(exhausted)).toBe(true);
+    expect(parseAiQuotaError(exhausted)).toBeNull();
+    expect(isRecapAllowanceExhausted(quotaError({}))).toBe(false);
+    expect(
+      isRecapAllowanceExhausted(new Error('recap_allowance_exhausted'))
+    ).toBe(false);
+  });
   it('parses a well-formed user-scope quota error', () => {
     expect(
       parseAiQuotaError(

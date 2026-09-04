@@ -7,6 +7,8 @@ import { useParticipantsStore } from '@/app/stores/participants';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
   generateMeetingSummary,
+  AiRecapUnavailableError,
+  isRecapAllowanceExhausted,
   getAiQuotaMessage,
   formatAiQuotaMessage,
   type AiQuotaInfo,
@@ -19,7 +21,7 @@ import type {
   MeetingTask,
 } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
-import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
+import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 interface SummaryParticipant {
@@ -38,7 +40,7 @@ interface SummaryActionItem {
   completed: boolean;
 }
 
-type AiInsightState = 'available' | 'empty' | 'error' | 'loading' | 'locked';
+type AiInsightState = 'available' | 'empty' | 'error' | 'loading';
 
 interface SummaryViewModel {
   id: string;
@@ -56,7 +58,6 @@ const { t, te, locale } = useI18n();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const subscriptionStore = useSubscriptionStore();
-const { canUseFeature } = useFeatureAccess();
 const shareError = ref('');
 const isSharing = ref(false);
 const aiSummaryError = ref('');
@@ -113,26 +114,11 @@ const hiddenParticipantCount = computed(() =>
   Math.max(0, (meetingSummary.value?.participants.length ?? 0) - 2)
 );
 
-const canUseAiSummary = computed(
-  () =>
-    subscriptionStore.assistantRecap?.canGenerate ?? canUseFeature('aiSummary')
-);
-const assistantRecapStatus = computed(() => {
-  const recap = subscriptionStore.assistantRecap;
-  if (!recap) return '';
-  if (!recap.periodEndsAt) return `${recap.remaining} free recaps left`;
-  const until = new Intl.DateTimeFormat(locale.value, {
-    day: 'numeric',
-    month: 'long',
-  }).format(new Date(recap.periodEndsAt));
-  return `${recap.remaining} of ${recap.limit} recaps available until ${until}`;
-});
-
 const canGenerateAiSummary = computed(() =>
   Boolean(
     accessibleMeeting.value &&
     accessibleMeeting.value.status === 'completed' &&
-    canUseAiSummary.value &&
+    subscriptionStore.canGenerateAssistantRecap &&
     !accessibleMeeting.value.aiSummary &&
     !isGeneratingSummary.value
   )
@@ -170,10 +156,6 @@ const aiSummaryErrorMessage = computed(
 const aiInsightState = computed<AiInsightState>(() => {
   if (!accessibleMeeting.value || !meetingSummary.value) {
     return 'empty';
-  }
-
-  if (!canUseAiSummary.value) {
-    return 'locked';
   }
 
   if (meetingSummary.value.aiInsight) {
@@ -334,10 +316,7 @@ function createSummaryViewModel(item: Meeting): SummaryViewModel {
 }
 
 function getShareText(summary: SummaryViewModel) {
-  const visibleAiInsight =
-    accessibleMeeting.value && !canUseAiSummary.value
-      ? null
-      : summary.aiInsight;
+  const visibleAiInsight = summary.aiInsight;
   const decisions = summary.keyDecisions.map((item) => `- ${item}`).join('\n');
   const actions = summary.actionItems
     .map((item) => `- ${item.title} (${item.assigneeName})`)
@@ -425,10 +404,12 @@ async function handleGenerateSummary() {
 
   try {
     await generateMeetingSummary(accessibleMeeting.value);
-    await subscriptionStore.refreshCurrentPlan();
   } catch (error) {
     aiSummaryError.value =
-      getAiQuotaMessage(error) ?? meetingSummaryText('aiFailed');
+      error instanceof AiRecapUnavailableError ||
+      isRecapAllowanceExhausted(error)
+        ? ''
+        : (getAiQuotaMessage(error) ?? meetingSummaryText('aiFailed'));
   } finally {
     isGeneratingSummary.value = false;
   }
@@ -505,24 +486,14 @@ function goBack() {
         <p v-else-if="aiInsightState === 'loading'">
           {{ meetingSummaryText('aiGenerating') }}
         </p>
-        <template v-else-if="aiInsightState === 'locked'">
-          <p>{{ meetingSummaryText('aiLocked') }}</p>
-          <RouterLink
-            class="meeting-summary-ai-card__link"
-            :to="{ name: 'upgrade', query: { lockedFeature: 'aiSummary' } }"
-          >
-            {{ meetingSummaryText('aiUpgrade') }}
-          </RouterLink>
-        </template>
         <p v-else-if="aiInsightState === 'error'">
           {{ aiSummaryErrorMessage }}
         </p>
         <p v-else>{{ meetingSummaryText('aiEmpty') }}</p>
-        <p v-if="assistantRecapStatus" class="meeting-summary-ai-card__note">
-          {{ assistantRecapStatus }}
-        </p>
+        <RecapAllowanceStatus />
         <button
           v-if="canGenerateAiSummary"
+          data-testid="generate-meeting-recap"
           class="meeting-summary-ai-card__button"
           type="button"
           @click="handleGenerateSummary"
@@ -624,6 +595,7 @@ function goBack() {
       </RouterLink>
       <button
         class="meeting-summary-share-button"
+        data-testid="share-meeting-summary"
         type="button"
         :disabled="isSharing"
         @click="handleShareSummary"
