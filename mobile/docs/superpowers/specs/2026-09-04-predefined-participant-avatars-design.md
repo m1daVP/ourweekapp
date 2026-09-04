@@ -98,6 +98,21 @@ color mode. A signed-in linked member can change their own avatar. Workspace
 owners may change avatars for unlinked profiles, including child profiles. A
 linked member’s avatar is shown but not editable by another household member.
 
+The edit-form trigger is a full-width settings field row, not an unstyled
+button: it presents the current avatar preview, an `Avatar` label, a concise
+current-selection value, and a chevron. The custom color wheel and its text
+validation render inline within the same Avatar bottom sheet beneath the color
+swatches. The standalone custom-color bottom sheet is removed, so no sheet can
+open behind another sheet.
+
+The Avatar sheet keeps a local draft selection: choosing a swatch, image, or
+wheel value never closes or persists the sheet. The custom-color button toggles
+an inline wheel with a reduced-motion-aware expand/collapse transition. One
+sticky `Select avatar` action at the bottom confirms the current draft and
+closes the sheet; Back, Cancel, and the close affordance discard it.
+That confirmation action spans the available sheet width, uses the existing
+green primary-button treatment, and has a minimum 48px touch target.
+
 A focused `ParticipantAvatar` component receives a participant and size/style
 variant. It renders the locally bundled image when its `avatarType` resolves in
 the catalog; otherwise it renders the existing color-and-initials avatar. It
