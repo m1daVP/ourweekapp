@@ -38,6 +38,45 @@ describe.each([
   ['summary', MeetingSummaryPage],
   ['details', MeetingDetailsPage],
 ] as const)('%s recap page', (name, page) => {
+  function addConflictingCommitments() {
+    const meeting = context.meetings.meetings[0]!;
+    const section = meeting.sections[0]!;
+
+    section.tasks = [
+      {
+        id: 'canonical-task-1',
+        sectionId: 'goodThings',
+        title: 'Book the dentist appointment',
+        responsibilityType: 'shared',
+        responsibleParticipantIds: [],
+        status: 'open',
+        createdAt: '2026-09-04T10:00:00.000Z',
+        updatedAt: '2026-09-04T10:00:00.000Z',
+      },
+    ];
+    section.agreements = [
+      {
+        id: 'canonical-agreement-1',
+        sectionId: 'goodThings',
+        text: 'We will plan Sunday together after breakfast.',
+        participantIds: [],
+        createdAt: '2026-09-04T10:00:00.000Z',
+      },
+    ];
+    meeting.aiSummary = {
+      ...savedRecap,
+      agreements: ['AI rewrite: plan Sunday only if convenient.'],
+      tasks: [
+        {
+          title: 'AI-invented task',
+          responsibilityType: 'shared',
+          responsibleParticipantIds: [],
+          status: 'open',
+        },
+      ],
+    };
+  }
+
   function render() {
     wrapper = mount(page, {
       global: {
@@ -158,6 +197,23 @@ describe.each([
       false
     );
   });
+
+  if (name === 'summary') {
+    it('keeps recorded commitments authoritative over divergent AI output', () => {
+      addConflictingCommitments();
+      render();
+
+      expect(wrapper.text()).toContain('Book the dentist appointment');
+      expect(wrapper.text()).toContain(
+        'We will plan Sunday together after breakfast.'
+      );
+      expect(wrapper.text()).toContain(savedRecap.shortSummary);
+      expect(wrapper.text()).not.toContain('AI-invented task');
+      expect(wrapper.text()).not.toContain(
+        'AI rewrite: plan Sunday only if convenient.'
+      );
+    });
+  }
 });
 
 it('keeps a saved insight in ordinary share text after allowance exhaustion', async () => {
@@ -180,4 +236,63 @@ it('keeps a saved insight in ordinary share text after allowance exhaustion', as
       text: expect.stringContaining(savedRecap.shortSummary),
     })
   );
+});
+
+it('shares recorded commitments instead of divergent AI task and agreement output', async () => {
+  const share = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, 'share', {
+    configurable: true,
+    value: share,
+  });
+  const meeting = context.meetings.meetings[0]!;
+  const section = meeting.sections[0]!;
+  section.tasks = [
+    {
+      id: 'canonical-task-1',
+      sectionId: 'goodThings',
+      title: 'Book the dentist appointment',
+      responsibilityType: 'shared',
+      responsibleParticipantIds: [],
+      status: 'open',
+      createdAt: '2026-09-04T10:00:00.000Z',
+      updatedAt: '2026-09-04T10:00:00.000Z',
+    },
+  ];
+  section.agreements = [
+    {
+      id: 'canonical-agreement-1',
+      sectionId: 'goodThings',
+      text: 'We will plan Sunday together after breakfast.',
+      participantIds: [],
+      createdAt: '2026-09-04T10:00:00.000Z',
+    },
+  ];
+  meeting.aiSummary = {
+    ...savedRecap,
+    agreements: ['AI rewrite: plan Sunday only if convenient.'],
+    tasks: [
+      {
+        title: 'AI-invented task',
+        responsibilityType: 'shared',
+        responsibleParticipantIds: [],
+        status: 'open',
+      },
+    ],
+  };
+  wrapper = mount(MeetingSummaryPage, {
+    global: {
+      plugins: [context.pinia, context.i18n],
+      stubs: { RouterLink: { template: '<a><slot /></a>' } },
+    },
+  });
+
+  await wrapper.get('[data-testid="share-meeting-summary"]').trigger('click');
+  await flushPromises();
+
+  const text = share.mock.calls[0]?.[0].text as string;
+  expect(text).toContain('Book the dentist appointment');
+  expect(text).toContain('We will plan Sunday together after breakfast.');
+  expect(text).toContain(savedRecap.shortSummary);
+  expect(text).not.toContain('AI-invented task');
+  expect(text).not.toContain('AI rewrite: plan Sunday only if convenient.');
 });

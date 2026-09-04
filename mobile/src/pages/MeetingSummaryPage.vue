@@ -296,11 +296,6 @@ function createSummaryViewModel(item: Meeting): SummaryViewModel {
   const tasks = item.sections
     .flatMap((section) => section.tasks)
     .filter(isOpenTask);
-  const summaryTasks = item.aiSummary?.tasks.filter(isOpenTask) ?? [];
-  const visibleTasks = summaryTasks.length ? summaryTasks : tasks;
-  const keyDecisions = item.aiSummary?.agreements.length
-    ? item.aiSummary.agreements
-    : agreements;
 
   return {
     id: item.aiSummary?.id ?? item.id,
@@ -308,12 +303,10 @@ function createSummaryViewModel(item: Meeting): SummaryViewModel {
     date: formatDate(getMeetingDate(item)),
     participants,
     aiInsight: item.aiSummary?.shortSummary ?? null,
-    keyDecisions,
-    actionItems: visibleTasks.length
-      ? visibleTasks.map((task, index) =>
-          createActionItem(task, participants, index)
-        )
-      : [],
+    keyDecisions: agreements,
+    actionItems: tasks.map((task, index) =>
+      createActionItem(task, participants, index)
+    ),
   };
 }
 
