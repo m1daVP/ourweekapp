@@ -616,7 +616,11 @@ function enableParticipant(participantId: string) {
               "
               @click="openEditSheet(participant)"
             >
-              <ParticipantAvatar :participant="participant" size="large" decorative />
+              <ParticipantAvatar
+                :participant="participant"
+                size="large"
+                decorative
+              />
               <span class="household-member-row__body">
                 <strong>{{ participant.name }}</strong>
                 <small>{{ getTypeLabel(participant.type) }}</small>
@@ -774,6 +778,40 @@ function enableParticipant(participantId: string) {
           {{ participantMessage.text }}
         </p>
 
+        <button
+          v-if="canEditSelectedParticipantAvatar"
+          class="participant-avatar-choice"
+          type="button"
+          @click="openAvatarPicker"
+        >
+          <ParticipantAvatar
+            :participant="{
+              name: participantDraft.name || t('settings.name'),
+              initials: initialsPreview,
+              avatarColor: participantDraft.avatarColor,
+              avatarType: participantDraft.avatarType,
+            }"
+            size="large"
+            decorative
+          />
+          <span class="participant-avatar-choice__body">
+            <strong>{{ t('settings.avatar') }}</strong>
+          </span>
+          <span class="material-symbols-outlined" aria-hidden="true"
+            >chevron_right</span
+          >
+        </button>
+        <ParticipantAvatar
+          v-else
+          :participant="{
+            name: participantDraft.name || t('settings.name'),
+            initials: initialsPreview,
+            avatarColor: participantDraft.avatarColor,
+            avatarType: participantDraft.avatarType,
+          }"
+          size="large"
+        />
+
         <label>
           <span>{{ t('settings.name') }}</span>
           <input
@@ -796,29 +834,6 @@ function enableParticipant(participantId: string) {
             </option>
           </select>
         </label>
-
-        <button
-          v-if="canEditSelectedParticipantAvatar"
-          class="participant-avatar-choice"
-          type="button"
-          @click="openAvatarPicker"
-        >
-          <ParticipantAvatar
-            :participant="{ name: participantDraft.name || t('settings.name'), initials: initialsPreview, avatarColor: participantDraft.avatarColor, avatarType: participantDraft.avatarType }"
-            size="large"
-            decorative
-          />
-          <span class="participant-avatar-choice__body">
-            <strong>{{ t('settings.avatar') }}</strong>
-            <small>{{ participantDraft.avatarType ?? t('settings.avatarColors') }}</small>
-          </span>
-          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-        </button>
-        <ParticipantAvatar
-          v-else
-          :participant="{ name: participantDraft.name || t('settings.name'), initials: initialsPreview, avatarColor: participantDraft.avatarColor, avatarType: participantDraft.avatarType }"
-          size="large"
-        />
 
         <button
           v-if="!isInitialsEditorOpen"
@@ -1003,6 +1018,11 @@ function enableParticipant(participantId: string) {
   text-align: left;
 }
 
-.participant-avatar-choice__body { display: grid; gap: 2px; }
-.participant-avatar-choice__body small { color: var(--color-on-surface-variant); }
+.participant-avatar-choice__body {
+  display: grid;
+  gap: 2px;
+}
+.participant-avatar-choice__body small {
+  color: var(--color-on-surface-variant);
+}
 </style>

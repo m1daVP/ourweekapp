@@ -187,14 +187,14 @@ onBeforeUnmount(destroyPicker);
 .avatar-picker { display: grid; gap: var(--space-5); padding: 0 var(--space-4) var(--space-4); }
 .avatar-picker h3, .avatar-picker h4 { margin: 0 0 var(--space-2); }
 .avatar-picker__colors, .avatar-picker__grid { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.avatar-picker button { display: grid; width: 48px; height: 48px; place-items: center; border: 2px solid transparent; border-radius: 50%; background: var(--color-surface-low); }
+.avatar-picker button { display: grid; width: 64px; height: 64px; place-items: center; border: 2px solid transparent; border-radius: 50%; background: var(--color-surface-low); padding: 1px; overflow: hidden; }
 .avatar-picker button[aria-pressed='true'] { border-color: var(--color-primary); }
 .avatar-picker__colors span { width: 32px; height: 32px; border-radius: 50%; }
 .avatar-picker button img { width: 100%; height: 100%; object-fit: contain; }
-.avatar-picker__custom-color { width: auto !important; padding: 0 var(--space-3); border-radius: var(--radius-pill) !important; }
+button.avatar-picker__custom-color { width: auto !important; padding: 0 var(--space-3); border-radius: var(--radius-pill) !important; }
 .avatar-picker__group + .avatar-picker__group { margin-top: var(--space-3); }
 .avatar-picker__custom-panel { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
-.avatar-picker__wheel { min-height: 280px; overflow: hidden; border-radius: var(--radius-md); background: var(--color-surface-low); }
+.avatar-picker__wheel { min-height: 280px; overflow: hidden; border-radius: var(--radius-md); background: var(--color-surface-low); padding: 8px; }
 .avatar-picker__custom-panel label { display: grid; gap: var(--space-1); font-weight: 700; }
 .avatar-picker__custom-panel input { min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-outline-variant); border-radius: var(--radius-sm); background: var(--color-surface-lowest); color: var(--color-on-surface); font: inherit; text-transform: uppercase; }
 .avatar-picker .avatar-picker__confirm {
