@@ -307,13 +307,17 @@ input[type='radio'] {
   text-decoration: none;
 }
 
+.app-top-bar__avatar .participant-avatar {
+  background-color: var(--color-surface);
+}
+
 .app-top-bar__avatar--premium {
   position: relative;
 }
 
 .app-top-bar__avatar--premium::before {
   position: absolute;
-  inset: 1px;
+  inset: -2px;
   animation: premium-profile-ring-rotate 36s linear infinite;
   background: conic-gradient(
     from 45deg,

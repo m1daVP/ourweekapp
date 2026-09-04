@@ -187,7 +187,7 @@ onBeforeUnmount(destroyPicker);
 .avatar-picker { display: grid; gap: var(--space-5); padding: 0 var(--space-4) var(--space-4); }
 .avatar-picker h3, .avatar-picker h4 { margin: 0 0 var(--space-2); }
 .avatar-picker__colors, .avatar-picker__grid { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.avatar-picker button { display: grid; width: 64px; height: 64px; place-items: center; border: 2px solid transparent; border-radius: 50%; background: var(--color-surface-low); padding: 1px; overflow: hidden; }
+.avatar-picker button { display: grid; width: 64px; height: 64px; place-items: center; border: 2px solid transparent; border-radius: 50%; background: var(--color-surface-low); padding: 0; overflow: hidden; }
 .avatar-picker button[aria-pressed='true'] { border-color: var(--color-primary); }
 .avatar-picker__colors span { width: 32px; height: 32px; border-radius: 50%; }
 .avatar-picker button img { width: 100%; height: 100%; object-fit: contain; }
