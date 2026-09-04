@@ -188,7 +188,9 @@ function normalizeParticipant(
     avatarColor:
       participant.avatarColor ??
       participantColors[index % participantColors.length],
-    avatarType: isAvatarType(participant.avatarType) ? participant.avatarType : null,
+    avatarType: isAvatarType(participant.avatarType)
+      ? participant.avatarType
+      : null,
     type: participant.type ?? 'adult',
     isActive: participant.isActive ?? true,
     createdAt,

@@ -48,7 +48,6 @@ function getTemplateTone(template: MeetingTemplate) {
 function getTemplateDescription(template: MeetingTemplate) {
   return getMeetingTemplateDescription(template.id, template.description);
 }
-
 </script>
 
 <template>

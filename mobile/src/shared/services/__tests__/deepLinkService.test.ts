@@ -43,7 +43,9 @@ describe('resolveDeepLinkRoute', () => {
   });
 
   it('maps an invitation deep link without exposing unrelated fields', () => {
-    expect(resolveDeepLinkRoute('weeklyus://invite?token=opaque-token')).toEqual({
+    expect(
+      resolveDeepLinkRoute('weeklyus://invite?token=opaque-token')
+    ).toEqual({
       path: '/invitations/accept',
       query: { token: 'opaque-token' },
     });

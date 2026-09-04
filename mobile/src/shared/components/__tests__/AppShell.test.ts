@@ -30,7 +30,9 @@ vi.mock('vue-router', () => ({
 }));
 
 vi.mock('@/app/stores/participants', () => ({
-  useParticipantsStore: () => ({ activeParticipants: state.activeParticipants }),
+  useParticipantsStore: () => ({
+    activeParticipants: state.activeParticipants,
+  }),
 }));
 
 vi.mock('@/app/stores/auth', () => ({

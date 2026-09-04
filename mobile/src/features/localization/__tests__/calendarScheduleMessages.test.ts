@@ -25,12 +25,15 @@ describe('calendar schedule translations', () => {
         expect(schedule.weekdays[weekday].length).toBeGreaterThan(0);
       });
 
-      expect(messages[locale].calendar.disconnectConfirmText.length).toBeGreaterThan(0);
       expect(
-        messages[locale].calendar.options.weeklyMeeting.cleanupDescription.length,
+        messages[locale].calendar.disconnectConfirmText.length
       ).toBeGreaterThan(0);
       expect(
-        messages[locale].calendar.options.taskDueDates.cleanupDescription.length,
+        messages[locale].calendar.options.weeklyMeeting.cleanupDescription
+          .length
+      ).toBeGreaterThan(0);
+      expect(
+        messages[locale].calendar.options.taskDueDates.cleanupDescription.length
       ).toBeGreaterThan(0);
     }
   );

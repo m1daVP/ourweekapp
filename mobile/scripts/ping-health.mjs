@@ -57,4 +57,6 @@ function blueUnderlinedText(text) {
 }
 
 void ping();
-console.log(`[${timestamp()}] Ping started for ${blueUnderlinedText(healthUrl)}`);
+console.log(
+  `[${timestamp()}] Ping started for ${blueUnderlinedText(healthUrl)}`
+);

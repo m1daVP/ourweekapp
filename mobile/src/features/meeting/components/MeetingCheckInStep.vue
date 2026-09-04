@@ -116,7 +116,11 @@ function updateGuestName(event: Event) {
         >
           check_circle
         </span>
-        <ParticipantAvatar class="ritual-member-card__avatar" :participant="participant" decorative />
+        <ParticipantAvatar
+          class="ritual-member-card__avatar"
+          :participant="participant"
+          decorative
+        />
         <span class="ritual-member-card__name">
           {{ participant.name }}
         </span>
@@ -168,7 +172,11 @@ function updateGuestName(event: Event) {
               :disabled="participantIsCheckedIn(participant.id)"
               @click="emit('select-drawer-participant', participant.id)"
             >
-              <ParticipantAvatar class="ritual-guest-list__avatar" :participant="participant" decorative />
+              <ParticipantAvatar
+                class="ritual-guest-list__avatar"
+                :participant="participant"
+                decorative
+              />
               <span>{{ participant.name }}</span>
             </button>
           </div>

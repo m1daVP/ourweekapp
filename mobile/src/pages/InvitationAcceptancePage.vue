@@ -46,7 +46,8 @@ async function acceptInvitation() {
     return;
   }
 
-  errorMessage.value = authStore.errorMessage || 'Unable to accept this invitation.';
+  errorMessage.value =
+    authStore.errorMessage || 'Unable to accept this invitation.';
 }
 
 onMounted(() => {

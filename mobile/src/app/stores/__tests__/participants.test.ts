@@ -56,9 +56,7 @@ describe('participants store current participant identity', () => {
     store.updateParticipant(created!.id, {
       avatarType: 'fox',
     });
-    expect(store.getParticipantById(created!.id)?.avatarType).toBe(
-      'fox'
-    );
+    expect(store.getParticipantById(created!.id)?.avatarType).toBe('fox');
 
     store.updateParticipant(created!.id, { avatarType: null });
     expect(store.getParticipantById(created!.id)?.avatarType).toBeNull();
