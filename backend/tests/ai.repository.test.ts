@@ -86,26 +86,77 @@ describe('AiRepository', () => {
     });
   });
 
-  it('writes a request-bound summary snapshot on completion', async () => {
-    const single = vi.fn().mockResolvedValue({ data: requestRow(), error: null });
-    const select = vi.fn().mockReturnValue({ single });
-    const secondEq = vi.fn().mockReturnValue({ select });
-    const firstEq = vi.fn().mockReturnValue({ eq: secondEq });
-    const update = vi.fn().mockReturnValue({ eq: firstEq });
-    const from = vi.fn().mockReturnValue({ update });
-    const repository = new AiRepository({ from } as never);
+  it('finalizes a claimed summary through the workspace-scoped RPC', async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        finalization_status: 'applied',
+        meeting_id: meetingId,
+        source_server_revision: 1,
+        server_revision: 2,
+        updated_at: '2026-06-06T10:01:00.000Z',
+      },
+      error: null,
+    });
+    const rpc = vi.fn().mockReturnValue({ single });
+    const repository = new AiRepository({ rpc } as never);
 
-    await repository.markSummaryRequestCompleted(
+    await expect(repository.finalizeSummaryGeneration({
       workspaceId,
-      '44444444-4444-4444-8444-444444444444',
-      '2026-06-06T10:01:00.000Z',
-      null,
-      summary,
-    );
+      requestId: '44444444-4444-4444-8444-444444444444',
+      meetingId,
+      expectedServerRevision: 1,
+      generatedSummary: summary,
+      completedAt: '2026-06-06T10:01:00.000Z',
+      usage: { inputTokens: 320, outputTokens: 90, totalTokens: 410 },
+    })).resolves.toEqual({
+      status: 'applied',
+      meetingId,
+      sourceServerRevision: 1,
+      serverRevision: 2,
+      updatedAt: '2026-06-06T10:01:00.000Z',
+    });
 
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'completed',
-      generated_summary: summary,
-    }));
+    expect(rpc).toHaveBeenCalledWith('finalize_ai_summary_generation', {
+      p_workspace_id: workspaceId,
+      p_request_id: '44444444-4444-4444-8444-444444444444',
+      p_meeting_id: meetingId,
+      p_expected_server_revision: 1,
+      p_generated_summary: summary,
+      p_completed_at: '2026-06-06T10:01:00.000Z',
+      p_input_tokens: 320,
+      p_output_tokens: 90,
+      p_total_tokens: 410,
+    });
   });
+
+  it('rejects an unknown finalization state without exposing database details', async () => {
+    const repository = new AiRepository({
+      rpc: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            finalization_status: 'unexpected',
+            meeting_id: meetingId,
+            source_server_revision: 1,
+            server_revision: 2,
+            updated_at: '2026-06-06T10:01:00.000Z',
+          },
+          error: null,
+        }),
+      }),
+    } as never);
+
+    await expect(repository.finalizeSummaryGeneration({
+      workspaceId,
+      requestId: '44444444-4444-4444-8444-444444444444',
+      meetingId,
+      expectedServerRevision: 1,
+      generatedSummary: summary,
+      completedAt: '2026-06-06T10:01:00.000Z',
+      usage: null,
+    })).rejects.toMatchObject({
+      statusCode: 500,
+      code: 'ai_summary_request_finalization_invalid',
+    });
+  });
+
 });

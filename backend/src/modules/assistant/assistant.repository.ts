@@ -52,14 +52,6 @@ export class AssistantRepository {
     return data === true;
   }
 
-  async settleRecap(workspaceId: string, requestId: string) {
-    const { data, error } = await this.supabase.rpc('settle_assistant_recap_credit', {
-      p_workspace_id: workspaceId, p_ai_summary_request_id: requestId,
-    });
-    throwOnSupabaseError(error, 'assistant_recap_credit_settle_failed', 'Unable to settle an AI recap.');
-    return data === true;
-  }
-
   async releaseRecap(workspaceId: string, requestId: string) {
     const { data, error } = await this.supabase.rpc('release_assistant_recap_credit', {
       p_workspace_id: workspaceId, p_ai_summary_request_id: requestId,

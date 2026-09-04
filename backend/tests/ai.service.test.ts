@@ -108,12 +108,18 @@ function createHarness(input: {
   providerError?: unknown;
   userCount?: number;
   workspaceCount?: number;
-  updatedMeeting?: MeetingRepositoryDto | null;
   aiConfigured?: boolean;
   participants?: Array<{ id: string; name: string }>;
   claim?: {
     status: 'created' | 'pending' | 'completed';
     request: { id: string; generatedSummary?: unknown };
+  };
+  finalization?: {
+    status: 'applied' | 'completed' | 'revision_conflict';
+    meetingId: string;
+    sourceServerRevision: number;
+    serverRevision: number | null;
+    updatedAt: string | null;
   };
   withAssistantRepository?: boolean;
   assistantRecoveryError?: unknown;
@@ -138,16 +144,19 @@ function createHarness(input: {
     findMeetingByIdForWorkspace: vi.fn().mockResolvedValue(
       input.meeting === undefined ? meeting() : input.meeting,
     ),
-    updateMeetingSummary: vi.fn().mockResolvedValue(
-      input.updatedMeeting === undefined ? meeting() : input.updatedMeeting,
-    ),
   };
   const ai = {
     claimSummaryGeneration: vi.fn().mockResolvedValue(input.claim ?? {
       status: 'created',
       request: { id: 'request_1' },
     }),
-    markSummaryRequestCompleted: vi.fn().mockResolvedValue({ id: 'request_1' }),
+    finalizeSummaryGeneration: vi.fn().mockResolvedValue(input.finalization ?? {
+      status: 'applied',
+      meetingId,
+      sourceServerRevision: input.meeting?.serverRevision ?? 1,
+      serverRevision: (input.meeting?.serverRevision ?? 1) + 1,
+      updatedAt: '2026-06-06T10:01:00.000Z',
+    }),
     markSummaryRequestFailed: vi.fn().mockResolvedValue({ id: 'request_1' }),
     countRecentSummaryRequestsForWorkspace: vi.fn().mockResolvedValue(input.workspaceCount ?? 0),
     countRecentSummaryRequestsForUserInWorkspace: vi.fn().mockResolvedValue(input.userCount ?? 0),
@@ -165,7 +174,6 @@ function createHarness(input: {
     }),
     countUsedRecaps: vi.fn().mockResolvedValue(0),
     reserveRecap: vi.fn().mockResolvedValue(true),
-    settleRecap: vi.fn().mockResolvedValue(true),
     releaseRecap: vi.fn().mockResolvedValue(true),
   };
   const service = new AiSummaryService(ai, meetings, participants, provider, {
@@ -196,11 +204,18 @@ describe('AiSummaryService', () => {
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
   });
 
-  it('returns persisted sync metadata and saves against the original source revision', async () => {
+  it('returns atomic finalization sync metadata after provider success', async () => {
     const updatedAt = '2026-06-06T10:00:15.000Z';
-    const { meetings, service } = createHarness({
+    const { ai, meetings, assistant, service } = createHarness({
       meeting: meeting({ serverRevision: 3 }),
-      updatedMeeting: meeting({ serverRevision: 4, updatedAt }),
+      finalization: {
+        status: 'applied',
+        meetingId,
+        sourceServerRevision: 3,
+        serverRevision: 4,
+        updatedAt,
+      },
+      withAssistantRepository: true,
     });
 
     const response = await service.generateMeetingSummary(
@@ -215,12 +230,14 @@ describe('AiSummaryService', () => {
       serverRevision: 4,
       updatedAt,
     });
-    expect(meetings.updateMeetingSummary).toHaveBeenCalledWith(
+    expect(ai.finalizeSummaryGeneration).toHaveBeenCalledWith(expect.objectContaining({
       workspaceId,
+      requestId: 'request_1',
       meetingId,
-      expect.any(Object),
-      3,
-    );
+      expectedServerRevision: 3,
+      completedAt: now,
+      generatedSummary: expect.objectContaining({ meetingId }),
+    }));
   });
 
   it('generates, validates, stores, and returns a meeting summary with a disclaimer', async () => {
@@ -250,22 +267,18 @@ describe('AiSummaryService', () => {
         provider: 'openai',
       }),
     );
-    expect(meetings.updateMeetingSummary).toHaveBeenCalledWith(
+    expect(ai.finalizeSummaryGeneration).toHaveBeenCalledWith(expect.objectContaining({
       workspaceId,
+      requestId: 'request_1',
       meetingId,
-      expect.objectContaining({
+      expectedServerRevision: 1,
+      completedAt: now,
+      usage: null,
+      generatedSummary: expect.objectContaining({
         meetingId,
         shortSummary: 'You reviewed pickup logistics and agreed on a next step.',
       }),
-      1,
-    );
-    expect(ai.markSummaryRequestCompleted).toHaveBeenCalledWith(
-      workspaceId,
-      'request_1',
-      now,
-      null,
-      expect.any(Object),
-    );
+    }));
   });
 
   it('persists and logs token usage returned by the provider', async () => {
@@ -278,13 +291,7 @@ describe('AiSummaryService', () => {
 
     await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
 
-    expect(ai.markSummaryRequestCompleted).toHaveBeenCalledWith(
-      workspaceId,
-      'request_1',
-      now,
-      usage,
-      expect.any(Object),
-    );
+    expect(ai.finalizeSummaryGeneration).toHaveBeenCalledWith(expect.objectContaining({ usage }));
     expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({
         event: 'ai_summary_generation_completed',
@@ -550,7 +557,7 @@ describe('AiSummaryService', () => {
       statusCode: 503,
       code: 'ai_summary_generation_failed',
     });
-    expect(meetings.updateMeetingSummary).not.toHaveBeenCalled();
+    expect(ai.finalizeSummaryGeneration).not.toHaveBeenCalled();
     expect(ai.markSummaryRequestFailed).toHaveBeenCalledWith(
       workspaceId,
       'request_1',
@@ -559,8 +566,8 @@ describe('AiSummaryService', () => {
     );
   });
 
-  it('normalizes strict structured-output null task fields before validation', async () => {
-    const { meetings, service } = createHarness({
+  it('normalizes strict structured-output null task fields before finalization', async () => {
+    const { ai, service } = createHarness({
       providerOutput: providerOutput({
         tasks: [
           {
@@ -579,14 +586,11 @@ describe('AiSummaryService', () => {
     );
 
     expect(response.summary.tasks).toEqual([{ title: 'Book dentist' }]);
-    expect(meetings.updateMeetingSummary).toHaveBeenCalledWith(
-      workspaceId,
-      meetingId,
-      expect.objectContaining({
+    expect(ai.finalizeSummaryGeneration).toHaveBeenCalledWith(expect.objectContaining({
+      generatedSummary: expect.objectContaining({
         tasks: [{ title: 'Book dentist' }],
       }),
-      1,
-    );
+    }));
   });
 
   it('marks the request failed and returns a safe error when the provider fails', async () => {
@@ -608,8 +612,45 @@ describe('AiSummaryService', () => {
     );
   });
 
-  it('returns a conflict when the meeting changes while saving the summary', async () => {
-    const { ai, service } = createHarness({ updatedMeeting: null });
+  it('preserves a provider failure when request-audit cleanup fails', async () => {
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    const { ai, assistant, service } = createHarness({
+      providerError: new Error('provider timeout'),
+      logger,
+      withAssistantRepository: true,
+    });
+    ai.markSummaryRequestFailed.mockRejectedValueOnce(new Error('audit cleanup failure'));
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({
+      statusCode: 503,
+      code: 'ai_summary_generation_failed',
+    });
+    expect(assistant.releaseRecap).toHaveBeenCalledWith(workspaceId, 'request_1');
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'ai_summary_generation_cleanup_failed',
+        workspaceId,
+        requestId: 'request_1',
+        operation: 'mark_request_failed',
+      }),
+      'AI summary generation cleanup failed',
+    );
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('audit cleanup failure');
+  });
+
+  it('returns a conflict when the meeting changes during atomic finalization', async () => {
+    const { ai, assistant, service } = createHarness({
+      finalization: {
+        status: 'revision_conflict',
+        meetingId,
+        sourceServerRevision: 1,
+        serverRevision: null,
+        updatedAt: null,
+      },
+      withAssistantRepository: true,
+    });
 
     await expect(
       service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
@@ -623,6 +664,53 @@ describe('AiSummaryService', () => {
       now,
       'meeting_update_conflict',
     );
+    expect(assistant.releaseRecap).toHaveBeenCalledWith(workspaceId, 'request_1');
+  });
+
+  it('keeps pending accounting intact when finalization outcome is uncertain', async () => {
+    const finalizeError = new ApiError(
+      500,
+      'ai_summary_request_finalization_failed',
+      'Unable to finalize AI summary generation.',
+    );
+    const { ai, assistant, service } = createHarness({ withAssistantRepository: true });
+    ai.finalizeSummaryGeneration.mockRejectedValueOnce(finalizeError);
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toBe(finalizeError);
+    expect(ai.markSummaryRequestFailed).not.toHaveBeenCalled();
+    expect(assistant.releaseRecap).not.toHaveBeenCalled();
+  });
+
+  it('preserves a finalization conflict when credit-release cleanup fails', async () => {
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    const { assistant, service } = createHarness({
+      finalization: {
+        status: 'revision_conflict',
+        meetingId,
+        sourceServerRevision: 1,
+        serverRevision: null,
+        updatedAt: null,
+      },
+      logger,
+      withAssistantRepository: true,
+    });
+    assistant.releaseRecap.mockRejectedValueOnce(new Error('cleanup transport failure'));
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({ statusCode: 409, code: 'meeting_update_conflict' });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'ai_summary_generation_cleanup_failed',
+        workspaceId,
+        requestId: 'request_1',
+        operation: 'release_recap',
+      }),
+      'AI summary generation cleanup failed',
+    );
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('cleanup transport failure');
   });
 
   it('applies per-user and per-workspace repository-backed rate limits', async () => {
@@ -757,7 +845,7 @@ describe('AiSummaryService', () => {
     expect(ai.claimSummaryGeneration).toHaveBeenCalledWith(
       expect.objectContaining({ workspaceId, meetingId }),
     );
-    expect(meetings.updateMeetingSummary).not.toHaveBeenCalled();
+    expect(ai.finalizeSummaryGeneration).not.toHaveBeenCalled();
   });
 
   it('generates when the claim creates a new request', async () => {
@@ -859,7 +947,7 @@ describe('AiSummaryService', () => {
     resolveProvider?.(providerOutput());
     await owner;
 
-    expect(ai.markSummaryRequestCompleted).toHaveBeenCalledTimes(1);
+    expect(ai.finalizeSummaryGeneration).toHaveBeenCalledTimes(1);
   });
 
   it('allows a failed claim to be retried through a new created claim', async () => {

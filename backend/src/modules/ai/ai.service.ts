@@ -31,7 +31,7 @@ const AI_SUMMARY_DISCLAIMER =
 type AiRepositoryPort = Pick<
   AiRepository,
   | 'claimSummaryGeneration'
-  | 'markSummaryRequestCompleted'
+  | 'finalizeSummaryGeneration'
   | 'markSummaryRequestFailed'
   | 'countRecentSummaryRequestsForWorkspace'
   | 'countRecentSummaryRequestsForUserInWorkspace'
@@ -39,7 +39,7 @@ type AiRepositoryPort = Pick<
 
 type MeetingsRepositoryPort = Pick<
   MeetingsRepository,
-  'findMeetingByIdForWorkspace' | 'updateMeetingSummary'
+  'findMeetingByIdForWorkspace'
 >;
 
 type ParticipantsRepositoryPort = Pick<
@@ -52,7 +52,6 @@ type AssistantAllowanceRepository = Pick<
   | 'countUsedRecaps'
   | 'reconcileAbandonedRecaps'
   | 'reserveRecap'
-  | 'settleRecap'
   | 'releaseRecap'
 >;
 type SubscriptionRepositoryPort = Pick<SubscriptionsRepository, 'findCurrentSubscriptionForWorkspace'>;
@@ -276,6 +275,7 @@ export class AiSummaryService {
 
     const summaryRequest = claim.request;
     let reserved = false;
+    let finalizationAttempted = false;
 
     this.options.logger?.info({
       event: 'ai_summary_generation_started',
@@ -326,14 +326,26 @@ export class AiSummaryService {
         meetingId: meeting.id,
         createdAt,
       });
-      const updated = await this.meetingsRepository.updateMeetingSummary(
-        auth.workspaceId,
-        meeting.id,
-        toJsonValue(summary),
-        meeting.serverRevision,
-      );
+      finalizationAttempted = true;
+      const finalization = await this.aiRepository.finalizeSummaryGeneration({
+        workspaceId: auth.workspaceId,
+        requestId: summaryRequest.id,
+        meetingId: meeting.id,
+        expectedServerRevision: meeting.serverRevision,
+        generatedSummary: toJsonValue(summary),
+        completedAt: createdAt,
+        usage,
+      });
 
-      if (!updated) {
+      if (finalization.status === 'revision_conflict') {
+        await this.failSummaryRequestAndReleaseRecap(
+          auth.workspaceId,
+          summaryRequest.id,
+          createdAt,
+          'meeting_update_conflict',
+          reserved,
+          meeting.id,
+        );
         throw new ApiError(
           409,
           'meeting_update_conflict',
@@ -341,15 +353,12 @@ export class AiSummaryService {
         );
       }
 
-      await this.aiRepository.markSummaryRequestCompleted(
-        auth.workspaceId,
-        summaryRequest.id,
-        now.toISOString(),
-        usage,
-        toJsonValue(summary),
-      );
-      if (reserved && this.assistantRepository) {
-        await this.assistantRepository.settleRecap(auth.workspaceId, summaryRequest.id);
+      if (finalization.serverRevision === null || finalization.updatedAt === null) {
+        throw new ApiError(
+          500,
+          'ai_summary_request_finalization_invalid',
+          'Unable to finalize AI summary generation.',
+        );
       }
 
       this.options.logger?.info({
@@ -372,26 +381,27 @@ export class AiSummaryService {
         disclaimer: AI_SUMMARY_DISCLAIMER,
         generatedAt: createdAt,
         meetingSync: {
-          meetingId: updated.id,
-          sourceServerRevision: meeting.serverRevision,
-          serverRevision: updated.serverRevision,
-          updatedAt: updated.updatedAt,
+          meetingId: finalization.meetingId,
+          sourceServerRevision: finalization.sourceServerRevision,
+          serverRevision: finalization.serverRevision,
+          updatedAt: finalization.updatedAt,
         },
       };
     } catch (error) {
-      if (reserved && this.assistantRepository) {
-        await this.assistantRepository.releaseRecap(auth.workspaceId, summaryRequest.id);
-      }
       const errorCode = isApiError(error)
         ? error.code
         : 'ai_summary_generation_failed';
 
-      await this.aiRepository.markSummaryRequestFailed(
-        auth.workspaceId,
-        summaryRequest.id,
-        now.toISOString(),
-        errorCode,
-      );
+      if (!finalizationAttempted) {
+        await this.failSummaryRequestAndReleaseRecap(
+          auth.workspaceId,
+          summaryRequest.id,
+          createdAt,
+          errorCode,
+          reserved,
+          meeting.id,
+        );
+      }
 
       this.options.logger?.warn({
         event: 'ai_summary_generation_failed',
@@ -416,6 +426,56 @@ export class AiSummaryService {
         'AI summaries are not available right now.',
       );
     }
+  }
+
+  private async failSummaryRequestAndReleaseRecap(
+    workspaceId: string,
+    requestId: string,
+    completedAt: string,
+    errorCode: string,
+    reserved: boolean,
+    meetingId: string,
+  ) {
+    if (reserved && this.assistantRepository) {
+      try {
+        const released = await this.assistantRepository.releaseRecap(workspaceId, requestId);
+        if (!released) {
+          this.logCleanupFailure(workspaceId, requestId, meetingId, 'release_recap');
+          return;
+        }
+      } catch {
+        this.logCleanupFailure(workspaceId, requestId, meetingId, 'release_recap');
+        return;
+      }
+    }
+
+    try {
+      await this.aiRepository.markSummaryRequestFailed(
+        workspaceId,
+        requestId,
+        completedAt,
+        errorCode,
+      );
+    } catch {
+      this.logCleanupFailure(workspaceId, requestId, meetingId, 'mark_request_failed');
+    }
+  }
+
+  private logCleanupFailure(
+    workspaceId: string,
+    requestId: string,
+    meetingId: string,
+    operation: 'release_recap' | 'mark_request_failed',
+  ) {
+    this.options.logger?.warn({
+      event: 'ai_summary_generation_cleanup_failed',
+      status: 'failed',
+      workspaceId,
+      requestId,
+      meetingId,
+      operation,
+      errorCode: 'ai_summary_generation_cleanup_failed',
+    }, 'AI summary generation cleanup failed');
   }
 
   private async resolveAllowance(auth: AuthContext, now: Date) {

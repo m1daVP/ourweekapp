@@ -56,8 +56,34 @@ export type AiSummaryGenerationClaim = {
   request: AiSummaryRequestRecord;
 };
 
+export type FinalizeAiSummaryGenerationInput = {
+  workspaceId: string;
+  requestId: string;
+  meetingId: string;
+  expectedServerRevision: number;
+  generatedSummary: JsonValue;
+  completedAt: string;
+  usage: AiSummaryTokenUsage | null;
+};
+
+export type AiSummaryGenerationFinalization = {
+  status: 'applied' | 'completed' | 'revision_conflict';
+  meetingId: string;
+  sourceServerRevision: number;
+  serverRevision: number | null;
+  updatedAt: string | null;
+};
+
 type AiSummaryGenerationClaimRow = AiSummaryRequestRow & {
   claim_status: string;
+};
+
+type AiSummaryGenerationFinalizationRow = {
+  finalization_status: string;
+  meeting_id: string;
+  source_server_revision: number;
+  server_revision: number | null;
+  updated_at: string | null;
 };
 
 export function mapAiSummaryRequestRowToDto(row: PublicAiSummaryRequestRow): AiSummaryRequestDto {
@@ -121,6 +147,51 @@ export class AiRepository {
     };
   }
 
+  async finalizeSummaryGeneration(
+    input: FinalizeAiSummaryGenerationInput,
+  ): Promise<AiSummaryGenerationFinalization> {
+    const { data, error } = await this.supabase
+      .rpc('finalize_ai_summary_generation', {
+        p_workspace_id: input.workspaceId,
+        p_request_id: input.requestId,
+        p_meeting_id: input.meetingId,
+        p_expected_server_revision: input.expectedServerRevision,
+        p_generated_summary: input.generatedSummary,
+        p_completed_at: input.completedAt,
+        p_input_tokens: input.usage?.inputTokens ?? null,
+        p_output_tokens: input.usage?.outputTokens ?? null,
+        p_total_tokens: input.usage?.totalTokens ?? null,
+      })
+      .single<AiSummaryGenerationFinalizationRow>();
+
+    const row = requireRow(
+      data,
+      error,
+      'ai_summary_request_finalization_failed',
+      'Unable to finalize AI summary generation.',
+    );
+
+    if (
+      row.finalization_status !== 'applied'
+      && row.finalization_status !== 'completed'
+      && row.finalization_status !== 'revision_conflict'
+    ) {
+      throw new ApiError(
+        500,
+        'ai_summary_request_finalization_invalid',
+        'Unable to finalize AI summary generation.',
+      );
+    }
+
+    return {
+      status: row.finalization_status,
+      meetingId: row.meeting_id,
+      sourceServerRevision: row.source_server_revision,
+      serverRevision: row.server_revision,
+      updatedAt: formatNullableApiDateTime(row.updated_at),
+    };
+  }
+
   async findSummaryRequestByIdForWorkspace(workspaceId: string, requestId: string) {
     const { data, error } = await this.supabase
       .from('ai_summary_requests')
@@ -132,34 +203,6 @@ export class AiRepository {
     throwOnSupabaseError(error, 'ai_summary_request_lookup_failed', 'Unable to load AI summary request.');
 
     return data ? mapAiSummaryRequestRowToDto(data) : null;
-  }
-
-  async markSummaryRequestCompleted(
-    workspaceId: string,
-    requestId: string,
-    completedAt: string,
-    usage?: AiSummaryTokenUsage | null,
-    generatedSummary?: JsonValue | null,
-  ) {
-    const { data, error } = await this.supabase
-      .from('ai_summary_requests')
-      .update({
-        status: 'completed',
-        completed_at: completedAt,
-        error_code: null,
-        input_tokens: usage?.inputTokens ?? null,
-        output_tokens: usage?.outputTokens ?? null,
-        total_tokens: usage?.totalTokens ?? null,
-        generated_summary: generatedSummary ?? null,
-      })
-      .eq('workspace_id', workspaceId)
-      .eq('id', requestId)
-      .select(PUBLIC_AI_SUMMARY_REQUEST_COLUMNS)
-      .single<PublicAiSummaryRequestRow>();
-
-    return mapAiSummaryRequestRowToDto(
-      requireRow(data, error, 'ai_summary_request_update_failed', 'Unable to update AI summary request.'),
-    );
   }
 
   async markSummaryRequestFailed(
