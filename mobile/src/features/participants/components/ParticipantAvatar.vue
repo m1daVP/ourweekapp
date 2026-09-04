@@ -80,5 +80,6 @@ const className = computed(() => `participant-avatar--${props.size}`);
   width: 100%;
   height: 100%;
   object-fit: contain;
+  padding: 2px;
 }
 </style>

@@ -54,7 +54,6 @@ function mountHouseholdMembersSettings() {
   return shallowMount(HouseholdMembersSettings, {
     global: {
       stubs: {
-        AvatarColorPickerSheet: true,
         BaseBottomSheet: true,
       },
     },

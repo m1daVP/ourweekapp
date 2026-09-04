@@ -23,7 +23,6 @@ import {
 import type { ParticipantAccessState } from '@/features/workspace/types';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
-import AvatarColorPickerSheet from './AvatarColorPickerSheet.vue';
 import AvatarPickerSheet from './AvatarPickerSheet.vue';
 
 type SheetMode = 'create' | 'edit' | 'invite' | 'revoke';
@@ -45,7 +44,6 @@ const isInitialsEditorOpen = ref(false);
 const isHouseholdNameSheetOpen = ref(false);
 const householdNameDraft = ref('');
 const householdNameError = ref('');
-const isAvatarColorPickerOpen = ref(false);
 const isAvatarPickerOpen = ref(false);
 const inviteEmail = ref('');
 const inviteError = ref('');
@@ -156,26 +154,12 @@ function getInitials(name: string) {
     .join('');
 }
 
-function openCustomAvatarColorPicker() {
-  isAvatarColorPickerOpen.value = true;
-}
-
 function openAvatarPicker() {
   isAvatarPickerOpen.value = true;
 }
 
 function closeAvatarPicker() {
   isAvatarPickerOpen.value = false;
-}
-
-function closeCustomAvatarColorPicker() {
-  isAvatarColorPickerOpen.value = false;
-}
-
-function selectCustomAvatarColor(color: string) {
-  participantDraft.avatarColor = color;
-  participantDraft.avatarType = null;
-  closeCustomAvatarColorPicker();
 }
 
 function selectAvatarColor(color: string) {
@@ -260,7 +244,6 @@ function closeSheet() {
 
   inviteError.value = '';
   revokeError.value = '';
-  closeCustomAvatarColorPicker();
   closeAvatarPicker();
   isSheetOpen.value = false;
 }
@@ -825,7 +808,11 @@ function enableParticipant(participantId: string) {
             size="large"
             decorative
           />
-          {{ t('settings.avatar') }}
+          <span class="participant-avatar-choice__body">
+            <strong>{{ t('settings.avatar') }}</strong>
+            <small>{{ participantDraft.avatarType ?? t('settings.avatarColors') }}</small>
+          </span>
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
         </button>
         <ParticipantAvatar
           v-else
@@ -941,13 +928,6 @@ function enableParticipant(participantId: string) {
       </form>
     </BaseBottomSheet>
 
-    <AvatarColorPickerSheet
-      :open="isAvatarColorPickerOpen"
-      :color="participantDraft.avatarColor"
-      @close="closeCustomAvatarColorPicker"
-      @select="selectCustomAvatarColor"
-    />
-
     <AvatarPickerSheet
       :open="isAvatarPickerOpen"
       :avatar-type="participantDraft.avatarType"
@@ -955,7 +935,6 @@ function enableParticipant(participantId: string) {
       @close="closeAvatarPicker"
       @select-avatar="selectAvatarType"
       @select-color="selectAvatarColor"
-      @select-custom-color="openCustomAvatarColorPicker"
     />
 
     <BaseBottomSheet
@@ -1007,3 +986,23 @@ function enableParticipant(participantId: string) {
     </BaseBottomSheet>
   </section>
 </template>
+
+<style scoped>
+.participant-avatar-choice {
+  display: grid;
+  width: 100%;
+  min-height: 64px;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-low);
+  color: var(--color-on-surface);
+  text-align: left;
+}
+
+.participant-avatar-choice__body { display: grid; gap: 2px; }
+.participant-avatar-choice__body small { color: var(--color-on-surface-variant); }
+</style>
