@@ -5,6 +5,7 @@ import type { FeatureKey, PlanType } from '@/features/access/types';
 import { createLegacyFeatureAccessMap } from '@/features/access/legacyFeatureAccess';
 import type { FeatureAccessMap } from '@/features/access/types';
 import type {
+  AssistantRecapAllowance,
   ManageSubscriptionResult,
   SubscriptionEntitlementStatus,
   SubscriptionPlanId,
@@ -12,7 +13,13 @@ import type {
   SubscriptionProviderKind,
 } from '@/features/subscription/types';
 
+// A reset allocates a fresh epoch, so old async responses cannot repopulate the store.
+let nextSubscriptionEpoch = 0;
+
 interface SubscriptionState {
+  subscriptionEpoch: number;
+  planReadId: number;
+  recapRefreshPending: boolean;
   currentPlan: PlanType;
   featureAccess: FeatureAccessMap;
   provider: SubscriptionProviderKind;
@@ -27,15 +34,14 @@ interface SubscriptionState {
   lastCheckedAt: string | null;
   managementUrl: string | null;
   canManageSubscription: boolean;
-  assistantRecap:
-    | Awaited<
-        ReturnType<typeof subscriptionsService.getCurrentPlan>
-      >['assistantRecap']
-    | null;
+  assistantRecap: AssistantRecapAllowance | null;
 }
 
 export const useSubscriptionStore = defineStore('subscription', {
   state: (): SubscriptionState => ({
+    subscriptionEpoch: ++nextSubscriptionEpoch,
+    planReadId: 0,
+    recapRefreshPending: false,
     currentPlan: 'free',
     featureAccess: createLegacyFeatureAccessMap({ planType: 'free' }),
     provider: 'backend',
@@ -59,10 +65,18 @@ export const useSubscriptionStore = defineStore('subscription', {
       state.premiumEntitlement?.unlockedFeatures ?? [],
     getFeatureAccess: (state) => (featureKey: FeatureKey) =>
       state.featureAccess[featureKey],
+    isCheckingRecapAllowance: (state) =>
+      state.isLoading || state.isPurchasing || state.isRestoring,
     canGenerateAssistantRecap: (state) =>
-      Boolean(state.assistantRecap?.canGenerate),
+      !state.isLoading &&
+      !state.isPurchasing &&
+      !state.isRestoring &&
+      state.assistantRecap?.canGenerate === true,
   },
   actions: {
+    invalidateAssistantRecap() {
+      this.assistantRecap = null;
+    },
     applySnapshot(
       snapshot: Awaited<ReturnType<typeof subscriptionsService.getCurrentPlan>>
     ) {
@@ -73,9 +87,14 @@ export const useSubscriptionStore = defineStore('subscription', {
       this.lastCheckedAt = snapshot.checkedAt;
       this.managementUrl = snapshot.management.url ?? null;
       this.canManageSubscription = snapshot.management.supported;
-      this.assistantRecap = snapshot.assistantRecap;
+      this.assistantRecap = snapshot.assistantRecap ?? null;
     },
     async initializeSubscriptions() {
+      if (this.isPurchasing || this.isRestoring) return;
+      const epoch = this.subscriptionEpoch;
+      const readId = ++this.planReadId;
+      const isCurrent = () =>
+        this.subscriptionEpoch === epoch && this.planReadId === readId;
       this.isLoading = true;
       this.errorMessage = '';
 
@@ -85,71 +104,111 @@ export const useSubscriptionStore = defineStore('subscription', {
           subscriptionsService.getAvailablePlans(),
         ]);
 
+        if (!isCurrent()) return;
         this.availablePlans = plans;
         this.applySnapshot(snapshot);
       } catch (error) {
+        if (!isCurrent()) return;
+        this.invalidateAssistantRecap();
         this.errorMessage =
           error instanceof Error
             ? error.message
             : translate('upgrade.checkFailed');
       } finally {
-        this.isLoading = false;
+        if (isCurrent()) this.isLoading = false;
       }
     },
     async refreshCurrentPlan() {
+      if (this.isPurchasing || this.isRestoring) {
+        this.recapRefreshPending = true;
+        this.invalidateAssistantRecap();
+        return;
+      }
+      this.recapRefreshPending = false;
+      const epoch = this.subscriptionEpoch;
+      const readId = ++this.planReadId;
+      const isCurrent = () =>
+        this.subscriptionEpoch === epoch && this.planReadId === readId;
       this.isLoading = true;
       this.errorMessage = '';
 
       try {
         const snapshot = await subscriptionsService.getCurrentPlan();
+        if (!isCurrent()) return;
         this.applySnapshot(snapshot);
       } catch (error) {
+        if (!isCurrent()) return;
+        this.invalidateAssistantRecap();
         this.errorMessage =
           error instanceof Error
             ? error.message
             : translate('upgrade.checkFailed');
       } finally {
-        this.isLoading = false;
+        if (isCurrent()) this.isLoading = false;
       }
     },
     async purchasePlan(planId: SubscriptionPlanId) {
+      if (this.isPurchasing || this.isRestoring) return false;
+      const epoch = this.subscriptionEpoch;
+      const readId = ++this.planReadId;
+      const isCurrent = () =>
+        this.subscriptionEpoch === epoch && this.planReadId === readId;
+      this.isLoading = false;
       this.isPurchasing = true;
       this.errorMessage = '';
       this.statusMessage = '';
 
       try {
         const result = await subscriptionsService.purchasePlan(planId);
+        if (!isCurrent()) return false;
         this.applySnapshot(result.snapshot);
         this.statusMessage = result.message ?? '';
         return result.status === 'completed';
       } catch (error) {
+        if (!isCurrent()) return false;
+        this.invalidateAssistantRecap();
         this.errorMessage =
           error instanceof Error
             ? error.message
             : translate('upgrade.startFailed');
         return false;
       } finally {
-        this.isPurchasing = false;
+        if (isCurrent()) {
+          this.isPurchasing = false;
+          if (this.recapRefreshPending) await this.refreshCurrentPlan();
+        }
       }
     },
     async restorePurchases() {
+      if (this.isPurchasing || this.isRestoring) return false;
+      const epoch = this.subscriptionEpoch;
+      const readId = ++this.planReadId;
+      const isCurrent = () =>
+        this.subscriptionEpoch === epoch && this.planReadId === readId;
+      this.isLoading = false;
       this.isRestoring = true;
       this.errorMessage = '';
       this.statusMessage = '';
 
       try {
         const result = await subscriptionsService.restorePurchases();
+        if (!isCurrent()) return false;
         this.applySnapshot(result.snapshot);
         this.statusMessage = result.message ?? '';
         return result.status === 'completed';
       } catch (error) {
+        if (!isCurrent()) return false;
+        this.invalidateAssistantRecap();
         this.errorMessage =
           error instanceof Error
             ? error.message
             : translate('upgrade.restoreFailed');
         return false;
       } finally {
-        this.isRestoring = false;
+        if (isCurrent()) {
+          this.isRestoring = false;
+          if (this.recapRefreshPending) await this.refreshCurrentPlan();
+        }
       }
     },
     async manageSubscription(): Promise<ManageSubscriptionResult | null> {
@@ -177,42 +236,62 @@ export const useSubscriptionStore = defineStore('subscription', {
       }
     },
     async presentPremiumPaywall() {
+      if (this.isPurchasing || this.isRestoring) return false;
+      const epoch = this.subscriptionEpoch;
+      const readId = ++this.planReadId;
+      const isCurrent = () =>
+        this.subscriptionEpoch === epoch && this.planReadId === readId;
+      this.isLoading = false;
       this.isPurchasing = true;
       this.errorMessage = '';
       this.statusMessage = '';
 
       try {
         const result = await subscriptionsService.presentPremiumPaywall();
+        if (!isCurrent()) return false;
         this.applySnapshot(result.snapshot);
         this.statusMessage = result.message ?? '';
         return result.status === 'completed';
       } catch (error) {
+        if (!isCurrent()) return false;
+        this.invalidateAssistantRecap();
         this.errorMessage =
           error instanceof Error
             ? error.message
             : translate('upgrade.startFailed');
         return false;
       } finally {
-        this.isPurchasing = false;
+        if (isCurrent()) {
+          this.isPurchasing = false;
+          if (this.recapRefreshPending) await this.refreshCurrentPlan();
+        }
       }
     },
     async refreshCustomerInfo() {
+      if (this.isPurchasing || this.isRestoring) return false;
+      const epoch = this.subscriptionEpoch;
+      const readId = ++this.planReadId;
+      const isCurrent = () =>
+        this.subscriptionEpoch === epoch && this.planReadId === readId;
       this.isLoading = true;
       this.errorMessage = '';
 
       try {
         const result = await subscriptionsService.refreshCustomerInfo();
+        if (!isCurrent()) return false;
         this.applySnapshot(result.snapshot);
         this.statusMessage = result.message ?? '';
         return result.status === 'completed';
       } catch (error) {
+        if (!isCurrent()) return false;
+        this.invalidateAssistantRecap();
         this.errorMessage =
           error instanceof Error
             ? error.message
             : translate('upgrade.checkFailed');
         return false;
       } finally {
-        this.isLoading = false;
+        if (isCurrent()) this.isLoading = false;
       }
     },
   },

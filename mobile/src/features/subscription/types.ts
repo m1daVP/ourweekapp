@@ -41,13 +41,14 @@ export interface SubscriptionEntitlementStatus {
   verification: EntitlementVerificationSource;
   expiresAt?: string;
   checkedAt: string;
-  assistantRecap?: {
-    limit: number;
-    used: number;
-    remaining: number;
-    periodEndsAt: string | null;
-    canGenerate: boolean;
-  } | null;
+}
+
+export interface AssistantRecapAllowance {
+  limit: number;
+  used: number;
+  remaining: number;
+  periodEndsAt: string | null;
+  canGenerate: boolean;
 }
 
 export interface SubscriptionManagementInfo {
@@ -57,6 +58,7 @@ export interface SubscriptionManagementInfo {
 }
 
 export interface SubscriptionSnapshot {
+  assistantRecap: AssistantRecapAllowance | null;
   currentPlan: PlanType;
   featureAccess: FeatureAccessMap;
   provider: SubscriptionProviderKind;

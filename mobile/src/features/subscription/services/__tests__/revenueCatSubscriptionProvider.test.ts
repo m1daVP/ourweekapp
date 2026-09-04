@@ -305,6 +305,32 @@ describe('createRevenueCatSubscriptionProvider', () => {
       upgradeEligible: false,
     });
     expect(snapshot.featureAccess.unlimitedHistory.state).toBe('available');
+    expect(snapshot.assistantRecap).toBeNull();
+  });
+
+  it('preserves backend recap allowance through native refresh and restore', async () => {
+    const assistantRecap = {
+      limit: 3,
+      used: 1,
+      remaining: 2,
+      canGenerate: true,
+      periodEndsAt: null,
+    };
+    mockedGetSubscriptionStatus.mockResolvedValue({
+      ...freeStatus,
+      assistantRecap,
+    });
+    mockedRestoreSubscriptionStatus.mockResolvedValue({
+      ...freeStatus,
+      assistantRecap,
+    });
+    const provider = createRevenueCatSubscriptionProvider();
+    expect((await provider.getCurrentPlan()).assistantRecap).toEqual(
+      assistantRecap
+    );
+    expect((await provider.restorePurchases()).snapshot.assistantRecap).toEqual(
+      assistantRecap
+    );
   });
 
   it('keeps the backend snapshot when the user cancels purchase', async () => {
@@ -372,7 +398,7 @@ describe('createRevenueCatSubscriptionProvider', () => {
     expect(result).toMatchObject({
       status: 'completed',
       message: 'Purchase received — Premium will activate shortly',
-      snapshot: { currentPlan: 'free' },
+      snapshot: { currentPlan: 'free', assistantRecap: null },
     });
   });
 });

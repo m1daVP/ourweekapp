@@ -4,6 +4,7 @@ import type {
   PlanType,
 } from '@/features/access/types';
 import { apiRequest } from './httpClient';
+import type { AssistantRecapAllowance } from '@/features/subscription/types';
 
 export type SubscriptionProviderDto =
   'google_play' | 'app_store' | 'revenuecat' | null;
@@ -15,13 +16,7 @@ export interface SubscriptionStatusDto {
   features?: FeatureAccessMap;
   expiresAt: string | null;
   checkedAt: string;
-  assistantRecap?: {
-    limit: number;
-    used: number;
-    remaining: number;
-    periodEndsAt: string | null;
-    canGenerate: boolean;
-  };
+  assistantRecap?: AssistantRecapAllowance;
 }
 
 export interface RestoreSubscriptionStatusRequestDto {

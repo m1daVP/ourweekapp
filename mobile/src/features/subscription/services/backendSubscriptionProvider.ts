@@ -38,7 +38,6 @@ function createPremiumEntitlement(
     verification: status.planType === 'premium' ? 'backend' : 'none',
     expiresAt: status.expiresAt ?? undefined,
     checkedAt: status.checkedAt,
-    assistantRecap: status.assistantRecap ?? null,
   };
 }
 
@@ -49,6 +48,7 @@ export function createSubscriptionSnapshotFromStatus(
 
   return {
     currentPlan: status.planType,
+    assistantRecap: status.assistantRecap ? { ...status.assistantRecap } : null,
     featureAccess,
     provider: mapProviderKind(status.provider),
     entitlements: {
