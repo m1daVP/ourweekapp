@@ -9,6 +9,7 @@ import type {
 } from '@/features/meeting/composables/useMeetingSession';
 import type { Meeting, MeetingSection } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
+import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 
 const props = defineProps<{
   activeMeetingParticipants: Participant[];
@@ -130,13 +131,12 @@ function updateAgreementParticipant(
 
   <header class="meeting-header">
     <div v-if="activeMeetingParticipants.length" class="meeting-avatar-stack">
-      <span
+      <ParticipantAvatar
         v-for="participant in activeMeetingParticipants.slice(0, 3)"
         :key="participant.id"
-        :style="{ backgroundColor: participant.avatarColor }"
-      >
-        {{ participant.initials }}
-      </span>
+        :participant="participant"
+        decorative
+      />
     </div>
     <div class="meeting-header__row">
       <div>

@@ -19,6 +19,7 @@ import type {
   TaskResponsibilityType,
   TaskStatus,
 } from '@/features/tasks/types';
+import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
@@ -697,14 +698,13 @@ function openAddTaskSheet() {
           </button>
           <div class="task-card__side" aria-hidden="true">
             <div v-if="card.accessory === 'avatars'" class="task-avatar-stack">
-              <span
+              <ParticipantAvatar
                 v-for="participant in card.participants.slice(0, 2)"
                 :key="participant.id"
                 class="task-avatar"
-                :style="{ backgroundColor: participant.avatarColor }"
-              >
-                {{ participant.initials }}
-              </span>
+                :participant="participant"
+                decorative
+              />
             </div>
             <span v-else-if="card.accessory === 'badge'" class="task-count">
               {{ card.badgeCount }}
@@ -769,14 +769,13 @@ function openAddTaskSheet() {
           </button>
           <div class="task-card__side" aria-hidden="true">
             <div v-if="card.accessory === 'avatars'" class="task-avatar-stack">
-              <span
+              <ParticipantAvatar
                 v-for="participant in card.participants.slice(0, 2)"
                 :key="participant.id"
                 class="task-avatar"
-                :style="{ backgroundColor: participant.avatarColor }"
-              >
-                {{ participant.initials }}
-              </span>
+                :participant="participant"
+                decorative
+              />
             </div>
             <span v-else-if="card.accessory === 'badge'" class="task-count">
               {{ card.badgeCount }}

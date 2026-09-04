@@ -21,6 +21,7 @@ import type {
   MeetingTask,
 } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
+import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
 import { useToast } from '@/shared/composables/useToast';
 
@@ -205,6 +206,7 @@ function toSummaryParticipant(participant: Participant): SummaryParticipant {
     name: participant.name,
     initials: participant.initials || getInitials(participant.name),
     avatarColor: participant.avatarColor,
+    avatarType: participant.avatarType ?? null,
   };
 }
 
@@ -450,14 +452,13 @@ function goBack() {
           <p>{{ meetingSummary.date }}</p>
         </div>
         <div class="meeting-summary-avatar-stack" aria-hidden="true">
-          <span
+          <ParticipantAvatar
             v-for="participant in visibleParticipants"
             :key="participant.id"
             class="meeting-summary-avatar"
-            :style="{ backgroundColor: participant.avatarColor }"
-          >
-            {{ participant.initials }}
-          </span>
+            :participant="participant"
+            decorative
+          />
           <span
             v-if="hiddenParticipantCount"
             class="meeting-summary-avatar meeting-summary-avatar--count"

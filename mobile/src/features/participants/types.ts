@@ -1,3 +1,5 @@
+import type { AvatarType } from './avatarCatalog';
+
 export type ParticipantType = 'adult' | 'child' | 'other';
 
 export interface Participant {
@@ -5,6 +7,7 @@ export interface Participant {
   name: string;
   initials: string;
   avatarColor: string;
+  avatarType?: AvatarType | null;
   type: ParticipantType;
   isActive: boolean;
   createdAt: string;

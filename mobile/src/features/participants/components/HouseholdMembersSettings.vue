@@ -13,6 +13,8 @@ import type {
   Participant,
   ParticipantType,
 } from '@/features/participants/types';
+import type { AvatarType } from '@/features/participants/avatarCatalog';
+import ParticipantAvatar from './ParticipantAvatar.vue';
 import {
   canOfferParticipantInvitation,
   canRevokeParticipantInvitation,
@@ -22,6 +24,7 @@ import type { ParticipantAccessState } from '@/features/workspace/types';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 import AvatarColorPickerSheet from './AvatarColorPickerSheet.vue';
+import AvatarPickerSheet from './AvatarPickerSheet.vue';
 
 type SheetMode = 'create' | 'edit' | 'invite' | 'revoke';
 
@@ -43,6 +46,7 @@ const isHouseholdNameSheetOpen = ref(false);
 const householdNameDraft = ref('');
 const householdNameError = ref('');
 const isAvatarColorPickerOpen = ref(false);
+const isAvatarPickerOpen = ref(false);
 const inviteEmail = ref('');
 const inviteError = ref('');
 const revokeError = ref('');
@@ -55,6 +59,7 @@ const participantDraft = reactive({
   initials: '',
   initialName: '',
   avatarColor: participantColors[0],
+  avatarType: null as AvatarType | null,
   type: 'adult' as ParticipantType,
 });
 
@@ -63,6 +68,7 @@ function getParticipantDisplayKey(participant: Participant) {
     participant.name.trim().toLocaleLowerCase(),
     participant.initials.trim().toLocaleUpperCase(),
     participant.avatarColor.trim().toLocaleLowerCase(),
+    participant.avatarType ?? '',
     participant.type,
   ].join('|');
 }
@@ -101,6 +107,20 @@ const selectedParticipantAccess = computed<ParticipantAccessState>(() =>
     ? workspaceStore.getParticipantAccessState(selectedParticipantId.value)
     : { status: 'none' }
 );
+const canEditSelectedParticipantAvatar = computed(() => {
+  if (!selectedParticipant.value) {
+    return canManageHouseholdParticipants.value;
+  }
+
+  if (participantsStore.isCurrentParticipant(selectedParticipant.value.id)) {
+    return true;
+  }
+
+  return (
+    canManageHouseholdParticipants.value &&
+    selectedParticipantAccess.value.status !== 'active'
+  );
+});
 const selectedPendingInvitation = computed(() =>
   selectedParticipantId.value
     ? workspaceStore.getParticipantPendingInvitation(
@@ -123,18 +143,6 @@ const typeOptions = computed<Array<{ label: string; value: ParticipantType }>>(
 const initialsPreview = computed(
   () => participantDraft.initials || getInitials(participantDraft.name)
 );
-const isCustomAvatarColor = computed(
-  () =>
-    !participantColors.some(
-      (color) =>
-        color.toLocaleLowerCase() ===
-        participantDraft.avatarColor.toLocaleLowerCase()
-    )
-);
-const displayedAvatarColor = computed(() =>
-  participantDraft.avatarColor.toLocaleUpperCase()
-);
-
 function getInitials(name: string) {
   const words = name.trim().split(/\s+/).filter(Boolean);
 
@@ -152,13 +160,31 @@ function openCustomAvatarColorPicker() {
   isAvatarColorPickerOpen.value = true;
 }
 
+function openAvatarPicker() {
+  isAvatarPickerOpen.value = true;
+}
+
+function closeAvatarPicker() {
+  isAvatarPickerOpen.value = false;
+}
+
 function closeCustomAvatarColorPicker() {
   isAvatarColorPickerOpen.value = false;
 }
 
 function selectCustomAvatarColor(color: string) {
   participantDraft.avatarColor = color;
+  participantDraft.avatarType = null;
   closeCustomAvatarColorPicker();
+}
+
+function selectAvatarColor(color: string) {
+  participantDraft.avatarColor = color;
+  participantDraft.avatarType = null;
+}
+
+function selectAvatarType(avatarType: AvatarType) {
+  participantDraft.avatarType = avatarType;
 }
 
 function getTypeLabel(type: ParticipantType) {
@@ -181,6 +207,7 @@ function resetDraftForCreate() {
     participantColors[
       participantsStore.participants.length % participantColors.length
     ];
+  participantDraft.avatarType = null;
   participantDraft.type = 'adult';
   isInitialsEditorOpen.value = false;
 }
@@ -209,6 +236,7 @@ function openEditSheet(participant: Participant) {
   participantDraft.initials = participant.initials;
   participantDraft.initialName = participant.name;
   participantDraft.avatarColor = participant.avatarColor;
+  participantDraft.avatarType = participant.avatarType ?? null;
   participantDraft.type = participant.type;
   inviteError.value = '';
   revokeError.value = '';
@@ -233,6 +261,7 @@ function closeSheet() {
   inviteError.value = '';
   revokeError.value = '';
   closeCustomAvatarColorPicker();
+  closeAvatarPicker();
   isSheetOpen.value = false;
 }
 
@@ -455,6 +484,7 @@ function saveParticipantDraft() {
         ? ''
         : undefined,
     avatarColor: participantDraft.avatarColor,
+    avatarType: participantDraft.avatarType,
     type: participantDraft.type,
   };
 
@@ -603,12 +633,7 @@ function enableParticipant(participantId: string) {
               "
               @click="openEditSheet(participant)"
             >
-              <span
-                class="participant-avatar participant-avatar--large"
-                :style="{ backgroundColor: participant.avatarColor }"
-              >
-                {{ participant.initials }}
-              </span>
+              <ParticipantAvatar :participant="participant" size="large" decorative />
               <span class="household-member-row__body">
                 <strong>{{ participant.name }}</strong>
                 <small>{{ getTypeLabel(participant.type) }}</small>
@@ -789,35 +814,24 @@ function enableParticipant(participantId: string) {
           </select>
         </label>
 
-        <fieldset class="color-selector">
-          <legend>{{ t('settings.avatarColor') }}</legend>
-          <label v-for="color in participantColors" :key="color">
-            <input
-              v-model="participantDraft.avatarColor"
-              type="radio"
-              :value="color"
-            />
-            <span :style="{ backgroundColor: color }" />
-          </label>
-          <label class="color-selector__custom">
-            <button
-              class="color-selector__custom-trigger"
-              :class="{ 'is-selected': isCustomAvatarColor }"
-              type="button"
-              :aria-label="t('settings.customAvatarColor')"
-              @click="openCustomAvatarColorPicker"
-            >
-              <span aria-hidden="true" />
-            </button>
-          </label>
-          <output class="color-selector__selected-value" aria-live="polite">
-            {{
-              t('settings.selectedAvatarColor', {
-                color: displayedAvatarColor,
-              })
-            }}
-          </output>
-        </fieldset>
+        <button
+          v-if="canEditSelectedParticipantAvatar"
+          class="participant-avatar-choice"
+          type="button"
+          @click="openAvatarPicker"
+        >
+          <ParticipantAvatar
+            :participant="{ name: participantDraft.name || t('settings.name'), initials: initialsPreview, avatarColor: participantDraft.avatarColor, avatarType: participantDraft.avatarType }"
+            size="large"
+            decorative
+          />
+          {{ t('settings.avatar') }}
+        </button>
+        <ParticipantAvatar
+          v-else
+          :participant="{ name: participantDraft.name || t('settings.name'), initials: initialsPreview, avatarColor: participantDraft.avatarColor, avatarType: participantDraft.avatarType }"
+          size="large"
+        />
 
         <button
           v-if="!isInitialsEditorOpen"
@@ -932,6 +946,16 @@ function enableParticipant(participantId: string) {
       :color="participantDraft.avatarColor"
       @close="closeCustomAvatarColorPicker"
       @select="selectCustomAvatarColor"
+    />
+
+    <AvatarPickerSheet
+      :open="isAvatarPickerOpen"
+      :avatar-type="participantDraft.avatarType"
+      :avatar-color="participantDraft.avatarColor"
+      @close="closeAvatarPicker"
+      @select-avatar="selectAvatarType"
+      @select-color="selectAvatarColor"
+      @select-custom-color="openCustomAvatarColorPicker"
     />
 
     <BaseBottomSheet

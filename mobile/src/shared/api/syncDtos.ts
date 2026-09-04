@@ -105,6 +105,7 @@ export function toParticipantDto(participant: Participant): ParticipantDto {
     name: participant.name,
     initials: participant.initials,
     avatarColor: participant.avatarColor,
+    avatarType: participant.avatarType ?? null,
     type: participant.type,
     isActive: participant.isActive,
     createdAt: participant.createdAt,
@@ -114,10 +115,13 @@ export function toParticipantDto(participant: Participant): ParticipantDto {
 }
 
 export function fromParticipantDto(participant: ParticipantDto): Participant {
-  return {
+  const normalizedParticipant: Participant = {
     ...toParticipantDto(participant),
-    email: participant.email?.trim() || undefined,
   };
+
+  const email = participant.email?.trim();
+
+  return email ? { ...normalizedParticipant, email } : normalizedParticipant;
 }
 
 export function toReviewDecisionDto(

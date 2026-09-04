@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n';
 import type { Participant } from '@/features/participants/types';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
-import { createAvatarStyle } from '@/features/meeting/composables/useMeetingSession';
+import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 
 const props = defineProps<{
   canAddGuestParticipant: boolean;
@@ -116,12 +116,7 @@ function updateGuestName(event: Event) {
         >
           check_circle
         </span>
-        <span
-          class="ritual-member-card__avatar"
-          :style="createAvatarStyle(participant)"
-        >
-          {{ participant.initials }}
-        </span>
+        <ParticipantAvatar class="ritual-member-card__avatar" :participant="participant" decorative />
         <span class="ritual-member-card__name">
           {{ participant.name }}
         </span>
@@ -173,12 +168,7 @@ function updateGuestName(event: Event) {
               :disabled="participantIsCheckedIn(participant.id)"
               @click="emit('select-drawer-participant', participant.id)"
             >
-              <span
-                class="ritual-guest-list__avatar"
-                :style="createAvatarStyle(participant)"
-              >
-                {{ participant.initials }}
-              </span>
+              <ParticipantAvatar class="ritual-guest-list__avatar" :participant="participant" decorative />
               <span>{{ participant.name }}</span>
             </button>
           </div>

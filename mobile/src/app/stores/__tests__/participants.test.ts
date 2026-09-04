@@ -47,6 +47,23 @@ beforeEach(() => {
 });
 
 describe('participants store current participant identity', () => {
+  it('persists a selected built-in avatar and clears it for color mode', () => {
+    const store = useParticipantsStore();
+    const created = store.createParticipant({ name: 'Rita', type: 'adult' });
+
+    expect(created?.avatarType).toBeNull();
+
+    store.updateParticipant(created!.id, {
+      avatarType: 'fox',
+    });
+    expect(store.getParticipantById(created!.id)?.avatarType).toBe(
+      'fox'
+    );
+
+    store.updateParticipant(created!.id, { avatarType: null });
+    expect(store.getParticipantById(created!.id)?.avatarType).toBeNull();
+  });
+
   it('keeps fresh state empty until backend hydration', () => {
     const store = useParticipantsStore();
 

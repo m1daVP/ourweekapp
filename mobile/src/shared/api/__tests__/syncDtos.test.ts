@@ -117,6 +117,7 @@ describe('sync DTO mapping', () => {
       name: 'Rita',
       initials: 'R',
       avatarColor: '#496a8f',
+      avatarType: null,
       type: 'adult',
       isActive: true,
       createdAt,

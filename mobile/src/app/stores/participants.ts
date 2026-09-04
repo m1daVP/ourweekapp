@@ -10,6 +10,10 @@ import type {
   Participant,
   ParticipantType,
 } from '@/features/participants/types';
+import {
+  isAvatarType,
+  type AvatarType,
+} from '@/features/participants/avatarCatalog';
 
 export const participantColors = [
   '#496a8f',
@@ -29,6 +33,7 @@ interface CreateParticipantPayload {
   name: string;
   initials?: string;
   avatarColor?: string;
+  avatarType?: AvatarType | null;
   type: ParticipantType;
 }
 
@@ -36,6 +41,7 @@ interface UpdateParticipantPayload {
   name?: string;
   initials?: string;
   avatarColor?: string;
+  avatarType?: AvatarType | null;
   type?: ParticipantType;
   isActive?: boolean;
 }
@@ -45,6 +51,7 @@ interface LegacyParticipant {
   name?: string;
   initials?: string;
   avatarColor?: string;
+  avatarType?: AvatarType | null;
   type?: ParticipantType;
   isActive?: boolean;
   createdAt?: string;
@@ -71,6 +78,7 @@ function getParticipantDisplayKey(participant: Participant) {
     participant.name.trim().toLocaleLowerCase(),
     participant.initials.trim().toLocaleUpperCase(),
     participant.avatarColor.trim().toLocaleLowerCase(),
+    participant.avatarType ?? '',
     participant.type,
   ].join('|');
 }
@@ -180,6 +188,7 @@ function normalizeParticipant(
     avatarColor:
       participant.avatarColor ??
       participantColors[index % participantColors.length],
+    avatarType: isAvatarType(participant.avatarType) ? participant.avatarType : null,
     type: participant.type ?? 'adult',
     isActive: participant.isActive ?? true,
     createdAt,
@@ -322,6 +331,7 @@ export const useParticipantsStore = defineStore('participants', {
           participantColors[
             this.participants.length % participantColors.length
           ],
+        avatarType: payload.avatarType ?? null,
         type: payload.type,
         isActive: true,
         createdAt,
@@ -366,6 +376,10 @@ export const useParticipantsStore = defineStore('participants', {
 
       if (payload.avatarColor !== undefined) {
         participant.avatarColor = payload.avatarColor;
+      }
+
+      if (payload.avatarType !== undefined) {
+        participant.avatarType = payload.avatarType;
       }
 
       if (payload.type !== undefined) {

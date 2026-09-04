@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch, type CSSProperties } from 'vue';
 import { useI18n } from 'vue-i18n';
+import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 import { useRoute } from 'vue-router';
 import BottomNavigation from '@/shared/components/BottomNavigation.vue';
 import smallLogoUrl from '@/assets/small-logo.svg';
@@ -153,12 +154,11 @@ watch(
         :to="{ name: 'settings' }"
         :aria-label="t('app.openSettings')"
       >
-        <span
+        <ParticipantAvatar
           v-if="currentUserParticipant"
-          :style="{ backgroundColor: currentUserParticipant.avatarColor }"
-        >
-          {{ currentUserParticipant.initials }}
-        </span>
+          :participant="currentUserParticipant"
+          decorative
+        />
         <span v-else>WU</span>
       </RouterLink>
     </header>

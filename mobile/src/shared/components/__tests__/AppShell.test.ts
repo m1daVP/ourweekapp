@@ -75,6 +75,11 @@ function mountAppShell() {
       stubs: {
         BottomNavigation: true,
         RouterLink: { template: '<a><slot /></a>' },
+        ParticipantAvatar: {
+          props: ['participant'],
+          template:
+            '<span :style="{ backgroundColor: participant.avatarColor }">{{ participant.initials }}</span>',
+        },
       },
     },
   });

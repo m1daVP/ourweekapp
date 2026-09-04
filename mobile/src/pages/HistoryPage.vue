@@ -6,6 +6,7 @@ import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import type { Participant } from '@/features/participants/types';
 import type { Meeting } from '@/features/meeting/types';
+import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 import HistoryProgressSwipeCard from '@/features/meeting/components/HistoryProgressSwipeCard.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
@@ -221,14 +222,13 @@ function openCompletedMeeting(item: (typeof completedItems.value)[number]) {
               </span>
             </span>
             <span class="history-avatar-stack" aria-hidden="true">
-              <span
+              <ParticipantAvatar
                 v-for="participant in item.participants.slice(0, 3)"
                 :key="participant.id"
                 class="history-avatar"
-                :style="{ backgroundColor: participant.avatarColor }"
-              >
-                {{ participant.initials }}
-              </span>
+                :participant="participant"
+                decorative
+              />
             </span>
           </button>
         </li>
