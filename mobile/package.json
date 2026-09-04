@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "avatars:generate": "node scripts/generate-avatar-catalog.mjs",
     "health:ping": "node --env-file-if-exists=.env scripts/ping-health.mjs",
     "build": "vue-tsc --noEmit && vite build",
     "build:prod": "vue-tsc --noEmit && vite build --mode release",
