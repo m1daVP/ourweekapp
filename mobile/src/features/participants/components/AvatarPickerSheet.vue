@@ -138,10 +138,11 @@ onBeforeUnmount(destroyPicker);
           <button
             class="avatar-picker__custom-color"
             type="button"
+            :aria-label="t('settings.customAvatarColor')"
             :aria-pressed="showCustomColor"
             @click="toggleCustomColor"
           >
-            {{ t('settings.customAvatarColor') }}
+            <span class="avatar-picker__custom-color-swatch" aria-hidden="true" />
           </button>
         </div>
         <Transition name="custom-color">
@@ -191,7 +192,7 @@ onBeforeUnmount(destroyPicker);
 .avatar-picker button[aria-pressed='true'] { border-color: var(--color-primary); }
 .avatar-picker__colors span { width: 32px; height: 32px; border-radius: 50%; }
 .avatar-picker button img { width: 100%; height: 100%; object-fit: contain; }
-button.avatar-picker__custom-color { width: auto !important; padding: 0 var(--space-3); border-radius: var(--radius-pill) !important; }
+.avatar-picker__custom-color-swatch { width: 32px; height: 32px; border-radius: 50%; background: conic-gradient(#e45b5b, #e5c052, #5fa76d, #4f9ed5, #8466ba, #e45b5b); }
 .avatar-picker__group + .avatar-picker__group { margin-top: var(--space-3); }
 .avatar-picker__custom-panel { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
 .avatar-picker__wheel { min-height: 280px; overflow: hidden; border-radius: var(--radius-md); background: var(--color-surface-low); padding: 8px; }
@@ -206,7 +207,7 @@ button.avatar-picker__custom-color { width: auto !important; padding: 0 var(--sp
   justify-content: center;
   background: var(--color-primary);
   border-color: var(--color-primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   color: var(--color-on-primary);
 }
 .custom-color-enter-active, .custom-color-leave-active { overflow: hidden; transition: max-height 220ms ease, opacity 180ms ease, transform 220ms ease; }
