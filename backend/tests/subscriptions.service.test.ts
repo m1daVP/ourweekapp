@@ -12,6 +12,7 @@ import type {
 } from '../src/modules/billing/subscriptions.repository.js';
 import { RevenueCatClientError } from '../src/modules/billing/revenuecat.client.js';
 import type { AuthContext } from '../src/shared/auth/index.js';
+import { ApiError } from '../src/shared/errors/index.js';
 
 const now = '2026-06-06T10:00:00.000Z';
 const future = '2026-07-06T10:00:00.000Z';
@@ -111,15 +112,24 @@ function serviceWith(
   input: {
     repository?: FakeSubscriptionRepository;
     client?: FakeRevenueCatClient;
+    assistantCredits?: {
+      reconcileAbandonedRecaps: ReturnType<typeof vi.fn>;
+      countUsedRecaps: ReturnType<typeof vi.fn>;
+    };
   } = {},
 ) {
   const repository = input.repository ?? new FakeSubscriptionRepository(null);
   const client = input.client ?? new FakeRevenueCatClient(false);
+  const assistantCredits = input.assistantCredits ?? {
+    reconcileAbandonedRecaps: vi.fn().mockResolvedValue(undefined),
+    countUsedRecaps: vi.fn().mockResolvedValue(0),
+  };
 
   return {
     repository,
     client,
-    service: new SubscriptionService(repository, client, 'premium'),
+    assistantCredits,
+    service: new SubscriptionService(repository, client, 'premium', assistantCredits),
   };
 }
 
@@ -225,6 +235,74 @@ describe('SubscriptionService', () => {
       status: 'expired',
       expiresAt: past,
     });
+  });
+
+  it('reconciles abandoned recap work before counting Free allowance', async () => {
+    const { assistantCredits, service } = serviceWith();
+
+    await service.getStatus(auth);
+
+    expect(assistantCredits.reconcileAbandonedRecaps).toHaveBeenCalledWith('workspace-1');
+    expect(
+      assistantCredits.reconcileAbandonedRecaps.mock.invocationCallOrder[0],
+    ).toBeLessThan(assistantCredits.countUsedRecaps.mock.invocationCallOrder[0]);
+  });
+
+  it('reconciles abandoned recap work before counting Premium allowance', async () => {
+    const { assistantCredits, service } = serviceWith({
+      repository: new FakeSubscriptionRepository(subscription({
+        planType: 'premium',
+        status: 'active',
+        expiresAt: future,
+      })),
+    });
+
+    await service.getStatus(auth);
+
+    expect(assistantCredits.reconcileAbandonedRecaps).toHaveBeenCalledWith('workspace-1');
+    expect(
+      assistantCredits.reconcileAbandonedRecaps.mock.invocationCallOrder[0],
+    ).toBeLessThan(assistantCredits.countUsedRecaps.mock.invocationCallOrder[0]);
+  });
+
+  it('does not count recap allowance when recovery fails', async () => {
+    const recoveryError = new Error('safe recovery failure');
+    const assistantCredits = {
+      reconcileAbandonedRecaps: vi.fn().mockRejectedValue(recoveryError),
+      countUsedRecaps: vi.fn().mockResolvedValue(0),
+    };
+    const { service } = serviceWith({ assistantCredits });
+
+    await expect(service.getStatus(auth)).rejects.toBe(recoveryError);
+    expect(assistantCredits.countUsedRecaps).not.toHaveBeenCalled();
+  });
+
+  it('does not mask recovery failure as a RevenueCat refresh fallback', async () => {
+    const recoveryError = new ApiError(
+      503,
+      'assistant_recap_recovery_failed',
+      'Unable to recover AI recap credits.',
+    );
+    const assistantCredits = {
+      reconcileAbandonedRecaps: vi.fn()
+        .mockRejectedValueOnce(recoveryError)
+        .mockResolvedValueOnce(undefined),
+      countUsedRecaps: vi.fn().mockResolvedValue(0),
+    };
+    const client = new FakeRevenueCatClient(true);
+    client.getSubscriber.mockResolvedValue({
+      request_date: now,
+      subscriber: {
+        original_app_user_id: 'workspace-1',
+        entitlements: {
+          premium: { expires_date: future, store: 'play_store' },
+        },
+      },
+    });
+    const { service } = serviceWith({ client, assistantCredits });
+
+    await expect(service.getStatus(auth)).rejects.toBe(recoveryError);
+    expect(assistantCredits.countUsedRecaps).not.toHaveBeenCalled();
   });
 
   it('revokes a previously active entitlement when RevenueCat no longer returns it', async () => {

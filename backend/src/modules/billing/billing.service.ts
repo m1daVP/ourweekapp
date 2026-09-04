@@ -1,6 +1,6 @@
 import type { AuthContext, PlanType } from '../../shared/auth/index.js';
 import { requireAuthenticatedContext } from '../../shared/auth/index.js';
-import { ApiError } from '../../shared/errors/index.js';
+import { ApiError, isApiError } from '../../shared/errors/index.js';
 import { resolveEffectivePlan } from '../../shared/repositories/index.js';
 import {
   enabledFeatureKeys,
@@ -46,7 +46,7 @@ type EntitlementProviderClient = Pick<
 
 type AssistantCreditRepository = Pick<
   AssistantRepository,
-  'countUsedRecaps'
+  'countUsedRecaps' | 'reconcileAbandonedRecaps'
 >;
 
 type RevenueCatEntitlementWithStore = RevenueCatEntitlement & {
@@ -116,6 +116,7 @@ async function subscriptionStatusFromRecord(
 
   if (!subscription || planType === 'free') {
     const features = resolveFeatureAccessMap({ planType: 'free', role });
+    await assistantCredits.reconcileAbandonedRecaps(workspaceId);
     const used = await assistantCredits.countUsedRecaps(workspaceId, null);
 
     return {
@@ -130,6 +131,7 @@ async function subscriptionStatusFromRecord(
   }
 
   const features = resolveFeatureAccessMap({ planType: 'premium', role });
+  await assistantCredits.reconcileAbandonedRecaps(workspaceId);
   const used = await assistantCredits.countUsedRecaps(workspaceId, subscription.expiresAt);
 
   return {
@@ -150,6 +152,7 @@ async function freeStatus(
   assistantCredits: AssistantCreditRepository,
 ): Promise<SubscriptionStatusDto> {
   const features = resolveFeatureAccessMap({ planType: 'free', role });
+  await assistantCredits.reconcileAbandonedRecaps(workspaceId);
   const used = await assistantCredits.countUsedRecaps(workspaceId, null);
 
   return {
@@ -222,6 +225,9 @@ export class SubscriptionService {
     private readonly revenueCatClient: EntitlementProviderClient,
     private readonly entitlementId = 'premium',
     private readonly assistantCredits: AssistantCreditRepository = {
+      async reconcileAbandonedRecaps() {
+        return undefined;
+      },
       async countUsedRecaps() {
         return 0;
       },
@@ -239,7 +245,11 @@ export class SubscriptionService {
           role: context.role,
           now,
         });
-      } catch {
+      } catch (error) {
+        if (isApiError(error) && error.code === 'assistant_recap_recovery_failed') {
+          throw error;
+        }
+
         return this.cachedOrFreeStatus(context.workspaceId, context.role, now);
       }
     }

@@ -47,7 +47,14 @@ type ParticipantsRepositoryPort = Pick<
   'listParticipantNamesForWorkspace'
 >;
 
-type AssistantAllowanceRepository = Pick<AssistantRepository, 'countUsedRecaps' | 'reserveRecap' | 'settleRecap' | 'releaseRecap'>;
+type AssistantAllowanceRepository = Pick<
+  AssistantRepository,
+  | 'countUsedRecaps'
+  | 'reconcileAbandonedRecaps'
+  | 'reserveRecap'
+  | 'settleRecap'
+  | 'releaseRecap'
+>;
 type SubscriptionRepositoryPort = Pick<SubscriptionsRepository, 'findCurrentSubscriptionForWorkspace'>;
 
 type AiSummaryServiceOptions = {
@@ -160,6 +167,10 @@ export class AiSummaryService {
         'meeting_not_completed',
         'Meeting must be completed before generating a summary.',
       );
+    }
+
+    if (this.assistantRepository) {
+      await this.assistantRepository.reconcileAbandonedRecaps(auth.workspaceId);
     }
 
     await this.requireWithinRateLimits(auth, now);

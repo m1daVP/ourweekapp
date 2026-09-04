@@ -6,6 +6,19 @@ import { FREE_RECAP_LIMIT } from '../billing/plan-limits.js';
 export class AssistantRepository {
   constructor(private readonly supabase: SupabaseRepositoryClient) {}
 
+  async reconcileAbandonedRecaps(workspaceId: string): Promise<void> {
+    const { error } = await this.supabase.rpc(
+      'reconcile_abandoned_assistant_recap_requests',
+      { p_workspace_id: workspaceId },
+    );
+
+    throwOnSupabaseError(
+      error,
+      'assistant_recap_recovery_failed',
+      'Unable to recover AI recap credits.',
+    );
+  }
+
   async countUsedRecaps(workspaceId: string, periodEndsAt: string | null) {
     let query = this.supabase
       .from('assistant_recap_credit_reservations')

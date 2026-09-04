@@ -4,6 +4,7 @@ import { AiSummaryService } from '../src/modules/ai/ai.service.js';
 import type { AiSummaryProvider } from '../src/modules/ai/openai.client.js';
 import type { MeetingDto as MeetingRepositoryDto } from '../src/modules/meetings/meetings.repository.js';
 import type { AuthContext } from '../src/shared/auth/index.js';
+import { ApiError } from '../src/shared/errors/index.js';
 
 const now = '2026-06-06T10:00:00.000Z';
 const meetingId = '11111111-1111-4111-8111-111111111111';
@@ -114,6 +115,8 @@ function createHarness(input: {
     status: 'created' | 'pending' | 'completed';
     request: { id: string; generatedSummary?: unknown };
   };
+  withAssistantRepository?: boolean;
+  assistantRecoveryError?: unknown;
   logger?: {
     info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -154,13 +157,24 @@ function createHarness(input: {
       input.participants ?? [{ id: 'participant_1', name: 'Rita' }],
     ),
   };
+  const assistant = {
+    reconcileAbandonedRecaps: vi.fn().mockImplementation(async () => {
+      if (input.assistantRecoveryError) {
+        throw input.assistantRecoveryError;
+      }
+    }),
+    countUsedRecaps: vi.fn().mockResolvedValue(0),
+    reserveRecap: vi.fn().mockResolvedValue(true),
+    settleRecap: vi.fn().mockResolvedValue(true),
+    releaseRecap: vi.fn().mockResolvedValue(true),
+  };
   const service = new AiSummaryService(ai, meetings, participants, provider, {
     aiConfigured: input.aiConfigured ?? true,
     model: 'test-model',
     ...(input.logger ? { logger: input.logger } : {}),
-  });
+  }, input.withAssistantRepository ? assistant : undefined);
 
-  return { ai, meetings, participants, provider, service };
+  return { ai, meetings, participants, provider, assistant, service };
 }
 
 describe('AiSummaryService', () => {
@@ -753,6 +767,37 @@ describe('AiSummaryService', () => {
 
     expect(ai.claimSummaryGeneration).toHaveBeenCalled();
     expect(provider.generateMeetingSummary).toHaveBeenCalled();
+  });
+
+  it('reconciles abandoned recap work before claiming summary generation', async () => {
+    const { ai, assistant, service } = createHarness({ withAssistantRepository: true });
+
+    await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+
+    expect(assistant.reconcileAbandonedRecaps).toHaveBeenCalledWith(workspaceId);
+    expect(
+      assistant.reconcileAbandonedRecaps.mock.invocationCallOrder[0],
+    ).toBeLessThan(ai.claimSummaryGeneration.mock.invocationCallOrder[0]);
+  });
+
+  it('stops before claiming or calling the provider when recovery fails', async () => {
+    const recoveryError = new ApiError(
+      503,
+      'assistant_recap_recovery_failed',
+      'Unable to recover AI recap credits.',
+    );
+    const { ai, assistant, provider, service } = createHarness({
+      withAssistantRepository: true,
+      assistantRecoveryError: recoveryError,
+    });
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toBe(recoveryError);
+    expect(assistant.reconcileAbandonedRecaps).toHaveBeenCalledWith(workspaceId);
+    expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
+    expect(assistant.reserveRecap).not.toHaveBeenCalled();
+    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
   });
 
   it('fails safely when a completed claim contains an invalid request snapshot', async () => {
