@@ -33,8 +33,8 @@ The stable saved value is the globally unique WebP filename stem—`fox`,
 URL. Moving `fox.webp` between groups therefore does not change stored user
 data.
 
-`scripts/generate-avatar-catalog.mjs` scans the asset folders, requires five
-groups of four files and unique valid filename stems, then writes
+`scripts/generate-avatar-catalog.mjs` scans the asset folders, requires
+non-empty groups and unique valid filename stems, then writes
 `src/features/participants/avatar-catalog.json`. The frontend imports that
 generated manifest and discovers bundled WebPs through Vite. Group membership
 is picker-only metadata, not part of an avatar ID.
