@@ -347,7 +347,7 @@ input[type='radio'] {
   color: var(--color-on-primary);
   font-size: var(--font-size-label-sm);
   font-weight: 850;
-  box-shadow: 0 2px 8px rgba(47, 42, 38, 0.08);
+  /* box-shadow: 0 2px 8px rgba(47, 42, 38, 0.08); */
 }
 
 .app-top-bar__icon {
