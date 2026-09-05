@@ -78,3 +78,28 @@ describe('tasks store carry-forward flow', () => {
     vi.useRealTimers();
   });
 });
+
+describe('tasks store responsibility updates', () => {
+  it('preserves adult assignments when the responsibility payload omits them', () => {
+    const tasksStore = useTasksStore();
+
+    tasksStore.addTask({
+      id: 'task-1',
+      title: 'Buy fruit',
+      responsibilityType: 'shared',
+      responsibleParticipantIds: ['participant-1'],
+      responsibleUserIds: ['adult-1'],
+    });
+
+    tasksStore.updateTask('task-1', {
+      responsibilityType: 'participant',
+      responsibleParticipantIds: ['participant-2'],
+    });
+
+    expect(tasksStore.tasks[0]).toMatchObject({
+      responsibilityType: 'participant',
+      responsibleParticipantIds: ['participant-2'],
+      responsibleUserIds: ['adult-1'],
+    });
+  });
+});

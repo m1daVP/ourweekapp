@@ -301,3 +301,21 @@ describe('meetings store note editing', () => {
     expect(storageMocks.writeStorageSlice).not.toHaveBeenCalled();
   });
 });
+
+describe('meetings store task editing', () => {
+  it('preserves adult assignments when the responsibility payload omits them', () => {
+    const { meeting, meetingsStore } = setMeeting();
+    meeting.sections[0].tasks[0].responsibleUserIds = ['adult-1'];
+
+    meetingsStore.updateTaskDetails('task-1', {
+      responsibilityType: 'shared',
+      responsibleParticipantIds: ['participant-1', 'participant-2'],
+    });
+
+    expect(meeting.sections[0].tasks[0]).toMatchObject({
+      responsibilityType: 'shared',
+      responsibleParticipantIds: ['participant-1', 'participant-2'],
+      responsibleUserIds: ['adult-1'],
+    });
+  });
+});

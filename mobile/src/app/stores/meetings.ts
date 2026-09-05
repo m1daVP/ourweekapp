@@ -815,9 +815,10 @@ export const useMeetingsStore = defineStore('meetings', {
 
         found.task.responsibilityType = responsibilityType;
         found.task.responsibleParticipantIds = responsibleParticipantIds;
-        found.task.responsibleUserIds = uniqueStrings(
-          payload.responsibleUserIds ?? []
-        );
+        found.task.responsibleUserIds =
+          payload.responsibleUserIds === undefined
+            ? found.task.responsibleUserIds
+            : uniqueStrings(payload.responsibleUserIds);
       }
 
       if (payload.dueDate !== undefined) {

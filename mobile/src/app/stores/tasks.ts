@@ -397,7 +397,10 @@ export const useTasksStore = defineStore('tasks', {
 
         task.responsibilityType = responsibilityType;
         task.responsibleParticipantIds = responsibleParticipantIds;
-        task.responsibleUserIds = responsibleUserIds;
+        task.responsibleUserIds =
+          payload.responsibleUserIds === undefined
+            ? task.responsibleUserIds
+            : responsibleUserIds;
       }
 
       if (payload.dueDate !== undefined) {

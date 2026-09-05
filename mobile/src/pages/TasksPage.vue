@@ -12,14 +12,13 @@ import { useI18n } from 'vue-i18n';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
-import { useWorkspaceStore } from '@/app/stores/workspace';
 import type { Participant } from '@/features/participants/types';
 import type {
   Task,
   TaskResponsibilityType,
   TaskStatus,
 } from '@/features/tasks/types';
-import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
+import TaskSwipeActionCard from '@/features/tasks/components/TaskSwipeActionCard.vue';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
@@ -45,7 +44,6 @@ interface TaskCardView {
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
-const workspaceStore = useWorkspaceStore();
 const { can } = useWorkspacePermissions();
 const { isStartupLoading } = useStartupLoadingState();
 const { t, locale } = useI18n();
@@ -63,7 +61,6 @@ const editDrafts = reactive<
       title: string;
       dueDate: string;
       responsibilityChoice: string;
-      responsibleUserIds: string[];
     }
   >
 >({});
@@ -71,7 +68,6 @@ const newTaskDraft = reactive({
   title: '',
   dueDate: '',
   responsibilityChoice: 'needsDiscussion',
-  responsibleUserIds: [] as string[],
 });
 const selectedFilter = ref<TaskFilter>('todo');
 const selectedTask = ref<Task | null>(null);
@@ -88,11 +84,6 @@ const openTasks = computed(() => tasksStore.openTasks);
 const doneTasks = computed(() => tasksStore.doneTasks);
 const skippedTasks = computed(() => tasksStore.skippedTasks);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
-const activeAdultMembers = computed(() =>
-  workspaceStore.activeMembers.filter(
-    (member) => member.role === 'owner' || member.role === 'adult_member'
-  )
-);
 const firstParticipant = computed(() => activeParticipants.value[0] ?? null);
 const canEditTasks = computed(() => can('editTasks'));
 const canDeleteTasks = computed(() => can('deleteTasks'));
@@ -170,7 +161,6 @@ function syncDrafts() {
         title: task.title,
         dueDate: task.dueDate ?? '',
         responsibilityChoice: getResponsibilityChoice(task),
-        responsibleUserIds: [...task.responsibleUserIds],
       };
     }
   }
@@ -418,13 +408,11 @@ function saveTask(task: Task) {
   tasksStore.updateTask(task.id, {
     title: draft.title,
     dueDate: draft.dueDate,
-    responsibleUserIds: draft.responsibleUserIds,
     ...responsibility,
   });
   meetingsStore.updateTaskDetails(task.id, {
     title: draft.title,
     dueDate: draft.dueDate,
-    responsibleUserIds: draft.responsibleUserIds,
     ...responsibility,
   });
   statusMessage.value = t('tasksPage.taskUpdated');
@@ -449,7 +437,6 @@ function addTask() {
   const createdTask = tasksStore.addTask({
     title: newTaskDraft.title,
     dueDate: newTaskDraft.dueDate,
-    responsibleUserIds: newTaskDraft.responsibleUserIds,
     ...responsibility,
   });
 
@@ -461,7 +448,6 @@ function addTask() {
   newTaskDraft.title = '';
   newTaskDraft.dueDate = '';
   newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
-  newTaskDraft.responsibleUserIds = [];
   isAddTaskSheetOpen.value = false;
   statusMessage.value = t('tasksPage.updated');
 }
@@ -655,62 +641,29 @@ function openAddTaskSheet() {
         name="task-card-motion"
         class="task-card-list"
       >
-        <li
+        <TaskSwipeActionCard
           v-for="card in sharedTaskCards"
           :key="card.id"
-          :class="[
-            'task-card',
-            {
-              'is-done': card.task?.status === 'done',
-              'is-completing': isTaskCompleting(card.id),
-            },
-          ]"
-          @click="openTask(card)"
-        >
-          <button
-            type="button"
-            class="task-card__checkbox"
-            :class="{ 'is-checked': card.task?.status === 'done' }"
-            :aria-label="getTaskToggleLabel(card)"
-            :disabled="!canEditTasks || isTaskCompleting(card.id)"
-            @click.stop="toggleTaskStatus(card)"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">
-              check
-            </span>
-          </button>
-          <button
-            type="button"
-            class="task-card__content"
-            :disabled="isTaskCompleting(card.id)"
-            @click.stop="openTask(card)"
-          >
-            <strong>{{ card.title }}</strong>
-            <span
-              class="task-card__metadata"
-              :class="{ 'is-danger': card.metadataTone === 'danger' }"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">
-                {{ card.metadataIcon }}
-              </span>
-              {{ card.metadataText }}
-            </span>
-          </button>
-          <div class="task-card__side" aria-hidden="true">
-            <div v-if="card.accessory === 'avatars'" class="task-avatar-stack">
-              <ParticipantAvatar
-                v-for="participant in card.participants.slice(0, 2)"
-                :key="participant.id"
-                class="task-avatar"
-                :participant="participant"
-                decorative
-              />
-            </div>
-            <span v-else-if="card.accessory === 'badge'" class="task-count">
-              {{ card.badgeCount }}
-            </span>
-          </div>
-        </li>
+          :title="card.title"
+          :status="card.task?.status ?? 'open'"
+          :metadata-icon="card.metadataIcon"
+          :metadata-text="card.metadataText"
+          :metadata-tone="card.metadataTone"
+          :participants="card.participants"
+          :accessory="card.accessory"
+          :badge-count="card.badgeCount"
+          :can-toggle="canEditTasks"
+          :can-finish="canEditTasks && card.task?.status === 'open'"
+          :can-remove="canDeleteTasks"
+          :is-completing="isTaskCompleting(card.id)"
+          :toggle-label="getTaskToggleLabel(card)"
+          :finish-label="t('common.finish')"
+          :remove-label="t('common.remove')"
+          @open="openTask(card)"
+          @toggle-status="toggleTaskStatus(card)"
+          @finish="card.task && setTaskStatus(card.task, 'done')"
+          @request-delete="card.task && deleteTask(card.task)"
+        />
       </TransitionGroup>
     </section>
 
@@ -726,62 +679,29 @@ function openAddTaskSheet() {
         name="task-card-motion"
         class="task-card-list"
       >
-        <li
+        <TaskSwipeActionCard
           v-for="card in myTaskCards"
           :key="card.id"
-          :class="[
-            'task-card',
-            {
-              'is-done': card.task?.status === 'done',
-              'is-completing': isTaskCompleting(card.id),
-            },
-          ]"
-          @click="openTask(card)"
-        >
-          <button
-            type="button"
-            class="task-card__checkbox"
-            :class="{ 'is-checked': card.task?.status === 'done' }"
-            :aria-label="getTaskToggleLabel(card)"
-            :disabled="!canEditTasks || isTaskCompleting(card.id)"
-            @click.stop="toggleTaskStatus(card)"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">
-              check
-            </span>
-          </button>
-          <button
-            type="button"
-            class="task-card__content"
-            :disabled="isTaskCompleting(card.id)"
-            @click.stop="openTask(card)"
-          >
-            <strong>{{ card.title }}</strong>
-            <span
-              class="task-card__metadata"
-              :class="{ 'is-danger': card.metadataTone === 'danger' }"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">
-                {{ card.metadataIcon }}
-              </span>
-              {{ card.metadataText }}
-            </span>
-          </button>
-          <div class="task-card__side" aria-hidden="true">
-            <div v-if="card.accessory === 'avatars'" class="task-avatar-stack">
-              <ParticipantAvatar
-                v-for="participant in card.participants.slice(0, 2)"
-                :key="participant.id"
-                class="task-avatar"
-                :participant="participant"
-                decorative
-              />
-            </div>
-            <span v-else-if="card.accessory === 'badge'" class="task-count">
-              {{ card.badgeCount }}
-            </span>
-          </div>
-        </li>
+          :title="card.title"
+          :status="card.task?.status ?? 'open'"
+          :metadata-icon="card.metadataIcon"
+          :metadata-text="card.metadataText"
+          :metadata-tone="card.metadataTone"
+          :participants="card.participants"
+          :accessory="card.accessory"
+          :badge-count="card.badgeCount"
+          :can-toggle="canEditTasks"
+          :can-finish="canEditTasks && card.task?.status === 'open'"
+          :can-remove="canDeleteTasks"
+          :is-completing="isTaskCompleting(card.id)"
+          :toggle-label="getTaskToggleLabel(card)"
+          :finish-label="t('common.finish')"
+          :remove-label="t('common.remove')"
+          @open="openTask(card)"
+          @toggle-status="toggleTaskStatus(card)"
+          @finish="card.task && setTaskStatus(card.task, 'done')"
+          @request-delete="card.task && deleteTask(card.task)"
+        />
       </TransitionGroup>
     </section>
     <section
@@ -852,18 +772,6 @@ function openAddTaskSheet() {
           <span>{{ t('tasksPage.stillRelevant') }}</span>
           <input v-model="newTaskDraft.dueDate" type="date" />
         </label>
-        <label>
-          <span>{{ t('tasksPage.responsibleAdults') }}</span>
-          <select v-model="newTaskDraft.responsibleUserIds" multiple>
-            <option
-              v-for="member in activeAdultMembers"
-              :key="member.userId"
-              :value="member.userId"
-            >
-              {{ member.displayName }}
-            </option>
-          </select>
-        </label>
         <button type="submit" class="meeting-primary">
           {{ t('common.save') }}
         </button>
@@ -917,22 +825,6 @@ function openAddTaskSheet() {
             type="date"
             :disabled="!canEditTasks"
           />
-        </label>
-        <label>
-          <span>{{ t('tasksPage.responsibleAdults') }}</span>
-          <select
-            v-model="selectedTaskDraft.responsibleUserIds"
-            multiple
-            :disabled="!canEditTasks"
-          >
-            <option
-              v-for="member in activeAdultMembers"
-              :key="member.userId"
-              :value="member.userId"
-            >
-              {{ member.displayName }}
-            </option>
-          </select>
         </label>
         <p v-if="selectedTask.description" class="task-editor-form__note">
           {{ selectedTask.description }}
