@@ -626,6 +626,96 @@ describe('AiSummaryService', () => {
     }));
   });
 
+  it('removes unknown generated task owner IDs before finalization', async () => {
+    const unknownParticipantId = '99999999-9999-4999-8999-999999999999';
+    const { ai, service } = createHarness({
+      providerOutput: providerOutput({
+        tasks: [{ title: 'Book dentist', responsibleParticipantIds: [unknownParticipantId] }],
+      }),
+    });
+
+    const response = await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+
+    expect(response.summary.tasks).toEqual([{ title: 'Book dentist' }]);
+    expect(ai.finalizeSummaryGeneration).toHaveBeenCalledWith(expect.objectContaining({
+      generatedSummary: expect.objectContaining({ tasks: [{ title: 'Book dentist' }] }),
+    }));
+  });
+
+  it('removes a generated owner ID that belongs to another workspace', async () => {
+    const otherWorkspaceParticipantId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const { ai, service } = createHarness({
+      providerOutput: providerOutput({
+        tasks: [{ title: 'Book dentist', responsibleParticipantIds: [otherWorkspaceParticipantId] }],
+      }),
+      participants: [{ id: 'participant_1', name: 'Rita' }],
+    });
+
+    const response = await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+
+    expect(response.summary.tasks).toEqual([{ title: 'Book dentist' }]);
+    expect(ai.finalizeSummaryGeneration).toHaveBeenCalledWith(expect.objectContaining({
+      generatedSummary: expect.objectContaining({ tasks: [{ title: 'Book dentist' }] }),
+    }));
+  });
+
+  it('retains a generated owner ID for an authorized meeting participant', async () => {
+    const { ai, service } = createHarness({
+      providerOutput: providerOutput({
+        tasks: [{ title: 'Book dentist', responsibleParticipantIds: ['participant_1'] }],
+      }),
+    });
+
+    const response = await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+
+    expect(response.summary.tasks).toEqual([
+      { title: 'Book dentist', responsibleParticipantIds: ['participant_1'] },
+    ]);
+    expect(ai.finalizeSummaryGeneration).toHaveBeenCalledWith(expect.objectContaining({
+      generatedSummary: expect.objectContaining({
+        tasks: [{ title: 'Book dentist', responsibleParticipantIds: ['participant_1'] }],
+      }),
+    }));
+  });
+
+  it('retains unique authorized owners and removes invalid owners from mixed output', async () => {
+    const secondParticipantId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const invalidParticipantId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const { ai, service } = createHarness({
+      meeting: meeting({ participantIds: ['participant_1', secondParticipantId] }),
+      participants: [
+        { id: 'participant_1', name: 'Rita' },
+        { id: secondParticipantId, name: 'Sam' },
+      ],
+      providerOutput: providerOutput({
+        tasks: [{
+          title: 'Book dentist',
+          responsibleParticipantIds: [
+            invalidParticipantId,
+            'participant_1',
+            secondParticipantId,
+            'participant_1',
+          ],
+        }],
+      }),
+    });
+
+    const response = await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+
+    expect(response.summary.tasks).toEqual([{
+      title: 'Book dentist',
+      responsibleParticipantIds: ['participant_1', secondParticipantId],
+    }]);
+    expect(ai.finalizeSummaryGeneration).toHaveBeenCalledWith(expect.objectContaining({
+      generatedSummary: expect.objectContaining({
+        tasks: [{
+          title: 'Book dentist',
+          responsibleParticipantIds: ['participant_1', secondParticipantId],
+        }],
+      }),
+    }));
+  });
+
   it('marks the request failed and returns a safe error when the provider fails', async () => {
     const { ai, service } = createHarness({
       providerError: new Error('provider timeout with sensitive text'),

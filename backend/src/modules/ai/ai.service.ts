@@ -94,6 +94,50 @@ function durationMsSince(startedAtMs: number) {
   return Math.max(0, Date.now() - startedAtMs);
 }
 
+function sanitizeSummaryTaskOwnerReferences(
+  value: unknown,
+  allowedParticipantIds: ReadonlySet<string>,
+): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return {};
+  }
+
+  const output = value as Record<string, unknown>;
+
+  if (!Array.isArray(output.tasks)) {
+    return output;
+  }
+
+  return {
+    ...output,
+    tasks: output.tasks.map((task) => {
+      if (typeof task !== 'object' || task === null || Array.isArray(task)) {
+        return task;
+      }
+
+      const taskRecord = task as Record<string, unknown>;
+
+      if (!Array.isArray(taskRecord.responsibleParticipantIds)) {
+        return taskRecord;
+      }
+
+      const responsibleParticipantIds = [
+        ...new Set(
+          taskRecord.responsibleParticipantIds.filter(
+            (participantId): participantId is string =>
+              typeof participantId === 'string' && allowedParticipantIds.has(participantId),
+          ),
+        ),
+      ];
+      const { responsibleParticipantIds: _discardedOwnerIds, ...taskWithoutOwners } = taskRecord;
+
+      return responsibleParticipantIds.length > 0
+        ? { ...taskWithoutOwners, responsibleParticipantIds }
+        : taskWithoutOwners;
+    }),
+  };
+}
+
 export class AiSummaryService {
   constructor(
     private readonly aiRepository: AiRepositoryPort,
@@ -354,8 +398,13 @@ export class AiSummaryService {
         model,
         maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,
       });
+      const allowedParticipantIds = new Set(participants.map((participant) => participant.id));
+      const sanitizedProviderOutput = sanitizeSummaryTaskOwnerReferences(
+        normalizeSummaryProviderOutput(providerOutput),
+        allowedParticipantIds,
+      );
       const summary = meetingSummarySchema.parse({
-        ...normalizeSummaryProviderOutput(providerOutput),
+        ...sanitizedProviderOutput,
         id: randomUUID(),
         meetingId: meeting.id,
         createdAt,
