@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { AiRepository } from '../src/modules/ai/ai.repository.js';
+import {
+  AiRepository,
+  mapAiSummaryRequestRowToDto,
+} from '../src/modules/ai/ai.repository.js';
 
 const workspaceId = '22222222-2222-4222-8222-222222222222';
 const meetingId = '11111111-1111-4111-8111-111111111111';
@@ -27,6 +30,8 @@ function requestRow(overrides: Record<string, unknown> = {}) {
     provider: 'openai',
     status: 'pending',
     input_hash: 'hash_1',
+    effective_model: 'gpt-5.4-nano',
+    prompt_version: 'weekly-family-check-in-v1',
     created_at: '2026-06-06T10:00:00.000Z',
     completed_at: null,
     error_code: null,
@@ -50,17 +55,26 @@ describe('AiRepository', () => {
       userId,
       provider: 'openai',
       inputHash: 'hash_1',
+      effectiveModel: 'gpt-5.4-nano',
+      promptVersion: 'weekly-family-check-in-v1',
     })).resolves.toMatchObject({
       status: 'created',
-      request: { id: '44444444-4444-4444-8444-444444444444', inputHash: 'hash_1' },
+      request: {
+        id: '44444444-4444-4444-8444-444444444444',
+        inputHash: 'hash_1',
+        effectiveModel: 'gpt-5.4-nano',
+        promptVersion: 'weekly-family-check-in-v1',
+      },
     });
 
-    expect(rpc).toHaveBeenCalledWith('claim_ai_summary_generation', {
+    expect(rpc).toHaveBeenCalledWith('claim_ai_summary_generation_v2', {
       p_workspace_id: workspaceId,
       p_meeting_id: meetingId,
       p_user_id: userId,
       p_provider: 'openai',
       p_input_hash: 'hash_1',
+      p_effective_model: 'gpt-5.4-nano',
+      p_prompt_version: 'weekly-family-check-in-v1',
     });
   });
 
@@ -80,9 +94,48 @@ describe('AiRepository', () => {
       userId,
       provider: 'openai',
       inputHash: 'hash_1',
+      effectiveModel: 'gpt-5.4-nano',
+      promptVersion: 'weekly-family-check-in-v1',
     })).rejects.toMatchObject({
       statusCode: 500,
       code: 'ai_summary_request_claim_invalid',
+    });
+  });
+
+  it('keeps internal model audit fields out of public request DTOs', () => {
+    expect(mapAiSummaryRequestRowToDto(requestRow() as never)).toEqual({
+      id: '44444444-4444-4444-8444-444444444444',
+      workspaceId,
+      userId,
+      meetingId,
+      provider: 'openai',
+      status: 'pending',
+      createdAt: '2026-06-06T10:00:00.000Z',
+      completedAt: null,
+      errorCode: null,
+    });
+  });
+
+  it('maps nullable model audit values on a legacy request record', async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        ...requestRow({ effective_model: null, prompt_version: null }),
+        claim_status: 'created',
+      },
+      error: null,
+    });
+    const repository = new AiRepository({ rpc: vi.fn().mockReturnValue({ single }) } as never);
+
+    await expect(repository.claimSummaryGeneration({
+      workspaceId,
+      meetingId,
+      userId,
+      provider: 'openai',
+      inputHash: 'hash_1',
+      effectiveModel: 'gpt-5.4-nano',
+      promptVersion: 'weekly-family-check-in-v1',
+    })).resolves.toMatchObject({
+      request: { effectiveModel: null, promptVersion: null },
     });
   });
 

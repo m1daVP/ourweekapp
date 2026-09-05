@@ -15,6 +15,8 @@ type AiSummaryRequestRow = {
   provider: string;
   status: string;
   input_hash: string | null;
+  effective_model: string | null;
+  prompt_version: string | null;
   created_at: string;
   completed_at: string | null;
   error_code: string | null;
@@ -23,7 +25,7 @@ type AiSummaryRequestRow = {
 
 type PublicAiSummaryRequestRow = Omit<
   AiSummaryRequestRow,
-  'input_hash' | 'generated_summary'
+  'input_hash' | 'effective_model' | 'prompt_version' | 'generated_summary'
 >;
 
 export type AiSummaryRequestDto = {
@@ -40,6 +42,8 @@ export type AiSummaryRequestDto = {
 
 export type AiSummaryRequestRecord = AiSummaryRequestDto & {
   inputHash: string | null;
+  effectiveModel: string | null;
+  promptVersion: string | null;
   generatedSummary: JsonValue | null;
 };
 
@@ -49,6 +53,8 @@ export type ClaimAiSummaryGenerationInput = {
   userId: string;
   provider: string;
   inputHash: string;
+  effectiveModel: string;
+  promptVersion: string;
 };
 
 export type AiSummaryGenerationClaim = {
@@ -104,6 +110,8 @@ export function mapAiSummaryRequestRowToRecord(row: AiSummaryRequestRow): AiSumm
   return {
     ...mapAiSummaryRequestRowToDto(row),
     inputHash: row.input_hash,
+    effectiveModel: row.effective_model,
+    promptVersion: row.prompt_version,
     generatedSummary: row.generated_summary,
   };
 }
@@ -113,12 +121,14 @@ export class AiRepository {
 
   async claimSummaryGeneration(input: ClaimAiSummaryGenerationInput): Promise<AiSummaryGenerationClaim> {
     const { data, error } = await this.supabase
-      .rpc('claim_ai_summary_generation', {
+      .rpc('claim_ai_summary_generation_v2', {
         p_workspace_id: input.workspaceId,
         p_meeting_id: input.meetingId,
         p_user_id: input.userId,
         p_provider: input.provider,
         p_input_hash: input.inputHash,
+        p_effective_model: input.effectiveModel,
+        p_prompt_version: input.promptVersion,
       })
       .single<AiSummaryGenerationClaimRow>();
 

@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { AiSummaryService } from '../src/modules/ai/ai.service.js';
+import {
+  AiSummaryService,
+  buildSummaryGenerationInputHash,
+} from '../src/modules/ai/ai.service.js';
 import {
   AiSummaryProviderError,
   type AiSummaryProvider,
@@ -273,6 +276,8 @@ describe('AiSummaryService', () => {
     expect(ai.claimSummaryGeneration).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: 'openai',
+        effectiveModel: 'gpt-5.4-nano',
+        promptVersion: 'weekly-family-check-in-v1',
       }),
     );
     expect(ai.finalizeSummaryGeneration).toHaveBeenCalledWith(expect.objectContaining({
@@ -335,6 +340,7 @@ describe('AiSummaryService', () => {
         meetingId,
         templateId: 'weekly-family-check-in',
         model: 'gpt-5.4-nano',
+        promptVersion: 'weekly-family-check-in-v1',
         maxOutputTokens: 800,
       }),
       'AI summary generation started',
@@ -347,6 +353,7 @@ describe('AiSummaryService', () => {
         meetingId,
         templateId: 'weekly-family-check-in',
         model: 'gpt-5.4-nano',
+        promptVersion: 'weekly-family-check-in-v1',
       }),
       'AI summary generation completed',
     );
@@ -636,6 +643,11 @@ describe('AiSummaryService', () => {
       now,
       'ai_summary_generation_failed',
     );
+  });
+
+  it('uses prompt version in the generation cache identity', () => {
+    expect(buildSummaryGenerationInputHash('system', 'payload', 'model', 'v1'))
+      .not.toBe(buildSummaryGenerationInputHash('system', 'payload', 'model', 'v2'));
   });
 
   it.each([

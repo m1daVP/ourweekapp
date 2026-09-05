@@ -23,6 +23,15 @@ type ClaimFixture = {
     p_provider: string;
     p_input_hash: string;
   };
+  claimV2: {
+    p_workspace_id: string;
+    p_meeting_id: string;
+    p_user_id: string;
+    p_provider: string;
+    p_input_hash: string;
+    p_effective_model: string;
+    p_prompt_version: string;
+  };
   summary: Record<string, unknown>;
 };
 
@@ -63,15 +72,23 @@ async function createFixture(client: SupabaseClient): Promise<ClaimFixture> {
     completed_at: new Date().toISOString(),
   })).error, 'meeting creation');
 
+  const claim = {
+    p_workspace_id: workspaceId,
+    p_meeting_id: meetingId,
+    p_user_id: userId,
+    p_provider: 'openai',
+    p_input_hash: `local-claim-${randomUUID()}`,
+  };
+
   return {
     userId,
     workspaceId,
-    claim: {
-      p_workspace_id: workspaceId,
-      p_meeting_id: meetingId,
-      p_user_id: userId,
-      p_provider: 'openai',
-      p_input_hash: `local-claim-${randomUUID()}`,
+    claim,
+    claimV2: {
+      ...claim,
+      p_input_hash: `local-claim-v2-${randomUUID()}`,
+      p_effective_model: 'gpt-5.4-nano',
+      p_prompt_version: 'weekly-family-check-in-v1',
     },
     summary: { source: 'local-ai-claim-integration-test' },
   };
@@ -135,6 +152,54 @@ describeLocal('AI summary generation claim RPC', () => {
     expect(cached.data).toMatchObject({
       claim_status: 'completed',
       id: owner!.id,
+      generated_summary: fixture.summary,
+    });
+  });
+
+  it('persists model audit fields through v2 pending and completed claims', async () => {
+    const client = createClient(localUrl!, localServiceRoleKey!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    fixture = await createFixture(client);
+
+    const [first, second] = await Promise.all([
+      client.rpc('claim_ai_summary_generation_v2', fixture.claimV2).single(),
+      client.rpc('claim_ai_summary_generation_v2', fixture.claimV2).single(),
+    ]);
+    requireSuccess(first.error, 'first v2 claim');
+    requireSuccess(second.error, 'second v2 claim');
+
+    expect([first.data?.claim_status, second.data?.claim_status].sort()).toEqual([
+      'created',
+      'pending',
+    ]);
+    expect(first.data).toMatchObject({
+      effective_model: fixture.claimV2.p_effective_model,
+      prompt_version: fixture.claimV2.p_prompt_version,
+    });
+    expect(second.data).toMatchObject({
+      effective_model: fixture.claimV2.p_effective_model,
+      prompt_version: fixture.claimV2.p_prompt_version,
+    });
+
+    const owner = [first.data, second.data].find(
+      (claim) => claim?.claim_status === 'created',
+    );
+    requireSuccess((await client.from('ai_summary_requests').update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      generated_summary: fixture.summary,
+    }).eq('id', owner!.id)).error, 'v2 claim completion');
+
+    const cached = await client
+      .rpc('claim_ai_summary_generation_v2', fixture.claimV2)
+      .single();
+    requireSuccess(cached.error, 'completed v2 claim');
+    expect(cached.data).toMatchObject({
+      claim_status: 'completed',
+      id: owner!.id,
+      effective_model: fixture.claimV2.p_effective_model,
+      prompt_version: fixture.claimV2.p_prompt_version,
       generated_summary: fixture.summary,
     });
   });

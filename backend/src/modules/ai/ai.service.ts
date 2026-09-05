@@ -23,7 +23,7 @@ import {
 } from './summary-payload.js';
 import {
   buildSummarySystemPrompt,
-  resolveSummaryModel,
+  resolveSummaryPromptConfiguration,
   SUMMARY_MAX_OUTPUT_TOKENS,
 } from './summary-prompts.js';
 
@@ -79,6 +79,15 @@ function toJsonValue(value: unknown): JsonValue {
 
 function shortHash(value: string) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+export function buildSummaryGenerationInputHash(
+  systemPrompt: string,
+  promptPayload: string,
+  model: string,
+  promptVersion: string,
+) {
+  return shortHash(JSON.stringify([systemPrompt, promptPayload, model, promptVersion]));
 }
 
 function durationMsSince(startedAtMs: number) {
@@ -151,7 +160,10 @@ export class AiSummaryService {
       );
     }
 
-    const model = resolveSummaryModel(meeting.templateId, this.options.model);
+    const { model, promptVersion } = resolveSummaryPromptConfiguration(
+      meeting.templateId,
+      this.options.model,
+    );
 
     if (meeting.status !== 'completed') {
       this.options.logger?.warn({
@@ -164,6 +176,7 @@ export class AiSummaryService {
         meetingStatus: meeting.status,
         provider: providerName,
         model,
+        promptVersion,
         durationMs: durationMsSince(startedAtMs),
       }, 'AI summary generation rejected');
       throw new ApiError(
@@ -199,6 +212,7 @@ export class AiSummaryService {
           templateId: meeting.templateId,
           provider: providerName,
           model,
+          promptVersion,
           maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,
           durationMs: durationMsSince(startedAtMs),
           limit: error.details.limit,
@@ -209,7 +223,12 @@ export class AiSummaryService {
     }
     const systemPrompt = buildSummarySystemPrompt(meeting.templateId);
     const createdAt = now.toISOString();
-    const inputHash = shortHash([systemPrompt, promptPayload, model].join('\n\n'));
+    const inputHash = buildSummaryGenerationInputHash(
+      systemPrompt,
+      promptPayload,
+      model,
+      promptVersion,
+    );
 
     const claim = await this.aiRepository.claimSummaryGeneration({
       workspaceId: auth.workspaceId,
@@ -217,6 +236,8 @@ export class AiSummaryService {
       userId: auth.userId,
       provider: providerName,
       inputHash,
+      effectiveModel: model,
+      promptVersion,
     });
 
     if (claim.status === 'pending') {
@@ -229,6 +250,7 @@ export class AiSummaryService {
         templateId: meeting.templateId,
         provider: providerName,
         model,
+        promptVersion,
         durationMs: durationMsSince(startedAtMs),
       }, 'AI summary generation already in progress');
 
@@ -262,6 +284,7 @@ export class AiSummaryService {
         templateId: meeting.templateId,
         provider: providerName,
         model,
+        promptVersion,
         durationMs: durationMsSince(startedAtMs),
       }, 'AI summary generation served from cache');
 
@@ -291,6 +314,7 @@ export class AiSummaryService {
       templateId: meeting.templateId,
       provider: providerName,
       model,
+      promptVersion,
       maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,
       durationMs: durationMsSince(startedAtMs),
     }, 'AI summary generation started');
@@ -380,6 +404,7 @@ export class AiSummaryService {
         templateId: meeting.templateId,
         provider: providerName,
         model,
+        promptVersion,
         inputTokens: usage?.inputTokens ?? null,
         outputTokens: usage?.outputTokens ?? null,
         totalTokens: usage?.totalTokens ?? null,
@@ -427,6 +452,7 @@ export class AiSummaryService {
         templateId: meeting.templateId,
         provider: providerName,
         model,
+        promptVersion,
         errorCode,
         providerFailureClass: providerFailure?.failureClass ?? null,
         providerStatus: providerFailure?.status ?? null,

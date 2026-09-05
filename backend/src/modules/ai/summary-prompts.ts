@@ -1,15 +1,49 @@
-const TEMPLATE_SUMMARY_MODELS = {
-  'weekly-family-check-in': 'gpt-5.4-nano',
-  'family-with-kids': 'gpt-5.4-nano',
-  'money-check-in': 'gpt-5.4-nano',
-  'busy-week-planning': 'gpt-5.4-nano',
-  'couple-reset': 'gpt-5-mini',
-  'conflict-cleanup': 'gpt-5-mini',
+const TEMPLATE_SUMMARY_CONFIGURATION = {
+  'weekly-family-check-in': {
+    model: 'gpt-5.4-nano',
+    promptVersion: 'weekly-family-check-in-v1',
+  },
+  'family-with-kids': {
+    model: 'gpt-5.4-nano',
+    promptVersion: 'family-with-kids-v1',
+  },
+  'money-check-in': {
+    model: 'gpt-5.4-nano',
+    promptVersion: 'money-check-in-v1',
+  },
+  'busy-week-planning': {
+    model: 'gpt-5.4-nano',
+    promptVersion: 'busy-week-planning-v1',
+  },
+  'couple-reset': {
+    model: 'gpt-5-mini',
+    promptVersion: 'couple-reset-v1',
+  },
+  'conflict-cleanup': {
+    model: 'gpt-5-mini',
+    promptVersion: 'conflict-cleanup-v1',
+  },
 } as const;
 
-export const summaryModelByTemplate: Record<string, string> = TEMPLATE_SUMMARY_MODELS;
+type SummaryTemplateId = keyof typeof TEMPLATE_SUMMARY_CONFIGURATION;
+
+export type SummaryPromptConfiguration = {
+  model: string;
+  promptVersion: string;
+};
+
+export const summaryPromptConfigurationByTemplate: Record<string, SummaryPromptConfiguration> =
+  TEMPLATE_SUMMARY_CONFIGURATION;
+
+export const summaryModelByTemplate: Record<string, string> = Object.fromEntries(
+  Object.entries(TEMPLATE_SUMMARY_CONFIGURATION).map(([templateId, configuration]) => [
+    templateId,
+    configuration.model,
+  ]),
+);
 
 export const DEFAULT_SUMMARY_MODEL = 'gpt-5.4-nano';
+export const UNKNOWN_TEMPLATE_PROMPT_VERSION = 'unknown-template-v1';
 export const SUMMARY_MAX_OUTPUT_TOKENS = 800;
 
 const BASE_SUMMARY_SYSTEM_PROMPT = [
@@ -31,7 +65,7 @@ const BASE_SUMMARY_SYSTEM_PROMPT = [
   'Prefer short arrays and mobile-friendly wording over polished prose.',
 ].join('\n');
 
-const TEMPLATE_SUMMARY_PROMPTS: Record<keyof typeof TEMPLATE_SUMMARY_MODELS, string> = {
+const TEMPLATE_SUMMARY_PROMPTS: Record<SummaryTemplateId, string> = {
   'weekly-family-check-in': [
     'This template covers general weekly family rhythm: good things, tensions, tasks, money/purchases, kids/family care, plans, and final agreements.',
     "Highlight the week's wins alongside any unresolved tensions, without letting one erase the other.",
@@ -79,14 +113,24 @@ const UNKNOWN_TEMPLATE_PROMPT = [
   'Summarize using only the given sections, notes, tasks, and agreements; group related items together and keep language neutral and non-judgmental.',
 ].join('\n');
 
+export function resolveSummaryPromptConfiguration(
+  templateId: string,
+  fallbackModel?: string,
+): SummaryPromptConfiguration {
+  return summaryPromptConfigurationByTemplate[templateId] ?? {
+    model: fallbackModel ?? DEFAULT_SUMMARY_MODEL,
+    promptVersion: UNKNOWN_TEMPLATE_PROMPT_VERSION,
+  };
+}
+
 export function resolveSummaryModel(templateId: string, fallbackModel?: string) {
-  return summaryModelByTemplate[templateId] ?? fallbackModel ?? DEFAULT_SUMMARY_MODEL;
+  return resolveSummaryPromptConfiguration(templateId, fallbackModel).model;
 }
 
 export function buildSummarySystemPrompt(templateId: string) {
   return [
     BASE_SUMMARY_SYSTEM_PROMPT,
-    TEMPLATE_SUMMARY_PROMPTS[templateId as keyof typeof TEMPLATE_SUMMARY_MODELS] ??
+    TEMPLATE_SUMMARY_PROMPTS[templateId as SummaryTemplateId] ??
       UNKNOWN_TEMPLATE_PROMPT,
   ].join('\n\n');
 }
