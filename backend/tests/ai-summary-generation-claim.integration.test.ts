@@ -23,7 +23,7 @@ type ClaimFixture = {
     p_provider: string;
     p_input_hash: string;
   };
-  claimV2: {
+  claimV3: {
     p_workspace_id: string;
     p_meeting_id: string;
     p_user_id: string;
@@ -31,6 +31,9 @@ type ClaimFixture = {
     p_input_hash: string;
     p_effective_model: string;
     p_prompt_version: string;
+    p_user_limit: number;
+    p_workspace_limit: number;
+    p_window_seconds: number;
   };
   summary: Record<string, unknown>;
 };
@@ -84,11 +87,14 @@ async function createFixture(client: SupabaseClient): Promise<ClaimFixture> {
     userId,
     workspaceId,
     claim,
-    claimV2: {
+    claimV3: {
       ...claim,
-      p_input_hash: `local-claim-v2-${randomUUID()}`,
+      p_input_hash: `local-claim-v3-${randomUUID()}`,
       p_effective_model: 'gpt-5.4-nano',
       p_prompt_version: 'weekly-family-check-in-v1',
+      p_user_limit: 5,
+      p_workspace_limit: 20,
+      p_window_seconds: 60 * 60,
     },
     summary: { source: 'local-ai-claim-integration-test' },
   };
@@ -156,30 +162,30 @@ describeLocal('AI summary generation claim RPC', () => {
     });
   });
 
-  it('persists model audit fields through v2 pending and completed claims', async () => {
+  it('persists model audit fields through v3 pending and completed claims', async () => {
     const client = createClient(localUrl!, localServiceRoleKey!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     fixture = await createFixture(client);
 
     const [first, second] = await Promise.all([
-      client.rpc('claim_ai_summary_generation_v2', fixture.claimV2).single(),
-      client.rpc('claim_ai_summary_generation_v2', fixture.claimV2).single(),
+      client.rpc('claim_ai_summary_generation_v3', fixture.claimV3).single(),
+      client.rpc('claim_ai_summary_generation_v3', fixture.claimV3).single(),
     ]);
-    requireSuccess(first.error, 'first v2 claim');
-    requireSuccess(second.error, 'second v2 claim');
+    requireSuccess(first.error, 'first v3 claim');
+    requireSuccess(second.error, 'second v3 claim');
 
     expect([first.data?.claim_status, second.data?.claim_status].sort()).toEqual([
       'created',
       'pending',
     ]);
     expect(first.data).toMatchObject({
-      effective_model: fixture.claimV2.p_effective_model,
-      prompt_version: fixture.claimV2.p_prompt_version,
+      effective_model: fixture.claimV3.p_effective_model,
+      prompt_version: fixture.claimV3.p_prompt_version,
     });
     expect(second.data).toMatchObject({
-      effective_model: fixture.claimV2.p_effective_model,
-      prompt_version: fixture.claimV2.p_prompt_version,
+      effective_model: fixture.claimV3.p_effective_model,
+      prompt_version: fixture.claimV3.p_prompt_version,
     });
 
     const owner = [first.data, second.data].find(
@@ -192,15 +198,73 @@ describeLocal('AI summary generation claim RPC', () => {
     }).eq('id', owner!.id)).error, 'v2 claim completion');
 
     const cached = await client
-      .rpc('claim_ai_summary_generation_v2', fixture.claimV2)
+      .rpc('claim_ai_summary_generation_v3', fixture.claimV3)
       .single();
-    requireSuccess(cached.error, 'completed v2 claim');
+    requireSuccess(cached.error, 'completed v3 claim');
     expect(cached.data).toMatchObject({
       claim_status: 'completed',
       id: owner!.id,
-      effective_model: fixture.claimV2.p_effective_model,
-      prompt_version: fixture.claimV2.p_prompt_version,
+      effective_model: fixture.claimV3.p_effective_model,
+      prompt_version: fixture.claimV3.p_prompt_version,
       generated_summary: fixture.summary,
+    });
+  });
+
+  it('enforces the exact user boundary and returns the oldest active slot expiry', async () => {
+    const client = createClient(localUrl!, localServiceRoleKey!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    fixture = await createFixture(client);
+
+    const created = await Promise.all(
+      Array.from({ length: 5 }, (_, index) => client
+        .rpc('claim_ai_summary_generation_v3', {
+          ...fixture!.claimV3,
+          p_input_hash: `local-user-boundary-${index}-${randomUUID()}`,
+        })
+        .single()),
+    );
+    created.forEach((result) => requireSuccess(result.error, 'user boundary claim'));
+    expect(created.map((result) => result.data?.claim_status)).toEqual([
+      'created', 'created', 'created', 'created', 'created',
+    ]);
+
+    const rejected = await client
+      .rpc('claim_ai_summary_generation_v3', {
+        ...fixture.claimV3,
+        p_input_hash: `local-user-boundary-rejected-${randomUUID()}`,
+      })
+      .single();
+    requireSuccess(rejected.error, 'user boundary rejection');
+    expect(rejected.data).toMatchObject({ claim_status: 'rate_limited', rate_limit_scope: 'user' });
+    const oldestCreatedAt = Math.min(
+      ...created.map((result) => Date.parse(result.data!.created_at)),
+    );
+    expect(Date.parse(rejected.data!.rate_limit_reset_at)).toBe(
+      oldestCreatedAt + 60 * 60 * 1000,
+    );
+  });
+
+  it('serializes concurrent distinct workspace claims at the exact workspace boundary', async () => {
+    const client = createClient(localUrl!, localServiceRoleKey!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    fixture = await createFixture(client);
+
+    const claims = await Promise.all(
+      Array.from({ length: 21 }, (_, index) => client
+        .rpc('claim_ai_summary_generation_v3', {
+          ...fixture!.claimV3,
+          p_input_hash: `local-workspace-boundary-${index}-${randomUUID()}`,
+          p_user_limit: 100,
+        })
+        .single()),
+    );
+    claims.forEach((result) => requireSuccess(result.error, 'workspace boundary claim'));
+    expect(claims.filter((result) => result.data?.claim_status === 'created')).toHaveLength(20);
+    expect(claims.filter((result) => result.data?.claim_status === 'rate_limited')).toHaveLength(1);
+    expect(claims.find((result) => result.data?.claim_status === 'rate_limited')?.data).toMatchObject({
+      rate_limit_scope: 'workspace',
     });
   });
 });

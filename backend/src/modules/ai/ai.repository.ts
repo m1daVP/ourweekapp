@@ -4,6 +4,10 @@ import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositor
 import { requireRow, throwOnSupabaseError } from '../../shared/repositories/index.js';
 import type { AiSummaryTokenUsage } from './openai.client.js';
 
+export const AI_SUMMARY_RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
+export const AI_SUMMARY_RATE_LIMIT_PER_USER = 5;
+export const AI_SUMMARY_RATE_LIMIT_PER_WORKSPACE = 20;
+
 const PUBLIC_AI_SUMMARY_REQUEST_COLUMNS =
   'id,workspace_id,user_id,meeting_id,provider,status,created_at,completed_at,error_code' as const;
 
@@ -60,6 +64,10 @@ export type ClaimAiSummaryGenerationInput = {
 export type AiSummaryGenerationClaim = {
   status: 'created' | 'pending' | 'completed';
   request: AiSummaryRequestRecord;
+} | {
+  status: 'rate_limited';
+  scope: 'user' | 'workspace';
+  resetAt: string;
 };
 
 export type FinalizeAiSummaryGenerationInput = {
@@ -80,8 +88,23 @@ export type AiSummaryGenerationFinalization = {
   updatedAt: string | null;
 };
 
-type AiSummaryGenerationClaimRow = AiSummaryRequestRow & {
+type AiSummaryGenerationClaimRow = {
   claim_status: string;
+  rate_limit_scope: string | null;
+  rate_limit_reset_at: string | null;
+  id: string | null;
+  workspace_id: string | null;
+  user_id: string | null;
+  meeting_id: string | null;
+  provider: string | null;
+  status: string | null;
+  input_hash: string | null;
+  effective_model: string | null;
+  prompt_version: string | null;
+  created_at: string | null;
+  completed_at: string | null;
+  error_code: string | null;
+  generated_summary: JsonValue | null;
 };
 
 type AiSummaryGenerationFinalizationRow = {
@@ -121,7 +144,7 @@ export class AiRepository {
 
   async claimSummaryGeneration(input: ClaimAiSummaryGenerationInput): Promise<AiSummaryGenerationClaim> {
     const { data, error } = await this.supabase
-      .rpc('claim_ai_summary_generation_v2', {
+      .rpc('claim_ai_summary_generation_v3', {
         p_workspace_id: input.workspaceId,
         p_meeting_id: input.meetingId,
         p_user_id: input.userId,
@@ -129,6 +152,9 @@ export class AiRepository {
         p_input_hash: input.inputHash,
         p_effective_model: input.effectiveModel,
         p_prompt_version: input.promptVersion,
+        p_user_limit: AI_SUMMARY_RATE_LIMIT_PER_USER,
+        p_workspace_limit: AI_SUMMARY_RATE_LIMIT_PER_WORKSPACE,
+        p_window_seconds: AI_SUMMARY_RATE_LIMIT_WINDOW_SECONDS,
       })
       .single<AiSummaryGenerationClaimRow>();
 
@@ -139,10 +165,38 @@ export class AiRepository {
       'Unable to claim AI summary generation.',
     );
 
+    if (row.claim_status === 'rate_limited') {
+      if (
+        (row.rate_limit_scope !== 'user' && row.rate_limit_scope !== 'workspace')
+        || row.rate_limit_reset_at === null
+        || Number.isNaN(Date.parse(row.rate_limit_reset_at))
+      ) {
+        throw new ApiError(
+          500,
+          'ai_summary_request_claim_invalid',
+          'Unable to claim AI summary generation.',
+        );
+      }
+
+      return {
+        status: 'rate_limited',
+        scope: row.rate_limit_scope,
+        resetAt: formatApiDateTime(row.rate_limit_reset_at),
+      };
+    }
+
     if (
       row.claim_status !== 'created'
       && row.claim_status !== 'pending'
       && row.claim_status !== 'completed'
+      || row.id === null
+      || row.workspace_id === null
+      || row.user_id === null
+      || row.meeting_id === null
+      || row.provider === null
+      || row.status === null
+      || row.input_hash === null
+      || row.created_at === null
     ) {
       throw new ApiError(
         500,
@@ -153,7 +207,7 @@ export class AiRepository {
 
     return {
       status: row.claim_status,
-      request: mapAiSummaryRequestRowToRecord(row),
+      request: mapAiSummaryRequestRowToRecord(row as AiSummaryRequestRow),
     };
   }
 
@@ -234,29 +288,5 @@ export class AiRepository {
     );
   }
 
-  async countRecentSummaryRequestsForWorkspace(workspaceId: string, since: string) {
-    const { count, error } = await this.supabase
-      .from('ai_summary_requests')
-      .select('id', { count: 'exact', head: true })
-      .eq('workspace_id', workspaceId)
-      .gte('created_at', since);
-
-    throwOnSupabaseError(error, 'ai_summary_request_count_failed', 'Unable to count AI summary requests.');
-
-    return count ?? 0;
-  }
-
-  async countRecentSummaryRequestsForUserInWorkspace(workspaceId: string, userId: string, since: string) {
-    const { count, error } = await this.supabase
-      .from('ai_summary_requests')
-      .select('id', { count: 'exact', head: true })
-      .eq('workspace_id', workspaceId)
-      .eq('user_id', userId)
-      .gte('created_at', since);
-
-    throwOnSupabaseError(error, 'ai_summary_request_count_failed', 'Unable to count AI summary requests.');
-
-    return count ?? 0;
-  }
 }
 

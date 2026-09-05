@@ -67,7 +67,7 @@ describe('AiRepository', () => {
       },
     });
 
-    expect(rpc).toHaveBeenCalledWith('claim_ai_summary_generation_v2', {
+    expect(rpc).toHaveBeenCalledWith('claim_ai_summary_generation_v3', {
       p_workspace_id: workspaceId,
       p_meeting_id: meetingId,
       p_user_id: userId,
@@ -75,6 +75,51 @@ describe('AiRepository', () => {
       p_input_hash: 'hash_1',
       p_effective_model: 'gpt-5.4-nano',
       p_prompt_version: 'weekly-family-check-in-v1',
+      p_user_limit: 5,
+      p_workspace_limit: 20,
+      p_window_seconds: 60 * 60,
+    });
+  });
+
+  it('maps an atomic rate-limit result without exposing request data', async () => {
+    const repository = new AiRepository({
+      rpc: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            claim_status: 'rate_limited',
+            rate_limit_scope: 'workspace',
+            rate_limit_reset_at: '2026-06-06T10:17:00.000Z',
+            id: null,
+            workspace_id: null,
+            user_id: null,
+            meeting_id: null,
+            provider: null,
+            status: null,
+            input_hash: null,
+            effective_model: null,
+            prompt_version: null,
+            created_at: null,
+            completed_at: null,
+            error_code: null,
+            generated_summary: null,
+          },
+          error: null,
+        }),
+      }),
+    } as never);
+
+    await expect(repository.claimSummaryGeneration({
+      workspaceId,
+      meetingId,
+      userId,
+      provider: 'openai',
+      inputHash: 'hash_1',
+      effectiveModel: 'gpt-5.4-nano',
+      promptVersion: 'weekly-family-check-in-v1',
+    })).resolves.toEqual({
+      status: 'rate_limited',
+      scope: 'workspace',
+      resetAt: '2026-06-06T10:17:00.000Z',
     });
   });
 
@@ -83,6 +128,34 @@ describe('AiRepository', () => {
       rpc: vi.fn().mockReturnValue({
         single: vi.fn().mockResolvedValue({
           data: { ...requestRow(), claim_status: 'unexpected' },
+          error: null,
+        }),
+      }),
+    } as never);
+
+    await expect(repository.claimSummaryGeneration({
+      workspaceId,
+      meetingId,
+      userId,
+      provider: 'openai',
+      inputHash: 'hash_1',
+      effectiveModel: 'gpt-5.4-nano',
+      promptVersion: 'weekly-family-check-in-v1',
+    })).rejects.toMatchObject({
+      statusCode: 500,
+      code: 'ai_summary_request_claim_invalid',
+    });
+  });
+
+  it('rejects malformed rate-limit metadata without exposing database details', async () => {
+    const repository = new AiRepository({
+      rpc: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            claim_status: 'rate_limited',
+            rate_limit_scope: 'user',
+            rate_limit_reset_at: 'not-a-date',
+          },
           error: null,
         }),
       }),

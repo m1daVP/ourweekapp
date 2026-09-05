@@ -10,6 +10,7 @@ import {
   type AiSummaryProviderFailureClass,
 } from '../src/modules/ai/openai.client.js';
 import type { MeetingDto as MeetingRepositoryDto } from '../src/modules/meetings/meetings.repository.js';
+import type { SubscriptionDto } from '../src/modules/billing/subscriptions.repository.js';
 import type { AuthContext } from '../src/shared/auth/index.js';
 import { ApiError } from '../src/shared/errors/index.js';
 
@@ -17,6 +18,7 @@ const now = '2026-06-06T10:00:00.000Z';
 const meetingId = '11111111-1111-4111-8111-111111111111';
 const workspaceId = '22222222-2222-4222-8222-222222222222';
 const userId = '33333333-3333-4333-8333-333333333333';
+const premiumExpiresAt = '2026-07-06T10:00:00.000Z';
 
 const auth: AuthContext = {
   userId,
@@ -115,13 +117,15 @@ function createHarness(input: {
   providerRequestId?: string | null;
   providerDurationMs?: number;
   providerError?: unknown;
-  userCount?: number;
-  workspaceCount?: number;
   aiConfigured?: boolean;
   participants?: Array<{ id: string; name: string }>;
   claim?: {
     status: 'created' | 'pending' | 'completed';
     request: { id: string; generatedSummary?: unknown };
+  } | {
+    status: 'rate_limited';
+    scope: 'user' | 'workspace';
+    resetAt: string;
   };
   finalization?: {
     status: 'applied' | 'completed' | 'revision_conflict';
@@ -131,6 +135,7 @@ function createHarness(input: {
     updatedAt: string | null;
   };
   withAssistantRepository?: boolean;
+  subscription?: SubscriptionDto | null;
   assistantRecoveryError?: unknown;
   logger?: {
     info: ReturnType<typeof vi.fn>;
@@ -169,8 +174,6 @@ function createHarness(input: {
       updatedAt: '2026-06-06T10:01:00.000Z',
     }),
     markSummaryRequestFailed: vi.fn().mockResolvedValue({ id: 'request_1' }),
-    countRecentSummaryRequestsForWorkspace: vi.fn().mockResolvedValue(input.workspaceCount ?? 0),
-    countRecentSummaryRequestsForUserInWorkspace: vi.fn().mockResolvedValue(input.userCount ?? 0),
   };
   const participants = {
     listParticipantNamesForWorkspace: vi.fn().mockResolvedValue(
@@ -187,13 +190,34 @@ function createHarness(input: {
     reserveRecap: vi.fn().mockResolvedValue(true),
     releaseRecap: vi.fn().mockResolvedValue(true),
   };
+  const subscriptions = {
+    findCurrentSubscriptionForWorkspace: vi.fn().mockResolvedValue(
+      input.subscription === undefined ? subscription() : input.subscription,
+    ),
+  };
   const service = new AiSummaryService(ai, meetings, participants, provider, {
     aiConfigured: input.aiConfigured ?? true,
     model: 'test-model',
     ...(input.logger ? { logger: input.logger } : {}),
-  }, input.withAssistantRepository ? assistant : undefined);
+  }, input.withAssistantRepository ? assistant : undefined,
+  input.withAssistantRepository ? subscriptions : undefined);
 
-  return { ai, meetings, participants, provider, assistant, service };
+  return { ai, meetings, participants, provider, assistant, subscriptions, service };
+}
+
+function subscription(overrides: Partial<SubscriptionDto> = {}): SubscriptionDto {
+  return {
+    id: 'subscription_1',
+    workspaceId,
+    provider: 'revenuecat',
+    planType: 'premium',
+    status: 'active',
+    expiresAt: premiumExpiresAt,
+    lastCheckedAt: now,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
 }
 
 describe('AiSummaryService', () => {
@@ -916,99 +940,38 @@ describe('AiSummaryService', () => {
     expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('cleanup transport failure');
   });
 
-  it('applies per-user and per-workspace repository-backed rate limits', async () => {
-    const { ai, meetings, participants, provider, service } = createHarness({ userCount: 5 });
+  it.each(['user', 'workspace'] as const)(
+    'returns the atomic %s rate-limit result without reserving credit or calling the provider',
+    async (scope) => {
+      const { ai, assistant, provider, service } = createHarness({
+        claim: {
+          status: 'rate_limited',
+          scope,
+          resetAt: '2026-06-06T10:17:00.000Z',
+        },
+        withAssistantRepository: true,
+      });
 
-    await expect(
-      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
-    ).rejects.toMatchObject({
-      statusCode: 429,
-      code: 'ai_summary_rate_limited',
-      details: {
-        scope: 'user',
-        remaining: 0,
-        resetAt: '2026-06-06T11:00:00.000Z',
-      },
-    });
-    expect(ai.countRecentSummaryRequestsForWorkspace).toHaveBeenCalled();
-    expect(ai.countRecentSummaryRequestsForUserInWorkspace).toHaveBeenCalled();
-    expect(meetings.findMeetingByIdForWorkspace).toHaveBeenCalledWith(
-      workspaceId,
-      meetingId,
-    );
-    expect(participants.listParticipantNamesForWorkspace).not.toHaveBeenCalled();
-    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
-  });
-
-  it('reports the workspace scope when only the workspace pre-check limit is exceeded', async () => {
-    const { service } = createHarness({ workspaceCount: 20, userCount: 0 });
-
-    await expect(
-      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
-    ).rejects.toMatchObject({
-      statusCode: 429,
-      code: 'ai_summary_rate_limited',
-      details: {
-        scope: 'workspace',
-        remaining: 0,
-        resetAt: '2026-06-06T11:00:00.000Z',
-      },
-    });
-  });
-
-  it('rechecks rate limits after reserving a request before calling the provider', async () => {
-    const { ai, provider, service } = createHarness();
-    ai.countRecentSummaryRequestsForWorkspace
-      .mockResolvedValueOnce(19)
-      .mockResolvedValueOnce(21);
-    ai.countRecentSummaryRequestsForUserInWorkspace
-      .mockResolvedValueOnce(4)
-      .mockResolvedValueOnce(5);
-
-    await expect(
-      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
-    ).rejects.toMatchObject({
-      statusCode: 429,
-      code: 'ai_summary_rate_limited',
-      details: {
-        scope: 'workspace',
-        remaining: 0,
-        resetAt: '2026-06-06T11:00:00.000Z',
-      },
-    });
-    expect(ai.claimSummaryGeneration).toHaveBeenCalled();
-    expect(ai.markSummaryRequestFailed).toHaveBeenCalledWith(
-      workspaceId,
-      'request_1',
-      now,
-      'ai_summary_rate_limited',
-    );
-    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
-  });
-
-  it('reports the user scope when only the user recheck limit is exceeded', async () => {
-    const { ai, provider, service } = createHarness();
-    ai.countRecentSummaryRequestsForWorkspace
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
-    ai.countRecentSummaryRequestsForUserInWorkspace
-      .mockResolvedValueOnce(4)
-      .mockResolvedValueOnce(6);
-
-    await expect(
-      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
-    ).rejects.toMatchObject({
-      statusCode: 429,
-      code: 'ai_summary_rate_limited',
-      details: {
-        scope: 'user',
-        remaining: 0,
-        resetAt: '2026-06-06T11:00:00.000Z',
-      },
-    });
-    expect(ai.claimSummaryGeneration).toHaveBeenCalled();
-    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
-  });
+      await expect(
+        service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+      ).rejects.toMatchObject({
+        statusCode: 429,
+        code: 'ai_summary_rate_limited',
+        details: {
+          userLimit: 5,
+          workspaceLimit: 20,
+          windowSeconds: 60 * 60,
+          scope,
+          remaining: 0,
+          resetAt: '2026-06-06T10:17:00.000Z',
+        },
+      });
+      expect(ai.claimSummaryGeneration).toHaveBeenCalledOnce();
+      expect(ai.markSummaryRequestFailed).not.toHaveBeenCalled();
+      expect(assistant.reserveRecap).not.toHaveBeenCalled();
+      expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+    },
+  );
 
   it('returns a completed request snapshot without calling the provider', async () => {
     const cachedSummary = {
@@ -1089,6 +1052,33 @@ describe('AiSummaryService', () => {
     expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
     expect(assistant.reserveRecap).not.toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['recent Premium', subscription(), premiumExpiresAt, 20],
+    ['stale Premium', subscription({ lastCheckedAt: '2026-06-04T09:59:59.000Z' }), null, 3],
+    ['expired Premium', subscription({ expiresAt: '2026-06-06T09:59:59.000Z' }), null, 3],
+    ['missing subscription', null, null, 3],
+  ] as const)('uses %s allowance scope during generation', async (
+    _label,
+    currentSubscription,
+    expectedPeriodEndsAt,
+    expectedLimit,
+  ) => {
+    const { assistant, service } = createHarness({
+      withAssistantRepository: true,
+      subscription: currentSubscription,
+    });
+
+    await service.generateMeetingSummary(auth, { meetingId }, new Date(now));
+
+    expect(assistant.countUsedRecaps).toHaveBeenCalledWith(workspaceId, expectedPeriodEndsAt);
+    expect(assistant.reserveRecap).toHaveBeenCalledWith(
+      workspaceId,
+      'request_1',
+      expectedPeriodEndsAt,
+      expectedLimit,
+    );
   });
 
   it('fails safely when a completed claim contains an invalid request snapshot', async () => {
@@ -1202,7 +1192,7 @@ describe('AiSummaryService', () => {
       statusCode: 403,
       code: 'forbidden',
     });
-    expect(ai.countRecentSummaryRequestsForWorkspace).not.toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
     expect(meetings.findMeetingByIdForWorkspace).not.toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
   });
@@ -1216,7 +1206,7 @@ describe('AiSummaryService', () => {
       statusCode: 503,
       code: 'ai_provider_not_configured',
     });
-    expect(ai.countRecentSummaryRequestsForWorkspace).not.toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
     expect(meetings.findMeetingByIdForWorkspace).not.toHaveBeenCalled();
   });
 });

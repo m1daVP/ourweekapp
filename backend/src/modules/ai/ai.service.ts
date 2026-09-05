@@ -9,10 +9,15 @@ import { MeetingsRepository } from '../meetings/meetings.repository.js';
 import { ParticipantsRepository } from '../participants/participants.repository.js';
 import { AssistantRepository } from '../assistant/assistant.repository.js';
 import { SubscriptionsRepository, type SubscriptionDto } from '../billing/subscriptions.repository.js';
-import { resolveEffectivePlan } from '../../shared/repositories/index.js';
+import { hasTrustedPremiumEntitlement } from '../billing/feature-access.js';
 import { recapAllowanceForPlan } from '../billing/plan-limits.js';
 import { meetingSummarySchema, type AiMeetingSummaryRequestDto } from './ai.schema.js';
-import { AiRepository } from './ai.repository.js';
+import {
+  AiRepository,
+  AI_SUMMARY_RATE_LIMIT_PER_USER,
+  AI_SUMMARY_RATE_LIMIT_PER_WORKSPACE,
+  AI_SUMMARY_RATE_LIMIT_WINDOW_SECONDS,
+} from './ai.repository.js';
 import {
   isAiSummaryProviderError,
   type AiSummaryProvider,
@@ -27,9 +32,6 @@ import {
   SUMMARY_MAX_OUTPUT_TOKENS,
 } from './summary-prompts.js';
 
-const AI_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
-const AI_RATE_LIMIT_PER_USER = 5;
-const AI_RATE_LIMIT_PER_WORKSPACE = 20;
 const AI_SUMMARY_DISCLAIMER =
   'AI summaries can miss context. Please review before relying on them.';
 
@@ -38,8 +40,6 @@ type AiRepositoryPort = Pick<
   | 'claimSummaryGeneration'
   | 'finalizeSummaryGeneration'
   | 'markSummaryRequestFailed'
-  | 'countRecentSummaryRequestsForWorkspace'
-  | 'countRecentSummaryRequestsForUserInWorkspace'
 >;
 
 type MeetingsRepositoryPort = Pick<
@@ -234,8 +234,6 @@ export class AiSummaryService {
       await this.assistantRepository.reconcileAbandonedRecaps(auth.workspaceId);
     }
 
-    await this.requireWithinRateLimits(auth, now);
-
     const participants =
       await this.participantsRepository.listParticipantNamesForWorkspace(
         auth.workspaceId,
@@ -283,6 +281,22 @@ export class AiSummaryService {
       effectiveModel: model,
       promptVersion,
     });
+
+    if (claim.status === 'rate_limited') {
+      throw new ApiError(
+        429,
+        'ai_summary_rate_limited',
+        'Please wait before generating another AI summary.',
+        {
+          userLimit: AI_SUMMARY_RATE_LIMIT_PER_USER,
+          workspaceLimit: AI_SUMMARY_RATE_LIMIT_PER_WORKSPACE,
+          windowSeconds: AI_SUMMARY_RATE_LIMIT_WINDOW_SECONDS,
+          scope: claim.scope,
+          remaining: 0,
+          resetAt: claim.resetAt,
+        },
+      );
+    }
 
     if (claim.status === 'pending') {
       this.options.logger?.info({
@@ -382,11 +396,6 @@ export class AiSummaryService {
           });
         }
       }
-      await this.requireReservedRequestWithinRateLimits(
-        auth,
-        now,
-      );
-
       const {
         output: providerOutput,
         usage,
@@ -581,77 +590,14 @@ export class AiSummaryService {
       return recapAllowanceForPlan({ planType: auth.planType, expiresAt: null, used: 0, role: auth.role });
     }
     const subscription = await this.subscriptionsRepository.findCurrentSubscriptionForWorkspace(auth.workspaceId) as SubscriptionDto | null;
-    const planType = resolveEffectivePlan(subscription ? {
-      plan_type: subscription.planType, status: subscription.status, expires_at: subscription.expiresAt,
-    } : null, now);
+    const planType = hasTrustedPremiumEntitlement(subscription, now)
+      ? 'premium'
+      : 'free';
     const periodEndsAt = planType === 'premium' ? subscription?.expiresAt ?? null : null;
     const used = await this.assistantRepository.countUsedRecaps(auth.workspaceId, periodEndsAt);
     return recapAllowanceForPlan({ planType, expiresAt: periodEndsAt, used, role: auth.role });
   }
 
-  private async requireWithinRateLimits(auth: AuthContext, now: Date) {
-    const since = new Date(now.getTime() - AI_RATE_LIMIT_WINDOW_MS).toISOString();
-    const [workspaceCount, userCount] = await Promise.all([
-      this.aiRepository.countRecentSummaryRequestsForWorkspace(auth.workspaceId, since),
-      this.aiRepository.countRecentSummaryRequestsForUserInWorkspace(
-        auth.workspaceId,
-        auth.userId,
-        since,
-      ),
-    ]);
-
-    const userExceeded = userCount >= AI_RATE_LIMIT_PER_USER;
-    const workspaceExceeded = workspaceCount >= AI_RATE_LIMIT_PER_WORKSPACE;
-
-    if (userExceeded || workspaceExceeded) {
-      throw this.buildRateLimitError(now, { userExceeded, workspaceExceeded });
-    }
-  }
-
-  private async requireReservedRequestWithinRateLimits(
-    auth: AuthContext,
-    now: Date,
-  ) {
-    const since = new Date(now.getTime() - AI_RATE_LIMIT_WINDOW_MS).toISOString();
-    const [workspaceCount, userCount] = await Promise.all([
-      this.aiRepository.countRecentSummaryRequestsForWorkspace(auth.workspaceId, since),
-      this.aiRepository.countRecentSummaryRequestsForUserInWorkspace(
-        auth.workspaceId,
-        auth.userId,
-        since,
-      ),
-    ]);
-
-    const userExceeded = userCount > AI_RATE_LIMIT_PER_USER;
-    const workspaceExceeded = workspaceCount > AI_RATE_LIMIT_PER_WORKSPACE;
-
-    if (!userExceeded && !workspaceExceeded) {
-      return;
-    }
-
-    throw this.buildRateLimitError(now, { userExceeded, workspaceExceeded });
-  }
-
-  private buildRateLimitError(
-    now: Date,
-    { userExceeded }: { userExceeded: boolean; workspaceExceeded: boolean },
-  ) {
-    const scope: 'user' | 'workspace' = userExceeded ? 'user' : 'workspace';
-
-    return new ApiError(
-      429,
-      'ai_summary_rate_limited',
-      'Please wait before generating another AI summary.',
-      {
-        userLimit: AI_RATE_LIMIT_PER_USER,
-        workspaceLimit: AI_RATE_LIMIT_PER_WORKSPACE,
-        windowSeconds: AI_RATE_LIMIT_WINDOW_MS / 1000,
-        scope,
-        remaining: 0,
-        resetAt: new Date(now.getTime() + AI_RATE_LIMIT_WINDOW_MS).toISOString(),
-      },
-    );
-  }
 }
 
 export function createDefaultAiSummaryService(
