@@ -3955,6 +3955,90 @@ input[type='radio'] {
   list-style: none;
 }
 
+.task-swipe-card {
+  position: relative;
+  list-style: none;
+}
+
+.task-swipe-card__frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.task-swipe-card__finish-underlay,
+.task-swipe-card__delete-underlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  color: var(--color-on-primary);
+  font-size: var(--font-size-label-lg);
+  font-weight: 800;
+  gap: 8px;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.task-swipe-card__finish-underlay {
+  justify-content: flex-start;
+  background: var(--color-primary);
+  padding-left: 24px;
+}
+
+.task-swipe-card__delete-underlay {
+  justify-content: flex-end;
+  background: var(--color-error);
+  padding-right: 24px;
+}
+
+.task-swipe-card__surface {
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+.task-swipe-card.is-dragging .task-swipe-card__surface {
+  transition: none;
+}
+
+.task-swipe-card.is-swiping-right .task-swipe-card__finish-underlay,
+.task-swipe-card.is-swiping-left .task-swipe-card__delete-underlay {
+  opacity: 0.72;
+}
+
+.task-swipe-card.is-finish-ready .task-swipe-card__finish-underlay,
+.task-swipe-card.is-delete-ready .task-swipe-card__delete-underlay {
+  opacity: 1;
+}
+
+.task-swipe-card__remove-accessible {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.task-swipe-card__remove-accessible:focus-visible {
+  position: static;
+  display: block;
+  width: auto;
+  height: 44px;
+  margin-top: 8px;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-lowest);
+  color: var(--color-error);
+  padding: 0 16px;
+}
+
 .task-card {
   position: relative;
   display: grid;
@@ -4272,6 +4356,8 @@ input[type='radio'] {
   .task-card__content,
   .task-card__checkbox,
   .task-card__checkbox .material-symbols-outlined,
+  .task-swipe-card__finish-underlay,
+  .task-swipe-card__delete-underlay,
   .task-card-motion-enter-active,
   .task-card-motion-leave-active,
   .task-card-motion-move {
@@ -4282,6 +4368,10 @@ input[type='radio'] {
 
   .task-card.is-completing::before {
     opacity: 0;
+  }
+
+  .task-swipe-card__surface {
+    transform: none !important;
   }
 }
 
