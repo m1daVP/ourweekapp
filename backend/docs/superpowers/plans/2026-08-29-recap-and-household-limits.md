@@ -193,7 +193,7 @@ Confirm no client-visible status uses `null` as an implicit “unlimited” valu
 **Interfaces:**
 - `AiSummaryService` receives an entitlement/allowance port that resolves the workspace’s trusted current plan and reserve/settle/release operations.
 - A depleted allowance returns `ApiError(429, 'recap_allowance_exhausted', 'No AI recaps are available right now.', { limit, used, remaining: 0, resetAt })`.
-- Per-hour anti-abuse limits become `3` per user and `8` per workspace; only new provider generations reach this check.
+- Per-hour anti-abuse limits are `5` per user and `20` per workspace; only new provider generations reach this check. Cache hits and pending duplicates return before the check, while failed rows are excluded after cleanup. The rate-limit reset is the oldest qualifying request's creation time plus one hour.
 
 - [ ] **Step 1: Add failing service and route cases**
 

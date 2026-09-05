@@ -53,7 +53,7 @@ Reuse the existing recap reservation lifecycle rather than counting completed AI
 
 The database reservation operation remains the concurrency authority. It must atomically reject a request after the applicable limit is reached, reserve before a provider call, settle only after the generated recap has been safely written, and release on every failed path. The service resolves the allowance from trusted subscription data immediately before reserving.
 
-The existing hourly anti-abuse rate limit becomes three new recap generations per adult user and eight per workspace. It is independent of the subscription allowance and does not charge credits for cached reads.
+The hourly anti-abuse rate limit is five new provider generations per adult user and 20 per workspace in a rolling hour. It is independent of the subscription allowance. Completed cache hits and identical pending requests do not consume an hourly slot; failed requests no longer count after they are marked failed. A rate-limit response reports the expiry of the oldest qualifying slot, rather than a newly calculated hour from the rejection.
 
 ## Mobile Presentation
 
