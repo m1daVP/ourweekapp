@@ -30,6 +30,41 @@ The `db:migrate` scripts require the Supabase CLI to be installed and authentica
 
 Queue migrations must be applied before starting a worker version that depends on them. The queue RPC functions are callable only with the backend service-role key and must not be exposed to mobile clients.
 
+## AI recap model configuration
+
+Known meeting templates use the model configured in
+`src/modules/ai/summary-prompts.ts`; `AI_MODEL` is only the fallback for an
+unknown template ID. It is not a global override.
+
+| Template | Effective model |
+| --- | --- |
+| `weekly-family-check-in` | `gpt-5.4-nano` |
+| `family-with-kids` | `gpt-5.4-nano` |
+| `money-check-in` | `gpt-5.4-nano` |
+| `busy-week-planning` | `gpt-5.4-nano` |
+| `couple-reset` | `gpt-5-mini` |
+| `conflict-cleanup` | `gpt-5-mini` |
+
+Each newly claimed recap request records its effective model and prompt
+version in backend audit data. After a synthetic staging request, verify only
+the effective model, prompt version, safe provider request ID, status,
+duration, and token counts in the request audit data or structured logs. Do
+not use real meeting data, log prompts, or expose credentials during this
+check.
+
+The recap provider uses `max_output_tokens: 800`. In the Responses API this
+budget includes visible output and reasoning tokens. Before changing a model,
+prompt, output budget, or model snapshot, run a funded staging evaluation with
+synthetic content for every supported template. Record the effective model,
+prompt version, latency, input/output/total tokens, response status, and any
+incomplete reason. An incomplete response caused by `max_output_tokens` fails
+the evaluation and requires a changed configuration plus a new recorded run.
+
+The deployed configuration currently uses model aliases. Do not pin a snapshot
+until the funded staging evaluation has been reviewed. Record the final
+alias-or-snapshot decision, evaluated configuration, deployed revision, and
+accepted limitations in `AI_RELEASE_CHECKLIST.md` before release.
+
 ## Background Worker
 
 - Run locally with `npm run dev:worker` and in a built deployment with `npm run start:worker`.
