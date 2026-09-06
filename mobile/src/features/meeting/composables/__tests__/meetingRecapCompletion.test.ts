@@ -10,11 +10,19 @@ const push = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const haptics = vi.hoisted(() => ({
   completeMeeting: vi.fn(),
 }));
+const recapDisclosure = vi.hoisted(() => ({
+  acknowledge: vi.fn(),
+  hasAcknowledged: vi.fn(() => false),
+}));
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }));
 vi.mock('@/shared/composables/useToast', () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));
 vi.mock('@/shared/services/hapticsService', () => ({ haptics }));
+vi.mock('@/features/meeting/aiRecapDisclosure', () => ({
+  acknowledgeAiRecapDisclosure: recapDisclosure.acknowledge,
+  hasAcknowledgedAiRecapDisclosure: recapDisclosure.hasAcknowledged,
+}));
 vi.mock('@/features/meeting/aiSummaryService', async (original) => ({
   ...(await original<typeof import('@/features/meeting/aiSummaryService')>()),
   generateMeetingSummary: vi.fn(),
@@ -26,6 +34,34 @@ afterEach(() => {
 });
 
 describe('completion recap allowance', () => {
+  it('preserves meeting completion and skips AI when the disclosure is deferred', async () => {
+    const context = setupRecapTest(false);
+    context.meetings.meetings[0]!.status = 'in_progress';
+    context.meetings.activeMeetingId = 'meeting-1';
+    let session!: ReturnType<typeof useMeetingSession>;
+    wrapper = mount(
+      defineComponent({
+        setup() {
+          session = useMeetingSession();
+          return {};
+        },
+        template: '<div />',
+      }),
+      { global: { plugins: [context.pinia, context.i18n] } }
+    );
+
+    await session.finishMeeting();
+    expect(session.isAiRecapDisclosureOpen.value).toBe(true);
+    await session.deferAiRecapDisclosure();
+
+    expect(context.meetings.meetings[0]!.status).toBe('completed');
+    expect(generateMeetingSummary).not.toHaveBeenCalled();
+    expect(recapDisclosure.acknowledge).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'meeting-summary' })
+    );
+  });
+
   it.each(['eligible', 'unknown', 'exhausted', 'offline', 'viewer'] as const)(
     'preserves completion policy for %s',
     async (state) => {
@@ -54,6 +90,12 @@ describe('completion recap allowance', () => {
         { global: { plugins: [context.pinia, context.i18n] } }
       );
       await session.finishMeeting();
+      if (state === 'eligible' || state === 'offline') {
+        expect(session.isAiRecapDisclosureOpen.value).toBe(true);
+        expect(generateMeetingSummary).not.toHaveBeenCalled();
+        await session.confirmAiRecapDisclosure();
+        expect(recapDisclosure.acknowledge).toHaveBeenCalledOnce();
+      }
       expect(context.meetings.meetings[0]!.status).toBe(
         state === 'viewer' ? 'in_progress' : 'completed'
       );
