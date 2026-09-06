@@ -7,10 +7,14 @@ import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
 import { allowance, setupRecapTest } from '../../__tests__/recapFixtures';
 
 const push = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const haptics = vi.hoisted(() => ({
+  completeMeeting: vi.fn(),
+}));
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }));
 vi.mock('@/shared/composables/useToast', () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));
+vi.mock('@/shared/services/hapticsService', () => ({ haptics }));
 vi.mock('@/features/meeting/aiSummaryService', async (original) => ({
   ...(await original<typeof import('@/features/meeting/aiSummaryService')>()),
   generateMeetingSummary: vi.fn(),
@@ -55,6 +59,9 @@ describe('completion recap allowance', () => {
       );
       expect(generateMeetingSummary).toHaveBeenCalledTimes(
         state === 'eligible' || state === 'offline' ? 1 : 0
+      );
+      expect(haptics.completeMeeting).toHaveBeenCalledTimes(
+        state === 'viewer' ? 0 : 1
       );
       if (state !== 'viewer')
         expect(push).toHaveBeenCalledWith(
