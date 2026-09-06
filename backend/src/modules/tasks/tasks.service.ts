@@ -56,7 +56,11 @@ type ParticipantRepositoryPort = {
 };
 
 type MeetingRepositoryPort = {
-  findMeetingByIdForWorkspace(workspaceId: string, meetingId: string): Promise<unknown | null>;
+  findMeetingByIdForWorkspace(
+    workspaceId: string,
+    meetingId: string,
+    includeDeleted?: boolean,
+  ): Promise<unknown | null>;
 };
 
 type WorkspaceMembersPort = Pick<WorkspacesRepository, 'listActiveMembersForWorkspace'>;
@@ -543,6 +547,7 @@ export class TasksService {
     const meeting = await this.meetingsRepository.findMeetingByIdForWorkspace(
       workspaceId,
       meetingId,
+      true,
     );
     const exists = Boolean(meeting);
     cache.set(meetingId, exists);

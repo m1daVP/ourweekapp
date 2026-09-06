@@ -177,7 +177,11 @@ describe('TasksService', () => {
       clientUpdatedAt: now,
     }, new Date(now));
 
-    expect(repos.meetings.findMeetingByIdForWorkspace).toHaveBeenCalledWith('workspace_1', sourceMeetingId);
+    expect(repos.meetings.findMeetingByIdForWorkspace).toHaveBeenCalledWith(
+      'workspace_1',
+      sourceMeetingId,
+      true,
+    );
     expect(repos.tasks.insertTask).toHaveBeenCalledWith(expect.objectContaining({
       id: taskId,
       status: 'skipped',
@@ -194,6 +198,77 @@ describe('TasksService', () => {
       decidedAt: '2026-06-06T09:15:00.000Z',
     });
     expect(response.conflicts).toEqual([]);
+  });
+
+  it('accepts a soft-deleted source meeting when syncing a task', async () => {
+    const repos = createRepositories();
+    repos.meetings.findMeetingByIdForWorkspace.mockImplementation(
+      async (_workspaceId: string, meetingId: string, includeDeleted?: boolean) => (
+        includeDeleted && meetingId === sourceMeetingId
+          ? { id: meetingId, deletedAt: now }
+          : null
+      ),
+    );
+
+    const service = new TasksService(repos.tasks, repos.participants, repos.meetings);
+    await service.syncTasks(auth, {
+      tasks: [apiTask()],
+      agreements: [],
+      reviewDecisions: [],
+      clientUpdatedAt: now,
+    }, new Date(now));
+
+    expect(repos.tasks.insertTask).toHaveBeenCalledWith(expect.objectContaining({
+      id: taskId,
+      sourceMeetingId,
+    }));
+    expect(repos.meetings.findMeetingByIdForWorkspace).toHaveBeenCalledWith(
+      'workspace_1',
+      sourceMeetingId,
+      true,
+    );
+  });
+
+  it('accepts soft-deleted meetings when syncing a review decision', async () => {
+    const repos = createRepositories();
+    repos.meetings.findMeetingByIdForWorkspace.mockImplementation(
+      async (_workspaceId: string, meetingId: string, includeDeleted?: boolean) => (
+        includeDeleted && (meetingId === reviewMeetingId || meetingId === sourceMeetingId)
+          ? { id: meetingId, deletedAt: now }
+          : null
+      ),
+    );
+
+    const service = new TasksService(repos.tasks, repos.participants, repos.meetings);
+    await service.syncTasks(auth, {
+      tasks: [],
+      agreements: [],
+      reviewDecisions: [
+        {
+          meetingId: reviewMeetingId,
+          sourceMeetingId,
+          decidedAt: now,
+        },
+      ],
+      clientUpdatedAt: now,
+    }, new Date(now));
+
+    expect(repos.tasks.createReviewDecision).toHaveBeenCalledWith({
+      workspaceId: 'workspace_1',
+      meetingId: reviewMeetingId,
+      sourceMeetingId,
+      decidedAt: now,
+    });
+    expect(repos.meetings.findMeetingByIdForWorkspace).toHaveBeenCalledWith(
+      'workspace_1',
+      reviewMeetingId,
+      true,
+    );
+    expect(repos.meetings.findMeetingByIdForWorkspace).toHaveBeenCalledWith(
+      'workspace_1',
+      sourceMeetingId,
+      true,
+    );
   });
 
   it('returns a task invalid-reference conflict for unknown responsible participants', async () => {
