@@ -45,10 +45,11 @@ interface SyncStorageMetadata {
 }
 
 type SettingsStorageSliceKey =
-  'calendarSync' | 'localization' | 'reminders' | 'workspace';
+  'aiRecap' | 'calendarSync' | 'localization' | 'reminders' | 'workspace';
 type OnboardingStorageSliceKey = 'auth';
 
 interface AppDataSettings {
+  aiRecap: unknown;
   calendarSync: unknown;
   localization: unknown;
   reminders: unknown;
@@ -128,6 +129,7 @@ function createEmptyAppData(): AppDataEnvelope {
     privateNotes: null,
     syncMetadata: null,
     settings: {
+      aiRecap: null,
       calendarSync: null,
       localization: null,
       reminders: null,
@@ -290,6 +292,7 @@ function validateAppDataEnvelope(value: unknown): AppDataEnvelope | null {
     privateNotes: value.privateNotes ?? null,
     syncMetadata: value.syncMetadata ?? null,
     settings: {
+      aiRecap: settings.aiRecap ?? null,
       calendarSync: settings.calendarSync ?? null,
       localization: settings.localization ?? null,
       reminders: settings.reminders ?? null,
@@ -847,6 +850,7 @@ function normalizeSettingsData(value: unknown): AppDataSettings | null {
   }
 
   return {
+    aiRecap: value.aiRecap ?? null,
     calendarSync: value.calendarSync ?? null,
     localization: value.localization ?? null,
     reminders: value.reminders ?? null,

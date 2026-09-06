@@ -36,6 +36,7 @@ const {
   closeGuestDrawer,
   closeNoteEditor,
   closeMeeting,
+  confirmAiRecapDisclosure,
   confirmDeleteRitual,
   confirmEndSessionIncomplete,
   currentAgreements,
@@ -44,6 +45,7 @@ const {
   currentStepNumber,
   currentTasks,
   deleteNote,
+  deferAiRecapDisclosure,
   drawerFamilyMembers,
   drawerSelectedParticipantId,
   editingNoteParticipantId,
@@ -59,6 +61,7 @@ const {
   handleUnfinishedTasks,
   hasMeetingContent,
   isCompleted,
+  isAiRecapDisclosureOpen,
   isDeleteRitualDialogOpen,
   isEndSessionDialogOpen,
   isFinalSection,
@@ -321,6 +324,15 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
     </form>
   </BaseBottomSheet>
 
+  <ConfirmationDialog
+    :open="isAiRecapDisclosureOpen"
+    :title="t('ai.recap.disclosure.title')"
+    :message="t('ai.recap.disclosure.body')"
+    :confirm-label="t('ai.recap.disclosure.generate')"
+    :cancel-label="t('ai.recap.disclosure.notNow')"
+    @close="deferAiRecapDisclosure"
+    @confirm="confirmAiRecapDisclosure"
+  />
   <ConfirmationDialog
     :open="isEndSessionDialogOpen"
     :title="t('meeting.confirmEndSessionTitle')"

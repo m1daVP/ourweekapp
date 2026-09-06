@@ -1413,6 +1413,13 @@ export const messages = {
           'No recaps remain for this period. Allowance renews on {date}.',
         premiumNoDate: 'Recaps available: {count} of {limit}.',
         retry: 'Retry recap',
+        disclosure: {
+          title: 'Generate an AI recap?',
+          body:
+            'To create a recap, OurWeek sends shared meeting notes, tasks, agreements, and participant names to OpenAI. Private notes are excluded. AI recaps can be inaccurate, so please review them.',
+          generate: 'Generate recap',
+          notNow: 'Not now',
+        },
         supportReference: 'Support reference: {requestId}',
         recovery: {
           allowanceExhausted:
@@ -2958,6 +2965,13 @@ export const messages = {
           'Підсумків на цей період більше немає. Ліміт поновиться {date}.',
         premiumNoDate: 'Доступно підсумків: {count} із {limit}.',
         retry: 'Спробувати підсумок ще раз',
+        disclosure: {
+          title: 'Створити ШІ-підсумок?',
+          body:
+            'Щоб створити підсумок, OurWeek надсилає спільні нотатки зустрічі, завдання, домовленості та імена учасників до OpenAI. Приватні нотатки не передаються. ШІ-підсумки можуть бути неточними, тому перегляньте їх.',
+          generate: 'Створити підсумок',
+          notNow: 'Не зараз',
+        },
         supportReference: 'Код для підтримки: {requestId}',
         recovery: {
           allowanceExhausted:
@@ -4521,6 +4535,13 @@ export const messages = {
           'No quedan resúmenes para este período. La disponibilidad se renueva el {date}.',
         premiumNoDate: 'Resúmenes disponibles: {count} de {limit}.',
         retry: 'Reintentar resumen',
+        disclosure: {
+          title: '¿Generar un resumen con IA?',
+          body:
+            'Para crear un resumen, OurWeek envía las notas compartidas de la reunión, las tareas, los acuerdos y los nombres de participantes a OpenAI. Las notas privadas se excluyen. Los resúmenes con IA pueden ser inexactos, así que revísalos.',
+          generate: 'Generar resumen',
+          notNow: 'Ahora no',
+        },
         supportReference: 'Referencia de soporte: {requestId}',
         recovery: {
           allowanceExhausted:

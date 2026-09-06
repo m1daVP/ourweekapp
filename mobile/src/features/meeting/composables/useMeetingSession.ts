@@ -14,6 +14,10 @@ import {
   parseAiQuotaError,
 } from '@/features/meeting/aiSummaryService';
 import {
+  acknowledgeAiRecapDisclosure,
+  hasAcknowledgedAiRecapDisclosure,
+} from '@/features/meeting/aiRecapDisclosure';
+import {
   agreementSectionIds,
   getMeetingSectionPrompt,
   getMeetingSectionTitle,
@@ -265,6 +269,8 @@ export function useMeetingSession() {
   const isRitualMenuOpen = ref(false);
   const isEndSessionDialogOpen = ref(false);
   const isDeleteRitualDialogOpen = ref(false);
+  const isAiRecapDisclosureOpen = ref(false);
+  const pendingAiRecapDisclosureMeetingId = ref<string | null>(null);
   const drawerSelectedParticipantId = ref('');
   const guestName = ref('');
   const checkedInParticipantIds = ref<string[]>([]);
@@ -1208,7 +1214,7 @@ export function useMeetingSession() {
   }
 
   async function finishMeeting() {
-    if (isFinishingMeeting.value) {
+    if (isFinishingMeeting.value || isAiRecapDisclosureOpen.value) {
       return;
     }
 
@@ -1244,43 +1250,96 @@ export function useMeetingSession() {
     void haptics.completeMeeting();
 
     try {
-      let aiSummaryFailed = false;
-      let aiQuotaInfo: ReturnType<typeof parseAiQuotaError> = null;
-
-      if (subscriptionStore.canGenerateAssistantRecap) {
-        const completedMeeting = meetingsStore.meetings.find(
-          (meeting) => meeting.id === meetingId
-        );
-
-        if (completedMeeting) {
-          try {
-            await generateMeetingSummary(completedMeeting);
-          } catch (error) {
-            aiSummaryFailed = true;
-            aiQuotaInfo = parseAiQuotaError(error);
-          }
-        }
+      if (
+        subscriptionStore.canGenerateAssistantRecap
+        && !hasAcknowledgedAiRecapDisclosure()
+      ) {
+        pendingAiRecapDisclosureMeetingId.value = meetingId;
+        isAiRecapDisclosureOpen.value = true;
+        return;
       }
 
-      await router.push({
-        name: 'meeting-summary',
-        params: { meetingId },
-        query: aiSummaryFailed
-          ? {
-              aiSummary: 'failed',
-              ...(aiQuotaInfo
-                ? {
-                    aiSummaryScope: aiQuotaInfo.scope,
-                    aiSummaryLimit: String(aiQuotaInfo.limit),
-                    aiSummaryReset: aiQuotaInfo.resetAt,
-                  }
-                : {}),
-            }
-          : {},
-      });
+      await continueCompletedMeeting(
+        meetingId,
+        subscriptionStore.canGenerateAssistantRecap,
+      );
     } finally {
       isFinishingMeeting.value = false;
     }
+  }
+
+  async function confirmAiRecapDisclosure() {
+    const meetingId = pendingAiRecapDisclosureMeetingId.value;
+
+    if (!meetingId || isFinishingMeeting.value) {
+      return;
+    }
+
+    acknowledgeAiRecapDisclosure();
+    pendingAiRecapDisclosureMeetingId.value = null;
+    isAiRecapDisclosureOpen.value = false;
+    isFinishingMeeting.value = true;
+
+    try {
+      await continueCompletedMeeting(meetingId, true);
+    } finally {
+      isFinishingMeeting.value = false;
+    }
+  }
+
+  async function deferAiRecapDisclosure() {
+    const meetingId = pendingAiRecapDisclosureMeetingId.value;
+
+    if (!meetingId || isFinishingMeeting.value) {
+      return;
+    }
+
+    pendingAiRecapDisclosureMeetingId.value = null;
+    isAiRecapDisclosureOpen.value = false;
+    isFinishingMeeting.value = true;
+
+    try {
+      await continueCompletedMeeting(meetingId, false);
+    } finally {
+      isFinishingMeeting.value = false;
+    }
+  }
+
+  async function continueCompletedMeeting(meetingId: string, shouldGenerateRecap: boolean) {
+    let aiSummaryFailed = false;
+    let aiQuotaInfo: ReturnType<typeof parseAiQuotaError> = null;
+
+    if (shouldGenerateRecap) {
+      const completedMeeting = meetingsStore.meetings.find(
+        (meeting) => meeting.id === meetingId,
+      );
+
+      if (completedMeeting) {
+        try {
+          await generateMeetingSummary(completedMeeting);
+        } catch (error) {
+          aiSummaryFailed = true;
+          aiQuotaInfo = parseAiQuotaError(error);
+        }
+      }
+    }
+
+    await router.push({
+      name: 'meeting-summary',
+      params: { meetingId },
+      query: aiSummaryFailed
+        ? {
+            aiSummary: 'failed',
+            ...(aiQuotaInfo
+              ? {
+                  aiSummaryScope: aiQuotaInfo.scope,
+                  aiSummaryLimit: String(aiQuotaInfo.limit),
+                  aiSummaryReset: aiQuotaInfo.resetAt,
+                }
+              : {}),
+          }
+        : {},
+    });
   }
 
   function endSessionIncomplete() {
@@ -1391,6 +1450,7 @@ export function useMeetingSession() {
     canEditMeeting,
     canEditTasks,
     canSubmitGuestDrawer,
+    confirmAiRecapDisclosure,
     checkInParticipants,
     checkedInParticipantIds,
     clearDrawerParticipantSelection,
@@ -1420,6 +1480,7 @@ export function useMeetingSession() {
     handleUnfinishedTasks,
     hasMeetingContent,
     isCompleted,
+    isAiRecapDisclosureOpen,
     isDeleteRitualDialogOpen,
     isEndSessionDialogOpen,
     isFinalSection,
@@ -1446,6 +1507,7 @@ export function useMeetingSession() {
     progressPercent,
     reviewCounts,
     reviewTasks,
+    deferAiRecapDisclosure,
     restoreDeletedNote,
     restoreDeletedTask,
     sectionPrompt,
