@@ -13,6 +13,7 @@
     "build:agents": "node scripts/build-agents-md.mjs",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "openapi:check": "tsx scripts/generate-openapi.ts --check",
+    "ai:evaluate": "tsx scripts/run-ai-evaluation.ts",
     "ci": "npm run typecheck && npm test && npm run openapi:check",
     "db:migrate": "supabase db push",
     "db:migrate:dry-run": "supabase db push --dry-run",
