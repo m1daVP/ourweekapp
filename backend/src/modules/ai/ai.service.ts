@@ -22,6 +22,7 @@ import {
   isAiSummaryProviderError,
   type AiSummaryProvider,
 } from './openai.client.js';
+import { buildSafetyIdentifier } from './safety-identifier.js';
 import {
   buildSummaryPromptPayload,
   normalizeSummaryProviderOutput,
@@ -65,6 +66,7 @@ type AiSummaryServiceOptions = {
   aiConfigured?: boolean;
   model?: string;
   providerName?: string;
+  safetyIdentifierSecret?: string;
   logger?: AiSummaryLogger;
 };
 
@@ -406,6 +408,7 @@ export class AiSummaryService {
         userPrompt: promptPayload,
         model,
         maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,
+        safetyIdentifier: buildSafetyIdentifier(auth.userId, this.options.safetyIdentifierSecret ?? ''),
       });
       const allowedParticipantIds = new Set(participants.map((participant) => participant.id));
       const sanitizedProviderOutput = sanitizeSummaryTaskOwnerReferences(

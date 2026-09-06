@@ -103,6 +103,7 @@ export type AiSummaryProvider = {
     userPrompt: string;
     model: string;
     maxOutputTokens: number;
+    safetyIdentifier: string;
   }): Promise<AiSummaryProviderResult>;
 };
 
@@ -248,6 +249,7 @@ export class OpenAiSummaryProvider implements AiSummaryProvider {
     userPrompt: string;
     model: string;
     maxOutputTokens: number;
+    safetyIdentifier: string;
   }) {
     const startedAtMs = Date.now();
 
@@ -258,6 +260,7 @@ export class OpenAiSummaryProvider implements AiSummaryProvider {
         input: input.userPrompt,
         max_output_tokens: input.maxOutputTokens,
         store: false,
+        safety_identifier: input.safetyIdentifier,
         text: {
           format: {
             type: 'json_schema',

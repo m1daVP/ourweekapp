@@ -198,6 +198,7 @@ function createHarness(input: {
   const service = new AiSummaryService(ai, meetings, participants, provider, {
     aiConfigured: input.aiConfigured ?? true,
     model: 'test-model',
+    safetyIdentifierSecret: 'test-ai-safety-identifier-secret',
     ...(input.logger ? { logger: input.logger } : {}),
   }, input.withAssistantRepository ? assistant : undefined,
   input.withAssistantRepository ? subscriptions : undefined);

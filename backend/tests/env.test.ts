@@ -21,6 +21,7 @@ async function loadEnv(overrides: Record<string, string | undefined> = {}) {
     ...baseEnv,
     AI_PROVIDER: '',
     AI_API_KEY: '',
+    AI_SAFETY_IDENTIFIER_SECRET: '',
     ...overrides,
   };
 
@@ -84,6 +85,24 @@ describe('env AI provider configuration', () => {
         EMAIL_FROM: '',
       }),
     ).rejects.toThrow('required in production');
+  });
+
+  it('requires a safety identifier secret for the OpenAI provider', async () => {
+    await expect(loadEnv({
+      AI_PROVIDER: 'openai',
+      AI_API_KEY: 'test-ai-key',
+    })).rejects.toThrow('AI_SAFETY_IDENTIFIER_SECRET must be at least 32 characters');
+  });
+
+  it('accepts an OpenAI provider with a privacy-preserving safety secret', async () => {
+    const { env } = await loadEnv({
+      AI_PROVIDER: 'openai',
+      AI_API_KEY: 'test-ai-key',
+      AI_SAFETY_IDENTIFIER_SECRET: 'a'.repeat(32),
+    });
+
+    expect(env.AI_CONFIGURED).toBe(true);
+    expect(env.AI_SAFETY_IDENTIFIER_SECRET).toHaveLength(32);
   });
 
   it('rejects a production API with incomplete RevenueCat configuration', async () => {

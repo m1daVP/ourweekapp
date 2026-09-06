@@ -21,6 +21,7 @@ Object.assign(process.env, {
   TOKEN_ENCRYPTION_KEY: 'token-encryption-key-at-least-32-byte',
   AI_PROVIDER: 'openai',
   AI_API_KEY: 'test-ai-key',
+  AI_SAFETY_IDENTIFIER_SECRET: 'test-ai-safety-identifier-secret',
 });
 
 vi.mock('../src/modules/auth/auth.middleware.js', async () => {
@@ -106,6 +107,7 @@ describe('AI summary routes', () => {
         userPrompt: 'user',
         model: 'test-model',
         maxOutputTokens: 800,
+        safetyIdentifier: 'ow-v1-test-safe-identifier',
       }),
     ).resolves.toEqual({
       output: {

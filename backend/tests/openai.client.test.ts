@@ -50,6 +50,7 @@ describe('OpenAiSummaryProvider', () => {
       userPrompt: '{"templateId":"weekly-family-check-in"}',
       model: 'gpt-5.4-nano',
       maxOutputTokens: 800,
+      safetyIdentifier: 'ow-v1-test-safe-identifier',
     });
 
     expect(openAiConstructor).toHaveBeenCalledWith({
@@ -72,6 +73,7 @@ describe('OpenAiSummaryProvider', () => {
         input: '{"templateId":"weekly-family-check-in"}',
         max_output_tokens: 800,
         store: false,
+        safety_identifier: 'ow-v1-test-safe-identifier',
         text: {
           format: expect.objectContaining({
             type: 'json_schema',
@@ -115,6 +117,7 @@ describe('OpenAiSummaryProvider', () => {
       userPrompt: '{"templateId":"weekly-family-check-in"}',
       model: 'gpt-5.4-nano',
       maxOutputTokens: 800,
+      safetyIdentifier: 'ow-v1-test-safe-identifier',
     });
 
     expect(result.usage).toBeNull();
@@ -144,6 +147,7 @@ describe('OpenAiSummaryProvider', () => {
       userPrompt: 'prompt-secret-123',
       model: 'gpt-5.4-nano',
       maxOutputTokens: 800,
+      safetyIdentifier: 'ow-v1-test-safe-identifier',
     })).rejects.toMatchObject({
       name: 'AiSummaryProviderError',
       metadata: {
@@ -162,6 +166,7 @@ describe('OpenAiSummaryProvider', () => {
         userPrompt: 'prompt-secret-123',
         model: 'gpt-5.4-nano',
         maxOutputTokens: 800,
+        safetyIdentifier: 'ow-v1-test-safe-identifier',
       });
     } catch (error) {
       expect(error).toBeInstanceOf(AiSummaryProviderError);
@@ -186,6 +191,7 @@ describe('OpenAiSummaryProvider', () => {
       userPrompt: 'prompt-secret-123',
       model: 'gpt-5.4-nano',
       maxOutputTokens: 800,
+      safetyIdentifier: 'ow-v1-test-safe-identifier',
     })).rejects.toMatchObject({
       name: 'AiSummaryProviderError',
       metadata: {
@@ -258,6 +264,7 @@ describe('OpenAiSummaryProvider', () => {
       userPrompt: 'prompt-secret-123',
       model: 'gpt-5.4-nano',
       maxOutputTokens: 800,
+      safetyIdentifier: 'ow-v1-test-safe-identifier',
     })).rejects.toMatchObject({
       name: 'AiSummaryProviderError',
       metadata: {
@@ -273,6 +280,7 @@ describe('OpenAiSummaryProvider', () => {
         userPrompt: 'prompt-secret-123',
         model: 'gpt-5.4-nano',
         maxOutputTokens: 800,
+        safetyIdentifier: 'ow-v1-test-safe-identifier',
       });
     } catch (error) {
       expect(error).toBeInstanceOf(AiSummaryProviderError);
@@ -293,6 +301,7 @@ describe('OpenAiSummaryProvider', () => {
       userPrompt: '{"templateId":"weekly-family-check-in"}',
       model: 'gpt-5.4-nano',
       maxOutputTokens: 800,
+      safetyIdentifier: 'ow-v1-test-safe-identifier',
     })).rejects.toBeInstanceOf(AiSummaryProviderError);
   });
 });

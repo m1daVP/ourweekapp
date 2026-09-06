@@ -61,6 +61,7 @@ const envInput = z
 
     AI_PROVIDER: optionalString.pipe(z.enum(['openai', 'mock']).optional()),
     AI_API_KEY: optionalString,
+    AI_SAFETY_IDENTIFIER_SECRET: optionalString,
     AI_MODEL: optionalString,
 
     REVENUECAT_PROJECT_ID: optionalString,
@@ -92,12 +93,22 @@ const envInput = z
         ? value.CORS_ALLOWED_ORIGINS
         : value.CORS_ORIGINS;
 
-    if (value.AI_PROVIDER === 'openai' && !aiApiKey) {
-      context.addIssue({
-        code: 'custom',
-        path: ['AI_API_KEY'],
-        message: 'AI_API_KEY is required when AI_PROVIDER is configured',
-      });
+    if (value.AI_PROVIDER === 'openai') {
+      if (!aiApiKey) {
+        context.addIssue({
+          code: 'custom',
+          path: ['AI_API_KEY'],
+          message: 'AI_API_KEY is required when AI_PROVIDER is configured',
+        });
+      }
+
+      if (!value.AI_SAFETY_IDENTIFIER_SECRET || value.AI_SAFETY_IDENTIFIER_SECRET.length < 32) {
+        context.addIssue({
+          code: 'custom',
+          path: ['AI_SAFETY_IDENTIFIER_SECRET'],
+          message: 'AI_SAFETY_IDENTIFIER_SECRET must be at least 32 characters when AI_PROVIDER is configured',
+        });
+      }
     }
 
     if (value.AI_PROVIDER === 'mock' && isProduction) {
@@ -209,6 +220,7 @@ const envSchema = envInput.transform((value) => {
     CORS_ORIGINS: corsOrigins,
     CORS_ALLOWED_ORIGINS: corsOrigins,
     AI_API_KEY: aiApiKey,
+    AI_SAFETY_IDENTIFIER_SECRET: value.AI_SAFETY_IDENTIFIER_SECRET ?? '',
     AI_PROVIDER: aiProvider,
     AI_CONFIGURED:
       aiProvider === 'mock' || (aiProvider === 'openai' && aiApiKey.length > 0),
