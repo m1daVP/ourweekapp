@@ -112,6 +112,7 @@ beforeEach(() => {
     {
       id: 'task-1',
       title: 'Buy fruit',
+      description: 'A short task detail.',
       responsibilityType: 'shared',
       responsibleParticipantIds: ['participant-1'],
       responsibleUserIds: ['adult-1'],
@@ -133,6 +134,30 @@ describe('TasksPage responsibility editing', () => {
     await wrapper.get('.task-card__content').trigger('click');
 
     expect(wrapper.text()).not.toContain('tasksPage.responsibleAdults');
+  });
+});
+
+describe('TasksPage task details', () => {
+  it('shows a labelled Details card for a task description', async () => {
+    const wrapper = mountTasksPage();
+
+    await wrapper.get('.task-card__content').trigger('click');
+
+    expect(wrapper.get('.task-editor-form__details').text()).toContain(
+      'A short task detail.'
+    );
+    expect(
+      wrapper.get('.task-editor-form__details').attributes('aria-label')
+    ).toBe('tasksPage.optionalDetail');
+  });
+
+  it('does not show a Details card when a task has no description', async () => {
+    state.tasks[0].description = undefined;
+    const wrapper = mountTasksPage();
+
+    await wrapper.get('.task-card__content').trigger('click');
+
+    expect(wrapper.find('.task-editor-form__details').exists()).toBe(false);
   });
 });
 

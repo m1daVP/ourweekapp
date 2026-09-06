@@ -4393,6 +4393,24 @@ input[type='radio'] {
   font-size: var(--font-size-label-lg);
 }
 
+.task-editor-form__details {
+  display: grid;
+  gap: 6px;
+}
+
+.task-editor-form__details-label {
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label-lg);
+  font-weight: 800;
+}
+
+.task-editor-form__details-copy {
+  margin: 0;
+  color: var(--color-on-surface);
+  font-size: var(--font-size-body-lg);
+  line-height: 1.5;
+}
+
 .note-editor-form textarea {
   min-height: 120px;
   resize: vertical;

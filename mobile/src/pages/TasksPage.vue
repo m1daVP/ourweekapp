@@ -826,9 +826,18 @@ function openAddTaskSheet() {
             :disabled="!canEditTasks"
           />
         </label>
-        <p v-if="selectedTask.description" class="task-editor-form__note">
-          {{ selectedTask.description }}
-        </p>
+        <section
+          v-if="selectedTask.description"
+          class="task-editor-form__details"
+          :aria-label="t('tasksPage.optionalDetail')"
+        >
+          <span class="task-editor-form__details-label">
+            {{ t('tasksPage.optionalDetail') }}
+          </span>
+          <p class="task-editor-form__details-copy">
+            {{ selectedTask.description }}
+          </p>
+        </section>
         <p v-if="selectedTask.sourceMeetingId" class="task-editor-form__note">
           {{
             t('tasksPage.fromMeeting', {
@@ -837,9 +846,6 @@ function openAddTaskSheet() {
           }}
         </p>
         <div class="task-editor-form__actions">
-          <button v-if="canEditTasks" type="submit" class="meeting-primary">
-            {{ t('common.save') }}
-          </button>
           <button
             v-if="canEditTasks && selectedTask.status !== 'done'"
             type="button"
@@ -860,6 +866,9 @@ function openAddTaskSheet() {
             @click="setTaskStatus(selectedTask, 'skipped')"
           >
             {{ t('tasksPage.skip') }}
+          </button>
+          <button v-if="canEditTasks" type="submit" class="meeting-primary">
+            {{ t('common.save') }}
           </button>
           <button
             v-if="canDeleteTasks"
