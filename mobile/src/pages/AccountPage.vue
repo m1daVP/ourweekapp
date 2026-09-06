@@ -24,6 +24,7 @@ import {
 } from '@/shared/api/accountApi';
 import { appConfig } from '@/shared/config/env';
 import { saveOrShareExportFile } from '@/shared/services/exportFileDeliveryService';
+import { haptics } from '@/shared/services/hapticsService';
 import { warnSafely } from '@/shared/services/safeLogService';
 import { clearAllLocalAppDataAfterAccountDeletion } from '@/shared/services/storageService';
 import { nowIso } from '@/shared/utils/dates';
@@ -160,6 +161,7 @@ async function confirmDeleteAccount() {
       clearLocalAppData: clearAllLocalAppDataAfterAccountDeletion,
       resetInMemoryStores: resetInMemoryStoresAfterAccountDeletion,
     });
+    void haptics.impact();
     await router.replace({ name: 'welcome' });
   } catch (error) {
     if (error instanceof AccountDeletionCleanupError) {

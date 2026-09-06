@@ -11,6 +11,7 @@ import HistoryProgressSwipeCard from '@/features/meeting/components/HistoryProgr
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
 import { useToast } from '@/shared/composables/useToast';
+import { haptics } from '@/shared/services/hapticsService';
 
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
@@ -144,6 +145,7 @@ function confirmDeleteDraft() {
 
   if (wasDeleted) {
     showToast(t('history.draftDeleted'));
+    void haptics.impact();
   }
 }
 

@@ -22,6 +22,7 @@ import TaskSwipeActionCard from '@/features/tasks/components/TaskSwipeActionCard
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
+import { haptics } from '@/shared/services/hapticsService';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 type TaskFilter = 'todo' | 'done' | 'all';
@@ -417,6 +418,7 @@ function saveTask(task: Task) {
   });
   statusMessage.value = t('tasksPage.taskUpdated');
   selectedTask.value = null;
+  void haptics.confirm();
 }
 
 function addTask() {
@@ -450,6 +452,7 @@ function addTask() {
   newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
   isAddTaskSheetOpen.value = false;
   statusMessage.value = t('tasksPage.updated');
+  void haptics.confirm();
 }
 
 function setTaskStatus(task: Task, status: TaskStatus) {
@@ -486,6 +489,7 @@ function completeTaskWithAnimation(task: Task) {
         taskCompletionStatusTimers.delete(task.id);
         tasksStore.updateTaskStatus(task.id, 'done');
         meetingsStore.updateTaskStatus(task.id, 'done');
+        void haptics.confirm();
         scheduleTaskCompletionReset(task.id);
       },
       prefersReducedMotion() ? 0 : TASK_COMPLETION_SETTLE_MS
@@ -591,6 +595,7 @@ function confirmDeleteTask() {
   meetingsStore.deleteTask(task.id);
   selectedTask.value = null;
   statusMessage.value = t('tasksPage.taskDeleted');
+  void haptics.impact();
 }
 
 function openTask(card: TaskCardView) {

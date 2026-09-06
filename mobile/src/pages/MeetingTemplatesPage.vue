@@ -12,6 +12,7 @@ import {
 } from '@/features/meeting/meetingTemplates';
 import type { MeetingTemplate } from '@/features/meeting/types';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
+import { haptics } from '@/shared/services/hapticsService';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 const router = useRouter();
@@ -84,6 +85,7 @@ function startSelectedTemplate() {
 
   meetingsStore.startNewMeetingFromTemplate(selectedTemplate.value.id);
   tasksStore.syncFromMeetings(meetingsStore.meetings);
+  void haptics.confirm();
   router.push({ name: 'meeting' });
 }
 </script>

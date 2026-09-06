@@ -31,6 +31,7 @@ import type {
 import type { Participant } from '@/features/participants/types';
 import type { Task, TaskResponsibilityType } from '@/features/tasks/types';
 import { useToast } from '@/shared/composables/useToast';
+import { haptics } from '@/shared/services/hapticsService';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
 export const maxCheckInParticipants = 10;
@@ -953,6 +954,7 @@ export function useMeetingSession() {
 
     resetTaskForm();
     statusMessage.value = t('meeting.taskAdded');
+    void haptics.confirm();
   }
 
   function restoreDeletedTask() {
@@ -1021,6 +1023,7 @@ export function useMeetingSession() {
       (participant) => participant.id
     );
     statusMessage.value = t('meeting.agreementAdded');
+    void haptics.confirm();
   }
 
   function toggleTask(taskId: string, status: MeetingTaskStatus) {
@@ -1029,7 +1032,12 @@ export function useMeetingSession() {
       return;
     }
 
-    meetingsStore.updateTaskStatus(taskId, status === 'open' ? 'done' : 'open');
+    const nextStatus = status === 'open' ? 'done' : 'open';
+    meetingsStore.updateTaskStatus(taskId, nextStatus);
+
+    if (nextStatus === 'done') {
+      void haptics.confirm();
+    }
   }
 
   function handleUnfinishedTasks(action: TaskReviewAction) {
@@ -1058,6 +1066,10 @@ export function useMeetingSession() {
         action === 'done'
           ? t('meeting.markedDone')
           : t('meeting.skippedForNow');
+
+      if (action === 'done') {
+        void haptics.confirm();
+      }
     }
 
     if (action === 'move') {
@@ -1138,6 +1150,7 @@ export function useMeetingSession() {
     clearMessages();
     setCheckedInParticipants(checkedInParticipantIds.value);
     meetingsStore.setCheckInCompleted(true);
+    void haptics.confirm();
   }
 
   function saveDraft() {
@@ -1227,6 +1240,8 @@ export function useMeetingSession() {
       isFinishingMeeting.value = false;
       return;
     }
+
+    void haptics.completeMeeting();
 
     try {
       let aiSummaryFailed = false;
@@ -1327,6 +1342,7 @@ export function useMeetingSession() {
     }
 
     statusMessage.value = t('meeting.ritualDeleted');
+    void haptics.impact();
     router.push({ name: 'home' });
   }
 

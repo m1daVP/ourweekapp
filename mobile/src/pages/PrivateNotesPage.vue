@@ -7,6 +7,7 @@ import type { Meeting } from '@/features/meeting/types';
 import type { PrivateNote } from '@/features/private-notes/types';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
+import { haptics } from '@/shared/services/hapticsService';
 
 const meetingsStore = useMeetingsStore();
 const privateNotesStore = usePrivateNotesStore();
@@ -121,6 +122,7 @@ function confirmDeleteNote() {
 
   clearMessages();
   privateNotesStore.deleteNote(note.id);
+  void haptics.impact();
 
   if (editingNoteId.value === note.id) {
     resetDraft();
