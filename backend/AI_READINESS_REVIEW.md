@@ -78,6 +78,8 @@ Implementation update, 2026-09-04: implemented in the backend working tree. A wo
 
 Required outcome: atomically finalize the saved summary, completed request, and settled reservation; make finalization retry-safe; preserve the primary error when cleanup fails; reconcile interrupted operations. Do not hold a database transaction open during the external provider call.
 
+Implementation update, 2026-09-04: implemented in the backend working tree. A workspace-locked, service-role-only finalization RPC now persists the meeting summary, request completion/cache/token usage, and settled credit in one PostgreSQL operation. The service keeps provider work outside that operation, returns a revision conflict without attaching stale output, leaves accounting untouched after an uncertain finalization response, and logs cleanup failures without replacing the original error. The AI-06 recovery RPC now also converges stale pending requests whose reservation was released before request-audit cleanup completed. Focused migration/repository/service tests, the full backend suite, typecheck, and build pass. The guarded local-Supabase integration test is skipped because local credentials are absent; local database, staging, manual interruption, and release verification remain required. This is not a release sign-off.
+
 ### AI-08 [P1]: Provider failures are too generic for operators and clients
 
 The catch block in `src/modules/ai/ai.service.ts` collapses most provider failures into `ai_summary_generation_failed` (around line 324). `src/modules/ai/openai.client.ts` reads `output_text` without explicitly classifying response status, refusal, or incomplete output.
@@ -110,13 +112,11 @@ Relevant files: `src/modules/ai/ai.service.ts`, `src/modules/ai/openai.client.ts
 
 ### AI-12: Reconcile rate-limit policy and implementation
 
-`src/modules/ai/ai.service.ts` uses 5 requests per user and 20 per workspace per hour. `docs/superpowers/specs/2026-08-29-recap-allowances-design.md` specifies 3 new generations per adult user and 8 per workspace. Counters currently include failed provider attempts, and `resetAt` is a fresh hour from the error rather than the actual window expiry.
-
-Choose one documented policy. Distinguish anti-abuse request limits from recap credits, decide how failed attempts and cached reads count, and report accurate reset information.
+Implementation update, 2026-09-05: resolved in the backend working tree. The approved policy is five new provider generations per adult user and 20 per workspace in a rolling hour; recap credits remain separate. A workspace-locked, service-role-only v3 claim RPC returns cache and pending-duplicate results before it counts only pending/completed rows, and returns the oldest blocking slot's actual expiry. Failed rows are excluded after cleanup. Focused migration, repository, service, and subscription tests pass; the complete backend suite, typecheck, build, and OpenAPI validation pass. Guarded local-Supabase boundary/concurrency coverage requires local credentials, and migration/staging verification remain open.
 
 ### AI-13: Apply trusted entitlement freshness consistently
 
-Allowance resolution in `src/modules/ai/ai.service.ts` uses `resolveEffectivePlan` directly, rather than the stricter entitlement freshness checks used elsewhere. Align AI generation with the trusted subscription policy while preserving Free starter recaps and correct Premium renewal periods.
+Implementation update, 2026-09-05: resolved in the backend working tree. AI allowance resolution now uses the same 24-hour trusted-Premium check as billing status. A stale, missing, or expired Premium record falls back to the workspace's Free lifetime allowance; a freshly trusted Premium record uses only reservations matching its current expiry period. Focused AI and subscription tests cover fresh Premium, stale Premium, expiry, and missing-subscription fallback. Local database and staging verification remain open.
 
 Relevant areas: `src/modules/ai/ai.service.ts`, `src/modules/billing`, `src/modules/assistant`, and shared plan-limit/entitlement helpers.
 

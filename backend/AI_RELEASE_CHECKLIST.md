@@ -88,6 +88,8 @@ Files: `src/modules/ai/ai.service.ts`, `src/modules/ai/ai.repository.ts`, `src/m
 
 Acceptance: no saved-success result is paired with a failed request and released credit. A failed transaction leaves a recoverable, internally consistent state.
 
+Implementation update, 2026-09-04: automated migration/repository/service coverage is implemented and passing, covering atomic finalization invocation, token/cache persistence contract, idempotent completed retries, revision-conflict rollback, uncertain finalization handling, and cleanup-failure error preservation. The full backend suite, typecheck, and build pass. The isolated-local-Supabase finalization integration test is intentionally skipped without local credentials; migration execution, database-state proof, staging, manual interruption, and release acceptance checks above remain open.
+
 ## Phase 3: Repair the mobile/server contract
 
 ### 6. Synchronize completion before generation and apply the server revision (AI-02)
@@ -169,12 +171,15 @@ Acceptance: no saved AI task references a participant outside the authorized mee
 
 ### 12. Reconcile limits and entitlement freshness (AI-12, AI-13)
 
-- [ ] Reconcile the current 5/user and 20/workspace hourly limits with the documented 3/user and 8/workspace policy.
-- [ ] Specify how cached reads, failed attempts, and provider outages count toward anti-abuse limits; keep recap charging separate.
-- [ ] Test exact boundaries, concurrency, actual reset time, and role/workspace scoping.
-- [ ] Apply the same trusted subscription freshness policy to status and generation.
-- [ ] Test stale Premium verification, expiry, Free fallback, and Premium period renewal without cross-period credit leakage.
-- [ ] Update the allowance design and implementation documentation to match the chosen policy.
+- [x] Adopt and document the user-selected hourly anti-abuse policy: 5/user and 20/workspace in a rolling hour.
+- [x] Keep recap charging separate: cache hits and pending duplicates create no slot or credit; failed provider/persistence work is released and marked failed, so it does not continue to count.
+- [x] Add focused migration, repository, and service coverage for user/workspace rate-limit results, exact reset propagation, role ordering, and workspace-scoped atomic claims.
+- [x] Apply the trusted subscription freshness policy to both status and generation.
+- [x] Add AI/service coverage for fresh Premium, stale Premium, expiry, and missing-subscription Free fallback; Premium usage remains scoped to the exact current expiry period.
+- [x] Update the allowance design and implementation documentation to the 5/20 policy.
+- [ ] Run the guarded local-Supabase boundary/concurrency integration suite after applying migrations locally, then repeat the boundary, stale-Premium, expiry, and renewal checks in staging.
+
+Implementation verification, 2026-09-05: focused AI-12/AI-13 coverage passed (86 tests; 4 guarded local-Supabase tests skipped without local credentials). The complete backend suite passed (451 tests; 7 guarded local tests skipped), as did typecheck, build, and OpenAPI validation. No migration was applied and no staging/provider test was performed.
 
 Acceptance: the mobile allowance, API enforcement, billing trust policy, and documented limits agree.
 
