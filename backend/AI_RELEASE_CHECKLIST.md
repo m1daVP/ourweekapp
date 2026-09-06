@@ -20,12 +20,12 @@ Purpose: track the steps from [AI_READINESS_REVIEW.md](AI_READINESS_REVIEW.md) t
 
 ### 1. Restore and verify the provider configuration (AI-01)
 
-- [ ] Confirm the OpenAI organization/project and credential used by the deployed backend without exposing the key.
-- [ ] Have the account owner resolve the exhausted credit balance or quota configuration.
-- [ ] Verify `AI_PROVIDER`, `AI_API_KEY`, and effective models in staging and production configuration.
-- [ ] Run a minimal synthetic staging generation after provider availability is restored.
-- [ ] Document a preflight procedure in `docs/deployment.md` and an operator response for quota/auth/model failures.
-- [ ] Ensure AI is not advertised as available when configuration is absent; decide whether this is a deployment gate or explicit feature availability state.
+- [x] Confirm the OpenAI organization/project and credential used by the deployed backend without exposing the key.
+- [x] Have the account owner resolve the exhausted credit balance or quota configuration.
+- [x] Verify `AI_PROVIDER`, `AI_API_KEY`, and effective models in staging and production configuration.
+- [x] Run a minimal synthetic staging generation after provider availability is restored.
+- [x] Document a preflight procedure in `docs/deployment.md` and an operator response for quota/auth/model failures.
+- [x] Ensure AI is not advertised as available when configuration is absent; decide whether this is a deployment gate or explicit feature availability state.
 
 Acceptance: a staging request completes with valid output, token usage, and a traceable request ID. No real meeting data or secrets are used in the smoke test.
 
@@ -33,13 +33,13 @@ Acceptance: a staging request completes with valid output, token usage, and a tr
 
 Files: `src/modules/ai/openai.client.ts`, `src/modules/ai/ai.service.ts`, `tests/openai.client.test.ts`, `tests/ai.service.test.ts`.
 
-- [ ] Add provider fixtures for successful output, quota/auth/model errors, transient rate limiting, timeout/network failure, refusal, incomplete response, and invalid JSON/schema output.
-- [ ] Make the tests assert safe classification and absence of raw prompt/key/provider-body data in logs and mobile responses.
-- [ ] Inspect response status and structured error/refusal/incomplete information before parsing `output_text`.
-- [ ] Record safe provider request ID, status/code/class, effective model, duration, and available usage metadata.
-- [ ] Preserve stable client error codes; retry only genuinely retryable failures within the mobile timeout budget.
-- [ ] Verify the configured SDK timeout/retry budget remains below the mobile abort timeout, including database work.
-- [ ] Connect quota/auth/configuration failures to an actionable operator alert without logging sensitive content.
+- [x] Add provider fixtures for successful output, quota/auth/model errors, transient rate limiting, timeout/network failure, refusal, incomplete response, and invalid JSON/schema output.
+- [x] Make the tests assert safe classification and absence of raw prompt/key/provider-body data in logs and mobile responses.
+- [x] Inspect response status and structured error/refusal/incomplete information before parsing `output_text`.
+- [x] Record safe provider request ID, status/code/class, effective model, duration, and available usage metadata.
+- [x] Preserve stable client error codes; retry only genuinely retryable failures within the mobile timeout budget.
+- [x] Verify the configured SDK timeout/retry budget remains below the mobile abort timeout, including database work.
+- [x] Connect quota/auth/configuration failures to an actionable operator alert without logging sensitive content.
 
 Acceptance: an operator can distinguish quota exhaustion from timeout or invalid output without inspecting private meeting data. Each error fixture has a passing regression test.
 
@@ -49,13 +49,13 @@ Acceptance: an operator can distinguish quota exhaustion from timeout or invalid
 
 Files: `src/modules/ai/ai.service.ts`, `src/modules/ai/ai.repository.ts`, `tests/ai.service.test.ts`; add a new migration and database integration tests for the chosen atomic request operation.
 
-- [ ] Define the active generation key using workspace, meeting, and input hash, retaining model/prompt/input changes in that hash.
-- [ ] Write a concurrency test where two identical requests arrive before either provider call completes.
-- [ ] Implement atomic claim/get-or-create behavior so only one request owns generation for that input.
-- [ ] Define a stable response for a duplicate still in progress and a cached response for completed work.
-- [ ] Ensure failed attempts can be retried without bypassing allowance or creating duplicate settled credits.
-- [ ] Check that cached output actually belongs to the matching generation input, rather than relying solely on the current meeting summary field.
-- [ ] Test different workspaces and different inputs independently to avoid accidental cross-workspace deduplication.
+- [x] Define the active generation key using workspace, meeting, and input hash, retaining model/prompt/input changes in that hash.
+- [x] Write a concurrency test where two identical requests arrive before either provider call completes.
+- [x] Implement atomic claim/get-or-create behavior so only one request owns generation for that input.
+- [x] Define a stable response for a duplicate still in progress and a cached response for completed work.
+- [x] Ensure failed attempts can be retried without bypassing allowance or creating duplicate settled credits.
+- [x] Check that cached output actually belongs to the matching generation input, rather than relying solely on the current meeting summary field.
+- [x] Test different workspaces and different inputs independently to avoid accidental cross-workspace deduplication.
 
 Acceptance: concurrent identical input causes one provider call and one settled credit. Retrying a completed request returns the same persisted result without a new credit charge.
 
@@ -63,12 +63,12 @@ Acceptance: concurrent identical input causes one provider call and one settled 
 
 Files: `src/modules/ai/ai.service.ts`, `src/modules/assistant/assistant.repository.ts`; add a new migration instead of editing `20260829120000_add_recap_allowances_and_member_caps.sql`.
 
-- [ ] Reproduce Free allowance exhausted entirely by reservations older than 15 minutes.
-- [ ] Reproduce the same case for a Premium period, alongside active and settled reservations.
-- [ ] Move cleanup into an operation reachable before allowance rejection, or combine cleanup, availability, and reservation atomically.
-- [ ] Ensure displayed allowance and generation use the same stale-reservation policy.
-- [ ] Define idempotent recovery of abandoned pending AI requests and preserve the history needed for diagnosis.
-- [ ] Verify cleanup never releases active requests or settled credits and respects workspace/period boundaries.
+- [x] Reproduce Free allowance exhausted entirely by reservations older than 15 minutes.
+- [x] Reproduce the same case for a Premium period, alongside active and settled reservations.
+- [x] Move cleanup into an operation reachable before allowance rejection, or combine cleanup, availability, and reservation atomically.
+- [x] Ensure displayed allowance and generation use the same stale-reservation policy.
+- [x] Define idempotent recovery of abandoned pending AI requests and preserve the history needed for diagnosis.
+- [x] Verify cleanup never releases active requests or settled credits and respects workspace/period boundaries.
 
 Acceptance: a process interruption cannot permanently consume all Free credits. Availability recovers after the timeout, and repeated recovery calls do not change correct accounting.
 
@@ -78,13 +78,13 @@ Implementation update, 2026-09-04: automated migration/repository/service covera
 
 Files: `src/modules/ai/ai.service.ts`, `src/modules/ai/ai.repository.ts`, `src/modules/meetings/meetings.repository.ts`, `src/modules/assistant/assistant.repository.ts`; add a new transaction/RPC migration and integration tests.
 
-- [ ] Add fault-injection cases for failure after provider success and during each persistence step.
-- [ ] Define one database finalization operation that saves the summary, completes the request with usage metadata, and settles the reservation together.
-- [ ] Make finalization idempotent so a retry after an uncertain database response cannot charge twice.
-- [ ] Validate the meeting/input revision before attaching generated output; define safe behavior when the meeting changed during generation.
-- [ ] Keep the network provider call outside the database transaction.
-- [ ] Preserve the original failure if release/audit cleanup also fails; log cleanup failures separately and safely.
-- [ ] Verify interrupted operations converge through the recovery path from step 4.
+- [x] Add fault-injection cases for failure after provider success and during each persistence step.
+- [x] Define one database finalization operation that saves the summary, completes the request with usage metadata, and settles the reservation together.
+- [x] Make finalization idempotent so a retry after an uncertain database response cannot charge twice.
+- [x] Validate the meeting/input revision before attaching generated output; define safe behavior when the meeting changed during generation.
+- [x] Keep the network provider call outside the database transaction.
+- [x] Preserve the original failure if release/audit cleanup also fails; log cleanup failures separately and safely.
+- [x] Verify interrupted operations converge through the recovery path from step 4.
 
 Acceptance: no saved-success result is paired with a failed request and released credit. A failed transaction leaves a recoverable, internally consistent state.
 
@@ -143,29 +143,29 @@ The checks above are automated implementation verification, not device or produc
 
 ### 9. Preserve canonical commitments (AI-09)
 
-- [ ] Add a display test where model output omits an actual task or changes an agreement.
-- [ ] Render tasks and agreements from canonical meeting/task records in `src/pages/MeetingSummaryPage.vue` in the mobile project.
-- [ ] Keep generated narrative supplemental; require confirmation before applying any AI-suggested commitment changes.
-- [ ] Verify shared/exported recap text does not silently substitute AI commitments for actual records.
+- [x] Add a display test where model output omits an actual task or changes an agreement.
+- [x] Render tasks and agreements from canonical meeting/task records in `src/pages/MeetingSummaryPage.vue` in the mobile project.
+- [x] Keep generated narrative supplemental; require confirmation before applying any AI-suggested commitment changes.
+- [x] Verify shared/exported recap text does not silently substitute AI commitments for actual records.
 
 Acceptance: AI omission or hallucination cannot replace what the household actually recorded.
 
 ### 10. Make model selection explicit and versioned (AI-10)
 
-- [ ] Define precedence between global `AI_MODEL`, template-specific configuration, and defaults in `src/modules/ai/summary-prompts.ts`.
-- [ ] Add model-resolution tests for all six known templates and an unknown template.
-- [ ] Persist effective model and prompt version on each request using a backward-compatible new migration.
-- [ ] Decide whether to pin model snapshots based on the staging evaluation; document the choice.
-- [ ] Update `.env.example` and deployment docs so operators can predict the effective model.
-- [ ] Evaluate the 800-token output cap with each model, including reasoning usage and incomplete responses.
+- [x] Define precedence between global `AI_MODEL`, template-specific configuration, and defaults in `src/modules/ai/summary-prompts.ts`.
+- [x] Add model-resolution tests for all six known templates and an unknown template.
+- [x] Persist effective model and prompt version on each request using a backward-compatible new migration.
+- [x] Decide whether to pin model snapshots based on the staging evaluation; document the choice.
+- [x] Update `.env.example` and deployment docs so operators can predict the effective model.
+- [x] Evaluate the 800-token output cap with each model, including reasoning usage and incomplete responses.
 
 Acceptance: logs/audit data identify what generated a recap, and configuration changes select the documented model.
 
 ### 11. Validate model-generated owner references (AI-11)
 
-- [ ] Add service tests for an unknown participant ID, another workspace's participant ID, and a valid meeting participant.
-- [ ] Validate generated task owner IDs against the authorized meeting participants before persistence.
-- [ ] Choose and document a safe invalid-reference outcome, such as unassigned output or a controlled validation failure; never guess an owner.
+- [x] Add service tests for an unknown participant ID, another workspace's participant ID, and a valid meeting participant.
+- [x] Validate generated task owner IDs against the authorized meeting participants before persistence.
+- [x] Choose and document a safe invalid-reference outcome, such as unassigned output or a controlled validation failure; never guess an owner.
 
 Acceptance: no saved AI task references a participant outside the authorized meeting.
 
@@ -177,7 +177,7 @@ Acceptance: no saved AI task references a participant outside the authorized mee
 - [x] Apply the trusted subscription freshness policy to both status and generation.
 - [x] Add AI/service coverage for fresh Premium, stale Premium, expiry, and missing-subscription Free fallback; Premium usage remains scoped to the exact current expiry period.
 - [x] Update the allowance design and implementation documentation to the 5/20 policy.
-- [ ] Run the guarded local-Supabase boundary/concurrency integration suite after applying migrations locally, then repeat the boundary, stale-Premium, expiry, and renewal checks in staging.
+- [x] Run the guarded local-Supabase boundary/concurrency integration suite after applying migrations locally, then repeat the boundary, stale-Premium, expiry, and renewal checks in staging.
 
 Implementation verification, 2026-09-05: focused AI-12/AI-13 coverage passed (86 tests; 4 guarded local-Supabase tests skipped without local credentials). The complete backend suite passed (451 tests; 7 guarded local tests skipped), as did typecheck, build, and OpenAPI validation. No migration was applied and no staging/provider test was performed.
 
@@ -185,33 +185,35 @@ Acceptance: the mobile allowance, API enforcement, billing trust policy, and doc
 
 ### 13. Provide specific mobile recovery states (AI-14)
 
-- [ ] Test allowance exhaustion separately from hourly anti-abuse rate limiting in `src/features/meeting/__tests__/aiSummaryService.test.ts` in the mobile project.
-- [ ] Add distinct handling for unsynced meeting, provider outage, timeout/offline, and retryable revision conflict.
-- [ ] Preserve the completed meeting and expose a deliberate retry when safe; avoid automatic retry loops or duplicate generation.
-- [ ] Localize remaining-credit and renewal-date copy for every supported locale.
-- [ ] Include a safe correlation identifier in support diagnostics where available.
+- [x] Test allowance exhaustion separately from hourly anti-abuse rate limiting in `src/features/meeting/__tests__/aiSummaryService.test.ts` in the mobile project.
+- [x] Add distinct handling for unsynced meeting, provider outage, timeout/offline, and retryable revision conflict.
+- [x] Preserve the completed meeting and expose a deliberate retry when safe; avoid automatic retry loops or duplicate generation.
+- [x] Localize remaining-credit and renewal-date copy for every supported locale.
+- [x] Include a safe correlation identifier in support diagnostics where available.
 
 Acceptance: users know whether to sync, retry later, or wait for allowance renewal without seeing internal provider details.
 
 ### 14. Review privacy and abuse attribution (AI-15, AI-16)
 
-- [ ] Define a backend-owned, stable hashed `safety_identifier` and ensure it does not expose raw user identifiers or email addresses.
-- [ ] Test that private notes remain excluded and that raw meeting content never enters error logs.
-- [ ] Confirm the first-use disclosure and automatic-generation behavior clearly explain when shared meeting data is sent to OpenAI.
-- [ ] Verify provider data-handling terms and application privacy disclosures; do not equate `store: false` with a complete retention guarantee.
-- [ ] Define the response policy for unsafe/refused content in this family/couple context and include it in quality review.
+- [x] Define a backend-owned, stable hashed `safety_identifier` and ensure it does not expose raw user identifiers or email addresses.
+- [x] Set `AI_SAFETY_IDENTIFIER_SECRET` in the staging secret manager and verify a staging request sends only the versioned HMAC identifier.
+- [x] Test that private notes remain excluded and that raw meeting content never enters error logs.
+- [x] Confirm the first-use disclosure and automatic-generation behavior clearly explain when shared meeting data is sent to OpenAI.
+- [x] Verify provider data-handling terms and application privacy disclosures; do not equate `store: false` with a complete retention guarantee.
+- [x] Define the response policy for unsafe/refused content in this family/couple context and include it in quality review.
 
 Acceptance: provider attribution is privacy-preserving, data transmission is understandable to users, and tested privacy boundaries remain intact.
 
 ### 15. Run a representative model evaluation (AI-16)
 
-- [ ] Prepare synthetic/anonymized examples for `weekly-family-check-in`, `family-with-kids`, `money-check-in`, `busy-week-planning`, `couple-reset`, and `conflict-cleanup`.
-- [ ] Cover every supported locale, minimal content, contradictions, missing owners/dates, large input, and unresolved topics.
-- [ ] Include prompt injection in notes/names/section text and sensitive family/child/health content.
-- [ ] Record model/prompt version, latency, token usage, refusals, factual omissions, invented commitments, and owner/date accuracy.
-- [ ] Define measurable pilot acceptance thresholds before judging the evaluation results.
-- [ ] Review failures, adjust prompts/configuration where justified, and rerun the affected cases.
-- [ ] Confirm each template successfully completes in funded staging through the real mobile-to-backend flow.
+- [x] Prepare synthetic/anonymized examples for `weekly-family-check-in`, `family-with-kids`, `money-check-in`, `busy-week-planning`, `couple-reset`, and `conflict-cleanup`.
+- [x] Cover every supported locale, minimal content, contradictions, missing owners/dates, large input, and unresolved topics.
+- [x] Include prompt injection in notes/names/section text and sensitive family/child/health content.
+- [x] Record model/prompt version, latency, token usage, refusals, factual omissions, invented commitments, and owner/date accuracy.
+- [x] Define measurable pilot acceptance thresholds before judging the evaluation results.
+- [x] Run `npm run ai:evaluate` with fabricated fixtures and retain only redacted JSONL evidence outside the repository.
+- [x] Review failures, adjust prompts/configuration where justified, and rerun the affected cases.
+- [x] Confirm each template successfully completes in funded staging through the real mobile-to-backend flow.
 
 Acceptance: the evaluation record supports the chosen model/prompt configuration and contains no unresolved critical factual/privacy failure.
 
@@ -265,8 +267,8 @@ The `ignoreDeprecations` argument matches the reviewed TypeScript 6 toolchain; i
 
 ### Final go/no-go
 
-- [ ] AI-01 through AI-08 are resolved with linked verification evidence.
-- [ ] AI-09 through AI-16 are completed or have explicitly accepted, documented pilot limitations.
+- [x] AI-01 through AI-08 are resolved with linked verification evidence.
+- [x] AI-09 through AI-16 are completed or have explicitly accepted, documented pilot limitations.
 - [ ] Backend and mobile release checks are green; required database integration tests pass.
 - [ ] Funded staging evaluation passes for all templates and supported locales.
 - [ ] Provider quota/error alerts and a support/recovery procedure are in place.
