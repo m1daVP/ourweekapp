@@ -6,7 +6,10 @@ import { i18n, translate } from '@/features/localization/i18n';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { listMeetings } from '@/shared/api/meetingsApi';
-import { syncCompletedMeetingForAi } from '@/shared/services/syncService';
+import {
+  AiMeetingSyncRequiredError,
+  syncCompletedMeetingForAi,
+} from '@/shared/services/syncService';
 import { cloneMeeting } from './meetingSyncSnapshot';
 
 // Backend's OpenAI call worst-case is ~30-32s (15s timeout x 2 attempts +
@@ -35,6 +38,25 @@ export interface AiQuotaInfo {
   scope: AiQuotaScope;
   limit: number;
   resetAt: string;
+}
+
+export type AiRecapRecoveryKind =
+  | 'allowanceExhausted'
+  | 'hourlyLimit'
+  | 'syncRequired'
+  | 'offline'
+  | 'revisionConflict'
+  | 'providerUnavailable'
+  | 'configurationUnavailable'
+  | 'timeout'
+  | 'unknown';
+
+export interface AiRecapRecovery {
+  kind: AiRecapRecoveryKind;
+  messageKey: string;
+  messageParams: Record<string, string | number>;
+  retryable: boolean;
+  requestId?: string;
 }
 
 function isAiQuotaScope(value: unknown): value is AiQuotaScope {
@@ -68,10 +90,7 @@ export function parseAiQuotaError(error: unknown): AiQuotaInfo | null {
 }
 
 export function formatAiQuotaMessage(info: AiQuotaInfo): string {
-  const resetTime = new Intl.DateTimeFormat(i18n.global.locale.value, {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(info.resetAt));
+  const resetTime = formatAiQuotaResetTime(info.resetAt);
 
   const key =
     info.scope === 'user'
@@ -84,6 +103,116 @@ export function formatAiQuotaMessage(info: AiQuotaInfo): string {
 export function getAiQuotaMessage(error: unknown): string | null {
   const info = parseAiQuotaError(error);
   return info ? formatAiQuotaMessage(info) : null;
+}
+
+function createRecovery(
+  kind: AiRecapRecoveryKind,
+  messageKey: string,
+  retryable: boolean,
+  error?: unknown,
+  messageParams: Record<string, string | number> = {}
+): AiRecapRecovery {
+  return {
+    kind,
+    messageKey,
+    messageParams,
+    retryable,
+    ...(error instanceof ApiClientError && error.requestId
+      ? { requestId: error.requestId }
+      : {}),
+  };
+}
+
+function formatAiQuotaResetTime(resetAt: string) {
+  return new Intl.DateTimeFormat(i18n.global.locale.value, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(resetAt));
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+function isOfflineOrNetworkError(error: unknown): boolean {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return true;
+  }
+
+  return error instanceof TypeError;
+}
+
+export function getAiRecapRecovery(error: unknown): AiRecapRecovery {
+  if (isRecapAllowanceExhausted(error)) {
+    return createRecovery(
+      'allowanceExhausted',
+      'ai.recap.recovery.allowanceExhausted',
+      false,
+      error
+    );
+  }
+
+  const quota = parseAiQuotaError(error);
+  if (quota) {
+    return createRecovery(
+      'hourlyLimit',
+      quota.scope === 'user'
+        ? 'ai.quotaUserLimitReached'
+        : 'ai.quotaWorkspaceLimitReached',
+      false,
+      error,
+      { count: quota.limit, resetTime: formatAiQuotaResetTime(quota.resetAt) }
+    );
+  }
+
+  if (error instanceof AiMeetingSyncRequiredError) {
+    return createRecovery(
+      error.reason === 'offline' ? 'offline' : 'syncRequired',
+      error.reason === 'offline'
+        ? 'ai.recap.recovery.offline'
+        : 'ai.recap.recovery.syncRequired',
+      true
+    );
+  }
+
+  if (error instanceof ApiClientError) {
+    if (error.code === 'meeting_update_conflict') {
+      return createRecovery(
+        'revisionConflict',
+        'ai.recap.recovery.revisionConflict',
+        true,
+        error
+      );
+    }
+
+    if (error.code === 'ai_provider_not_configured') {
+      return createRecovery(
+        'configurationUnavailable',
+        'ai.recap.recovery.configurationUnavailable',
+        false,
+        error
+      );
+    }
+
+    if (error.status === 503) {
+      return createRecovery(
+        'providerUnavailable',
+        'ai.recap.recovery.providerUnavailable',
+        true,
+        error
+      );
+    }
+  }
+
+  if (isAbortError(error)) {
+    return createRecovery('timeout', 'ai.recap.recovery.timeout', true);
+  }
+
+  if (isOfflineOrNetworkError(error)) {
+    return createRecovery('offline', 'ai.recap.recovery.offline', true);
+  }
+
+  return createRecovery('unknown', 'ai.recap.recovery.unknown', false);
 }
 
 export function getAiSummaryPromptContract() {

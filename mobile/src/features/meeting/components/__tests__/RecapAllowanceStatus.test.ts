@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import RecapAllowanceStatus from '../RecapAllowanceStatus.vue';
 import { allowance, setupRecapTest } from '../../__tests__/recapFixtures';
 
@@ -79,6 +80,28 @@ describe('recap availability recovery', () => {
       expect(wrapper.text()).toContain(
         remaining ? 'Recaps available: 2' : 'No recaps remain for this period.'
       );
+    }
+  );
+  it.each([
+    ['uk', 'Доступно підсумків', 'Підсумків на цей період більше немає'],
+    ['es', 'Resúmenes disponibles', 'No quedan resúmenes para este período'],
+  ] as const)(
+    'localizes Premium remaining-credit and renewal copy in %s',
+    async (locale, remainingText, exhaustedText) => {
+      context.i18n.global.locale.value = locale;
+      context.subscription.assistantRecap = {
+        ...allowance(2),
+        periodEndsAt: '2026-10-04T10:00:00.000Z',
+      };
+      render();
+      expect(wrapper.text()).toContain(remainingText);
+
+      context.subscription.assistantRecap = {
+        ...allowance(0),
+        periodEndsAt: '2026-10-04T10:00:00.000Z',
+      };
+      await nextTick();
+      expect(wrapper.text()).toContain(exhaustedText);
     }
   );
   it('does not throw or invent a Free period for an invalid renewal date', () => {

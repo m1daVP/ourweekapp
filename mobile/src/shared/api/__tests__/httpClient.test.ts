@@ -15,10 +15,14 @@ const enabledConfig: AppConfig = {
   isRevenueCatEnabled: false,
 };
 
-function jsonResponse(body: unknown, status = 200) {
+function jsonResponse(
+  body: unknown,
+  status = 200,
+  headers: Record<string, string> = {}
+) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...headers },
   });
 }
 
@@ -239,6 +243,28 @@ describe('apiRequest', () => {
       status: 422,
       code: 'validation_failed',
       details: { email: ['Required'] },
+      requestId: undefined,
+    });
+  });
+
+  it('keeps the safe backend request ID on a structured HTTP error', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(
+        {
+          message: 'Please try again.',
+          code: 'ai_summary_generation_failed',
+        },
+        503,
+        { 'x-request-id': 'req_mobile_support_123' }
+      )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { apiRequest } = await loadHttpClient();
+
+    await expect(apiRequest('/ai/meeting-summary')).rejects.toMatchObject({
+      status: 503,
+      code: 'ai_summary_generation_failed',
+      requestId: 'req_mobile_support_123',
     });
   });
 

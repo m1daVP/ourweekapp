@@ -7,10 +7,9 @@ import { useParticipantsStore } from '@/app/stores/participants';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
   generateMeetingSummary,
-  AiRecapUnavailableError,
-  isRecapAllowanceExhausted,
-  getAiQuotaMessage,
+  getAiRecapRecovery,
   formatAiQuotaMessage,
+  type AiRecapRecovery,
   type AiQuotaInfo,
   type AiQuotaScope,
 } from '@/features/meeting/aiSummaryService';
@@ -23,6 +22,7 @@ import type {
 import type { Participant } from '@/features/participants/types';
 import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
+import AiRecapRecoveryPanel from '@/features/meeting/components/AiRecapRecoveryPanel.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 interface SummaryParticipant {
@@ -61,7 +61,7 @@ const participantsStore = useParticipantsStore();
 const subscriptionStore = useSubscriptionStore();
 const shareError = ref('');
 const isSharing = ref(false);
-const aiSummaryError = ref('');
+const aiSummaryRecovery = ref<AiRecapRecovery | null>(null);
 const isGeneratingSummary = ref(false);
 const { showToast } = useToast();
 
@@ -121,6 +121,7 @@ const canGenerateAiSummary = computed(() =>
     accessibleMeeting.value.status === 'completed' &&
     subscriptionStore.canGenerateAssistantRecap &&
     !accessibleMeeting.value.aiSummary &&
+    !aiSummaryRecovery.value &&
     !isGeneratingSummary.value
   )
 );
@@ -147,11 +148,9 @@ const aiSummaryRouteQuotaInfo = computed<AiQuotaInfo | null>(() => {
 
 const aiSummaryErrorMessage = computed(
   () =>
-    aiSummaryError.value ||
     (aiSummaryRouteQuotaInfo.value
       ? formatAiQuotaMessage(aiSummaryRouteQuotaInfo.value)
-      : '') ||
-    meetingSummaryText('aiFailed')
+      : '') || meetingSummaryText('aiFailed')
 );
 
 const aiInsightState = computed<AiInsightState>(() => {
@@ -170,7 +169,7 @@ const aiInsightState = computed<AiInsightState>(() => {
     return 'loading';
   }
 
-  if (aiSummaryError.value || aiSummaryRouteStatus.value === 'failed') {
+  if (aiSummaryRecovery.value || aiSummaryRouteStatus.value === 'failed') {
     return 'error';
   }
 
@@ -388,23 +387,21 @@ async function handleShareSummary() {
 async function handleGenerateSummary() {
   if (
     !accessibleMeeting.value ||
-    !canGenerateAiSummary.value ||
+    accessibleMeeting.value.status !== 'completed' ||
+    !subscriptionStore.canGenerateAssistantRecap ||
+    accessibleMeeting.value.aiSummary ||
     isGeneratingSummary.value
   ) {
     return;
   }
 
-  aiSummaryError.value = '';
+  aiSummaryRecovery.value = null;
   isGeneratingSummary.value = true;
 
   try {
     await generateMeetingSummary(accessibleMeeting.value);
   } catch (error) {
-    aiSummaryError.value =
-      error instanceof AiRecapUnavailableError ||
-      isRecapAllowanceExhausted(error)
-        ? ''
-        : (getAiQuotaMessage(error) ?? meetingSummaryText('aiFailed'));
+    aiSummaryRecovery.value = getAiRecapRecovery(error);
   } finally {
     isGeneratingSummary.value = false;
   }
@@ -480,6 +477,11 @@ function goBack() {
         <p v-else-if="aiInsightState === 'loading'">
           {{ meetingSummaryText('aiGenerating') }}
         </p>
+        <AiRecapRecoveryPanel
+          v-else-if="aiInsightState === 'error' && aiSummaryRecovery"
+          :recovery="aiSummaryRecovery"
+          @retry="handleGenerateSummary"
+        />
         <p v-else-if="aiInsightState === 'error'">
           {{ aiSummaryErrorMessage }}
         </p>

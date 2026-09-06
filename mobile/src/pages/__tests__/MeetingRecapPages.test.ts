@@ -6,6 +6,7 @@ import { createLegacyFeatureAccessMap } from '@/features/access/legacyFeatureAcc
 import MeetingSummaryPage from '../MeetingSummaryPage.vue';
 import MeetingDetailsPage from '../MeetingDetailsPage.vue';
 import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
+import { ApiClientError } from '@/shared/api/httpClient';
 import {
   allowance,
   savedRecap,
@@ -183,6 +184,67 @@ describe.each([
       expect(
         wrapper.get('.ai-summary-panel').element.closest('[inert]')
       ).toBeNull();
+  });
+
+  it('shows one safe manual retry after a temporary provider failure', async () => {
+    context.meetings.meetings[0]!.aiSummary = undefined;
+    vi.mocked(generateMeetingSummary).mockRejectedValueOnce(
+      new ApiClientError('raw provider body must stay hidden', {
+        status: 503,
+        code: 'ai_summary_generation_failed',
+        requestId: 'req_mobile_support_123',
+      })
+    );
+    render();
+
+    await wrapper
+      .get('[data-testid="generate-meeting-recap"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'Recaps are temporarily unavailable'
+    );
+    expect(wrapper.text()).toContain(
+      'Support reference: req_mobile_support_123'
+    );
+    expect(wrapper.text()).not.toContain('raw provider body must stay hidden');
+    expect(context.meetings.meetings[0]!.status).toBe('completed');
+
+    await wrapper.get('[data-testid="retry-meeting-recap"]').trigger('click');
+    await flushPromises();
+
+    expect(generateMeetingSummary).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a distinct hourly limit without a retry control', async () => {
+    context.meetings.meetings[0]!.aiSummary = undefined;
+    vi.mocked(generateMeetingSummary).mockRejectedValueOnce(
+      new ApiClientError('rate limit details', {
+        status: 429,
+        code: 'ai_summary_rate_limited',
+        details: {
+          userLimit: 5,
+          workspaceLimit: 20,
+          scope: 'user',
+          resetAt: '2026-07-15T15:45:00.000Z',
+        },
+      })
+    );
+    render();
+
+    await wrapper
+      .get('[data-testid="generate-meeting-recap"]')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('5');
+    expect(wrapper.find('[data-testid="retry-meeting-recap"]').exists()).toBe(
+      false
+    );
+    expect(
+      wrapper.find('[data-testid="generate-meeting-recap"]').exists()
+    ).toBe(false);
   });
 
   it('does not expose content or generate for a missing meeting', async () => {

@@ -4,8 +4,10 @@ import {
   getAiQuotaMessage,
   parseAiQuotaError,
   isRecapAllowanceExhausted,
+  getAiRecapRecovery,
 } from '@/features/meeting/aiSummaryService';
 import { ApiClientError } from '@/shared/api/httpClient';
+import { AiMeetingSyncRequiredError } from '@/shared/services/syncService';
 
 function quotaError(details: Record<string, unknown>) {
   return new ApiClientError(
@@ -124,5 +126,107 @@ describe('formatAiQuotaMessage / getAiQuotaMessage', () => {
 
   it('getAiQuotaMessage returns null for a non-quota error', () => {
     expect(getAiQuotaMessage(new Error('boom'))).toBeNull();
+  });
+});
+
+describe('getAiRecapRecovery', () => {
+  it('keeps allowance exhaustion separate from hourly anti-abuse limits', () => {
+    const allowance = getAiRecapRecovery(
+      new ApiClientError('No recaps remain.', {
+        status: 429,
+        code: 'recap_allowance_exhausted',
+      })
+    );
+    const quota = getAiRecapRecovery(
+      quotaError({
+        userLimit: 5,
+        workspaceLimit: 20,
+        scope: 'user',
+        resetAt: '2026-07-15T15:45:00.000Z',
+      })
+    );
+
+    expect(allowance).toMatchObject({
+      kind: 'allowanceExhausted',
+      retryable: false,
+    });
+    expect(quota).toMatchObject({
+      kind: 'hourlyLimit',
+      messageKey: 'ai.quotaUserLimitReached',
+      retryable: false,
+      messageParams: expect.objectContaining({ count: 5 }),
+    });
+  });
+
+  it.each([
+    ['conflict', 'syncRequired', 'ai.recap.recovery.syncRequired'],
+    ['missing', 'syncRequired', 'ai.recap.recovery.syncRequired'],
+    ['changed', 'syncRequired', 'ai.recap.recovery.syncRequired'],
+    ['failed', 'syncRequired', 'ai.recap.recovery.syncRequired'],
+    ['offline', 'offline', 'ai.recap.recovery.offline'],
+  ] as const)(
+    'classifies completion sync %s safely',
+    (reason, kind, messageKey) => {
+      expect(
+        getAiRecapRecovery(new AiMeetingSyncRequiredError(reason))
+      ).toMatchObject({ kind, messageKey, retryable: true });
+    }
+  );
+
+  it('classifies a retryable revision conflict without exposing its raw text', () => {
+    const recovery = getAiRecapRecovery(
+      new ApiClientError('raw meeting conflict details', {
+        status: 409,
+        code: 'meeting_update_conflict',
+        requestId: 'req_mobile_support_123',
+      })
+    );
+
+    expect(recovery).toMatchObject({
+      kind: 'revisionConflict',
+      messageKey: 'ai.recap.recovery.revisionConflict',
+      retryable: true,
+      requestId: 'req_mobile_support_123',
+    });
+    expect(JSON.stringify(recovery)).not.toContain(
+      'raw meeting conflict details'
+    );
+  });
+
+  it('classifies temporary provider, configuration, timeout, network, and unknown failures', () => {
+    expect(
+      getAiRecapRecovery(
+        new ApiClientError('raw provider error', {
+          status: 503,
+          code: 'ai_summary_generation_failed',
+          requestId: 'req_mobile_support_123',
+        })
+      )
+    ).toMatchObject({
+      kind: 'providerUnavailable',
+      retryable: true,
+      requestId: 'req_mobile_support_123',
+    });
+    expect(
+      getAiRecapRecovery(
+        new ApiClientError('not configured', {
+          status: 503,
+          code: 'ai_provider_not_configured',
+        })
+      )
+    ).toMatchObject({ kind: 'configurationUnavailable', retryable: false });
+    expect(
+      getAiRecapRecovery(
+        Object.assign(new Error('timed out'), { name: 'AbortError' })
+      )
+    ).toMatchObject({ kind: 'timeout', retryable: true });
+    expect(getAiRecapRecovery(new TypeError('Failed to fetch'))).toMatchObject({
+      kind: 'offline',
+      retryable: true,
+    });
+    expect(getAiRecapRecovery(new Error('raw unknown failure'))).toMatchObject({
+      kind: 'unknown',
+      retryable: false,
+    });
   });
 });

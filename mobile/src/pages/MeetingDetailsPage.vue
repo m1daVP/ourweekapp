@@ -6,6 +6,7 @@ import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
+import AiRecapRecoveryPanel from '@/features/meeting/components/AiRecapRecoveryPanel.vue';
 import {
   copyExportToClipboard,
   createMeetingExportFile,
@@ -16,9 +17,8 @@ import {
 } from '@/features/export/services/exportService';
 import {
   generateMeetingSummary,
-  AiRecapUnavailableError,
-  isRecapAllowanceExhausted,
-  getAiQuotaMessage,
+  getAiRecapRecovery,
+  type AiRecapRecovery,
 } from '@/features/meeting/aiSummaryService';
 import {
   getMeetingSectionPrompt,
@@ -43,7 +43,7 @@ const { canUseFeature } = useFeatureAccess();
 
 const meetingId = computed(() => String(route.params.meetingId ?? ''));
 const isGeneratingSummary = ref(false);
-const aiSummaryError = ref('');
+const aiSummaryRecovery = ref<AiRecapRecovery | null>(null);
 const isExportModalOpen = ref(false);
 const isExporting = ref(false);
 const exportFormat = ref<MeetingExportFormat>('text');
@@ -62,7 +62,8 @@ const canGenerateAiSummary = computed(() =>
     meeting.value &&
     meeting.value.status === 'completed' &&
     !aiSummary.value &&
-    subscriptionStore.canGenerateAssistantRecap
+    subscriptionStore.canGenerateAssistantRecap &&
+    !aiSummaryRecovery.value
   )
 );
 
@@ -294,22 +295,20 @@ async function generateSummary() {
   if (
     !meeting.value ||
     isGeneratingSummary.value ||
-    !canGenerateAiSummary.value
+    meeting.value.status !== 'completed' ||
+    Boolean(aiSummary.value) ||
+    !subscriptionStore.canGenerateAssistantRecap
   ) {
     return;
   }
 
-  aiSummaryError.value = '';
+  aiSummaryRecovery.value = null;
   isGeneratingSummary.value = true;
 
   try {
     await generateMeetingSummary(meeting.value);
   } catch (error) {
-    aiSummaryError.value =
-      error instanceof AiRecapUnavailableError ||
-      isRecapAllowanceExhausted(error)
-        ? ''
-        : (getAiQuotaMessage(error) ?? t('meeting.generateFailed'));
+    aiSummaryRecovery.value = getAiRecapRecovery(error);
   } finally {
     isGeneratingSummary.value = false;
   }
@@ -388,9 +387,11 @@ async function generateSummary() {
         </div>
 
         <RecapAllowanceStatus />
-        <p v-if="aiSummaryError" class="meeting-error">
-          {{ aiSummaryError }}
-        </p>
+        <AiRecapRecoveryPanel
+          v-if="aiSummaryRecovery"
+          :recovery="aiSummaryRecovery"
+          @retry="generateSummary"
+        />
 
         <template v-if="aiSummary">
           <p class="ai-summary-panel__summary">

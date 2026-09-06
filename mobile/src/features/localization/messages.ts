@@ -1412,6 +1412,25 @@ export const messages = {
         premiumExhausted:
           'No recaps remain for this period. Allowance renews on {date}.',
         premiumNoDate: 'Recaps available: {count} of {limit}.',
+        retry: 'Retry recap',
+        supportReference: 'Support reference: {requestId}',
+        recovery: {
+          allowanceExhausted:
+            'No recaps are available right now. Saved recaps are still available.',
+          syncRequired:
+            'Sync this completed meeting, then try the recap again.',
+          offline: 'Reconnect to the internet, then try the recap again.',
+          revisionConflict:
+            'This meeting changed elsewhere. Sync it, then try the recap again.',
+          providerUnavailable:
+            'Recaps are temporarily unavailable. Please try again later.',
+          configurationUnavailable:
+            'Recaps are unavailable right now. Please try again later.',
+          timeout:
+            'The recap took too long. Please try again when your connection is stable.',
+          unknown:
+            'The recap could not be prepared right now. Please try again later.',
+        },
       },
       promptContract: [
         'Write a short, neutral summary.',
@@ -2938,6 +2957,26 @@ export const messages = {
         premiumExhausted:
           'Підсумків на цей період більше немає. Ліміт поновиться {date}.',
         premiumNoDate: 'Доступно підсумків: {count} із {limit}.',
+        retry: 'Спробувати підсумок ще раз',
+        supportReference: 'Код для підтримки: {requestId}',
+        recovery: {
+          allowanceExhausted:
+            'Зараз доступних підсумків немає. Збережені підсумки залишаються доступними.',
+          syncRequired:
+            'Синхронізуйте завершену зустріч, а потім спробуйте створити підсумок ще раз.',
+          offline:
+            'Відновіть підключення до інтернету, а потім спробуйте створити підсумок ще раз.',
+          revisionConflict:
+            'Цю зустріч змінили в іншому місці. Синхронізуйте її, а потім спробуйте ще раз.',
+          providerUnavailable:
+            'Підсумки тимчасово недоступні. Будь ласка, спробуйте пізніше.',
+          configurationUnavailable:
+            'Підсумки зараз недоступні. Будь ласка, спробуйте пізніше.',
+          timeout:
+            'Створення підсумку тривало надто довго. Спробуйте ще раз за стабільного підключення.',
+          unknown:
+            'Зараз не вдалося створити підсумок. Будь ласка, спробуйте пізніше.',
+        },
       },
       promptContract: [
         'Напишіть короткий нейтральний підсумок.',
@@ -4481,6 +4520,26 @@ export const messages = {
         premiumExhausted:
           'No quedan resúmenes para este período. La disponibilidad se renueva el {date}.',
         premiumNoDate: 'Resúmenes disponibles: {count} de {limit}.',
+        retry: 'Reintentar resumen',
+        supportReference: 'Referencia de soporte: {requestId}',
+        recovery: {
+          allowanceExhausted:
+            'No hay resúmenes disponibles ahora. Los resúmenes guardados siguen disponibles.',
+          syncRequired:
+            'Sincroniza esta reunión terminada y vuelve a intentar el resumen.',
+          offline:
+            'Vuelve a conectarte a internet y luego intenta el resumen de nuevo.',
+          revisionConflict:
+            'Esta reunión cambió en otro lugar. Sincronízala y vuelve a intentarlo.',
+          providerUnavailable:
+            'Los resúmenes no están disponibles temporalmente. Vuelve a intentarlo más tarde.',
+          configurationUnavailable:
+            'Los resúmenes no están disponibles ahora. Vuelve a intentarlo más tarde.',
+          timeout:
+            'El resumen tardó demasiado. Vuelve a intentarlo con una conexión estable.',
+          unknown:
+            'No se pudo preparar el resumen ahora. Vuelve a intentarlo más tarde.',
+        },
       },
       promptContract: [
         'Escribe un resumen breve y neutral.',

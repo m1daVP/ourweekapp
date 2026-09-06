@@ -26,6 +26,7 @@ interface ApiClientErrorOptions {
   status?: number;
   code?: string;
   details?: unknown;
+  requestId?: string;
 }
 
 interface ApiAuthHandlers {
@@ -40,6 +41,7 @@ export class ApiClientError extends Error {
   status?: number;
   code?: string;
   details?: unknown;
+  requestId?: string;
 
   constructor(message: string, options: ApiClientErrorOptions = {}) {
     super(message);
@@ -47,6 +49,7 @@ export class ApiClientError extends Error {
     this.status = options.status;
     this.code = options.code;
     this.details = options.details;
+    this.requestId = options.requestId;
   }
 }
 
@@ -158,6 +161,7 @@ async function sendApiRequest<TResponse>(
         status: response.status,
         code: errorBody?.code,
         details: errorBody?.details,
+        requestId: response.headers.get('x-request-id') ?? undefined,
       }
     );
   }
