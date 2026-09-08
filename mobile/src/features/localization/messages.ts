@@ -105,6 +105,21 @@ export const messages = {
       manageUnavailable: 'No active store subscription is available to manage.',
       viewPremium: 'View Premium',
       restorePurchases: 'Restore purchases',
+      signInMethods: 'Sign-in methods',
+      signInMethodsHelp: 'Choose how you can securely access this account.',
+      passwordSignIn: 'Password',
+      googleSignIn: 'Google',
+      signInAvailable: 'Available',
+      signInConnected: 'Connected',
+      signInMethodsLoading: 'Checking available sign-in methods...',
+      linkGoogle: 'Link Google account',
+      linkingGoogle: 'Linking Google...',
+      googleLinked: 'Google sign-in is now connected.',
+      googleLinkEmailMismatch:
+        'Choose the Google account with the same email as this OurWeek account.',
+      googleLinkConflict: 'This Google account is linked to another account.',
+      googleAlreadyLinked: 'A different Google account is already linked.',
+      googleLinkFailed: 'Could not link Google right now. Please try again.',
       profile: 'Profile',
       profileHelp: 'Display name changes are saved to this account and device.',
       saveAccount: 'Save account',
@@ -152,6 +167,8 @@ export const messages = {
       signIn: 'Sign in',
       continueWithGoogle: 'Continue with Google',
       continuingWithGoogle: 'Continuing with Google...',
+      accountLinkRequired:
+        'Sign in with your password, then link Google from Account settings.',
       newHere: 'New to OurWeek?',
       createAccount: 'Create account',
       createAccountIntro:
@@ -1415,8 +1432,7 @@ export const messages = {
         retry: 'Retry recap',
         disclosure: {
           title: 'Generate an AI recap?',
-          body:
-            'To create a recap, OurWeek sends shared meeting notes, tasks, agreements, and participant names to OpenAI. Private notes are excluded. AI recaps can be inaccurate, so please review them.',
+          body: 'To create a recap, OurWeek sends shared meeting notes, tasks, agreements, and participant names to OpenAI. Private notes are excluded. AI recaps can be inaccurate, so please review them.',
           generate: 'Generate recap',
           notNow: 'Not now',
         },
@@ -1623,6 +1639,21 @@ export const messages = {
       manageUnavailable: 'Немає активної підписки магазину для керування.',
       viewPremium: 'Переглянути Premium',
       restorePurchases: 'Відновити покупки',
+      signInMethods: 'Способи входу',
+      signInMethodsHelp: 'Оберіть, як безпечно входити до цього акаунта.',
+      passwordSignIn: 'Пароль',
+      googleSignIn: 'Google',
+      signInAvailable: 'Доступний',
+      signInConnected: 'Підключено',
+      signInMethodsLoading: 'Перевіряємо доступні способи входу...',
+      linkGoogle: 'Підключити акаунт Google',
+      linkingGoogle: 'Підключення Google...',
+      googleLinked: 'Вхід через Google підключено.',
+      googleLinkEmailMismatch:
+        'Оберіть акаунт Google із тією самою поштою, що й акаунт OurWeek.',
+      googleLinkConflict: 'Цей акаунт Google підключено до іншого акаунта.',
+      googleAlreadyLinked: 'Уже підключено інший акаунт Google.',
+      googleLinkFailed: 'Не вдалося підключити Google. Спробуйте ще раз.',
       profile: 'Профіль',
       profileHelp: 'Зміни імені зберігаються для цього акаунта і пристрою.',
       saveAccount: 'Зберегти акаунт',
@@ -1671,6 +1702,8 @@ export const messages = {
       signIn: 'Увійти',
       continueWithGoogle: 'Continue with Google',
       continuingWithGoogle: 'Continuing with Google...',
+      accountLinkRequired:
+        'Увійдіть за допомогою пароля, а потім підключіть Google у налаштуваннях акаунта.',
       newHere: 'Вперше у OurWeek?',
       createAccount: 'Створити акаунт',
       createAccountIntro:
@@ -2967,8 +3000,7 @@ export const messages = {
         retry: 'Спробувати підсумок ще раз',
         disclosure: {
           title: 'Створити ШІ-підсумок?',
-          body:
-            'Щоб створити підсумок, OurWeek надсилає спільні нотатки зустрічі, завдання, домовленості та імена учасників до OpenAI. Приватні нотатки не передаються. ШІ-підсумки можуть бути неточними, тому перегляньте їх.',
+          body: 'Щоб створити підсумок, OurWeek надсилає спільні нотатки зустрічі, завдання, домовленості та імена учасників до OpenAI. Приватні нотатки не передаються. ШІ-підсумки можуть бути неточними, тому перегляньте їх.',
           generate: 'Створити підсумок',
           notNow: 'Не зараз',
         },
@@ -3178,6 +3210,21 @@ export const messages = {
         'No hay una suscripción activa de la tienda para gestionar.',
       viewPremium: 'Ver Premium',
       restorePurchases: 'Restaurar compras',
+      signInMethods: 'Métodos de inicio de sesión',
+      signInMethodsHelp: 'Elige cómo acceder de forma segura a esta cuenta.',
+      passwordSignIn: 'Contraseña',
+      googleSignIn: 'Google',
+      signInAvailable: 'Disponible',
+      signInConnected: 'Conectado',
+      signInMethodsLoading: 'Comprobando los métodos de acceso...',
+      linkGoogle: 'Vincular cuenta de Google',
+      linkingGoogle: 'Vinculando Google...',
+      googleLinked: 'El acceso con Google está conectado.',
+      googleLinkEmailMismatch:
+        'Elige la cuenta de Google con el mismo correo que esta cuenta de OurWeek.',
+      googleLinkConflict: 'Esta cuenta de Google está vinculada a otra cuenta.',
+      googleAlreadyLinked: 'Ya hay otra cuenta de Google vinculada.',
+      googleLinkFailed: 'No se pudo vincular Google. Inténtalo de nuevo.',
       profile: 'Perfil',
       profileHelp:
         'Los cambios del nombre visible se guardan en esta cuenta y este dispositivo.',
@@ -3226,6 +3273,8 @@ export const messages = {
       signIn: 'Iniciar sesión',
       continueWithGoogle: 'Continuar con Google',
       continuingWithGoogle: 'Continuando con Google...',
+      accountLinkRequired:
+        'Inicia sesión con tu contraseña y vincula Google desde los ajustes de la cuenta.',
       newHere: '¿Nuevo en OurWeek?',
       createAccount: 'Crear cuenta',
       createAccountIntro:
@@ -4537,8 +4586,7 @@ export const messages = {
         retry: 'Reintentar resumen',
         disclosure: {
           title: '¿Generar un resumen con IA?',
-          body:
-            'Para crear un resumen, OurWeek envía las notas compartidas de la reunión, las tareas, los acuerdos y los nombres de participantes a OpenAI. Las notas privadas se excluyen. Los resúmenes con IA pueden ser inexactos, así que revísalos.',
+          body: 'Para crear un resumen, OurWeek envía las notas compartidas de la reunión, las tareas, los acuerdos y los nombres de participantes a OpenAI. Las notas privadas se excluyen. Los resúmenes con IA pueden ser inexactos, así que revísalos.',
           generate: 'Generar resumen',
           notNow: 'Ahora no',
         },

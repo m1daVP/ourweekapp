@@ -7,10 +7,13 @@ const state = vi.hoisted(() => ({
     email: 'member@example.com',
     displayName: 'Member',
     createdAt: '2026-08-01T00:00:00.000Z',
+    signInMethods: ['password'] as Array<'password' | 'google'>,
   },
   role: 'owner' as 'owner' | 'adult_member' | 'viewer',
   revenueCatEnabled: true,
   restorePurchases: vi.fn(),
+  googleSupported: true,
+  linkGoogleAccount: vi.fn(),
   subscription: {
     currentPlan: 'free' as const,
     hasPremiumEntitlement: false,
@@ -40,7 +43,14 @@ vi.mock('@/app/stores/auth', () => ({
     user: state.user,
     updateProfile: vi.fn(),
     clearSessionAfterUnauthorized: vi.fn(),
+    linkGoogleAccount: state.linkGoogleAccount,
+    isLinkingGoogle: false,
+    googleLinkErrorMessage: '',
   }),
+}));
+
+vi.mock('@/features/auth/googleSignInService', () => ({
+  isNativeGoogleSignInSupported: () => state.googleSupported,
 }));
 
 vi.mock('@/app/stores/calendarSync', () => ({
@@ -122,6 +132,10 @@ beforeEach(() => {
   state.role = 'owner';
   state.revenueCatEnabled = true;
   state.restorePurchases.mockReset();
+  state.linkGoogleAccount.mockReset();
+  state.linkGoogleAccount.mockResolvedValue('linked');
+  state.googleSupported = true;
+  state.user.signInMethods = ['password'];
   Object.assign(state.subscription, {
     currentPlan: 'free',
     hasPremiumEntitlement: false,
@@ -135,6 +149,26 @@ beforeEach(() => {
 });
 
 describe('AccountPage', () => {
+  it('lets a password user explicitly link Google from Account settings', async () => {
+    const wrapper = mountAccountPage();
+
+    await wrapper.get('[data-testid="link-google-account"]').trigger('click');
+
+    expect(state.linkGoogleAccount).toHaveBeenCalledOnce();
+    expect(wrapper.text()).toContain('account.googleLinked');
+  });
+
+  it('shows connected Google access without another link action', () => {
+    state.user.signInMethods = ['password', 'google'];
+
+    const wrapper = mountAccountPage();
+
+    expect(wrapper.text()).toContain('account.googleSignIn');
+    expect(wrapper.find('[data-testid="link-google-account"]').exists()).toBe(
+      false
+    );
+  });
+
   it('shows the public deletion fallback without changing the in-app action', () => {
     const wrapper = mountAccountPage();
 

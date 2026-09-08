@@ -1,4 +1,5 @@
 import type { PlanType } from '@/features/access/types';
+import type { SignInMethod } from '@/shared/api/authApi';
 
 export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'error';
 
@@ -8,6 +9,7 @@ export interface AuthUser {
   email: string;
   displayName: string;
   plan: PlanType;
+  signInMethods?: SignInMethod[];
   createdAt: string;
 }
 

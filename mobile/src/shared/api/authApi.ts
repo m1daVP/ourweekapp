@@ -2,6 +2,8 @@ import type { PlanType, UserRole } from '@/features/access/types';
 import { translate } from '@/features/localization/i18n';
 import { ApiClientError, apiRequest } from './httpClient';
 
+export type SignInMethod = 'password' | 'google';
+
 export interface AuthUserDto {
   id: string;
   workspaceId?: string;
@@ -9,6 +11,7 @@ export interface AuthUserDto {
   displayName?: string;
   role: UserRole;
   planType: PlanType;
+  signInMethods?: SignInMethod[];
   createdAt: string;
   updatedAt: string;
 }
@@ -82,6 +85,12 @@ function isAuthUserDto(value: unknown): value is AuthUserDto {
       candidate.role === 'adult_member' ||
       candidate.role === 'viewer') &&
     (candidate.planType === 'free' || candidate.planType === 'premium') &&
+    (candidate.signInMethods === undefined ||
+      (Array.isArray(candidate.signInMethods) &&
+        candidate.signInMethods.length > 0 &&
+        candidate.signInMethods.every(
+          (method) => method === 'password' || method === 'google'
+        ))) &&
     isNonEmptyString(candidate.createdAt) &&
     isNonEmptyString(candidate.updatedAt)
   );
@@ -128,6 +137,24 @@ export async function signInWithGoogleIdToken(
   });
 
   if (!isAuthSessionDto(response)) {
+    throw new ApiClientError(translate('api.backendContactFailed'), {
+      code: 'invalid_auth_response',
+    });
+  }
+
+  return response;
+}
+
+export async function linkGoogleAccountWithIdToken(payload: {
+  idToken: string;
+}): Promise<AuthUserDto> {
+  const response = await apiRequest<unknown>('/auth/google/link', {
+    method: 'POST',
+    body: payload,
+    requiresAuth: true,
+  });
+
+  if (!isAuthUserDto(response)) {
     throw new ApiClientError(translate('api.backendContactFailed'), {
       code: 'invalid_auth_response',
     });

@@ -16,6 +16,7 @@ import {
   deleteAccountAndClearLocalData,
 } from '@/features/auth/accountDeletionLifecycle';
 import { canPurchasePremium } from '@/features/access/premiumPurchasePolicy';
+import { isNativeGoogleSignInSupported } from '@/features/auth/googleSignInService';
 import { PUBLIC_LEGAL_URLS } from '@/features/legal/productionLegalContent';
 import { cancelReminderNotifications } from '@/features/reminders/reminderService';
 import {
@@ -39,6 +40,7 @@ const { t, locale } = useI18n();
 const displayName = ref(authStore.user?.displayName ?? '');
 const statusMessage = ref('');
 const formError = ref('');
+const googleLinkStatusMessage = ref('');
 const dataActionError = ref('');
 const isExportingAccount = ref(false);
 const isDeletingAccount = ref(false);
@@ -55,6 +57,11 @@ const currentPlanLabel = computed(() =>
 const canRestorePurchases = computed(() => appConfig.isRevenueCatEnabled);
 const isWorkspaceOwner = computed(() =>
   canPurchasePremium(workspaceStore.currentUserRole)
+);
+const signInMethods = computed(() => user.value?.signInMethods ?? []);
+const hasGoogleSignIn = computed(() => signInMethods.value.includes('google'));
+const canLinkGoogle = computed(
+  () => isNativeGoogleSignInSupported() && !hasGoogleSignIn.value
 );
 
 function formatDate(value?: string) {
@@ -84,6 +91,15 @@ function saveProfile() {
   }
 
   statusMessage.value = t('account.updated');
+}
+
+async function linkGoogleAccount() {
+  googleLinkStatusMessage.value = '';
+  const result = await authStore.linkGoogleAccount();
+
+  if (result === 'linked') {
+    googleLinkStatusMessage.value = t('account.googleLinked');
+  }
 }
 
 async function saveAccountExport(data: unknown) {
@@ -253,6 +269,46 @@ async function continueAfterCleanupFailure() {
         <span class="account-label">{{ t('account.created') }}</span>
         <strong>{{ formatDate(user.createdAt) }}</strong>
       </div>
+    </section>
+
+    <section class="content-panel settings-panel">
+      <div>
+        <h2>{{ t('account.signInMethods') }}</h2>
+        <p>{{ t('account.signInMethodsHelp') }}</p>
+      </div>
+      <ul v-if="signInMethods.length" class="subscription-status-list">
+        <li v-if="signInMethods.includes('password')">
+          {{ t('account.passwordSignIn') }} · {{ t('account.signInAvailable') }}
+        </li>
+        <li v-if="hasGoogleSignIn">
+          {{ t('account.googleSignIn') }} · {{ t('account.signInConnected') }}
+        </li>
+      </ul>
+      <p v-else>{{ t('account.signInMethodsLoading') }}</p>
+      <button
+        v-if="canLinkGoogle"
+        class="secondary-button"
+        type="button"
+        data-testid="link-google-account"
+        :disabled="authStore.isLinkingGoogle"
+        @click="linkGoogleAccount"
+      >
+        {{
+          authStore.isLinkingGoogle
+            ? t('account.linkingGoogle')
+            : t('account.linkGoogle')
+        }}
+      </button>
+      <p
+        v-if="authStore.googleLinkErrorMessage"
+        class="meeting-error"
+        role="alert"
+      >
+        {{ authStore.googleLinkErrorMessage }}
+      </p>
+      <p v-if="googleLinkStatusMessage" class="meeting-status" role="status">
+        {{ googleLinkStatusMessage }}
+      </p>
     </section>
 
     <section class="content-panel settings-panel subscription-status-panel">
