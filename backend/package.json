@@ -1,6 +1,6 @@
 {
   "name": "weekly-us-api",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -19,6 +19,8 @@
     "db:migrate:dry-run": "supabase db push --dry-run",
     "db:migrate:local": "supabase db push --local",
     "db:migrate:local:dry-run": "supabase db push --local --dry-run",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
     "start": "node dist/server.js",
     "start:worker": "node dist/worker.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
