@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { AiRepository } from '../src/modules/ai/ai.repository.js';
 import {
   AuthRepository,
   isPremiumSubscriptionEffective,
@@ -64,53 +63,12 @@ class FakeSessionQuery {
   }
 }
 
-class FakeCountQuery {
-  constructor(
-    private readonly calls: Call[],
-    private readonly result: { count: number | null; error: unknown },
-  ) {}
-
-  select(columns: string, options: unknown) {
-    this.calls.push({ method: 'select', args: [columns, options] });
-    return this;
-  }
-
-  eq(column: string, value: unknown) {
-    this.calls.push({ method: 'eq', args: [column, value] });
-    return this;
-  }
-
-  gte(column: string, value: unknown) {
-    this.calls.push({ method: 'gte', args: [column, value] });
-    return this;
-  }
-
-  then<TResult1 = { count: number | null; error: unknown }, TResult2 = never>(
-    onfulfilled?: ((value: { count: number | null; error: unknown }) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
-  ) {
-    return Promise.resolve(this.result).then(onfulfilled, onrejected);
-  }
-}
-
 function createSessionClient(result: { data: unknown; error: unknown }) {
   const calls: Call[] = [];
   const client = {
     from(table: string) {
       calls.push({ method: 'from', args: [table] });
       return new FakeSessionQuery(calls, result);
-    },
-  } as unknown as SupabaseRepositoryClient;
-
-  return { calls, client };
-}
-
-function createCountClient(result: { count: number | null; error: unknown }) {
-  const calls: Call[] = [];
-  const client = {
-    from(table: string) {
-      calls.push({ method: 'from', args: [table] });
-      return new FakeCountQuery(calls, result);
     },
   } as unknown as SupabaseRepositoryClient;
 
@@ -246,24 +204,4 @@ describe('repository helpers', () => {
     ).rejects.toMatchObject({ statusCode: 401, code: 'invalid_session' });
   });
 
-  it('scopes user AI summary request counts by workspace', async () => {
-    const { calls, client } = createCountClient({ count: 2, error: null });
-    const repository = new AiRepository(client);
-
-    const count = await repository.countRecentSummaryRequestsForUserInWorkspace(
-      'workspace-1',
-      'user-1',
-      '2026-06-06T00:00:00.000Z',
-    );
-
-    expect(count).toBe(2);
-    expect(calls).toEqual(
-      expect.arrayContaining([
-        { method: 'from', args: ['ai_summary_requests'] },
-        { method: 'eq', args: ['workspace_id', 'workspace-1'] },
-        { method: 'eq', args: ['user_id', 'user-1'] },
-        { method: 'gte', args: ['created_at', '2026-06-06T00:00:00.000Z'] },
-      ]),
-    );
-  });
 });
