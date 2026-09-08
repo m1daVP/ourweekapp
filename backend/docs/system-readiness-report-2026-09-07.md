@@ -64,15 +64,19 @@ Evidence: [create path](D:/Projects/myself/weekly-us/src/features/participants/c
 
 **Required outcome:** align the component with the current meeting-attendance behavior and real store interface. Cover creation and re-enabling with the actual store, including during an active meeting; do not mechanically replace the call with an action requiring different semantics.
 
-### 4. Password reset is not atomic or safely single-use under concurrency
+### 4. Password reset is now atomic; database verification remains open
 
-**Priority: P1 — fix before public authentication. Evidence: source-confirmed sequencing.**
+**Priority: P1 — code remediated on 8 September 2026; isolated PostgreSQL and staging verification remain release gates.**
 
-Reset confirmation reads an unused code, hashes the new password, changes the password, revokes sessions, and marks the code consumed in separate database requests. Two concurrent requests can both read the same unused code and proceed. A failure after the password write can leave the password changed while old sessions remain valid or the code remains reusable.
+Reset confirmation now hashes the new password before one `confirm_password_reset` RPC call. The additive PostgreSQL function locks an eligible reset-token row, consumes it, changes the owning user's password, and revokes every active session in one transaction. Invalid, expired, consumed, and concurrent-loser tokens return the existing `422 invalid_reset_code`; database failures retain the safe `500 password_reset_failed` response.
 
-Evidence: [reset confirmation](D:/Projects/myself/weekly-us-api/src/modules/auth/auth.service.ts:1226).
+The RPC uses `SECURITY DEFINER`, an empty `search_path`, fully qualified tables, and execute permission restricted to `service_role`. The previous direct table-write sequence and its partial `session_revoke_failed` branch were removed.
 
-**Required outcome:** hash outside the transaction, then atomically validate/consume the token, change the password, and invalidate existing sessions through a carefully scoped database operation. Add concurrent-use and injected-failure tests against a real isolated database. A consumed token must authorize exactly one reset.
+Evidence: [service call](D:/Projects/myself/weekly-us-api/src/modules/auth/auth.service.ts:1345), [atomic migration](D:/Projects/myself/weekly-us-api/supabase/migrations/20260908130000_add_atomic_password_reset_confirmation.sql:1), [service tests](D:/Projects/myself/weekly-us-api/tests/password-reset.service.test.ts:306), [migration contract](D:/Projects/myself/weekly-us-api/tests/password-reset.migration.test.ts:8), and [guarded database tests](D:/Projects/myself/weekly-us-api/tests/password-reset.integration.test.ts:146).
+
+Automated evidence on 8 September 2026: the focused password-reset command passed 13 tests and skipped the three isolated-database cases; `npm run ci` passed 469 tests with 12 guarded integration skips across the repository, plus typecheck and OpenAPI drift verification; `npm run build` passed. The password-reset integration cases were skipped because `SUPABASE_LOCAL_URL` and `SUPABASE_LOCAL_SERVICE_ROLE_KEY` were unset. A direct local Supabase status check also found no running Docker engine.
+
+**Remaining release outcome:** apply the additive migration to isolated local Supabase and pass the successful reset, two-request race, reuse, and forced-rollback cases. Then apply and verify the migration in staging before deploying the dependent backend. No staging or production migration was performed during this work.
 
 ## Quality and reliability gaps
 

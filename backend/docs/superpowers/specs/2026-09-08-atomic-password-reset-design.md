@@ -1,7 +1,7 @@
 # Atomic Password Reset Design
 
 **Date:** 2026-09-08  
-**Status:** Approved design, pending implementation planning  
+**Status:** Implemented; isolated database verification pending  
 **Readiness finding:** `docs/system-readiness-report-2026-09-07.md`, point 4
 
 ## Objective
@@ -93,3 +93,21 @@ The database integration suite must be guarded by the repository's local-test en
 - The RPC is unavailable to public client roles.
 - No reset or session secret is returned or logged.
 - The migration is applied before the dependent backend is deployed.
+
+## Implementation Results
+
+Implemented on 8 September 2026:
+
+- Added `20260908130000_add_atomic_password_reset_confirmation.sql` with the locked, atomic, service-role-only RPC.
+- Changed `confirmPasswordReset` to hash outside the database transaction and use one RPC call.
+- Added migration-contract, service, and guarded local-database coverage for success, concurrency, reuse, all-session revocation, and rollback.
+- Preserved the existing route and public error contracts.
+
+Verification:
+
+- Focused password-reset suites: 13 passed, 3 guarded database tests skipped.
+- `npm run typecheck`: passed.
+- `npm run ci`: passed with 469 tests passed and 12 guarded integration tests skipped across the repository; OpenAPI check passed.
+- `npm run build`: passed.
+
+The local database suite did not execute because `SUPABASE_LOCAL_URL` and `SUPABASE_LOCAL_SERVICE_ROLE_KEY` were unset, and the local Supabase status check found no running Docker engine. Concurrency and rollback are covered by executable integration tests but are not yet verified against PostgreSQL. Apply the migration and pass those tests in isolated local Supabase, then verify staging before deploying the dependent backend.
