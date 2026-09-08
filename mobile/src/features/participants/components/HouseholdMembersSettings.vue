@@ -483,7 +483,6 @@ function saveParticipantDraft() {
       return;
     }
 
-    meetingsStore.syncActiveMeetingParticipants();
     setParticipantMessage(t('settings.participantAdded'));
 
     if (canInviteParticipant(participant)) {
@@ -565,7 +564,6 @@ function hideOrRemoveParticipant(participantId: string) {
 
 function enableParticipant(participantId: string) {
   participantsStore.enableParticipant(participantId);
-  meetingsStore.syncActiveMeetingParticipants();
   setParticipantMessage(t('settings.participantEnabled'));
   closeSheet();
 }
