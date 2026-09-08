@@ -15,6 +15,7 @@ const secrets: Record<string, string> = {
   REFRESH_TOKEN_SECRET: secretHex(),
   PASSWORD_RESET_TOKEN_SECRET: secretHex(),
   TOKEN_ENCRYPTION_KEY: encryptionKeyBase64Url(),
+  AI_SAFETY_IDENTIFIER_SECRET: encryptionKeyBase64Url(),
 };
 
 for (const [key, value] of Object.entries(secrets)) {
