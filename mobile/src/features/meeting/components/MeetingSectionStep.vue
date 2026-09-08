@@ -195,103 +195,6 @@ function updateAgreementParticipant(
   </section>
 
   <section
-    v-if="showNotes"
-    class="meeting-panel"
-    aria-labelledby="meeting-notes-title"
-  >
-    <h2 id="meeting-notes-title" class="meeting-panel-title">
-      <span
-        class="meeting-panel-title__icon meeting-panel-title__icon--notes material-symbols-outlined"
-        aria-hidden="true"
-      >
-        edit_note
-      </span>
-      <span>{{ t('meeting.notes') }}</span>
-    </h2>
-    <label class="meeting-label" for="note-person">
-      {{ t('meeting.author') }}
-    </label>
-    <select
-      id="note-person"
-      :value="selectedParticipantId"
-      :disabled="!canEditMeeting"
-      @change="
-        emit(
-          'update:selectedParticipantId',
-          ($event.target as HTMLSelectElement).value
-        )
-      "
-    >
-      <option
-        v-for="participant in activeMeetingParticipants"
-        :key="participant.id"
-        :value="participant.id"
-      >
-        {{ participant.name }}
-      </option>
-    </select>
-
-    <label class="meeting-label" for="meeting-note">
-      {{ t('meeting.note') }}
-    </label>
-    <textarea
-      id="meeting-note"
-      :value="noteText"
-      rows="4"
-      :placeholder="notePlaceholder"
-      :disabled="!canEditMeeting"
-      @input="emit('update:noteText', updateText($event))"
-    />
-    <p v-if="neutralHint" class="meeting-help">{{ neutralHint }}</p>
-    <button
-      v-if="canEditMeeting"
-      class="meeting-primary"
-      type="button"
-      @click="emit('add-note')"
-    >
-      {{ t('meeting.addNote') }}
-    </button>
-
-    <ul v-if="currentNotes.length" class="meeting-list">
-      <li v-for="note in currentNotes" :key="note.id" class="meeting-note-item">
-        <div class="meeting-note-item__content">
-          <span>{{ note.participantName }}</span>
-          <p>{{ note.text }}</p>
-        </div>
-        <div
-          v-if="canEditMeeting && !isCompleted"
-          class="meeting-note-item__actions"
-        >
-          <button
-            type="button"
-            class="meeting-note-item__edit"
-            :aria-label="
-              t('meeting.editNoteAria', { author: note.participantName })
-            "
-            @click="emit('edit-note', note)"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">
-              edit
-            </span>
-            {{ t('common.edit') }}
-          </button>
-          <button
-            type="button"
-            class="meeting-note-item__delete material-symbols-outlined"
-            :aria-label="
-              t('meeting.deleteNoteAria', { author: note.participantName })
-            "
-            @click="emit('delete-note', note.id)"
-          >
-            delete
-          </button>
-        </div>
-      </li>
-    </ul>
-    <p v-else class="meeting-empty">{{ t('meeting.noNotesYet') }}</p>
-  </section>
-
-  <section
     v-if="canAddTasks"
     class="meeting-panel"
     aria-labelledby="meeting-tasks-title"
@@ -461,6 +364,103 @@ function updateAgreementParticipant(
       </li>
     </ul>
     <p v-else class="meeting-empty">{{ t('meeting.noAgreementsYet') }}</p>
+  </section>
+
+  <section
+    v-if="showNotes"
+    class="meeting-panel"
+    aria-labelledby="meeting-notes-title"
+  >
+    <h2 id="meeting-notes-title" class="meeting-panel-title">
+      <span
+        class="meeting-panel-title__icon meeting-panel-title__icon--notes material-symbols-outlined"
+        aria-hidden="true"
+      >
+        edit_note
+      </span>
+      <span>{{ t('meeting.notes') }}</span>
+    </h2>
+    <label class="meeting-label" for="note-person">
+      {{ t('meeting.author') }}
+    </label>
+    <select
+      id="note-person"
+      :value="selectedParticipantId"
+      :disabled="!canEditMeeting"
+      @change="
+        emit(
+          'update:selectedParticipantId',
+          ($event.target as HTMLSelectElement).value
+        )
+      "
+    >
+      <option
+        v-for="participant in activeMeetingParticipants"
+        :key="participant.id"
+        :value="participant.id"
+      >
+        {{ participant.name }}
+      </option>
+    </select>
+
+    <label class="meeting-label" for="meeting-note">
+      {{ t('meeting.note') }}
+    </label>
+    <textarea
+      id="meeting-note"
+      :value="noteText"
+      rows="4"
+      :placeholder="notePlaceholder"
+      :disabled="!canEditMeeting"
+      @input="emit('update:noteText', updateText($event))"
+    />
+    <p v-if="neutralHint" class="meeting-help">{{ neutralHint }}</p>
+    <button
+      v-if="canEditMeeting"
+      class="meeting-primary"
+      type="button"
+      @click="emit('add-note')"
+    >
+      {{ t('meeting.addNote') }}
+    </button>
+
+    <ul v-if="currentNotes.length" class="meeting-list">
+      <li v-for="note in currentNotes" :key="note.id" class="meeting-note-item">
+        <div class="meeting-note-item__content">
+          <span>{{ note.participantName }}</span>
+          <p>{{ note.text }}</p>
+        </div>
+        <div
+          v-if="canEditMeeting && !isCompleted"
+          class="meeting-note-item__actions"
+        >
+          <button
+            type="button"
+            class="meeting-note-item__edit"
+            :aria-label="
+              t('meeting.editNoteAria', { author: note.participantName })
+            "
+            @click="emit('edit-note', note)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">
+              edit
+            </span>
+            {{ t('common.edit') }}
+          </button>
+          <button
+            type="button"
+            class="meeting-note-item__delete material-symbols-outlined"
+            :aria-label="
+              t('meeting.deleteNoteAria', { author: note.participantName })
+            "
+            @click="emit('delete-note', note.id)"
+          >
+            delete
+          </button>
+        </div>
+      </li>
+    </ul>
+    <p v-else class="meeting-empty">{{ t('meeting.noNotesYet') }}</p>
   </section>
 
   <p v-if="formError" class="meeting-error" role="alert">
