@@ -20,10 +20,12 @@
 ### Task 1: Preserve backend participant email through merges
 
 **Files:**
+
 - Modify: `src/shared/services/syncService.ts:255-264,495-499`
 - Test: `src/shared/services/__tests__/syncService.test.ts`
 
 **Interfaces:**
+
 - Consumes: local `Participant[]` and backend `ParticipantDto[]`, where email is optional and server-owned.
 - Produces: stored `Participant[]` retaining a backend email even if equal timestamps make the generic merge select the local representation.
 

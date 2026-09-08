@@ -19,6 +19,7 @@
 ### Task 1: Inline custom color control
 
 **Files:**
+
 - Modify: `weekly-us/src/features/participants/components/AvatarPickerSheet.vue`
 - Delete: `weekly-us/src/features/participants/components/AvatarColorPickerSheet.vue`
 - Modify: `weekly-us/src/features/participants/components/HouseholdMembersSettings.vue`
@@ -30,6 +31,7 @@
 ### Task 2: Settings-style avatar control
 
 **Files:**
+
 - Modify: `weekly-us/src/features/participants/components/HouseholdMembersSettings.vue`
 - Modify: `weekly-us/src/features/localization/messages.ts`
 

@@ -21,12 +21,14 @@
 ### Task 1: Generate and validate the frontend catalog manifest
 
 **Files:**
+
 - Create: `weekly-us/scripts/generate-avatar-catalog.mjs`
 - Create: `weekly-us/src/features/participants/avatar-catalog.json`
 - Modify: `weekly-us/package.json`
 - Create: `weekly-us/src/features/participants/__tests__/avatarCatalogGeneration.test.ts`
 
 **Interfaces:**
+
 - Produces `npm run avatars:generate`.
 - Produces JSON shaped as `{ "groups": [{ "id": "animals", "avatars": [{ "id": "fox", "path": "/src/assets/avatars/animals/fox.webp" }] }] }`.
 
@@ -57,11 +59,13 @@ Expected: PASS.
 ### Task 2: Load generated catalog assets and preserve fallback behavior
 
 **Files:**
+
 - Modify: `weekly-us/src/features/participants/avatarCatalog.ts`
 - Modify: `weekly-us/src/features/participants/__tests__/avatarCatalog.test.ts`
 - Modify: `weekly-us/src/features/participants/components/__tests__/ParticipantAvatar.test.ts`
 
 **Interfaces:**
+
 - Consumes generated manifest group and asset records.
 - Produces `AvatarType` as a manifest ID union, `avatarGroups`, `avatarCatalog`, `getAvatarAsset`, and `isAvatarType`.
 
@@ -82,12 +86,14 @@ Expected: PASS for real and unknown asset IDs.
 ### Task 3: Replace API catalog allow-list with safe identifier validation
 
 **Files:**
+
 - Modify: `weekly-us-api/src/modules/participants/participants.schema.ts`
 - Modify: `weekly-us-api/supabase/migrations/20260904130000_add_participant_avatar_type.sql`
 - Modify: `weekly-us-api/tests/participants.service.test.ts`
 - Create: `weekly-us-api/tests/participant-avatar-type.schema.test.ts`
 
 **Interfaces:**
+
 - Produces `avatarTypeSchema: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80)`.
 - Keeps `avatarType` nullable/optional as required by existing sync compatibility.
 
@@ -108,6 +114,7 @@ Expected: PASS.
 ### Task 4: Regenerate contracts and verify both projects
 
 **Files:**
+
 - Modify if generated: `weekly-us-api/docs/openapi.json`
 
 - [ ] **Step 1: Regenerate catalog and OpenAPI outputs**

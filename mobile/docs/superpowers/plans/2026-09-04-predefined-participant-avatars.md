@@ -23,12 +23,14 @@
 ### Task 1: Add the frontend avatar catalog and one reusable renderer
 
 **Files:**
+
 - Create: `weekly-us/src/assets/avatars/group-01/avatar-01.webp` through `weekly-us/src/assets/avatars/group-05/avatar-04.webp` (user-supplied assets)
 - Create: `weekly-us/src/features/participants/avatarCatalog.ts`
 - Create: `weekly-us/src/features/participants/components/ParticipantAvatar.vue`
 - Create: `weekly-us/src/features/participants/components/__tests__/ParticipantAvatar.test.ts`
 
 **Interfaces:**
+
 - Produces `AvatarType`, `avatarCatalog`, `avatarGroups`, and `getAvatarAsset(avatarType)`.
 - Produces `ParticipantAvatar` with props `participant: Pick<Participant, 'name' | 'initials' | 'avatarColor' | 'avatarType'>`, `size?: 'small' | 'medium' | 'large'`, and `decorative?: boolean`.
 
@@ -120,8 +122,18 @@ export function getAvatarAsset(value: string | null | undefined) {
 Render an `<img>` when `getAvatarAsset` resolves; otherwise retain the current visual semantics:
 
 ```vue
-<img v-if="asset" class="participant-avatar__image" :src="asset" :alt="decorative ? '' : participant.name" />
-<span v-else class="participant-avatar" :style="{ backgroundColor: participant.avatarColor }" :aria-label="decorative ? undefined : participant.name">
+<img
+  v-if="asset"
+  class="participant-avatar__image"
+  :src="asset"
+  :alt="decorative ? '' : participant.name"
+/>
+<span
+  v-else
+  class="participant-avatar"
+  :style="{ backgroundColor: participant.avatarColor }"
+  :aria-label="decorative ? undefined : participant.name"
+>
   {{ participant.initials }}
 </span>
 ```
@@ -141,6 +153,7 @@ Do not stage or commit. The project requires explicit user approval for commits.
 ### Task 2: Persist `avatarType` locally and carry it through app sync DTOs
 
 **Files:**
+
 - Modify: `weekly-us/src/features/participants/types.ts`
 - Modify: `weekly-us/src/app/stores/participants.ts`
 - Modify: `weekly-us/src/shared/api/syncDtos.ts`
@@ -148,6 +161,7 @@ Do not stage or commit. The project requires explicit user approval for commits.
 - Modify: `weekly-us/src/shared/api/__tests__/syncDtos.test.ts`
 
 **Interfaces:**
+
 - Consumes: `AvatarType` from `avatarCatalog.ts`.
 - Produces `Participant.avatarType?: AvatarType | null` and create/update payload fields with the same type.
 - Produces sync records that include `avatarType` when defined and preserve null to select color mode.
@@ -157,7 +171,9 @@ Do not stage or commit. The project requires explicit user approval for commits.
 Add cases verifying that a new participant defaults to `avatarType: null`, `updateParticipant(id, { avatarType: 'group-01-avatar-01' })` persists the ID, `updateParticipant(id, { avatarType: null })` returns to color mode, and DTO conversion retains both a catalog ID and null:
 
 ```ts
-expect(store.createParticipant({ name: 'Rita', type: 'adult' })?.avatarType).toBeNull();
+expect(
+  store.createParticipant({ name: 'Rita', type: 'adult' })?.avatarType
+).toBeNull();
 expect(toParticipantDto(participant).avatarType).toBe('group-01-avatar-01');
 expect(fromParticipantDto({ ...dto, avatarType: null }).avatarType).toBeNull();
 ```
@@ -203,6 +219,7 @@ Do not stage or commit.
 ### Task 3: Add the safe database and API DTO foundation
 
 **Files:**
+
 - Create: `weekly-us-api/supabase/migrations/20260904130000_add_participant_avatar_type.sql`
 - Modify: `weekly-us-api/src/modules/participants/participants.schema.ts`
 - Modify: `weekly-us-api/src/modules/participants/participants.repository.ts`
@@ -211,6 +228,7 @@ Do not stage or commit.
 - Modify: `weekly-us-api/tests/repository-mappers.test.ts`
 
 **Interfaces:**
+
 - Produces `avatarTypeSchema` as the exact 20-value Zod enum.
 - Produces response `ParticipantDto.avatarType: AvatarType | null` and input `ParticipantSyncProfileDto.avatarType?: AvatarType | null`.
 - Produces repository rows and inputs with `avatarType: string | null` plus internal `userId: string | null`.
@@ -220,7 +238,12 @@ Do not stage or commit.
 Test the migration file for a nullable `avatar_type`, the twenty-value check constraint, and a migration name later than existing migrations. Add schema tests for an allowed ID, `null`, rejection of `group-06-avatar-01`, and acceptance of an omitted legacy sync field. Add mapper tests for `avatar_type: 'group-02-avatar-03'` and `avatar_type: null`.
 
 ```ts
-expect(syncParticipantsRequestSchema.safeParse({ participants: [legacy], clientUpdatedAt: now }).success).toBe(true);
+expect(
+  syncParticipantsRequestSchema.safeParse({
+    participants: [legacy],
+    clientUpdatedAt: now,
+  }).success
+).toBe(true);
 expect(avatarTypeSchema.safeParse('group-06-avatar-01').success).toBe(false);
 ```
 
@@ -274,6 +297,7 @@ Do not stage or commit.
 ### Task 4: Enforce avatar-update ownership during participant synchronization
 
 **Files:**
+
 - Modify: `weekly-us-api/src/modules/participants/participants.service.ts`
 - Modify: `weekly-us-api/src/modules/participants/participants.routes.ts`
 - Modify: `weekly-us-api/tests/participants.service.test.ts`
@@ -281,6 +305,7 @@ Do not stage or commit.
 - Modify: `weekly-us-api/docs/openapi.json` (regenerate)
 
 **Interfaces:**
+
 - Consumes `AuthContext.userId`, `AuthContext.role`, repository `ParticipantDto.userId`, and optional input `avatarType`.
 - Produces `syncParticipants(..., { actor: { userId, role } })` and public responses containing nullable `avatarType`.
 - Rejects a changed avatar with `ApiError(403, 'participant_avatar_forbidden', ...)` unless actor owns the linked participant or is an owner changing an unlinked participant.
@@ -309,14 +334,19 @@ Expected: FAIL because sync does not receive an actor, preserve omitted values, 
 Pass `auth.userId` and `auth.role` from the authenticated sync route. In the service, resolve an omitted input field to the server field before comparison and update:
 
 ```ts
-const effectiveAvatarType = client.avatarType === undefined
-  ? server.avatarType
-  : client.avatarType;
+const effectiveAvatarType =
+  client.avatarType === undefined ? server.avatarType : client.avatarType;
 
-if (effectiveAvatarType !== server.avatarType &&
-    server.userId !== actor.userId &&
-    !(actor.role === 'owner' && server.userId === null)) {
-  throw new ApiError(403, 'participant_avatar_forbidden', 'You cannot change this participant avatar.');
+if (
+  effectiveAvatarType !== server.avatarType &&
+  server.userId !== actor.userId &&
+  !(actor.role === 'owner' && server.userId === null)
+) {
+  throw new ApiError(
+    403,
+    'participant_avatar_forbidden',
+    'You cannot change this participant avatar.'
+  );
 }
 ```
 
@@ -347,6 +377,7 @@ Do not stage or commit.
 ### Task 5: Replace separate color controls with the unified mobile avatar picker
 
 **Files:**
+
 - Create: `weekly-us/src/features/participants/components/AvatarPickerSheet.vue`
 - Delete: `weekly-us/src/features/participants/components/AvatarColorPickerSheet.vue`
 - Modify: `weekly-us/src/features/participants/components/HouseholdMembersSettings.vue`
@@ -355,6 +386,7 @@ Do not stage or commit.
 - Modify: `weekly-us/src/features/participants/components/__tests__/HouseholdMembersSettings.test.ts`
 
 **Interfaces:**
+
 - Consumes `avatarGroups`, `ParticipantAvatar`, `participantColors`, and `normalizeOpaqueHexColor`.
 - Produces `AvatarPickerSheet` props `open`, `avatarType`, `avatarColor`, and `initials`; emits `selectAvatar(AvatarType)` and `selectColor(string)` plus `close`.
 - `HouseholdMembersSettings` drafts include `avatarType: AvatarType | null` and send it via `updateParticipant`.
@@ -379,7 +411,12 @@ Expected: FAIL because the unified sheet and avatar authorization UI do not exis
 Use a single `BaseBottomSheet`, not stacked modals. Keep the presets and custom `iro` color control in its Colors section, and render grouped image buttons in its Avatar set section. Each control must be a 44px-or-larger button with a visually and programmatically selected state:
 
 ```vue
-<button :aria-pressed="avatarType === avatar.id" :data-avatar-id="avatar.id" type="button" @click="emit('selectAvatar', avatar.id)">
+<button
+  :aria-pressed="avatarType === avatar.id"
+  :data-avatar-id="avatar.id"
+  type="button"
+  @click="emit('selectAvatar', avatar.id)"
+>
   <img :src="avatar.asset" alt="" />
   <span class="sr-only">{{ t('settings.selectAvatar', { avatar: avatar.id }) }}</span>
 </button>
@@ -408,6 +445,7 @@ Do not stage or commit.
 ### Task 6: Render avatars consistently across the app
 
 **Files:**
+
 - Modify: `weekly-us/src/shared/components/AppShell.vue`
 - Modify: `weekly-us/src/features/participants/components/HouseholdMembersSettings.vue`
 - Modify: `weekly-us/src/features/meeting/components/MeetingCheckInStep.vue`
@@ -423,6 +461,7 @@ Do not stage or commit.
 - Modify: `weekly-us/src/pages/__tests__/MeetingRecapPages.test.ts`
 
 **Interfaces:**
+
 - Consumes `ParticipantAvatar` from Task 1 and participant records with optional `avatarType` from Task 2.
 - Produces a single visual rule: a valid bundled image replaces initials; color initials remain for null, legacy, and unknown values.
 
@@ -474,10 +513,12 @@ Do not stage or commit.
 ### Task 7: End-to-end contract verification and mobile QA
 
 **Files:**
+
 - Modify if generated: `weekly-us-api/docs/openapi.json`
 - Modify if required by failed tests: only files named in Tasks 1–6
 
 **Interfaces:**
+
 - Consumes the fully updated API contract, bundled app assets, and participant sync implementation.
 - Produces verified build artifacts; no new feature interfaces.
 

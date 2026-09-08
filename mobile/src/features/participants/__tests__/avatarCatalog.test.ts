@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { avatarCatalog, getAvatarAsset, isAvatarType } from '../avatarCatalog';
+import { getAvatarAsset, isAvatarType } from '../avatarCatalog';
 
 describe('avatar catalog', () => {
   it('validates catalog IDs and safely reports unavailable bundled assets', () => {

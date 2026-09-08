@@ -1251,8 +1251,8 @@ export function useMeetingSession() {
 
     try {
       if (
-        subscriptionStore.canGenerateAssistantRecap
-        && !hasAcknowledgedAiRecapDisclosure()
+        subscriptionStore.canGenerateAssistantRecap &&
+        !hasAcknowledgedAiRecapDisclosure()
       ) {
         pendingAiRecapDisclosureMeetingId.value = meetingId;
         isAiRecapDisclosureOpen.value = true;
@@ -1261,7 +1261,7 @@ export function useMeetingSession() {
 
       await continueCompletedMeeting(
         meetingId,
-        subscriptionStore.canGenerateAssistantRecap,
+        subscriptionStore.canGenerateAssistantRecap
       );
     } finally {
       isFinishingMeeting.value = false;
@@ -1305,13 +1305,16 @@ export function useMeetingSession() {
     }
   }
 
-  async function continueCompletedMeeting(meetingId: string, shouldGenerateRecap: boolean) {
+  async function continueCompletedMeeting(
+    meetingId: string,
+    shouldGenerateRecap: boolean
+  ) {
     let aiSummaryFailed = false;
     let aiQuotaInfo: ReturnType<typeof parseAiQuotaError> = null;
 
     if (shouldGenerateRecap) {
       const completedMeeting = meetingsStore.meetings.find(
-        (meeting) => meeting.id === meetingId,
+        (meeting) => meeting.id === meetingId
       );
 
       if (completedMeeting) {

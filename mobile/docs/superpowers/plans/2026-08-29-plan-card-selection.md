@@ -29,9 +29,11 @@
 ### Task 1: Specify and test selectable live plans
 
 **Files:**
+
 - Modify: `src/pages/__tests__/UpgradePage.test.ts`
 
 **Interfaces:**
+
 - Consumes rendered card controls with `data-testid="plan-premium_monthly"` and `data-testid="plan-premium_yearly"`.
 - Produces required behavior: the Yearly plan is initially selected when both plans are live; selecting Monthly changes the active choice; the primary action invokes `purchasePlan('premium_monthly')`.
 
@@ -83,16 +85,22 @@ it('selects Yearly by default and lets the owner switch to Monthly', async () =>
   const wrapper = mountUpgradePage();
 
   expect(
-    wrapper.get('[data-testid="plan-premium_yearly"]').attributes('aria-pressed')
+    wrapper
+      .get('[data-testid="plan-premium_yearly"]')
+      .attributes('aria-pressed')
   ).toBe('true');
 
   await wrapper.get('[data-testid="plan-premium_monthly"]').trigger('click');
 
   expect(
-    wrapper.get('[data-testid="plan-premium_monthly"]').attributes('aria-pressed')
+    wrapper
+      .get('[data-testid="plan-premium_monthly"]')
+      .attributes('aria-pressed')
   ).toBe('true');
   expect(
-    wrapper.get('[data-testid="plan-premium_yearly"]').attributes('aria-pressed')
+    wrapper
+      .get('[data-testid="plan-premium_yearly"]')
+      .attributes('aria-pressed')
   ).toBe('false');
 });
 
@@ -116,10 +124,12 @@ Expected: FAIL because cards have no test IDs or selected state and the primary 
 ### Task 2: Implement selection and exact-package purchase
 
 **Files:**
+
 - Modify: `src/pages/UpgradePage.vue`
 - Modify: `src/styles/main.css`
 
 **Interfaces:**
+
 - Produces `selectedPlan`, a computed `SubscriptionPlanOption | null` that uses a user selection when valid and otherwise prefers `premium_yearly`.
 - Produces `selectPlan(planId: SubscriptionPlanOption['id']): void`.
 - Produces `purchaseSelectedPlan(): Promise<void>` that invokes `subscriptionStore.purchasePlan(selectedPlan.value.id)` only when a live plan is selected.
@@ -223,11 +233,13 @@ Expected: PASS, including the existing unavailable, owner-only, restoration, and
 ### Task 3: Verify production build behavior
 
 **Files:**
+
 - Verify: `src/pages/UpgradePage.vue`
 - Verify: `src/styles/main.css`
 - Verify: `src/pages/__tests__/UpgradePage.test.ts`
 
 **Interfaces:**
+
 - The native app calls the existing direct package purchase provider with the user-selected package ID.
 
 - [ ] **Step 1: Run the mobile test suite**
@@ -249,9 +261,11 @@ Open Settings → Premium on the physical device, confirm Yearly is initially se
 ### Task 4: Refine selection motion
 
 **Files:**
+
 - Modify: `src/styles/main.css`
 
 **Interfaces:**
+
 - Selected cards animate border, background, box shadow, and a 1% upward scale over `220ms cubic-bezier(0.2, 0.8, 0.2, 1)`.
 - The selection indicator fades and scales over `160ms ease`.
 - The existing reduced-motion media query disables these transitions.

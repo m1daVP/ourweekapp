@@ -22,9 +22,11 @@
 ### Task 1: Remove The Invalid Meetings-Store Calls
 
 **Files:**
+
 - Modify: `src/features/participants/components/HouseholdMembersSettings.vue`
 
 **Interfaces:**
+
 - Consumes: `participantsStore.createParticipant(payload)`
 - Consumes: `participantsStore.enableParticipant(participantId)`
 - Removes all component use of `meetingsStore`
@@ -58,11 +60,13 @@ Run the command from Step 1. Expected: no `syncActiveMeetingParticipants` diagno
 ### Task 2: Replace The Masking Test With Attendance Regression Coverage
 
 **Files:**
+
 - Modify: `src/features/participants/components/__tests__/HouseholdMembersSettings.test.ts`
 - Test against: `src/app/stores/participants.ts`
 - Test against: `src/app/stores/meetings.ts`
 
 **Interfaces:**
+
 - Uses real Pinia stores through `createPinia()` and `setActivePinia()`.
 - Uses `meetingsStore.startNewMeeting()` to create active attendance state.
 - Uses the component's existing create and enable UI controls.
@@ -115,6 +119,7 @@ Expected: all tests pass, with no test mock defining `syncActiveMeetingParticipa
 ### Task 3: Complete Release Verification
 
 **Files:**
+
 - Verify: `src/features/participants/components/HouseholdMembersSettings.vue`
 - Verify: `src/features/participants/components/__tests__/HouseholdMembersSettings.test.ts`
 
@@ -143,4 +148,3 @@ Expected: the full test suite and Vue/Vite production build pass. Existing unrel
 - [ ] **Step 3: Review the final diff**
 
 Verify `rg "syncActiveMeetingParticipants" src` returns no matches, active attendance changes only through the existing meeting flow, and unrelated working-tree changes remain untouched.
-

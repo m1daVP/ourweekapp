@@ -25,10 +25,12 @@
 ### Task 1: Restrict the household add-person flow to owners
 
 **Files:**
+
 - Modify: `src/features/participants/components/HouseholdMembersSettings.vue:34,187-196,433-464,606-615`
 - Create: `src/features/participants/components/__tests__/HouseholdMembersSettings.test.ts`
 
 **Interfaces:**
+
 - Consumes: `can(permission: WorkspacePermission): boolean` from `useWorkspacePermissions()`.
 - Produces: a `canManageHouseholdParticipants` computed boolean based on `can('manageWorkspace')`.
 - Uses: `participantsStore.createParticipant(payload)` only when `canManageHouseholdParticipants.value` is true.
@@ -40,12 +42,18 @@ Mount `HouseholdMembersSettings` with active Pinia and the project i18n plugin. 
 ```ts
 it('shows Add person only to the workspace owner', () => {
   setWorkspaceRole('owner');
-  expect(mountHouseholdMembersSettings().get('button.household-settings-add-button').text())
-    .toContain('Add person');
+  expect(
+    mountHouseholdMembersSettings()
+      .get('button.household-settings-add-button')
+      .text()
+  ).toContain('Add person');
 
   setWorkspaceRole('adult_member');
-  expect(mountHouseholdMembersSettings().find('button.household-settings-add-button').exists())
-    .toBe(false);
+  expect(
+    mountHouseholdMembersSettings()
+      .find('button.household-settings-add-button')
+      .exists()
+  ).toBe(false);
 });
 ```
 
@@ -62,9 +70,7 @@ Expected: FAIL because the button currently renders for every role and `openCrea
 After destructuring `can`, add:
 
 ```ts
-const canManageHouseholdParticipants = computed(() =>
-  can('manageWorkspace')
-);
+const canManageHouseholdParticipants = computed(() => can('manageWorkspace'));
 ```
 
 Wrap the add button with its owner-only condition:

@@ -28,9 +28,11 @@
 ### Task 1: Add entitlement-state regression coverage
 
 **Files:**
+
 - Modify: `src/pages/__tests__/SettingsPage.test.ts`
 
 **Interfaces:**
+
 - Consumes the existing mock field `state.subscription.hasPremiumEntitlement`.
 - Produces tests for `[data-testid="subscription-benefit-icon"]` values and state classes.
 
@@ -44,7 +46,9 @@ it('shows locked Premium benefits for a Free household', () => {
   expect(icons).toHaveLength(3);
   expect(icons.every((icon) => icon.text() === 'lock')).toBe(true);
   expect(
-    icons.every((icon) => icon.classes('settings-subscription-benefit__icon--locked'))
+    icons.every((icon) =>
+      icon.classes('settings-subscription-benefit__icon--locked')
+    )
   ).toBe(true);
 });
 ```
@@ -62,7 +66,9 @@ it('shows enabled Premium benefits for an active Premium household', () => {
   expect(icons).toHaveLength(3);
   expect(icons.every((icon) => icon.text() === 'check')).toBe(true);
   expect(
-    icons.some((icon) => icon.classes('settings-subscription-benefit__icon--locked'))
+    icons.some((icon) =>
+      icon.classes('settings-subscription-benefit__icon--locked')
+    )
   ).toBe(false);
 });
 ```
@@ -76,10 +82,12 @@ Expected: FAIL because every row currently renders `check` and has no benefit-ic
 ### Task 2: Render and style the locked state
 
 **Files:**
+
 - Modify: `src/pages/SettingsPage.vue`
 - Modify: `src/styles/main.css`
 
 **Interfaces:**
+
 - Produces a `settings-subscription-benefit__icon--locked` modifier only when `hasPremium` is false.
 - Every Premium-benefit icon has `data-testid="subscription-benefit-icon"` and contains `hasPremium ? 'check' : 'lock'`.
 
@@ -119,11 +127,13 @@ Expected: PASS, including existing owner-only restore and manage-subscription ch
 ### Task 3: Verify the mobile bundle
 
 **Files:**
+
 - Verify: `src/pages/SettingsPage.vue`
 - Verify: `src/styles/main.css`
 - Verify: `src/pages/__tests__/SettingsPage.test.ts`
 
 **Interfaces:**
+
 - The Settings screen accurately reflects a trusted entitlement change after the subscription store refreshes.
 
 - [ ] **Step 1: Run the full mobile test suite**

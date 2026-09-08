@@ -19,12 +19,14 @@
 ### Task 1: Restrict household-name UI and store action
 
 **Files:**
+
 - Modify: `src/features/participants/components/HouseholdMembersSettings.vue:396-422,566-575`
 - Modify: `src/features/participants/components/__tests__/HouseholdMembersSettings.test.ts`
 - Modify: `src/app/stores/workspace.ts:393-412`
 - Modify: `src/app/stores/__tests__/workspace.test.ts`
 
 **Interfaces:**
+
 - Consumes: `canManageHouseholdParticipants: ComputedRef<boolean>` and `roleCan(this.currentUserRole, 'manageWorkspace')`.
 - Produces: no edit-name button or update API call for adult members and viewers.
 
@@ -33,9 +35,17 @@
 Extend the component test with the owner-only edit control:
 
 ```ts
-expect(mountHouseholdMembersSettings().find('button.household-settings-edit').exists()).toBe(true);
+expect(
+  mountHouseholdMembersSettings()
+    .find('button.household-settings-edit')
+    .exists()
+).toBe(true);
 state.role = 'adult_member';
-expect(mountHouseholdMembersSettings().find('button.household-settings-edit').exists()).toBe(false);
+expect(
+  mountHouseholdMembersSettings()
+    .find('button.household-settings-edit')
+    .exists()
+).toBe(false);
 ```
 
 Extend the workspace-store test with an adult member case:

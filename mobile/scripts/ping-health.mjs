@@ -1,4 +1,4 @@
-/* global AbortSignal, URL, console, fetch, process, setTimeout */
+/* global AbortSignal, URL, fetch, setTimeout */
 
 const INTERVAL_MS = 40_000;
 const REQUEST_TIMEOUT_MS = 10_000;

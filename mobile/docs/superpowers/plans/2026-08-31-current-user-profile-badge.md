@@ -19,10 +19,12 @@
 ### Task 1: Select and render the signed-in participant badge
 
 **Files:**
+
 - Modify: `src/shared/components/AppShell.vue:1-40,133-147`
 - Test: `src/shared/components/__tests__/AppShell.test.ts`
 
 **Interfaces:**
+
 - Consumes: `useAuthStore().user?.email` and `useParticipantsStore().activeParticipants`, whose entries contain `email`, `initials`, and `avatarColor`.
 - Produces: the `.app-top-bar__avatar` content using the current signed-in participant’s presentation data.
 
@@ -32,8 +34,9 @@ Extend the mock state so it includes two active participants and an authenticate
 
 ```ts
 expect(mountAppShell().find('.app-top-bar__avatar > span').text()).toBe('AL');
-expect(mountAppShell().find('.app-top-bar__avatar > span').attributes('style'))
-  .toContain('background-color: #6b8f71');
+expect(
+  mountAppShell().find('.app-top-bar__avatar > span').attributes('style')
+).toContain('background-color: #6b8f71');
 ```
 
 - [ ] **Step 2: Run the focused test to verify the current failure**

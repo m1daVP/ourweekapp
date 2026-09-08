@@ -19,6 +19,7 @@
 ### Task 1: Add draft selection and one confirmation action
 
 **Files:**
+
 - Modify: `weekly-us/src/features/participants/components/AvatarPickerSheet.vue`
 - Create: `weekly-us/src/features/participants/components/__tests__/AvatarPickerSheet.test.ts`
 

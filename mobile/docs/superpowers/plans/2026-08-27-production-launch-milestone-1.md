@@ -37,29 +37,31 @@ operation.
 
 ## File Structure
 
-| File | Responsibility |
-| --- | --- |
-| `weekly-us/src/features/legal/productionLegalContent.ts` | Canonical English legal text and public legal URLs for the mobile app. |
-| `weekly-us/src/features/legal/productionLegalContent.test.ts` | Unit-level assertions for immutable operator, retention, data-rights, and URL disclosures. |
-| `weekly-us/src/pages/PrivacyPolicyPage.vue` | Native rendering of canonical Privacy content without locale-specific draft text. |
-| `weekly-us/src/pages/TermsPage.vue` | Native rendering of canonical Terms content without locale-specific draft text. |
-| `weekly-us/src/pages/AccountPage.vue` | Immediate authenticated deletion plus visible public fallback for users unable to sign in. |
-| `weekly-us/src/pages/__tests__/LegalPages.test.ts` | Component coverage that the Privacy and Terms pages render the canonical English content for all supported locales. |
-| `weekly-us/src/pages/__tests__/AccountPage.test.ts` | Component coverage for the visible public deletion fallback without changing the existing destructive action. |
-| `weekly-us-landing/src/pages/privacy.astro` | Public Privacy Policy covering website and mobile app behavior. |
-| `weekly-us-landing/src/pages/terms.astro` | Public Terms covering the website and mobile app. |
-| `weekly-us-landing/src/pages/delete-account.astro` | Public no-login email-based account-deletion request resource. |
-| `weekly-us-landing/src/layouts/Layout.astro` | Footer navigation to the public deletion resource. |
-| `weekly-us-landing/src/styles/global.css` | Focus-visible and responsive styling shared by public legal pages. |
-| `weekly-us/docs/google-play-data-safety.md` | Final evidence checklist used to answer Google Play Data Safety questions. |
+| File                                                          | Responsibility                                                                                                      |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `weekly-us/src/features/legal/productionLegalContent.ts`      | Canonical English legal text and public legal URLs for the mobile app.                                              |
+| `weekly-us/src/features/legal/productionLegalContent.test.ts` | Unit-level assertions for immutable operator, retention, data-rights, and URL disclosures.                          |
+| `weekly-us/src/pages/PrivacyPolicyPage.vue`                   | Native rendering of canonical Privacy content without locale-specific draft text.                                   |
+| `weekly-us/src/pages/TermsPage.vue`                           | Native rendering of canonical Terms content without locale-specific draft text.                                     |
+| `weekly-us/src/pages/AccountPage.vue`                         | Immediate authenticated deletion plus visible public fallback for users unable to sign in.                          |
+| `weekly-us/src/pages/__tests__/LegalPages.test.ts`            | Component coverage that the Privacy and Terms pages render the canonical English content for all supported locales. |
+| `weekly-us/src/pages/__tests__/AccountPage.test.ts`           | Component coverage for the visible public deletion fallback without changing the existing destructive action.       |
+| `weekly-us-landing/src/pages/privacy.astro`                   | Public Privacy Policy covering website and mobile app behavior.                                                     |
+| `weekly-us-landing/src/pages/terms.astro`                     | Public Terms covering the website and mobile app.                                                                   |
+| `weekly-us-landing/src/pages/delete-account.astro`            | Public no-login email-based account-deletion request resource.                                                      |
+| `weekly-us-landing/src/layouts/Layout.astro`                  | Footer navigation to the public deletion resource.                                                                  |
+| `weekly-us-landing/src/styles/global.css`                     | Focus-visible and responsive styling shared by public legal pages.                                                  |
+| `weekly-us/docs/google-play-data-safety.md`                   | Final evidence checklist used to answer Google Play Data Safety questions.                                          |
 
 ### Task 1: Create the canonical mobile legal-content module
 
 **Files:**
+
 - Create: `D:/Projects/myself/weekly-us/src/features/legal/productionLegalContent.ts`
 - Create: `D:/Projects/myself/weekly-us/src/features/legal/productionLegalContent.test.ts`
 
 **Interfaces:**
+
 - Produces `PUBLIC_LEGAL_URLS`, a readonly object with `privacy`, `terms`, and
   `deleteAccount` absolute HTTPS URLs.
 - Produces `privacyPolicy` and `termsOfService`, each with `title`,
@@ -162,6 +164,7 @@ operation.
 ### Task 2: Render canonical legal content in the native app and expose the fallback deletion route
 
 **Files:**
+
 - Modify: `D:/Projects/myself/weekly-us/src/pages/PrivacyPolicyPage.vue`
 - Modify: `D:/Projects/myself/weekly-us/src/pages/TermsPage.vue`
 - Modify: `D:/Projects/myself/weekly-us/src/pages/AccountPage.vue`
@@ -169,6 +172,7 @@ operation.
 - Create: `D:/Projects/myself/weekly-us/src/pages/__tests__/AccountPage.test.ts`
 
 **Interfaces:**
+
 - Consumes `privacyPolicy`, `termsOfService`, and
   `PUBLIC_LEGAL_URLS.deleteAccount` from `productionLegalContent.ts`.
 - Preserves `deleteAccountAndClearLocalData()` and its existing confirmation
@@ -249,6 +253,7 @@ operation.
 ### Task 3: Publish landing-site legal pages and the public deletion resource
 
 **Files:**
+
 - Modify: `D:/Projects/myself/weekly-us-landing/src/pages/privacy.astro`
 - Modify: `D:/Projects/myself/weekly-us-landing/src/pages/terms.astro`
 - Create: `D:/Projects/myself/weekly-us-landing/src/pages/delete-account.astro`
@@ -256,6 +261,7 @@ operation.
 - Modify: `D:/Projects/myself/weekly-us-landing/src/styles/global.css`
 
 **Interfaces:**
+
 - Produces static `https://ourweekapp.com/privacy`, `/terms`, and
   `/delete-account` pages when deployed.
 - `delete-account.astro` uses a `mailto:ourweekapp@gmail.com` link with the
@@ -326,10 +332,12 @@ operation.
 ### Task 4: Finalize the Data Safety evidence checklist and release verification record
 
 **Files:**
+
 - Modify: `D:/Projects/myself/weekly-us/docs/google-play-data-safety.md`
 - Modify: `D:/Projects/myself/weekly-us/docs/production-launch-milestones.md`
 
 **Interfaces:**
+
 - Produces a human-reviewable evidence source for the authenticated Play
   Console submission.
 - Does not perform the Play Console submission or assert that it was completed.
@@ -388,15 +396,15 @@ operation.
 ## Final manual launch verification
 
 - [ ] Deploy the landing site, then open `https://ourweekapp.com/delete-account`
-  in a private browser window and verify a `200` response, the visible support
-  address, and the pre-addressed email action.
+      in a private browser window and verify a `200` response, the visible support
+      address, and the pre-addressed email action.
 - [ ] Send a test request from a controlled test account, verify account
-  control without requesting a password or token, and use the existing
-  authenticated deletion workflow to fulfill it.
+      control without requesting a password or token, and use the existing
+      authenticated deletion workflow to fulfill it.
 - [ ] Check mobile Account settings on a device: immediate deletion works and
-  the public fallback opens the same deployed deletion URL.
+      the public fallback opens the same deployed deletion URL.
 - [ ] Complete the authenticated Google Play Data Safety form with the finalized
-  evidence and enter `https://ourweekapp.com/delete-account` in its account
-  deletion URL field.
+      evidence and enter `https://ourweekapp.com/delete-account` in its account
+      deletion URL field.
 - [ ] Obtain qualified legal review before representing the Privacy Policy or
-  Terms as reviewed production legal text.
+      Terms as reviewed production legal text.

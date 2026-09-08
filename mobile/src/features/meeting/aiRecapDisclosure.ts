@@ -6,10 +6,12 @@ import {
 export const AI_RECAP_DISCLOSURE_VERSION = 'v1';
 
 function isAcknowledgedPreference(value: unknown) {
-  return typeof value === 'object'
-    && value !== null
-    && 'version' in value
-    && value.version === AI_RECAP_DISCLOSURE_VERSION;
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'version' in value &&
+    value.version === AI_RECAP_DISCLOSURE_VERSION
+  );
 }
 
 export function hasAcknowledgedAiRecapDisclosure() {

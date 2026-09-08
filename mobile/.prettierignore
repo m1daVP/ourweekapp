@@ -1,4 +1,6 @@
 android
 dist
+ios/App/App/public
+ios/App/CapApp-SPM
 node_modules
 package-lock.json
