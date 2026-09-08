@@ -4690,4 +4690,10 @@ export const messages = {
   },
 } as const;
 
-export type MessageSchema = typeof messages.en;
+type WidenMessageStrings<T> = {
+  [Key in keyof T]: T[Key] extends string
+    ? string
+    : WidenMessageStrings<T[Key]>;
+};
+
+export type MessageSchema = WidenMessageStrings<typeof messages.en>;

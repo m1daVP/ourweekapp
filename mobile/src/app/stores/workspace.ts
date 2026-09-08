@@ -198,7 +198,9 @@ function createAuthenticatedPlaceholderWorkspace(userId: string): Workspace {
   };
 }
 
-function normalizeMember(member: Partial<WorkspaceMember>) {
+function normalizeMember(
+  member: Partial<WorkspaceMember>
+): WorkspaceMember | null {
   const displayName = member.displayName?.trim();
 
   if (!displayName) {
@@ -221,7 +223,7 @@ function normalizeWorkspace(
   const members =
     workspace?.members
       ?.map(normalizeMember)
-      .filter((member): member is WorkspaceMember => Boolean(member)) ?? [];
+      .filter((member): member is WorkspaceMember => member !== null) ?? [];
   const invitations =
     workspace?.invitations
       ?.map(normalizeInvitation)

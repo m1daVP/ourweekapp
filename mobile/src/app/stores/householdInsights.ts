@@ -60,13 +60,14 @@ export const useHouseholdInsightsStore = defineStore('householdInsights', {
     searchErrorMessage: '',
   }),
   actions: {
-    async load(period: InsightsPeriod = this.selectedPeriod) {
+    async load(period?: InsightsPeriod) {
+      const selectedPeriod = period ?? this.selectedPeriod;
       this.isLoading = true;
       this.errorMessage = '';
 
       try {
-        this.insights = await insightsService.loadInsights(period);
-        this.selectedPeriod = period;
+        this.insights = await insightsService.loadInsights(selectedPeriod);
+        this.selectedPeriod = selectedPeriod;
       } catch (error) {
         this.errorMessage =
           error instanceof Error

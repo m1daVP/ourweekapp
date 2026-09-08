@@ -180,21 +180,22 @@ export async function apiRequest<TResponse>(
   try {
     return await sendApiRequest<TResponse>(path, options);
   } catch (error) {
+    const handlers = authHandlers;
     const shouldRefresh =
       options.requiresAuth &&
       !options.skipAuthRefresh &&
       error instanceof ApiClientError &&
       error.status === 401 &&
-      authHandlers?.refreshSession;
+      Boolean(handlers?.refreshSession);
 
-    if (!shouldRefresh) {
+    if (!shouldRefresh || !handlers?.refreshSession) {
       throw error;
     }
 
-    const refreshedToken = await authHandlers.refreshSession?.();
+    const refreshedToken = await handlers.refreshSession();
 
     if (!refreshedToken) {
-      await authHandlers.onUnauthorized?.();
+      await handlers.onUnauthorized?.();
       throw error;
     }
 

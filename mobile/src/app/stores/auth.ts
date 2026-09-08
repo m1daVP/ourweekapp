@@ -164,7 +164,7 @@ function invalidateGoogleSignInAttempt(attemptId?: number) {
 
 function readLegacyAuthTokensFromLocalStorage(): AuthTokens {
   if (typeof window === 'undefined') {
-    return { accessToken: null, refreshToken: null };
+    return { accessToken: null, refreshToken: null, expiresAt: null };
   }
 
   try {
@@ -542,6 +542,7 @@ function getStoredState(): Pick<AuthState, 'user' | 'authStatus'> {
       storedState.accessToken ?? legacyLocalStorageTokens.accessToken,
     refreshToken:
       storedState.refreshToken ?? legacyLocalStorageTokens.refreshToken,
+    expiresAt: legacyLocalStorageTokens.expiresAt,
   };
 
   if (storedState.authStatus === 'authenticated' && !storedState.user) {

@@ -248,7 +248,15 @@ export async function writeAuthTokens(tokens: AuthTokens) {
 
   try {
     await runSecureStorageOperation('write_session', () =>
-      SecureStorage.set(SESSION_KEY, tokens, false)
+      SecureStorage.set(
+        SESSION_KEY,
+        {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          expiresAt: tokens.expiresAt,
+        },
+        false
+      )
     );
     return;
   } catch (error) {

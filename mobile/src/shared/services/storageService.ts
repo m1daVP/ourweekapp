@@ -145,6 +145,7 @@ function createEmptyAppData(): AppDataEnvelope {
 
 function createEmptySettingsData(): AppDataSettings {
   return {
+    aiRecap: null,
     calendarSync: null,
     localization: null,
     reminders: null,
@@ -646,10 +647,12 @@ export function migrateAppDataFromVersion4ToVersion5(
   const reviewDecisions = Array.isArray(tasksState.reviewDecisions)
     ? tasksState.reviewDecisions.map(getRecord)
     : [];
-  let tasks = Array.isArray(tasksState.tasks)
+  let tasks: Record<string, unknown>[] | null = Array.isArray(tasksState.tasks)
     ? tasksState.tasks.map((task) => ({ ...getRecord(task) }))
     : null;
-  let meetings = Array.isArray(meetingsState.meetings)
+  let meetings: Record<string, unknown>[] | null = Array.isArray(
+    meetingsState.meetings
+  )
     ? meetingsState.meetings.map((meeting) => {
         const item = getRecord(meeting);
 

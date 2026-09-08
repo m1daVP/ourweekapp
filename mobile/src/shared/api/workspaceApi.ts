@@ -3,6 +3,7 @@ import type {
   WorkspaceInvitation,
   WorkspaceMember,
 } from '@/features/workspace/types';
+import type { UserRole } from '@/features/access/types';
 import { apiRequest } from './httpClient';
 
 export type WorkspaceDto = Workspace;

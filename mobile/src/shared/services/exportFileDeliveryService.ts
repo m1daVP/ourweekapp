@@ -10,9 +10,9 @@ export interface ExportFileDelivery {
   title?: string;
 }
 
-interface WebNavigatorWithShare extends Navigator {
-  canShare?: (data: ShareData) => boolean;
-}
+type WebNavigatorWithShare = Navigator & {
+  canShare?: Navigator['canShare'];
+};
 
 export function downloadFileInBrowser(file: ExportFileDelivery) {
   const blob = new Blob([file.content], { type: file.mimeType });
@@ -38,11 +38,11 @@ export async function shareFileInBrowser(file: ExportFileDelivery) {
   };
   const webNavigator = navigator as WebNavigatorWithShare;
 
-  if (!navigator.share || !webNavigator.canShare?.(shareData)) {
+  if (!webNavigator.share || !webNavigator.canShare?.(shareData)) {
     return false;
   }
 
-  await navigator.share(shareData);
+  await webNavigator.share(shareData);
   return true;
 }
 
