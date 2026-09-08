@@ -28,10 +28,14 @@ const canCreateMeeting = computed(() => can('createMeetings'));
 
 const activeDraft = computed(
   () =>
-    (meetingsStore.activeMeeting?.status !== 'completed'
+    (meetingsStore.activeMeeting &&
+    meetingsStore.activeMeeting.status !== 'completed' &&
+    !meetingsStore.activeMeeting.deletedAt
       ? meetingsStore.activeMeeting
       : null) ??
-    meetingsStore.meetings.find((meeting) => meeting.status !== 'completed') ??
+    meetingsStore.meetings.find(
+      (meeting) => meeting.status !== 'completed' && !meeting.deletedAt
+    ) ??
     null
 );
 const selectedTemplate = computed(
