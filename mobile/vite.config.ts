@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue';
 import {
   assertValidProductionConfig,
   assertValidRequiredApiConfig,
-} from './src/shared/config/productionConfigValidation';
+} from './src/shared/config/productionConfigValidation.ts';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 export default defineConfig(({ command, mode }) => {
