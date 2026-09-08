@@ -33,9 +33,11 @@ import type {
   RefreshTokenRequestDto,
   AcceptWorkspaceInvitationRequestDto,
   GoogleSignInRequestDto,
+  GoogleLinkRequestDto,
   RegisterRequestDto,
   SignInRequestDto,
   SignOutRequestDto,
+  SignInMethodDto,
 } from './auth.schema.js';
 
 export async function hashPassword(password: string) {
@@ -121,6 +123,7 @@ export type AuthUserDto = {
   displayName?: string;
   role: UserRole;
   planType: 'free' | 'premium';
+  signInMethods: SignInMethodDto[];
   createdAt: string;
   updatedAt: string;
 };
@@ -212,6 +215,7 @@ function addSeconds(date: Date, seconds: number) {
 function mapAuthUser(
   user: UserRow,
   member: WorkspaceMemberRow,
+  signInMethods: SignInMethodDto[],
   planType: PlanType = 'free',
   role: UserRole = member.role,
 ): AuthUserDto {
@@ -222,6 +226,7 @@ function mapAuthUser(
     displayName: user.display_name ?? member.display_name,
     role,
     planType,
+    signInMethods,
     createdAt: new Date(user.created_at).toISOString(),
     updatedAt: new Date(user.updated_at).toISOString(),
   };
@@ -511,6 +516,41 @@ async function getGoogleIdentityBySubject(
   return data;
 }
 
+async function getSignInMethods(
+  supabase: SupabaseClient,
+  user: Pick<UserRow, 'id' | 'password_hash'>,
+): Promise<SignInMethodDto[]> {
+  const { data, error } = await supabase
+    .from('auth_identities')
+    .select('provider')
+    .eq('user_id', user.id)
+    .eq('provider', 'google')
+    .limit(1)
+    .returns<Array<{ provider: 'google' }>>();
+
+  if (error) {
+    throw new ApiError(
+      500,
+      'auth_identity_lookup_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  const methods: SignInMethodDto[] = [];
+  if (user.password_hash) {
+    methods.push('password');
+  }
+  if ((data ?? []).some((identity) => identity.provider === 'google')) {
+    methods.push('google');
+  }
+
+  if (methods.length === 0) {
+    throw invalidSessionError;
+  }
+
+  return methods;
+}
+
 async function linkGoogleIdentity(
   supabase: SupabaseClient,
   userId: string,
@@ -571,6 +611,7 @@ async function createSessionResponse(
   const now = new Date();
   const refreshSession = issueRefreshTokenSession(now);
   const expiresAt = addSeconds(now, env.ACCESS_TOKEN_TTL_SECONDS);
+  const signInMethods = await getSignInMethods(supabase, user);
 
   const { data: session, error } = await supabase
     .from('sessions')
@@ -601,7 +642,7 @@ async function createSessionResponse(
   });
 
   return {
-    user: mapAuthUser(user, member),
+    user: mapAuthUser(user, member, signInMethods),
     accessToken,
     refreshToken: refreshSession.refreshToken,
     expiresAt: expiresAt.toISOString(),
@@ -852,17 +893,11 @@ export async function signInWithGoogle(
     supabase,
     identity.subject,
   );
-  const user = existingIdentity
-    ? await getUserById(supabase, existingIdentity.user_id)
-    : await getUserByEmail(supabase, identity.email);
+  if (existingIdentity) {
+    const user = await getUserById(supabase, existingIdentity.user_id);
 
-  if (existingIdentity && !user) {
-    throw invalidGoogleTokenError;
-  }
-
-  if (user) {
-    if (!existingIdentity) {
-      await linkGoogleIdentity(supabase, user.id, identity);
+    if (!user) {
+      throw invalidGoogleTokenError;
     }
 
     const member = await getActiveMemberForUser(supabase, user.id);
@@ -874,7 +909,96 @@ export async function signInWithGoogle(
     return createSessionResponse(supabase, user, member);
   }
 
+  const userWithEmail = await getUserByEmail(supabase, identity.email);
+  if (userWithEmail) {
+    throw new ApiError(
+      409,
+      'account_link_required',
+      'This email already has an account. Sign in with your password, then link Google from Settings.',
+    );
+  }
+
   return registerGoogleUser(supabase, identity, body.invitationToken);
+}
+
+function mapGoogleLinkError(error: { message?: string; code?: string } | null) {
+  if (!error) {
+    return;
+  }
+
+  if (error.message === 'account_link_email_mismatch') {
+    throw new ApiError(
+      409,
+      'account_link_email_mismatch',
+      'Use the Google account with the same email as your OurWeek account.',
+    );
+  }
+
+  if (error.message === 'account_link_conflict') {
+    throw new ApiError(
+      409,
+      'account_link_conflict',
+      'This Google account is linked to another OurWeek account.',
+    );
+  }
+
+  if (error.message === 'google_already_linked') {
+    throw new ApiError(
+      409,
+      'google_already_linked',
+      'A different Google account is already linked.',
+    );
+  }
+
+  if (error.message === 'auth_user_not_found') {
+    throw invalidSessionError;
+  }
+
+  throw new ApiError(
+    500,
+    'auth_identity_link_failed',
+    'Something went wrong. Please try again.',
+  );
+}
+
+export async function linkGoogleIdentityForAuthenticatedUser(
+  supabase: SupabaseClient,
+  auth: AuthContext | undefined,
+  body: GoogleLinkRequestDto,
+  provider: GoogleAuthProvider = googleAuthProvider,
+  logger?: Pick<FastifyBaseLogger, 'warn'>,
+): Promise<AuthUserDto> {
+  const context = requireAuthenticatedContext(auth);
+  const identity = await provider.verifyIdToken(body.idToken, logger);
+  const { error } = await supabase.rpc('link_google_auth_identity', {
+    p_user_id: context.userId,
+    p_provider_subject: identity.subject,
+    p_email: normalizeEmail(identity.email),
+    p_display_name: identity.displayName ?? null,
+    p_avatar_url: identity.avatarUrl ?? null,
+  });
+
+  mapGoogleLinkError(error);
+
+  const user = await getUserById(supabase, context.userId);
+  const member = await getActiveMemberForUser(
+    supabase,
+    context.userId,
+    context.workspaceId,
+  );
+
+  if (!user || !member) {
+    throw invalidSessionError;
+  }
+
+  const signInMethods = await getSignInMethods(supabase, user);
+  return mapAuthUser(
+    user,
+    member,
+    signInMethods,
+    context.planType,
+    context.role,
+  );
 }
 
 export async function signInUser(
@@ -1027,9 +1151,10 @@ export async function refreshSession(
     workspaceId: member.workspace_id,
     role: member.role,
   });
+  const signInMethods = await getSignInMethods(supabase, user);
 
   return {
-    user: mapAuthUser(user, member),
+    user: mapAuthUser(user, member, signInMethods),
     accessToken,
     refreshToken: refreshSession.refreshToken,
     expiresAt: accessTokenExpiresAt.toISOString(),
@@ -1139,7 +1264,9 @@ export async function getCurrentUser(
     throw invalidSessionError;
   }
 
-  return mapAuthUser(user, member, auth.planType, auth.role);
+  const signInMethods = await getSignInMethods(supabase, user);
+
+  return mapAuthUser(user, member, signInMethods, auth.planType, auth.role);
 }
 
 const passwordResetTtlMinutes = 30;

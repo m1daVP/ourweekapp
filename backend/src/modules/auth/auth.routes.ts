@@ -8,6 +8,7 @@ import {
   authMeResponseSchema,
   authSessionResponseSchema,
   googleSignInRequestSchema,
+  googleLinkRequestSchema,
   passwordResetConfirmRequestSchema,
   passwordResetRequestResponseSchema,
   passwordResetRequestSchema,
@@ -20,6 +21,7 @@ import {
   acceptWorkspaceInvitation,
   confirmPasswordReset,
   getCurrentUser,
+  linkGoogleIdentityForAuthenticatedUser,
   refreshSession,
   registerUser,
   requestPasswordReset,
@@ -142,6 +144,32 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     );
 
     return reply.status(204).send(null);
+  });
+
+  app.post('/google/link', {
+    config: {
+      authRequired: true,
+      rateLimit: {
+        max: 5,
+        timeWindow: '1 minute',
+      },
+    },
+    preHandler: authPreHandler,
+    schema: {
+      body: googleLinkRequestSchema,
+      response: {
+        200: authMeResponseSchema,
+        ...authRateLimitedErrorResponses,
+      },
+    },
+  }, async (request) => {
+    return linkGoogleIdentityForAuthenticatedUser(
+      app.supabase,
+      request.auth,
+      request.body,
+      undefined,
+      request.log,
+    );
   });
 
   app.post('/invitations/accept', {

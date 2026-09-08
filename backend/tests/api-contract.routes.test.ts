@@ -47,6 +47,7 @@ const subscriptionService = vi.hoisted(() => ({
 }));
 const signInUser = vi.hoisted(() => vi.fn());
 const signInWithGoogle = vi.hoisted(() => vi.fn());
+const linkGoogleIdentityForAuthenticatedUser = vi.hoisted(() => vi.fn());
 const acceptWorkspaceInvitation = vi.hoisted(() => vi.fn());
 const authMe = vi.hoisted(() => vi.fn());
 
@@ -133,6 +134,7 @@ vi.mock('../src/modules/auth/auth.service.js', () => ({
   acceptWorkspaceInvitation,
   confirmPasswordReset: vi.fn(),
   getCurrentUser: authMe,
+  linkGoogleIdentityForAuthenticatedUser,
   refreshSession: vi.fn(),
   registerUser: vi.fn(),
   requestPasswordReset: vi.fn(),
@@ -263,6 +265,7 @@ function authSessionResponse() {
       displayName: 'Rita',
       role: 'owner',
       planType: 'free',
+      signInMethods: ['password'],
       createdAt: now,
       updatedAt: now,
     },
@@ -293,6 +296,7 @@ describe('API route contracts', () => {
     subscriptionService.restore.mockReset();
     signInUser.mockReset();
     signInWithGoogle.mockReset();
+    linkGoogleIdentityForAuthenticatedUser.mockReset();
     acceptWorkspaceInvitation.mockReset();
     authMe.mockReset();
   });
@@ -715,6 +719,46 @@ describe('API route contracts', () => {
       .toEqual([200, 200, 200, 200, 200]);
     expect(responses[5]?.statusCode).toBe(429);
     expect(signInWithGoogle).toHaveBeenCalledTimes(5);
+    await app.close();
+  });
+
+  it('links Google through the authenticated auth route', async () => {
+    linkGoogleIdentityForAuthenticatedUser.mockResolvedValueOnce(
+      authSessionResponse().user,
+    );
+    const app = await buildRouteApp('auth');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/google/link',
+      headers: { authorization: 'Bearer valid-token' },
+      payload: { idToken: 'google-id-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: authContext.userId,
+      signInMethods: ['password'],
+    });
+    expect(linkGoogleIdentityForAuthenticatedUser).toHaveBeenCalledWith(
+      {},
+      authContext,
+      { idToken: 'google-id-token' },
+      undefined,
+      expect.any(Object),
+    );
+    await app.close();
+  });
+
+  it('requires authentication before linking Google', async () => {
+    const app = await buildRouteApp('auth');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/google/link',
+      payload: { idToken: 'google-id-token' },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(linkGoogleIdentityForAuthenticatedUser).not.toHaveBeenCalled();
     await app.close();
   });
 

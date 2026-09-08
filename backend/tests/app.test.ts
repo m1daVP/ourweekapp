@@ -48,6 +48,7 @@ function authSessionResponse() {
       displayName: 'Rita',
       role: 'owner',
       planType: 'free',
+      signInMethods: ['password'],
       createdAt: now,
       updatedAt: now,
     },

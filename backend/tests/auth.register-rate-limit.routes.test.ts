@@ -28,6 +28,7 @@ const authSession = {
     displayName: 'Rita',
     role: 'owner',
     planType: 'free',
+    signInMethods: ['password'],
     createdAt: '2026-07-12T12:00:00.000Z',
     updatedAt: '2026-07-12T12:00:00.000Z',
   },

@@ -296,6 +296,7 @@ describe('auth.service', () => {
       { data: workspaceRow(), error: null },
       { data: memberRow(), error: null },
       { data: null, error: null },
+      { data: [], error: null },
       { data: sessionRow(), error: null },
     ], operations);
 
@@ -375,6 +376,7 @@ describe('auth.service', () => {
         }),
         error: null,
       },
+      { data: [], error: null },
       { data: sessionRow(), error: null },
     ], operations);
 
@@ -414,6 +416,7 @@ describe('auth.service', () => {
         })],
         error: null,
       },
+      { data: [], error: null },
       { data: sessionRow(), error: null },
     ], operations);
 
@@ -466,6 +469,7 @@ describe('auth.service', () => {
       { data: workspaceRow(), error: null },
       { data: memberRow(), error: null },
       { data: null, error: null },
+      { data: [{ provider: 'google' }], error: null },
       { data: sessionRow(), error: null },
     ], operations);
 
@@ -531,6 +535,7 @@ describe('auth.service', () => {
         }),
         error: null,
       },
+      { data: [{ provider: 'google' }], error: null },
       { data: sessionRow(), error: null },
     ], operations);
 
@@ -557,6 +562,7 @@ describe('auth.service', () => {
       { data: googleIdentityRow(), error: null },
       { data: userRow({ password_hash: null }), error: null },
       { data: [memberRow()], error: null },
+      { data: [{ provider: 'google' }], error: null },
       { data: sessionRow(), error: null },
     ], operations);
 
@@ -620,24 +626,88 @@ describe('auth.service', () => {
     ).toBe(false);
   });
 
-  it('links a verified Google identity to an existing password account by email', async () => {
+  it('requires explicit linking when Google matches an existing password account', async () => {
     const { authService } = await loadAuthModules();
+    const operations: SupabaseOperation[] = [];
     const supabase = createSequentialSupabase([
       { data: null, error: null },
       { data: userRow(), error: null },
-      { data: googleIdentityRow(), error: null },
-      { data: [memberRow()], error: null },
-      { data: sessionRow(), error: null },
-    ]);
+    ], operations);
 
-    const response = await authService.signInWithGoogle(
+    await expect(
+      authService.signInWithGoogle(
+        supabase,
+        { idToken: 'google-id-token' },
+        googleProvider(),
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'account_link_required',
+    });
+    expect(
+      operations.some(
+        (operation) =>
+          operation.action === 'insert' || operation.table === 'sessions',
+      ),
+    ).toBe(false);
+  });
+
+  it('links Google to the authenticated account without password re-entry', async () => {
+    const { authService } = await loadAuthModules();
+    const operations: SupabaseOperation[] = [];
+    const supabase = createSequentialSupabase([
+      { data: googleIdentityRow(), error: null },
+      { data: userRow(), error: null },
+      { data: [memberRow()], error: null },
+      { data: [{ provider: 'google' }], error: null },
+    ], operations);
+
+    const user = await authService.linkGoogleIdentityForAuthenticatedUser(
       supabase,
+      {
+        userId: 'user-1',
+        sessionId: 'session-1',
+        workspaceId: 'workspace-1',
+        role: 'owner',
+        planType: 'free',
+      },
       { idToken: 'google-id-token' },
       googleProvider(),
     );
 
-    expect(response.user.email).toBe('rita@example.com');
-    expect(response.user.workspaceId).toBe('workspace-1');
+    expect(user.signInMethods).toEqual(['password', 'google']);
+    expect(operations).toContainEqual({
+      table: 'link_google_auth_identity',
+      action: 'rpc',
+    });
+    expect(
+      operations.some((operation) => operation.table === 'sessions'),
+    ).toBe(false);
+  });
+
+  it('rejects linking a Google account with a different email', async () => {
+    const { authService } = await loadAuthModules();
+    const supabase = createSequentialSupabase([
+      { data: null, error: { message: 'account_link_email_mismatch' } },
+    ]);
+
+    await expect(
+      authService.linkGoogleIdentityForAuthenticatedUser(
+        supabase,
+        {
+          userId: 'user-1',
+          sessionId: 'session-1',
+          workspaceId: 'workspace-1',
+          role: 'owner',
+          planType: 'free',
+        },
+        { idToken: 'google-id-token' },
+        googleProvider(),
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'account_link_email_mismatch',
+    });
   });
 
   it('rejects invalid Google tokens before touching account data', async () => {

@@ -179,6 +179,7 @@ describe('DTO schema validation limits', () => {
       displayName: 'Rita',
       role: 'owner',
       planType: 'free',
+      signInMethods: ['password'],
       createdAt: now,
       updatedAt: now,
       passwordHash: 'secret',
