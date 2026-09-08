@@ -8,13 +8,13 @@ Assessment date: 7 September 2026. Scope: the current working copies of `weekly-
 
 The strongest parts are the domain-oriented backend, explicit authorization, secure native token storage, extensive regression tests, and thoughtful AI recovery behavior. The immediate problems are specific and fixable: unsafe account linking, private notes surviving account changes, broken participant actions, and a mobile build that misses application type errors. Operational and store validation also remain unproven in the evidence available here.
 
-| Release stage | Assessment | Gate |
-| --- | --- | --- |
-| Internal testing with synthetic data | Suitable | Track the defects below; use isolated accounts and infrastructure |
-| Small, invited household pilot | Conditional; not approved by this review | Fix findings 1–4; verify isolation, migrations, recovery, and the signed-device core journey |
-| Public Free release | Hold | Complete pilot gates, public support/deletion verification, and release quality checks |
-| Public paid Premium | Hold | Also complete real-store billing scenarios and validation of enabled AI/calendar integrations |
-| iOS release | Unverified | Separate native signing, purchase, notification, secure-storage, and sharing QA |
+| Release stage                        | Assessment                               | Gate                                                                                          |
+| ------------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Internal testing with synthetic data | Suitable                                 | Track the defects below; use isolated accounts and infrastructure                             |
+| Small, invited household pilot       | Conditional; not approved by this review | Fix findings 1–4; verify isolation, migrations, recovery, and the signed-device core journey  |
+| Public Free release                  | Hold                                     | Complete pilot gates, public support/deletion verification, and release quality checks        |
+| Public paid Premium                  | Hold                                     | Also complete real-store billing scenarios and validation of enabled AI/calendar integrations |
+| iOS release                          | Unverified                               | Separate native signing, purchase, notification, secure-storage, and sharing QA               |
 
 These are engineering judgments based on repository evidence, not a percentage score. Passing unit tests cannot establish production uptime, store configuration, or absence of security defects.
 
@@ -64,9 +64,9 @@ Evidence: [create path](D:/Projects/myself/weekly-us/src/features/participants/c
 
 **Required outcome:** align the component with the current meeting-attendance behavior and real store interface. Cover creation and re-enabling with the actual store, including during an active meeting; do not mechanically replace the call with an action requiring different semantics.
 
-### 4. Password reset is now atomic; database verification remains open
+### 4. Password reset is now atomic and locally verified; staging remains open
 
-**Priority: P1 — code remediated on 8 September 2026; isolated PostgreSQL and staging verification remain release gates.**
+**Priority: P1 — code and isolated PostgreSQL behavior verified on 8 September 2026; staging verification remains a deployment gate.**
 
 Reset confirmation now hashes the new password before one `confirm_password_reset` RPC call. The additive PostgreSQL function locks an eligible reset-token row, consumes it, changes the owning user's password, and revokes every active session in one transaction. Invalid, expired, consumed, and concurrent-loser tokens return the existing `422 invalid_reset_code`; database failures retain the safe `500 password_reset_failed` response.
 
@@ -74,23 +74,25 @@ The RPC uses `SECURITY DEFINER`, an empty `search_path`, fully qualified tables,
 
 Evidence: [service call](D:/Projects/myself/weekly-us-api/src/modules/auth/auth.service.ts:1345), [atomic migration](D:/Projects/myself/weekly-us-api/supabase/migrations/20260908130000_add_atomic_password_reset_confirmation.sql:1), [service tests](D:/Projects/myself/weekly-us-api/tests/password-reset.service.test.ts:306), [migration contract](D:/Projects/myself/weekly-us-api/tests/password-reset.migration.test.ts:8), and [guarded database tests](D:/Projects/myself/weekly-us-api/tests/password-reset.integration.test.ts:146).
 
-Automated evidence on 8 September 2026: the focused password-reset command passed 13 tests and skipped the three isolated-database cases; `npm run ci` passed 469 tests with 12 guarded integration skips across the repository, plus typecheck and OpenAPI drift verification; `npm run build` passed. The password-reset integration cases were skipped because `SUPABASE_LOCAL_URL` and `SUPABASE_LOCAL_SERVICE_ROLE_KEY` were unset. A direct local Supabase status check also found no running Docker engine.
+Automated evidence on 8 September 2026: the complete pending migration chain applied successfully to isolated local Supabase. The focused password-reset command passed all 16 tests, including successful mutation, exact single use under two concurrent requests, later reuse rejection, preservation of an earlier revocation timestamp, and rollback of token consumption when the user update failed. The earlier repository-wide `npm run ci` passed 469 tests with 12 guarded integration skips, plus typecheck and OpenAPI drift verification; `npm run build` passed.
 
-**Remaining release outcome:** apply the additive migration to isolated local Supabase and pass the successful reset, two-request race, reuse, and forced-rollback cases. Then apply and verify the migration in staging before deploying the dependent backend. No staging or production migration was performed during this work.
+**Remaining release outcome:** apply and verify the migration in staging before deploying the dependent backend. Confirm one successful reset, invalid reuse, and sign-out on every previously active device. No staging or production migration was performed during this work.
 
 ## Quality and reliability gaps
 
-### 5. The mobile build gives an incomplete quality signal
+### 5. The mobile quality gate is repaired and locally verified
 
-**Priority: P1 for release verification.**
+**Priority: P1 — source quality gate remediated on 8 September 2026; hosted CI and signed-release verification remain open.**
 
-`npm run build` passes, but its `vue-tsc --noEmit` invocation targets a solution configuration with an empty `files` list and project references. An explicit check of `tsconfig.app.json` fails. After suppressing only the TypeScript 6 deprecation diagnostic using the project's documented CLI flag, it reports application errors involving auth token shape, workspace null handling, localization, participant actions, export types, and storage initialization.
+The mobile repository now exposes explicit application and Node configuration typechecks. Ordinary, staging, and release build scripts call the explicit typecheck instead of relying on the empty solution configuration. The TypeScript 6 `baseUrl` deprecation was removed, the Node project includes its imported production-validation module, and the substantive application diagnostics were corrected at their existing token, workspace, localization, participant, export, and storage boundaries.
 
-These are not all proven runtime failures, but finding 3 is a concrete example hidden by the current build. Formatting also fails in 16 files. Lint reports 3,555 errors and two warnings, largely because generated iOS web assets are included, with additional source/script issues.
+Formatting is clean. ESLint excludes synchronized native web bundles while continuing to check maintained application code, tests, scripts, and configuration; the remaining source and script findings were fixed without broad rule suppression. `npm run ci` now runs explicit typechecks, formatting, lint, all tests, and an ordinary Vite bundle. A quality-only GitHub Actions workflow runs that same command for pushes and pull requests with read-only repository permissions and no Render deployment or release credentials.
 
-Evidence: [build scripts](D:/Projects/myself/weekly-us/package.json:13), [solution config](D:/Projects/myself/weekly-us/tsconfig.json:1), [app config](D:/Projects/myself/weekly-us/tsconfig.app.json:1).
+Evidence: [build and CI scripts](D:/Projects/myself/weekly-us/package.json:12), [app config](D:/Projects/myself/weekly-us/tsconfig.app.json:1), [Node config](D:/Projects/myself/weekly-us/tsconfig.node.json:1), [lint scope](D:/Projects/myself/weekly-us/eslint.config.js:1), and [GitHub quality workflow](D:/Projects/myself/weekly-us/.github/workflows/quality.yml:1).
 
-**Required outcome:** make the release check compile the actual app and Node configurations, fix substantive diagnostics, and exclude generated artifacts from source linting. Add a repeatable mobile CI gate; no `.github` workflow was found in this checkout. Keep meaningful behavior tests alongside mocks.
+Local verification on 8 September 2026: `npm run ci` passed both explicit TypeScript projects, repository formatting, zero-warning lint, 74 test files with 592 tests, and the ordinary production bundle. A separate `npm run build` also passed after the final Vite configuration correction.
+
+**Remaining release outcome:** observe a successful GitHub-hosted quality run after these changes are pushed. Separately build, install, and test the signed native release; the green source gate does not establish Android/iOS package behavior, release-mode Sentry upload, store installation, or physical-device quality.
 
 ### 6. History, task synchronization, and account export lack complete pagination
 
@@ -142,22 +144,18 @@ Evidence: [environment parser](D:/Projects/myself/weekly-us-api/src/config/env.t
 
 ## Verification results
 
-| Check | Observed result |
-| --- | --- |
-| API `npm run typecheck` | Passed |
-| API `npm run build` | Passed |
-| API `npm run openapi:check` | Passed |
-| API initial full test run | 59 files passed, 2 failed in setup, 3 skipped; 454 tests passed, 12 skipped |
-| API isolated retry of failed files | Both passed, all 5 tests passed; original failures were 15-second setup timeouts, plus cleanup after failed setup |
-| API full rerun without competing checks | Passed: 61 files, 459 tests; 3 database integration files / 7 tests skipped. Initial timeout failures were not reproduced |
-| Mobile `npm test` | 71 files, 566 tests passed; warnings included duplicate plugin registration and missing test props |
-| Mobile `npm run build` | Passed; does not establish a clean app typecheck |
-| Mobile explicit app typecheck | Failed on TypeScript 6 `baseUrl` deprecation |
-| Mobile explicit app typecheck with `--ignoreDeprecations 6.0` | Failed with substantive application diagnostics, including nonexistent participant action |
-| Mobile `npm run check` | Failed formatting in 16 files; chained lint did not run |
-| Mobile separate `npm run lint` | Failed: 3,555 errors, 2 warnings; largely generated iOS assets, plus source/script issues |
-| Landing `npm run build` | Passed; generated all five pages |
-| Database integration, paid provider calls, physical devices, signed release | Not exercised |
+| Check                                                                       | Observed result                                                                                                              |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| API `npm run typecheck`                                                     | Passed                                                                                                                       |
+| API `npm run build`                                                         | Passed                                                                                                                       |
+| API `npm run openapi:check`                                                 | Passed                                                                                                                       |
+| API initial full test run                                                   | 59 files passed, 2 failed in setup, 3 skipped; 454 tests passed, 12 skipped                                                  |
+| API isolated retry of failed files                                          | Both passed, all 5 tests passed; original failures were 15-second setup timeouts, plus cleanup after failed setup            |
+| API full rerun without competing checks                                     | Passed: 61 files, 459 tests; 3 database integration files / 7 tests skipped. Initial timeout failures were not reproduced    |
+| Mobile `npm run ci` after point 5 repair                                    | Passed: explicit app and Node typechecks, formatting, zero-warning lint, 74 test files / 592 tests, and ordinary Vite bundle |
+| Mobile `npm run build` after point 5 repair                                 | Passed explicit app and Node typechecks and the ordinary Vite bundle                                                         |
+| Landing `npm run build`                                                     | Passed; generated all five pages                                                                                             |
+| Database integration, paid provider calls, physical devices, signed release | Not exercised                                                                                                                |
 
 The release-mode mobile build was not run because its Sentry plugin can upload source maps using configured credentials. The ordinary build above is local build evidence, not proof of the release configuration or signed package.
 
@@ -172,4 +170,3 @@ The release-mode mobile build was not run because its Sentry plugin can upload s
 7. **Enable public paid access after billing evidence is complete:** retain a release decision with named owner, date, revisions, test records, and accepted limitations.
 
 Avoid estimating launch time from feature count. The remaining work combines a handful of concrete code defects with external verification; completion should be judged by the acceptance evidence above.
-

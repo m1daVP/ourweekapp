@@ -1,7 +1,7 @@
 # Atomic Password Reset Design
 
 **Date:** 2026-09-08  
-**Status:** Implemented; isolated database verification pending  
+**Status:** Implemented and verified against isolated local PostgreSQL
 **Readiness finding:** `docs/system-readiness-report-2026-09-07.md`, point 4
 
 ## Objective
@@ -105,9 +105,10 @@ Implemented on 8 September 2026:
 
 Verification:
 
-- Focused password-reset suites: 13 passed, 3 guarded database tests skipped.
+- Focused password-reset suites: all 16 tests passed after the complete pending migration chain was applied to isolated local Supabase.
+- Local PostgreSQL verification passed for successful mutation, two-request concurrency, later reuse rejection, all-session revocation, and rollback after token consumption when the user update failed.
 - `npm run typecheck`: passed.
 - `npm run ci`: passed with 469 tests passed and 12 guarded integration tests skipped across the repository; OpenAPI check passed.
 - `npm run build`: passed.
 
-The local database suite did not execute because `SUPABASE_LOCAL_URL` and `SUPABASE_LOCAL_SERVICE_ROLE_KEY` were unset, and the local Supabase status check found no running Docker engine. Concurrency and rollback are covered by executable integration tests but are not yet verified against PostgreSQL. Apply the migration and pass those tests in isolated local Supabase, then verify staging before deploying the dependent backend.
+The initial local migration connection failed because the Docker host-port proxy was terminating connections. Restarting the local Supabase stack while preserving its database volume repaired connectivity. The CLI then applied migrations `20260711090000` through `20260908130000` successfully, and the three password-reset database tests passed. Staging verification and deployment remain separate: apply the migration in staging and verify success, invalid reuse, and all-device sign-out before deploying the dependent backend.

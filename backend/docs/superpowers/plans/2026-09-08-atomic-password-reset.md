@@ -542,10 +542,11 @@ Implemented inline on 8 September 2026 without staging, committing implementatio
 
 Observed checks:
 
-- `npm test -- tests/password-reset.integration.test.ts tests/password-reset.service.test.ts tests/password-reset.migration.test.ts`: 13 passed, 3 integration tests skipped.
+- `npm test -- tests/password-reset.integration.test.ts tests/password-reset.service.test.ts tests/password-reset.migration.test.ts --reporter=verbose`: all 16 tests passed against isolated local Supabase.
+- The database cases passed for successful mutation, two-request concurrency, later reuse rejection, all-session revocation, and rollback after token consumption when the user update failed.
 - `npm run typecheck`: passed.
 - `npm run ci`: passed; 64 files passed, 5 files skipped, 469 tests passed, and 12 tests skipped. OpenAPI drift check passed.
 - `npm run build`: passed.
-- Local Supabase credentials were unset. `npx supabase status` could not connect because the Docker Desktop Linux engine was not running.
+- `npm run db:migrate:local`: applied the complete pending chain from `20260711090000` through `20260908130000` successfully after restarting the local Supabase stack with its database volume preserved.
 
-Remaining gate: run the three password-reset database tests after applying the migration to isolated local Supabase, then apply and verify the migration in staging before backend deployment. These results do not establish staging or production migration state.
+Remaining gate: apply and verify the migration in staging before backend deployment. These results do not establish staging or production migration state.
