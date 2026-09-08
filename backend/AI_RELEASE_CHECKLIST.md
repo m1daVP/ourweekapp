@@ -221,9 +221,9 @@ Acceptance: the evaluation record supports the chosen model/prompt configuration
 
 ### Automated checks
 
-- [ ] Update stale AI route authorization tests to reflect service-owned authorization and Free starter credits. Retain real denial coverage for viewers and unauthorized workspaces.
-- [ ] Investigate backend suite hook timeouts; do not hide them by disabling tests.
-- [ ] Run focused backend tests, then the full suite, typecheck, build, and OpenAPI validation.
+- [x] Update stale AI route authorization tests to reflect service-owned authorization and Free starter credits. Retain real denial coverage for viewers and unauthorized workspaces.
+- [x] Investigate backend suite hook timeouts; do not hide them by disabling tests.
+- [x] Run focused backend tests, then the full suite, typecheck, build, and OpenAPI validation.
 
 Run from the backend root:
 
@@ -234,6 +234,8 @@ npm test
 npm run build
 npm run openapi:check
 ```
+
+Implementation verification, 2026-09-06: route tests already delegated AI entitlement decisions to the service, while service tests retained viewer and cross-workspace denials. The obsolete pre-atomic rate-limit repository assertion was removed. Vitest now provides `AI_PROVIDER=mock` to workers before application imports and runs one worker to prevent Argon2 resource contention; its existing 15-second test and hook limits were not changed. Focused AI coverage passed (81 tests). The full backend suite passed (459 tests; 7 guarded local-database tests skipped), as did typecheck, build, and OpenAPI validation. Mobile checks, isolated local-database integration, staging, manual scenarios, and final go/no-go remain outstanding.
 
 - [ ] Run mobile unit/contract tests and an explicit app TypeScript check. Resolve release-blocking type errors rather than relying on the root project-reference invocation.
 
