@@ -476,7 +476,13 @@ function saveParticipantDraft() {
       return;
     }
 
-    const participant = participantsStore.createParticipant(payload);
+    const participant = participantsStore.createParticipant({
+      name: participantDraft.name,
+      initials: participantDraft.initials,
+      avatarColor: participantDraft.avatarColor,
+      avatarType: participantDraft.avatarType,
+      type: participantDraft.type,
+    });
 
     if (!participant) {
       setParticipantMessage(t('settings.addNameFirst'), 'error');
@@ -513,7 +519,11 @@ function saveParticipantDraft() {
   setParticipantMessage(t('settings.participantUpdated'));
   const updatedParticipant = selectedParticipant.value;
 
-  if (shouldOfferInviteAfterSave && canInviteParticipant(updatedParticipant)) {
+  if (
+    shouldOfferInviteAfterSave &&
+    updatedParticipant &&
+    canInviteParticipant(updatedParticipant)
+  ) {
     openInviteStep(updatedParticipant);
   } else {
     closeSheet();

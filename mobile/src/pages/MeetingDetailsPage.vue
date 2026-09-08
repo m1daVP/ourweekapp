@@ -13,8 +13,10 @@ import {
   downloadExportFile,
   exportMeetingAsPdf,
   shareExportFile,
+  type MeetingExportContext,
   type MeetingExportFormat,
 } from '@/features/export/services/exportService';
+import { isSupportedLocale } from '@/features/localization/locale';
 import {
   generateMeetingSummary,
   getAiRecapRecovery,
@@ -71,10 +73,6 @@ const meetingDateLabel = computed(() =>
   meeting.value ? formatDate(getMeetingDate(meeting.value)) : ''
 );
 
-const meetingPreview = computed(() =>
-  meeting.value ? getMeetingPreview(meeting.value) : ''
-);
-
 const allTasks = computed(
   () => meeting.value?.sections.flatMap((section) => section.tasks) ?? []
 );
@@ -102,34 +100,6 @@ function formatDateTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value));
-}
-
-function truncateText(text: string, maxLength = 120) {
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
-}
-
-function getMeetingPreview(item: Meeting) {
-  for (const section of item.sections) {
-    const note = section.notes[0];
-
-    if (note) {
-      return truncateText(note.text);
-    }
-
-    const task = section.tasks[0];
-
-    if (task) {
-      return truncateText(task.title);
-    }
-
-    const agreement = section.agreements[0];
-
-    if (agreement) {
-      return truncateText(agreement.text);
-    }
-  }
-
-  return t('meeting.noContentPreview');
 }
 
 function getMeetingStatusLabel(item: Meeting) {
@@ -173,10 +143,10 @@ function resumeDraft() {
   router.push({ name: 'meeting' });
 }
 
-function getExportContext() {
+function getExportContext(): MeetingExportContext {
   return {
     getParticipantName,
-    locale: locale.value,
+    locale: isSupportedLocale(locale.value) ? locale.value : 'en',
     formatDate,
     formatDateTime,
   };

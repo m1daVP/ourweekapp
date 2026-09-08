@@ -32,14 +32,11 @@ export function createLegacyFeatureAccessMap(input: {
         (tier === 'free' ||
           enabledFeatures.has(key) ||
           (enabledFeatures.size === 0 && input.planType === 'premium'));
-      const state: FeatureAccessDto['state'] =
-        lifecycle === 'planned'
-          ? 'notYetAvailable'
-          : enabled
-            ? 'available'
-            : tier === 'premium'
-              ? 'upgradeRequired'
-              : 'unavailable';
+      const state: FeatureAccessDto['state'] = enabled
+        ? 'available'
+        : tier === 'premium'
+          ? 'upgradeRequired'
+          : 'unavailable';
 
       return [
         key,

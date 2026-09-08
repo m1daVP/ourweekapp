@@ -20,6 +20,7 @@ import type {
   MeetingTask,
 } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
+import type { AvatarType } from '@/features/participants/avatarCatalog';
 import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
 import AiRecapRecoveryPanel from '@/features/meeting/components/AiRecapRecoveryPanel.vue';
@@ -30,6 +31,7 @@ interface SummaryParticipant {
   name: string;
   initials: string;
   avatarColor: string;
+  avatarType: AvatarType | null;
 }
 
 interface SummaryActionItem {
@@ -228,6 +230,7 @@ function getFallbackParticipant(participants: SummaryParticipant[]) {
       name: t('meeting.someone'),
       initials: 'WU',
       avatarColor: '#456349',
+      avatarType: null,
     }
   );
 }
@@ -250,7 +253,10 @@ function getActionAssignee(
   if (firstResponsibleId) {
     return (
       getParticipantById(firstResponsibleId) ??
-      participants.find((participant) => participant.id === firstResponsibleId)
+      participants.find(
+        (participant) => participant.id === firstResponsibleId
+      ) ??
+      getFallbackParticipant(participants)
     );
   }
 

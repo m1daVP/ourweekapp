@@ -322,14 +322,18 @@ function createTaskCard(task: Task): TaskCardView {
   };
 }
 
-function getTaskMetadata(task: Task) {
+function getTaskMetadata(task: Task): {
+  icon: string;
+  text: string;
+  tone: TaskCardTone;
+} {
   if (task.status === 'done') {
     return {
       icon: 'check_circle',
       text: `${t('common.done')} - ${formatRelativeDay(
         getDayDifferenceFromToday(task.updatedAt)
       )}`,
-      tone: 'default' as const,
+      tone: 'default',
     };
   }
 
@@ -339,7 +343,7 @@ function getTaskMetadata(task: Task) {
       text: `${t('tasksPage.skip')} - ${formatRelativeDay(
         getDayDifferenceFromToday(task.updatedAt)
       )}`,
-      tone: 'default' as const,
+      tone: 'default',
     };
   }
 
@@ -349,7 +353,7 @@ function getTaskMetadata(task: Task) {
     return {
       icon: dayDifference < 0 ? 'warning' : 'calendar_today',
       text: formatRelativeDay(dayDifference),
-      tone: dayDifference < 0 ? 'danger' : ('default' as const),
+      tone: dayDifference < 0 ? 'danger' : 'default',
     };
   }
 
@@ -359,7 +363,7 @@ function getTaskMetadata(task: Task) {
       task.responsibilityType,
       task.responsibleParticipantIds
     ),
-    tone: 'default' as const,
+    tone: 'default',
   };
 }
 
