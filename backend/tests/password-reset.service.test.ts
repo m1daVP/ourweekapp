@@ -122,6 +122,21 @@ function createSupabase(steps: QueryStep[]) {
   return { supabase, queries, tables };
 }
 
+function createRpcSupabase(result: {
+  data: boolean | null;
+  error: { message: string } | null;
+}) {
+  const rpc = vi.fn(async () => result);
+  const from = vi.fn(() => {
+    throw new Error(
+      'Password reset confirmation must not query tables directly',
+    );
+  });
+  const supabase = { rpc, from } as unknown as SupabaseClient;
+
+  return { supabase, rpc, from };
+}
+
 function userRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user-1',
@@ -133,10 +148,6 @@ function userRow(overrides: Record<string, unknown> = {}) {
     deleted_at: null,
     ...overrides,
   };
-}
-
-function isoMinutesFromNow(minutes: number) {
-  return new Date(Date.now() + minutes * 60 * 1000).toISOString();
 }
 
 const resetCodePattern = /^[ABCDEFGHJKMNPQRSTVWXYZ23456789]{8}$/;
@@ -292,30 +303,13 @@ describe('password reset service', () => {
   });
 
   describe('confirmPasswordReset', () => {
-    function tokenRow(
-      tokenService: { hashPasswordResetCode: (code: string) => string },
-      code: string,
-      overrides: Record<string, unknown> = {},
-    ) {
-      return {
-        id: 'token-1',
-        user_id: 'user-1',
-        code_hash: tokenService.hashPasswordResetCode(code),
-        expires_at: isoMinutesFromNow(20),
-        consumed_at: null,
-        ...overrides,
-      };
-    }
-
-    it('updates the password, revokes sessions, and consumes the token', async () => {
+    it('hashes the password and confirms the reset with one RPC call', async () => {
       const { authService, tokenService } = await loadAuthModules();
       const code = 'ABCD2345';
-      const { supabase, queries, tables } = createSupabase([
-        { rows: [tokenRow(tokenService, code)] },
-        { result: { error: null } },
-        { result: { error: null } },
-        { result: { error: null } },
-      ]);
+      const { supabase, rpc, from } = createRpcSupabase({
+        data: true,
+        error: null,
+      });
 
       await expect(
         authService.confirmPasswordReset(supabase, {
@@ -324,50 +318,32 @@ describe('password reset service', () => {
         }),
       ).resolves.toBeUndefined();
 
-      expect(tables).toEqual([
-        'password_reset_tokens',
-        'users',
-        'sessions',
-        'password_reset_tokens',
-      ]);
+      expect(from).not.toHaveBeenCalled();
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(rpc).toHaveBeenCalledWith('confirm_password_reset', {
+        p_code_hash: tokenService.hashPasswordResetCode(code),
+        p_password_hash: expect.stringMatching(/^\$argon2id\$/),
+        p_confirmed_at: expect.any(String),
+      });
 
-      const passwordUpdate = queries[1];
-      expect(passwordUpdate.update).toHaveBeenCalledTimes(1);
-      const updatedUser = passwordUpdate.update.mock.calls[0][0] as {
-        password_hash: string;
+      const args = rpc.mock.calls[0]?.[1] as {
+        p_password_hash: string;
       };
-      expect(updatedUser.password_hash).toMatch(/^\$argon2id\$/);
       await expect(
         authService.verifyPassword(
-          updatedUser.password_hash,
+          args.p_password_hash,
           'new-strong-password',
         ),
       ).resolves.toBe(true);
-      expect(passwordUpdate.eq).toHaveBeenCalledWith('id', 'user-1');
-
-      const sessionRevoke = queries[2];
-      expect(sessionRevoke.update).toHaveBeenCalledWith({
-        revoked_at: expect.any(String),
-      });
-      expect(sessionRevoke.eq).toHaveBeenCalledWith('user_id', 'user-1');
-      expect(sessionRevoke.is).toHaveBeenCalledWith('revoked_at', null);
-
-      const consumeUpdate = queries[3];
-      expect(consumeUpdate.update).toHaveBeenCalledWith({
-        consumed_at: expect.any(String),
-      });
-      expect(consumeUpdate.eq).toHaveBeenCalledWith('id', 'token-1');
     });
 
-    it('accepts the code case-insensitively', async () => {
+    it('normalizes the reset code before calling the RPC', async () => {
       const { authService, tokenService } = await loadAuthModules();
       const code = 'ABCD2345';
-      const { supabase } = createSupabase([
-        { rows: [tokenRow(tokenService, code)] },
-        { result: { error: null } },
-        { result: { error: null } },
-        { result: { error: null } },
-      ]);
+      const { supabase, rpc } = createRpcSupabase({
+        data: true,
+        error: null,
+      });
 
       await expect(
         authService.confirmPasswordReset(supabase, {
@@ -375,49 +351,22 @@ describe('password reset service', () => {
           password: 'new-strong-password',
         }),
       ).resolves.toBeUndefined();
-    });
 
-    it('rejects an expired code with 422', async () => {
-      const { authService, tokenService } = await loadAuthModules();
-      const code = 'ABCD2345';
-      const { supabase, tables } = createSupabase([
-        {
-          rows: [
-            tokenRow(tokenService, code, {
-              expires_at: isoMinutesFromNow(-5),
-            }),
-          ],
-        },
-      ]);
-
-      await expect(
-        authService.confirmPasswordReset(supabase, {
-          token: code,
-          password: 'new-strong-password',
+      expect(rpc).toHaveBeenCalledWith(
+        'confirm_password_reset',
+        expect.objectContaining({
+          p_code_hash: tokenService.hashPasswordResetCode(code),
         }),
-      ).rejects.toMatchObject({
-        statusCode: 422,
-        code: 'invalid_reset_code',
-      });
-      expect(tables).toEqual(['password_reset_tokens']);
+      );
     });
 
-    it('rejects an already consumed code with 422', async () => {
-      const { authService, tokenService } = await loadAuthModules();
-      const code = 'ABCD2345';
-      const { supabase } = createSupabase([
-        {
-          rows: [
-            tokenRow(tokenService, code, {
-              consumed_at: isoMinutesFromNow(-1),
-            }),
-          ],
-        },
-      ]);
+    it('maps an ineligible token to invalid_reset_code', async () => {
+      const { authService } = await loadAuthModules();
+      const { supabase } = createRpcSupabase({ data: false, error: null });
 
       await expect(
         authService.confirmPasswordReset(supabase, {
-          token: code,
+          token: 'ABCD2345',
           password: 'new-strong-password',
         }),
       ).rejects.toMatchObject({
@@ -426,20 +375,22 @@ describe('password reset service', () => {
       });
     });
 
-    it('rejects a wrong code with 422', async () => {
-      const { authService, tokenService } = await loadAuthModules();
-      const { supabase } = createSupabase([
-        { rows: [tokenRow(tokenService, 'ABCD2345')] },
-      ]);
+    it('maps an RPC failure to password_reset_failed', async () => {
+      const { authService } = await loadAuthModules();
+      const { supabase } = createRpcSupabase({
+        data: null,
+        error: { message: 'database detail that must stay private' },
+      });
 
       await expect(
         authService.confirmPasswordReset(supabase, {
-          token: 'WXYZ6789',
+          token: 'ABCD2345',
           password: 'new-strong-password',
         }),
       ).rejects.toMatchObject({
-        statusCode: 422,
-        code: 'invalid_reset_code',
+        statusCode: 500,
+        code: 'password_reset_failed',
+        message: 'Something went wrong. Please try again.',
       });
     });
   });

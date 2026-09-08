@@ -1277,14 +1277,6 @@ const invalidResetCodeError = new ApiError(
   'The reset code is invalid or has expired.',
 );
 
-type PasswordResetTokenRow = {
-  id: string;
-  user_id: string;
-  code_hash: string;
-  expires_at: string;
-  consumed_at: string | null;
-};
-
 export async function requestPasswordReset(
   supabase: SupabaseClient,
   body: PasswordResetRequestDto,
@@ -1355,37 +1347,18 @@ export async function confirmPasswordReset(
   body: PasswordResetConfirmRequestDto,
 ) {
   const codeHash = hashPasswordResetCode(body.token);
-  const nowIso = new Date().toISOString();
-
-  const { data: token, error: tokenError } = await supabase
-    .from('password_reset_tokens')
-    .select('id,user_id,code_hash,expires_at,consumed_at')
-    .eq('code_hash', codeHash)
-    .is('consumed_at', null)
-    .gt('expires_at', nowIso)
-    .returns<PasswordResetTokenRow[]>()
-    .maybeSingle();
-
-  if (tokenError) {
-    throw new ApiError(
-      500,
-      'password_reset_failed',
-      'Something went wrong. Please try again.',
-    );
-  }
-
-  if (!token) {
-    throw invalidResetCodeError;
-  }
-
   const passwordHash = await hashPassword(body.password);
+  const confirmedAt = new Date().toISOString();
+  const { data: confirmed, error } = await supabase.rpc(
+    'confirm_password_reset',
+    {
+      p_code_hash: codeHash,
+      p_password_hash: passwordHash,
+      p_confirmed_at: confirmedAt,
+    },
+  );
 
-  const { error: passwordError } = await supabase
-    .from('users')
-    .update({ password_hash: passwordHash })
-    .eq('id', token.user_id);
-
-  if (passwordError) {
+  if (error) {
     throw new ApiError(
       500,
       'password_reset_failed',
@@ -1393,30 +1366,7 @@ export async function confirmPasswordReset(
     );
   }
 
-  const { error: revokeError } = await supabase
-    .from('sessions')
-    .update({ revoked_at: new Date().toISOString() })
-    .eq('user_id', token.user_id)
-    .is('revoked_at', null);
-
-  if (revokeError) {
-    throw new ApiError(
-      500,
-      'session_revoke_failed',
-      'Something went wrong. Please try again.',
-    );
-  }
-
-  const { error: consumeError } = await supabase
-    .from('password_reset_tokens')
-    .update({ consumed_at: new Date().toISOString() })
-    .eq('id', token.id);
-
-  if (consumeError) {
-    throw new ApiError(
-      500,
-      'password_reset_failed',
-      'Something went wrong. Please try again.',
-    );
+  if (confirmed !== true) {
+    throw invalidResetCodeError;
   }
 }
