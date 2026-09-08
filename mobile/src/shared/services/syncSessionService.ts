@@ -1,5 +1,6 @@
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
+import { usePrivateNotesStore } from '@/app/stores/privateNotes';
 import { useTasksStore } from '@/app/stores/tasks';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import {
@@ -13,6 +14,7 @@ export function prepareSyncForAuthenticatedUser(userId: string) {
   const currentMetadata = readSyncMetadata();
 
   resetSyncRuntimeState();
+  usePrivateNotesStore().bindOwner(userId);
 
   if (currentMetadata.ownerUserId === userId) {
     bindSyncOwner(userId, currentMetadata.ownerWorkspaceId);
@@ -39,4 +41,7 @@ export function prepareSyncForAuthenticatedUser(userId: string) {
   return { didResetSyncedData: true };
 }
 
-export { resetSyncRuntimeState };
+export function clearSyncSessionState() {
+  resetSyncRuntimeState();
+  usePrivateNotesStore().clearOwner();
+}

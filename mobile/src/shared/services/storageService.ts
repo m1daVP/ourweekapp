@@ -4,7 +4,7 @@ import { translate } from '@/features/localization/i18n';
 import { nowIso } from '@/shared/utils/dates';
 import { createId, isUuid } from '@/shared/utils/ids';
 
-export const appDataVersion = 5;
+export const appDataVersion = 6;
 
 const APP_DATA_STORAGE_KEY = 'ourweek:app-data';
 const BACKUP_STORAGE_PREFIX = 'ourweek:app-data:backup';
@@ -97,6 +97,7 @@ const migrations: Record<number, Migration> = {
   2: migrateAppDataFromVersion2ToVersion3,
   3: migrateAppDataFromVersion3ToVersion4,
   4: migrateAppDataFromVersion4ToVersion5,
+  5: migrateAppDataFromVersion5ToVersion6,
 };
 
 function getLocalStorage() {
@@ -779,6 +780,41 @@ export function migrateAppDataFromVersion4ToVersion5(
     appDataVersion: 5,
     tasks: tasks ? { ...tasksState, tasks } : data.tasks,
     meetings: meetings ? { ...meetingsState, meetings } : data.meetings,
+  };
+}
+
+export function migrateAppDataFromVersion5ToVersion6(
+  data: MigrationInput
+): MigrationInput {
+  const legacyPrivateNotes = getRecord(data.privateNotes);
+  const notes = Array.isArray(legacyPrivateNotes.notes)
+    ? legacyPrivateNotes.notes
+    : [];
+  const syncMetadata = getRecord(data.syncMetadata);
+  const ownerUserId =
+    typeof syncMetadata.ownerUserId === 'string' &&
+    syncMetadata.ownerUserId.trim()
+      ? syncMetadata.ownerUserId.trim()
+      : null;
+
+  return {
+    ...data,
+    appDataVersion: 6,
+    privateNotes: ownerUserId
+      ? {
+          notesByUserId: {
+            [ownerUserId]: { notes },
+          },
+        }
+      : notes.length
+        ? {
+            notesByUserId: {},
+            quarantinedLegacyNotes: {
+              notes,
+              quarantinedAt: nowIso(),
+            },
+          }
+        : { notesByUserId: {} },
   };
 }
 

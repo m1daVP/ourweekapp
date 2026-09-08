@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { translate } from '@/features/localization/i18n';
 import {
   getCurrentUser as getCurrentUserRequest,
+  linkGoogleAccountWithIdToken as linkGoogleAccountWithIdTokenRequest,
   acceptWorkspaceInvitation as acceptWorkspaceInvitationRequest,
   refreshSession as refreshSessionRequest,
   register as registerRequest,
@@ -11,7 +12,10 @@ import {
   type AuthUserDto,
   type AuthSessionDto,
 } from '@/shared/api/authApi';
-import { getNativeGoogleIdToken } from '@/features/auth/googleSignInService';
+import {
+  getNativeGoogleIdToken,
+  GoogleSignInError,
+} from '@/features/auth/googleSignInService';
 import { ApiClientError, setApiAuthHandlers } from '@/shared/api/httpClient';
 import { appConfig } from '@/shared/config/env';
 import {
@@ -30,7 +34,7 @@ import { captureHandledError } from '@/shared/services/errorMonitoringService';
 import { debugSafely, warnSafely } from '@/shared/services/safeLogService';
 import {
   prepareSyncForAuthenticatedUser,
-  resetSyncRuntimeState,
+  clearSyncSessionState,
 } from '@/shared/services/syncSessionService';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
@@ -77,6 +81,8 @@ interface AuthState {
   lastAuthError: AuthErrorDiagnostics | null;
   hasHydratedSecureTokens: boolean;
   hasVerifiedCurrentUser: boolean;
+  isLinkingGoogle: boolean;
+  googleLinkErrorMessage: string;
 }
 
 export interface AuthErrorDiagnostics {
@@ -216,7 +222,7 @@ async function prepareSyncForSessionUser(userId: string) {
 }
 
 function resetSyncAfterSessionEnd() {
-  resetSyncRuntimeState();
+  clearSyncSessionState();
 }
 
 function resetSubscriptionAfterSessionEnd() {
@@ -274,6 +280,8 @@ function getGoogleSignInErrorMessage(
   }
 
   switch (error.code) {
+    case 'account_link_required':
+      return translate('auth.accountLinkRequired');
     case 'account_link_conflict':
       return translate('auth.googleAccountConflict');
     case 'google_sign_in_not_configured':
@@ -283,6 +291,25 @@ function getGoogleSignInErrorMessage(
       return translate('auth.googleTokenRejected');
     default:
       return error.message || translate('auth.googleSignInFailed');
+  }
+}
+
+function getGoogleLinkErrorMessage(error: unknown) {
+  if (!(error instanceof ApiClientError)) {
+    return error instanceof Error
+      ? error.message
+      : translate('account.googleLinkFailed');
+  }
+
+  switch (error.code) {
+    case 'account_link_email_mismatch':
+      return translate('account.googleLinkEmailMismatch');
+    case 'account_link_conflict':
+      return translate('account.googleLinkConflict');
+    case 'google_already_linked':
+      return translate('account.googleAlreadyLinked');
+    default:
+      return error.message || translate('account.googleLinkFailed');
   }
 }
 
@@ -473,6 +500,7 @@ function mapAuthUser(user: AuthUserDto, fallbackEmail = ''): AuthUser {
     email: normalizeEmail(user.email ?? fallbackEmail),
     displayName: user.displayName?.trim() || translate('common.weeklyUsUser'),
     plan: user.planType,
+    signInMethods: user.signInMethods,
     createdAt: user.createdAt,
   };
 }
@@ -546,6 +574,8 @@ export const useAuthStore = defineStore('auth', {
     lastAuthError: null,
     hasHydratedSecureTokens: false,
     hasVerifiedCurrentUser: false,
+    isLinkingGoogle: false,
+    googleLinkErrorMessage: '',
   }),
   getters: {
     isAuthenticated: (state) =>
@@ -675,6 +705,8 @@ export const useAuthStore = defineStore('auth', {
       this.hasVerifiedCurrentUser = true;
       this.errorMessage = '';
       this.lastAuthError = null;
+      this.isLinkingGoogle = false;
+      this.googleLinkErrorMessage = '';
       this.persist();
 
       // RevenueCat identity sync is helpful for billing, but it must not block
@@ -699,6 +731,8 @@ export const useAuthStore = defineStore('auth', {
       this.sessionCheckErrorMessage = '';
       this.errorMessage = '';
       this.lastAuthError = null;
+      this.isLinkingGoogle = false;
+      this.googleLinkErrorMessage = '';
       this.persist();
       debugSafely('Google sign-in cancelled.', { stage: cancelledStage });
 
@@ -718,6 +752,8 @@ export const useAuthStore = defineStore('auth', {
       this.hasVerifiedCurrentUser = true;
       this.errorMessage = '';
       this.lastAuthError = null;
+      this.isLinkingGoogle = false;
+      this.googleLinkErrorMessage = '';
       this.persist();
     },
     async verifyCurrentUser() {
@@ -942,6 +978,44 @@ export const useAuthStore = defineStore('auth', {
         }
 
         invalidateGoogleSignInAttempt(attemptId);
+      }
+    },
+    async linkGoogleAccount(): Promise<'linked' | 'cancelled' | 'failed'> {
+      if (!this.user || this.authStatus !== 'authenticated') {
+        this.googleLinkErrorMessage = translate('account.googleLinkFailed');
+        return 'failed';
+      }
+
+      if (this.user.signInMethods?.includes('google')) {
+        return 'linked';
+      }
+
+      this.isLinkingGoogle = true;
+      this.googleLinkErrorMessage = '';
+
+      try {
+        const idToken = await getNativeGoogleIdToken();
+        const currentUser = await linkGoogleAccountWithIdTokenRequest({
+          idToken,
+        });
+        this.user = mapAuthUser(currentUser, this.user.email);
+        this.persist();
+        return 'linked';
+      } catch (error) {
+        if (error instanceof GoogleSignInError && error.code === 'cancelled') {
+          return 'cancelled';
+        }
+
+        this.googleLinkErrorMessage = getGoogleLinkErrorMessage(error);
+        warnSafely('Google account linking failed.', {
+          errorCategory: getSafeErrorCategory(error),
+        });
+        captureHandledError(error, {
+          tags: { feature: 'auth', provider: 'google', stage: 'account_link' },
+        });
+        return 'failed';
+      } finally {
+        this.isLinkingGoogle = false;
       }
     },
     async signUp(payload: SignUpPayload) {

@@ -72,7 +72,10 @@ import { useParticipantsStore } from '@/app/stores/participants';
 import { usePrivateNotesStore } from '@/app/stores/privateNotes';
 import { useTasksStore } from '@/app/stores/tasks';
 import { useWorkspaceStore } from '@/app/stores/workspace';
-import { prepareSyncForAuthenticatedUser } from '@/shared/services/syncSessionService';
+import {
+  clearSyncSessionState,
+  prepareSyncForAuthenticatedUser,
+} from '@/shared/services/syncSessionService';
 import {
   resetSyncRuntimeStateForTests,
   retrySync,
@@ -673,6 +676,17 @@ describe('syncService', () => {
       resources: {},
       ownerUserId: 'old-user',
     });
+    mocks.readStorageSlice.mockImplementation(
+      (key: string, fallback: unknown) =>
+        key === 'privateNotes'
+          ? {
+              notesByUserId: {
+                'old-user': { notes: privateNotesStore.notes },
+                'new-user': { notes: [] },
+              },
+            }
+          : fallback
+    );
 
     const result = prepareSyncForAuthenticatedUser('new-user');
 
@@ -702,9 +716,45 @@ describe('syncService', () => {
         }),
       })
     );
-    expect(privateNotesStore.notes).toEqual([
-      expect.objectContaining({ id: 'private-note-1' }),
-    ]);
+    expect(privateNotesStore.ownerUserId).toBe('new-user');
+    expect(privateNotesStore.notes).toEqual([]);
+  });
+
+  it('clears notes on logout and restores only the returning owner namespace', () => {
+    const privateNotesStore = usePrivateNotesStore();
+    const noteA = {
+      id: 'note-a',
+      title: 'A',
+      content: 'Private A',
+      createdAt,
+      updatedAt,
+    };
+    const noteB = { ...noteA, id: 'note-b', title: 'B', content: 'Private B' };
+    mocks.readStorageSlice.mockImplementation(
+      (key: string, fallback: unknown) =>
+        key === 'privateNotes'
+          ? {
+              notesByUserId: {
+                'user-a': { notes: [noteA] },
+                'user-b': { notes: [noteB] },
+              },
+            }
+          : fallback
+    );
+
+    prepareSyncForAuthenticatedUser('user-a');
+    expect(privateNotesStore.notes).toEqual([noteA]);
+
+    clearSyncSessionState();
+    expect(privateNotesStore.ownerUserId).toBeNull();
+    expect(privateNotesStore.notes).toEqual([]);
+
+    prepareSyncForAuthenticatedUser('user-b');
+    expect(privateNotesStore.notes).toEqual([noteB]);
+
+    clearSyncSessionState();
+    prepareSyncForAuthenticatedUser('user-a');
+    expect(privateNotesStore.notes).toEqual([noteA]);
   });
 
   it('fails closed when workspace hydration fails before pulling core data', async () => {

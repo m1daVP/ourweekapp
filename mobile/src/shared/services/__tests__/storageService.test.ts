@@ -3,6 +3,7 @@ import { Preferences } from '@capacitor/preferences';
 import {
   clearAllLocalAppDataAfterAccountDeletion,
   migrateAppDataFromVersion4ToVersion5,
+  migrateAppDataFromVersion5ToVersion6,
 } from '@/shared/services/storageService';
 
 vi.mock('@capacitor/preferences', () => ({
@@ -269,4 +270,59 @@ describe('version 5 carried-task migration', () => {
       },
     });
   });
+});
+
+describe('version 6 private-note ownership migration', () => {
+  const legacyNote = {
+    id: 'note-1',
+    title: 'Private',
+    content: 'Only mine',
+    createdAt: '2026-06-13T12:00:00.000Z',
+    updatedAt: '2026-06-13T12:00:00.000Z',
+  };
+
+  it('assigns legacy notes only to the recorded sync owner', () => {
+    const result = migrateAppDataFromVersion5ToVersion6({
+      appDataVersion: 5,
+      privateNotes: { notes: [legacyNote] },
+      syncMetadata: { ownerUserId: 'user-a', resources: {} },
+      meetings: { keep: true },
+    });
+
+    expect(result).toMatchObject({
+      appDataVersion: 6,
+      privateNotes: {
+        notesByUserId: { 'user-a': { notes: [legacyNote] } },
+      },
+      meetings: { keep: true },
+    });
+  });
+
+  it('quarantines legacy notes when no owner is known', () => {
+    const result = migrateAppDataFromVersion5ToVersion6({
+      appDataVersion: 5,
+      privateNotes: { notes: [legacyNote] },
+      syncMetadata: { resources: {} },
+    });
+
+    expect(result.privateNotes).toEqual({
+      notesByUserId: {},
+      quarantinedLegacyNotes: {
+        notes: [legacyNote],
+        quarantinedAt: expect.any(String),
+      },
+    });
+  });
+
+  it.each([null, 'invalid', {}, { notes: 'invalid' }])(
+    'creates empty namespaced storage for %j',
+    (privateNotes) => {
+      expect(
+        migrateAppDataFromVersion5ToVersion6({
+          appDataVersion: 5,
+          privateNotes,
+        }).privateNotes
+      ).toEqual({ notesByUserId: {} });
+    }
+  );
 });

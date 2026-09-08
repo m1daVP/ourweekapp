@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia';
 import {
-  readStorageSlice,
-  writeStorageSlice,
-} from '@/shared/services/storageService';
+  readPrivateNotesForUser,
+  writePrivateNotesForUser,
+} from '@/features/private-notes/services/privateNotesStorageService';
 import { compareIsoDesc, nowIso } from '@/shared/utils/dates';
 import { createPrefixedId } from '@/shared/utils/ids';
 import type { PrivateNote } from '@/features/private-notes/types';
 
 interface PrivateNotesState {
+  ownerUserId: string | null;
   notes: PrivateNote[];
 }
 
@@ -17,53 +18,6 @@ interface NotePayload {
   relatedMeetingId?: string;
 }
 
-interface LegacyPrivateNote {
-  id?: string;
-  title?: string;
-  content?: string;
-  relatedMeetingId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-function normalizeNote(note: LegacyPrivateNote): PrivateNote | null {
-  const title = note.title?.trim();
-  const content = note.content?.trim();
-
-  if (!title || !content) {
-    return null;
-  }
-
-  const createdAt = note.createdAt ?? nowIso();
-
-  return {
-    id: note.id ?? createPrefixedId('private-note'),
-    title,
-    content,
-    relatedMeetingId: note.relatedMeetingId?.trim() || undefined,
-    createdAt,
-    updatedAt: note.updatedAt ?? createdAt,
-  };
-}
-
-function getStoredState(): PrivateNotesState {
-  const storedState = readStorageSlice<Partial<{
-    notes: LegacyPrivateNote[];
-  }> | null>('privateNotes', null);
-
-  if (!storedState) {
-    return { notes: [] };
-  }
-
-  return {
-    notes: Array.isArray(storedState.notes)
-      ? storedState.notes
-          .map(normalizeNote)
-          .filter((note): note is PrivateNote => Boolean(note))
-      : [],
-  };
-}
-
 function sortByUpdatedDesc(notes: PrivateNote[]) {
   return [...notes].sort((first, second) =>
     compareIsoDesc(first.updatedAt, second.updatedAt)
@@ -71,19 +25,42 @@ function sortByUpdatedDesc(notes: PrivateNote[]) {
 }
 
 export const usePrivateNotesStore = defineStore('privateNotes', {
-  state: (): PrivateNotesState => getStoredState(),
+  state: (): PrivateNotesState => ({ ownerUserId: null, notes: [] }),
   getters: {
     sortedNotes: (state) => sortByUpdatedDesc(state.notes),
   },
   actions: {
+    bindOwner(userId: string) {
+      this.clearOwner();
+      const ownerUserId = userId.trim();
+
+      if (!ownerUserId) {
+        return false;
+      }
+
+      try {
+        const notes = readPrivateNotesForUser(ownerUserId);
+        this.ownerUserId = ownerUserId;
+        this.notes = notes;
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    clearOwner() {
+      this.ownerUserId = null;
+      this.notes = [];
+    },
     persist() {
-      writeStorageSlice('privateNotes', { notes: this.notes });
+      return this.ownerUserId
+        ? writePrivateNotesForUser(this.ownerUserId, this.notes)
+        : false;
     },
     createNote(payload: NotePayload) {
       const title = payload.title.trim();
       const content = payload.content.trim();
 
-      if (!title || !content) {
+      if (!this.ownerUserId || !title || !content) {
         return null;
       }
 
@@ -106,7 +83,7 @@ export const usePrivateNotesStore = defineStore('privateNotes', {
       const title = payload.title.trim();
       const content = payload.content.trim();
 
-      if (!note || !title || !content) {
+      if (!this.ownerUserId || !note || !title || !content) {
         return null;
       }
 
@@ -118,6 +95,10 @@ export const usePrivateNotesStore = defineStore('privateNotes', {
       return note;
     },
     deleteNote(noteId: string) {
+      if (!this.ownerUserId) {
+        return;
+      }
+
       const originalLength = this.notes.length;
       this.notes = this.notes.filter((note) => note.id !== noteId);
 

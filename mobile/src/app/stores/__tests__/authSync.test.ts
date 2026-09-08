@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   writeAuthTokens: vi.fn(),
   writeOnboardingStorage: vi.fn(),
   getNativeGoogleIdToken: vi.fn(),
+  linkGoogleAccountWithIdToken: vi.fn(),
 }));
 
 vi.mock('@/features/localization/i18n', () => ({
@@ -50,6 +51,7 @@ vi.mock('@/shared/api/httpClient', () => ({
 
 vi.mock('@/shared/api/authApi', () => ({
   getCurrentUser: mocks.getCurrentUser,
+  linkGoogleAccountWithIdToken: mocks.linkGoogleAccountWithIdToken,
   refreshSession: mocks.refreshSession,
   register: vi.fn(),
   signIn: mocks.signIn,
@@ -58,6 +60,15 @@ vi.mock('@/shared/api/authApi', () => ({
 }));
 
 vi.mock('@/features/auth/googleSignInService', () => ({
+  GoogleSignInError: class GoogleSignInError extends Error {
+    constructor(
+      public code: string,
+      message: string
+    ) {
+      super(message);
+      this.name = 'GoogleSignInError';
+    }
+  },
   getNativeGoogleIdToken: mocks.getNativeGoogleIdToken,
 }));
 
@@ -84,8 +95,8 @@ vi.mock('@/shared/services/safeLogService', () => ({
 }));
 
 vi.mock('@/shared/services/syncSessionService', () => ({
+  clearSyncSessionState: mocks.resetSyncRuntimeState,
   prepareSyncForAuthenticatedUser: mocks.prepareSyncForAuthenticatedUser,
-  resetSyncRuntimeState: mocks.resetSyncRuntimeState,
 }));
 
 vi.mock('@/features/subscription/services/revenueCatService', () => ({
@@ -149,6 +160,7 @@ const session = {
     displayName: 'Rita',
     role: 'owner',
     planType: 'free',
+    signInMethods: ['password'] as const,
     createdAt: '2026-06-13T12:00:00.000Z',
     updatedAt: '2026-06-13T12:00:00.000Z',
   },
@@ -192,6 +204,7 @@ beforeEach(() => {
   mocks.writeAuthTokens.mockReset();
   mocks.writeOnboardingStorage.mockReset();
   mocks.getNativeGoogleIdToken.mockReset();
+  mocks.linkGoogleAccountWithIdToken.mockReset();
 
   mocks.signIn.mockResolvedValue(session);
   mocks.signInWithGoogleIdToken.mockResolvedValue(session);
@@ -199,6 +212,10 @@ beforeEach(() => {
   mocks.logInRevenueCat.mockResolvedValue(undefined);
   mocks.logOutRevenueCat.mockResolvedValue(undefined);
   mocks.getNativeGoogleIdToken.mockResolvedValue('google-id-token');
+  mocks.linkGoogleAccountWithIdToken.mockResolvedValue({
+    ...session.user,
+    signInMethods: ['password', 'google'],
+  });
   mocks.refreshSession.mockResolvedValue({
     ...session,
     accessToken: 'rotated-access-token',
@@ -266,6 +283,42 @@ describe('auth sync safety hooks', () => {
     );
     expect(authStore.authStatus).toBe('authenticated');
     expect(authStore.authOperationStage).toBe('session_commit');
+  });
+
+  it('links Google to the active account and keeps password access', async () => {
+    const authStore = useAuthStore();
+    await authStore.applySession(session);
+    mocks.clearAuthTokens.mockClear();
+
+    await expect(authStore.linkGoogleAccount()).resolves.toBe('linked');
+
+    expect(mocks.linkGoogleAccountWithIdToken).toHaveBeenCalledWith({
+      idToken: 'google-id-token',
+    });
+    expect(authStore.user?.signInMethods).toEqual(['password', 'google']);
+    expect(authStore.authStatus).toBe('authenticated');
+    expect(mocks.clearAuthTokens).not.toHaveBeenCalled();
+  });
+
+  it('keeps the active session when Google linking is rejected', async () => {
+    const authStore = useAuthStore();
+    await authStore.applySession(session);
+    mocks.clearAuthTokens.mockClear();
+    mocks.linkGoogleAccountWithIdToken.mockRejectedValue(
+      new ApiClientError('Different email', {
+        status: 409,
+        code: 'account_link_email_mismatch',
+      })
+    );
+
+    await expect(authStore.linkGoogleAccount()).resolves.toBe('failed');
+
+    expect(authStore.googleLinkErrorMessage).toBe(
+      'account.googleLinkEmailMismatch'
+    );
+    expect(authStore.authStatus).toBe('authenticated');
+    expect(authStore.user?.signInMethods).toEqual(['password']);
+    expect(mocks.clearAuthTokens).not.toHaveBeenCalled();
   });
 
   it('clears partial auth state when Google Sign-In fails', async () => {

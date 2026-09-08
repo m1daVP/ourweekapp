@@ -74,8 +74,8 @@ vi.mock('@/shared/services/safeLogService', () => ({
 }));
 
 vi.mock('@/shared/services/syncSessionService', () => ({
+  clearSyncSessionState: mocks.resetSyncRuntimeState,
   prepareSyncForAuthenticatedUser: mocks.prepareSyncForAuthenticatedUser,
-  resetSyncRuntimeState: mocks.resetSyncRuntimeState,
 }));
 
 vi.mock('@/features/subscription/services/revenueCatService', () => ({
