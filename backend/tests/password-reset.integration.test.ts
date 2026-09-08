@@ -184,11 +184,12 @@ describeLocal('atomic password reset RPC', () => {
     expect(activeSessions.every((session) => session.revoked_at !== null)).toBe(
       true,
     );
-    expect(
-      stored.sessions.find(
-        (session) => session.id === fixture.previouslyRevokedSessionId,
-      )?.revoked_at,
-    ).toBe(fixture.originalRevokedAt);
+    const previouslyRevokedAt = stored.sessions.find(
+      (session) => session.id === fixture.previouslyRevokedSessionId,
+    )?.revoked_at;
+    expect(Date.parse(previouslyRevokedAt!)).toBe(
+      Date.parse(fixture.originalRevokedAt),
+    );
   });
 
   it('allows exactly one concurrent confirmation and rejects later reuse', async () => {
