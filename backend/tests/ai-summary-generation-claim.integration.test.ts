@@ -1,17 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const localUrl = process.env.SUPABASE_LOCAL_URL;
-const localServiceRoleKey = process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY;
-const localHost = localUrl ? new URL(localUrl).hostname : null;
-const canRunLocally = Boolean(
-  localUrl
-  && localServiceRoleKey
-  && (localHost === '127.0.0.1' || localHost === 'localhost'),
-);
-const describeLocal = canRunLocally ? describe : describe.skip;
+import {
+  createServiceRoleClient,
+  databaseEnvironment,
+} from './helpers/database-test-environment.js';
+
+const describeLocal = databaseEnvironment?.target === 'local' ? describe : describe.skip;
 
 type ClaimFixture = {
   userId: string;
@@ -38,9 +35,9 @@ type ClaimFixture = {
   summary: Record<string, unknown>;
 };
 
-function requireSuccess(error: { message: string } | null, operation: string) {
+function requireSuccess(error: { code?: string; message: string } | null, operation: string) {
   if (error) {
-    throw new Error(`Local AI claim fixture ${operation} failed.`);
+    throw new Error(`Local AI claim fixture ${operation} failed (${error.code ?? 'unknown'}: ${error.message}).`);
   }
 }
 
@@ -108,9 +105,7 @@ describeLocal('AI summary generation claim RPC', () => {
       return;
     }
 
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     requireSuccess(
       (await client.from('workspaces').delete().eq('id', fixture.workspaceId)).error,
       'workspace cleanup',
@@ -123,9 +118,7 @@ describeLocal('AI summary generation claim RPC', () => {
   });
 
   it('returns one owner, one pending duplicate, then the persisted completed request', async () => {
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     fixture = await createFixture(client);
 
     const [first, second] = await Promise.all([
@@ -163,9 +156,7 @@ describeLocal('AI summary generation claim RPC', () => {
   });
 
   it('persists model audit fields through v3 pending and completed claims', async () => {
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     fixture = await createFixture(client);
 
     const [first, second] = await Promise.all([
@@ -211,9 +202,7 @@ describeLocal('AI summary generation claim RPC', () => {
   });
 
   it('enforces the exact user boundary and returns the oldest active slot expiry', async () => {
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     fixture = await createFixture(client);
 
     const created = await Promise.all(
@@ -246,9 +235,7 @@ describeLocal('AI summary generation claim RPC', () => {
   });
 
   it('serializes concurrent distinct workspace claims at the exact workspace boundary', async () => {
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     fixture = await createFixture(client);
 
     const claims = await Promise.all(

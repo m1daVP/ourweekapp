@@ -1,17 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const localUrl = process.env.SUPABASE_LOCAL_URL;
-const localServiceRoleKey = process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY;
-const localHost = localUrl ? new URL(localUrl).hostname : null;
-const canRunLocally = Boolean(
-  localUrl
-  && localServiceRoleKey
-  && (localHost === '127.0.0.1' || localHost === 'localhost'),
-);
-const describeLocal = canRunLocally ? describe : describe.skip;
+import {
+  createServiceRoleClient,
+  databaseEnvironment,
+} from './helpers/database-test-environment.js';
+
+const describeLocal = databaseEnvironment?.target === 'local' ? describe : describe.skip;
 
 type FinalizationFixture = {
   userId: string;
@@ -21,9 +18,9 @@ type FinalizationFixture = {
   summary: Record<string, unknown>;
 };
 
-function requireSuccess(error: { message: string } | null, operation: string) {
+function requireSuccess(error: { code?: string; message: string } | null, operation: string) {
   if (error) {
-    throw new Error(`Local AI finalization fixture ${operation} failed.`);
+    throw new Error(`Local AI finalization fixture ${operation} failed (${error.code ?? 'unknown'}: ${error.message}).`);
   }
 }
 
@@ -103,9 +100,7 @@ describeLocal('AI summary generation finalization RPC', () => {
       return;
     }
 
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     requireSuccess(
       (await client.from('workspaces').delete().eq('id', fixture.workspaceId)).error,
       'workspace cleanup',
@@ -118,9 +113,7 @@ describeLocal('AI summary generation finalization RPC', () => {
   });
 
   it('applies finalization once and returns its completed result on a retry', async () => {
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     fixture = await createFixture(client);
 
     const first = await client
@@ -177,9 +170,7 @@ describeLocal('AI summary generation finalization RPC', () => {
   });
 
   it('leaves the request and credit pending when the meeting revision changed', async () => {
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     fixture = await createFixture(client);
     requireSuccess((await client.from('meetings').update({ server_revision: 2 })
       .eq('id', fixture.meetingId)).error, 'meeting revision change');

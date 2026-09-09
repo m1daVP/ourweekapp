@@ -1,17 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const localUrl = process.env.SUPABASE_LOCAL_URL;
-const localServiceRoleKey = process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY;
-const localHost = localUrl ? new URL(localUrl).hostname : null;
-const canRunLocally = Boolean(
-  localUrl
-  && localServiceRoleKey
-  && (localHost === '127.0.0.1' || localHost === 'localhost'),
-);
-const describeLocal = canRunLocally ? describe : describe.skip;
+import {
+  createServiceRoleClient,
+  databaseEnvironment,
+} from './helpers/database-test-environment.js';
+
+const describeLocal = databaseEnvironment?.target === 'local' ? describe : describe.skip;
 
 function requireSuccess(error: { message: string } | null, operation: string) {
   if (error) {
@@ -23,9 +20,7 @@ describeLocal('Google identity linking RPC', () => {
   const userIds: string[] = [];
 
   function client() {
-    return createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    return createServiceRoleClient(databaseEnvironment!);
   }
 
   async function createUser(supabase: SupabaseClient, label: string) {

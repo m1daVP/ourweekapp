@@ -1,17 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const localUrl = process.env.SUPABASE_LOCAL_URL;
-const localServiceRoleKey = process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY;
-const localHost = localUrl ? new URL(localUrl).hostname : null;
-const canRunLocally = Boolean(
-  localUrl
-  && localServiceRoleKey
-  && (localHost === '127.0.0.1' || localHost === 'localhost'),
-);
-const describeLocal = canRunLocally ? describe : describe.skip;
+import {
+  createServiceRoleClient,
+  databaseEnvironment,
+} from './helpers/database-test-environment.js';
+
+const describeLocal = databaseEnvironment?.target === 'local' ? describe : describe.skip;
 
 type RecoveryFixture = {
   userId: string;
@@ -27,9 +24,9 @@ type RecoveryFixture = {
   };
 };
 
-function requireSuccess(error: { message: string } | null, operation: string) {
+function requireSuccess(error: { code?: string; message: string } | null, operation: string) {
   if (error) {
-    throw new Error(`Local AI stale recovery fixture ${operation} failed.`);
+    throw new Error(`Local AI stale recovery fixture ${operation} failed (${error.code ?? 'unknown'}: ${error.message}).`);
   }
 }
 
@@ -192,9 +189,7 @@ describeLocal('AI stale recap recovery RPC', () => {
       return;
     }
 
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     requireSuccess(
       (await client.from('workspaces').delete().in('id', [fixture.workspaceId, fixture.otherWorkspaceId])).error,
       'workspace cleanup',
@@ -207,9 +202,7 @@ describeLocal('AI stale recap recovery RPC', () => {
   });
 
   it('releases only stale pending work and lets its generation identity be claimed again', async () => {
-    const client = createClient(localUrl!, localServiceRoleKey!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const client = createServiceRoleClient(databaseEnvironment!);
     fixture = await createFixture(client);
 
     requireSuccess(
