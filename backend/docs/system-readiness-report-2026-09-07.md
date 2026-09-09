@@ -104,13 +104,19 @@ Evidence: [meeting service](D:/Projects/myself/weekly-us-api/src/modules/meeting
 
 **Required outcome:** add bounded pagination or a complete cursor-based sync protocol and iterate exports through every page. Validate with more than 1,000 tasks/agreements and meetings, including deletes and concurrent edits. The remote row limit was not verified.
 
-### 7. Database behavior has not been established by the checks run here
+### 7. Database behavior is established locally; staging migration application remains open
 
-**Priority: P1 before enabling the affected production flows.**
+**Priority: P1 before enabling the affected production flows until staging proof passes.**
 
-There are real local-Supabase integration tests for AI claim concurrency, finalization, and stale-reservation recovery, but they are guarded by local credentials and were skipped. Other migration tests often verify SQL structure and expected guards rather than executing migrations. These are useful checks, but they cannot demonstrate transaction behavior, permissions, or compatibility in a running database.
+The guarded local verification now rebuilds PostgreSQL 17 from the complete migration chain and runs every database suite without skips. On 2026-09-09, 23 pgTAP assertions and 82 Vitest database integration tests passed. They prove anonymous/authenticated denial across all 20 public application tables and representative RPCs, workspace isolation through real repositories/services, all three account-deletion paths, repeat deletion safety, transaction rollback, AI concurrency/finalization/recovery, Google identity linking, and atomic password reset. Tagged fixture cleanup also passed.
 
-**Required outcome:** apply the full migration chain to isolated Supabase, run integration tests, verify direct anonymous/authenticated access is denied, and exercise workspace ownership and account deletion. Test staging upgrades before deploying dependent code and preserve recovery evidence. Do not interpret skipped tests as passing integration coverage.
+The behavioral run found and fixed two defects with forward-only migrations: client roles retained execute access to older public functions, and AI claim/finalization functions raised PostgreSQL ambiguity errors for output-column names. The completed local runner passed 494 ordinary tests; the final CI run passed 495 after the staging metadata guard test was added. Typecheck, build, and OpenAPI verification also passed.
+
+The Supabase project is now named `OurWeek (staging)`, and the guarded staging dry-run completed on 9 September 2026 without applying migrations or creating fixtures. It found exactly the two locally proven forward migrations pending: public-function permission hardening and the AI RPC ambiguity correction.
+
+Evidence: [local database proof](D:/Projects/myself/weekly-us-api/docs/database-proof/local-2026-09-09.md), [staging migration dry-run](D:/Projects/myself/weekly-us-api/docs/database-proof/staging-dry-run-2026-09-09.md), [permission hardening](D:/Projects/myself/weekly-us-api/supabase/migrations/20260909120000_harden_public_function_privileges.sql), [AI RPC correction](D:/Projects/myself/weekly-us-api/supabase/migrations/20260909130000_fix_ai_rpc_column_ambiguity.sql), [database test runbook](D:/Projects/myself/weekly-us-api/docs/database-proof/README.md).
+
+**Remaining required outcome:** approve and apply the two reviewed forward migrations to staging, then execute the guarded staging smoke suites and fixture cleanup. Production testing remains out of scope.
 
 ### 8. Production configuration and operational instructions have drifted
 
