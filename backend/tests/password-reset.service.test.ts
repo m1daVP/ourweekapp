@@ -29,6 +29,7 @@ const smtpEnv = {
   SMTP_USER: 'mailer@example.com',
   SMTP_PASSWORD: 'smtp-password',
   EMAIL_FROM: 'OurWeek <no-reply@example.com>',
+  INVITATION_HANDOFF_URL: 'https://app.example.test/invite',
 };
 
 async function loadAuthModules({ smtpConfigured = true } = {}) {
