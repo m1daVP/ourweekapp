@@ -67,10 +67,12 @@ describe('buildApp proxy awareness', () => {
     app = await buildApp({ logger: false });
     app.get('/test/client-ip', async (request) => ({ ip: request.ip }));
     await app.ready();
-  });
+  }, 30_000);
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it('derives request.ip from x-forwarded-for behind the Render proxy', async () => {
