@@ -1,8 +1,15 @@
-import {z} from 'zod';
+import { z } from 'zod';
 
 export const captionCueSchema = z
-  .object({startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(), text: z.string().min(1)})
-  .refine((cue) => cue.endFrame > cue.startFrame, 'Caption endFrame must be after startFrame');
+  .object({
+    startFrame: z.number().int().nonnegative(),
+    endFrame: z.number().int().positive(),
+    text: z.string().min(1),
+  })
+  .refine(
+    (cue) => cue.endFrame > cue.startFrame,
+    'Caption endFrame must be after startFrame'
+  );
 
 export const timedClipSchema = z
   .object({
@@ -13,7 +20,10 @@ export const timedClipSchema = z
     narration: z.string().min(1),
     captions: z.array(captionCueSchema).min(1),
   })
-  .refine((clip) => clip.endFrame > clip.startFrame, 'Clip endFrame must be after startFrame');
+  .refine(
+    (clip) => clip.endFrame > clip.startFrame,
+    'Clip endFrame must be after startFrame'
+  );
 
 export const videoBriefSchema = z
   .object({
@@ -27,10 +37,16 @@ export const videoBriefSchema = z
     categories: z.array(z.string()),
   })
   .superRefine((brief, context) => {
-    const duration = Math.max(brief.endCard.endFrame, ...brief.clips.map((clip) => clip.endFrame));
+    const duration = Math.max(
+      brief.endCard.endFrame,
+      ...brief.clips.map((clip) => clip.endFrame)
+    );
     for (const clip of brief.clips) {
       if (clip.endFrame > duration) {
-        context.addIssue({code: 'custom', message: `Clip ${clip.id} exceeds video duration`});
+        context.addIssue({
+          code: 'custom',
+          message: `Clip ${clip.id} exceeds video duration`,
+        });
       }
     }
   });

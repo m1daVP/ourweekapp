@@ -52,15 +52,15 @@ Captured flows:
 
 ### Timed storyboard
 
-| Time | Visual | Narrative job |
-| --- | --- | --- |
-| 0:00–0:10 | A brief warm human opening leading into the real OurWeek home screen. | State the problem: busy households need a calmer place to begin the weekly conversation. |
-| 0:10–0:35 | Start a check-in, choose participants, respond to a prompt, and add a topic. | Establish the guided weekly ritual with no slow logo intro. |
-| 0:35–1:05 | Capture an agreement, assign a task, and reveal the shared recap. | Show the central transformation from discussion to clear commitments and follow-up. |
-| 1:05–1:25 | Open tasks and history; show an unfinished item returning to the following week. | Demonstrate continuity and accountability without blame. |
-| 1:25–1:40 | Present the genuine Premium paywall and native RevenueCat purchase experience. | Explain the real Premium value, current localized price, and the business model. |
-| 1:40–1:50 | Show a genuine local reminder and return to the weekly ritual. | Establish a thoughtful return path. |
-| 1:50–1:55 | OurWeek logo/end card. | Name the entered categories: Grand Prize, Design Award, HAMM, Peace Prize, and #BuildInPublic. |
+| Time      | Visual                                                                           | Narrative job                                                                                  |
+| --------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 0:00–0:10 | A brief warm human opening leading into the real OurWeek home screen.            | State the problem: busy households need a calmer place to begin the weekly conversation.       |
+| 0:10–0:35 | Start a check-in, choose participants, respond to a prompt, and add a topic.     | Establish the guided weekly ritual with no slow logo intro.                                    |
+| 0:35–1:05 | Capture an agreement, assign a task, and reveal the shared recap.                | Show the central transformation from discussion to clear commitments and follow-up.            |
+| 1:05–1:25 | Open tasks and history; show an unfinished item returning to the following week. | Demonstrate continuity and accountability without blame.                                       |
+| 1:25–1:40 | Present the genuine Premium paywall and native RevenueCat purchase experience.   | Explain the real Premium value, current localized price, and the business model.               |
+| 1:40–1:50 | Show a genuine local reminder and return to the weekly ritual.                   | Establish a thoughtful return path.                                                            |
+| 1:50–1:55 | OurWeek logo/end card.                                                           | Name the entered categories: Grand Prize, Design Award, HAMM, Peace Prize, and #BuildInPublic. |
 
 ### Narration principles
 

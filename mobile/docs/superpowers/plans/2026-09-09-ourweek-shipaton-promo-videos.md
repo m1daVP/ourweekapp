@@ -55,6 +55,7 @@
 ### Task 1: Create the isolated production package and content contracts
 
 **Files:**
+
 - Create: `marketing/video/package.json`
 - Create: `marketing/video/tsconfig.json`
 - Create: `marketing/video/remotion.config.ts`
@@ -66,6 +67,7 @@
 - Test: `marketing/video/tests/content.test.ts`
 
 **Interfaces:**
+
 - Produces `VideoBrief`, `TimedClip`, and `CaptionCue` types for all composition and rendering tasks.
 - Produces `secondsToFrames(seconds: number, fps: number): number` and `getBriefDurationFrames(brief: VideoBrief): number` for validation and composition duration.
 
@@ -110,10 +112,10 @@ Expected: a package-local lockfile is created and neither `weekly-us/package.jso
 Create `marketing/video/tests/content.test.ts` with tests for:
 
 ```ts
-import {describe, expect, it} from 'vitest';
-import {getBriefDurationFrames, secondsToFrames} from '../src/lib/timing';
-import {shipatonBrief} from '../src/content/shipaton';
-import {tiktokBriefs} from '../src/content/tiktok';
+import { describe, expect, it } from 'vitest';
+import { getBriefDurationFrames, secondsToFrames } from '../src/lib/timing';
+import { shipatonBrief } from '../src/content/shipaton';
+import { tiktokBriefs } from '../src/content/tiktok';
 
 describe('promo content boundaries', () => {
   it('converts seconds using the exact composition frame rate', () => {
@@ -145,8 +147,15 @@ Expected: FAIL because `timing`, `shipaton`, and `tiktok` modules are absent.
 Create `schema.ts` so a clip cannot exceed the brief duration and every caption has non-negative ordered frame boundaries:
 
 ```ts
-export type CaptionCue = {startFrame: number; endFrame: number; text: string};
-export type TimedClip = {id: string; source: string; startFrame: number; endFrame: number; narration: string; captions: CaptionCue[]};
+export type CaptionCue = { startFrame: number; endFrame: number; text: string };
+export type TimedClip = {
+  id: string;
+  source: string;
+  startFrame: number;
+  endFrame: number;
+  narration: string;
+  captions: CaptionCue[];
+};
 export type VideoBrief = {
   id: string;
   fps: 30;
@@ -180,6 +189,7 @@ Expected: only new video-production files appear. Do not stage or commit without
 ### Task 2: Encode the Shipaton script and TikTok briefs as verified content
 
 **Files:**
+
 - Create: `marketing/video/src/content/shipaton.ts`
 - Create: `marketing/video/src/content/tiktok.ts`
 - Create: `marketing/video/data/proof/README.md`
@@ -187,6 +197,7 @@ Expected: only new video-production files appear. Do not stage or commit without
 - Test: `marketing/video/tests/content.test.ts`
 
 **Interfaces:**
+
 - Consumes `VideoBrief` and timing helpers from Task 1.
 - Produces `shipatonBrief: VideoBrief` and `tiktokBriefs: readonly VideoBrief[]` consumed by Root, composition, captions, render, and SRT tasks.
 
@@ -203,7 +214,9 @@ it('lists only the approved flagship categories and never claims OneSignal', () 
     'RevenueCat Peace Prize',
     '#BuildInPublic Award',
   ]);
-  expect(JSON.stringify(shipatonBrief)).not.toMatch(/OneSignal|Keep Them Coming Back/i);
+  expect(JSON.stringify(shipatonBrief)).not.toMatch(
+    /OneSignal|Keep Them Coming Back/i
+  );
 });
 
 it('uses real local-reminder wording', () => {
@@ -241,9 +254,9 @@ Use source paths such as `assets/captures/01-home.mp4`; rendering must fail when
 Set the first caption and narration to exactly these approved hooks:
 
 ```ts
-'We kept having the same conversation every Sunday.'
-'A weekly check-in that actually sticks.'
-'Don’t let the important things disappear after the conversation.'
+'We kept having the same conversation every Sunday.';
+'A weekly check-in that actually sticks.';
+'Don’t let the important things disappear after the conversation.';
 ```
 
 Set compositions to 25, 23, and 26 seconds respectively. Every brief ends with an OurWeek logo/end-card caption, not an unsupported pricing or OneSignal claim.
@@ -267,6 +280,7 @@ Expected: content briefs and tests are visible but unstaged.
 ### Task 3: Make capture repeatable and safe
 
 **Files:**
+
 - Create: `marketing/video/scripts/capture.mts`
 - Create: `marketing/video/capture-plan.md`
 - Create: `marketing/video/assets/captures/.gitkeep`
@@ -274,6 +288,7 @@ Expected: content briefs and tests are visible but unstaged.
 - Test: `marketing/video/tests/capture-plan.test.ts`
 
 **Interfaces:**
+
 - Consumes `VIDEO_BASE_URL`, `VIDEO_DEMO_EMAIL`, and `VIDEO_DEMO_PASSWORD` only from process environment.
 - Produces one MP4/WebM source file per brief clip under `assets/captures/`, never committed.
 
@@ -333,6 +348,7 @@ Expected: capture files are created locally under `assets/captures/raw`; no secr
 ### Task 4: Generate and verify AI narration assets
 
 **Files:**
+
 - Create: `marketing/video/scripts/generate-narration.mts`
 - Create: `marketing/video/tests/narration.test.ts`
 - Modify: `marketing/video/package.json`
@@ -340,6 +356,7 @@ Expected: capture files are created locally under `assets/captures/raw`; no secr
 - Test: `marketing/video/tests/narration.test.ts`
 
 **Interfaces:**
+
 - Consumes final brief narration text and the `OPENAI_API_KEY` environment variable.
 - Produces one ignored 24 kHz WAV narration asset per `VideoBrief` under `assets/audio/`, named `<brief-id>-narration.wav`.
 
@@ -365,7 +382,8 @@ export const buildNarrationRequest = (input: string) => ({
   model: 'gpt-4o-mini-tts',
   voice: 'marin',
   input,
-  instructions: 'Warm, calm, grounded English presentation voice. Conversational and clear, never theatrical. Use a measured pace and natural pauses.',
+  instructions:
+    'Warm, calm, grounded English presentation voice. Conversational and clear, never theatrical. Use a measured pace and natural pauses.',
   response_format: 'wav',
 });
 ```
@@ -409,6 +427,7 @@ until its voice and timing have been reviewed.
 ### Task 5: Build the real-footage compositions, captions, and SRT output
 
 **Files:**
+
 - Create: `marketing/video/src/components/PhoneCapture.tsx`
 - Create: `marketing/video/src/components/Captions.tsx`
 - Create: `marketing/video/src/components/EndCard.tsx`
@@ -419,6 +438,7 @@ until its voice and timing have been reviewed.
 - Test: `marketing/video/tests/srt.test.ts`
 
 **Interfaces:**
+
 - Consumes verified `VideoBrief` data and safe recorded assets from Tasks 2–3.
 - Produces named Remotion compositions `ShipatonDemo`, `TikTokSameConversation`, `TikTokWeeklyRitual`, and `TikTokNothingDisappears`, plus `toSrt(cues: CaptionCue[]): string`.
 
@@ -465,6 +485,7 @@ Expected: PASS.
 ### Task 6: Add render and output-verification automation
 
 **Files:**
+
 - Create: `marketing/video/scripts/render.mts`
 - Create: `marketing/video/scripts/verify-output.mts`
 - Create: `marketing/video/tests/output.test.ts`
@@ -472,6 +493,7 @@ Expected: PASS.
 - Test: `marketing/video/tests/output.test.ts`
 
 **Interfaces:**
+
 - Consumes named Remotion compositions, input assets, narration WAVs, and content briefs.
 - Produces four `.mp4` files, four `.srt` files, and one JSON verification report under `marketing/video/out/`.
 
@@ -480,9 +502,24 @@ Expected: PASS.
 Test `validateVideoMetadata` with these fixtures:
 
 ```ts
-expect(validateVideoMetadata({width: 1920, height: 1080, fps: 30, durationSeconds: 115, codec: 'h264'}, flagshipRules)).toEqual([]);
-expect(validateVideoMetadata({width: 1920, height: 1080, fps: 30, durationSeconds: 116, codec: 'h264'}, flagshipRules)).toContain('duration must be <= 115 seconds');
-expect(validateVideoMetadata({width: 1080, height: 1920, fps: 30, durationSeconds: 19, codec: 'h264'}, tiktokRules)).toContain('duration must be >= 20 seconds');
+expect(
+  validateVideoMetadata(
+    { width: 1920, height: 1080, fps: 30, durationSeconds: 115, codec: 'h264' },
+    flagshipRules
+  )
+).toEqual([]);
+expect(
+  validateVideoMetadata(
+    { width: 1920, height: 1080, fps: 30, durationSeconds: 116, codec: 'h264' },
+    flagshipRules
+  )
+).toContain('duration must be <= 115 seconds');
+expect(
+  validateVideoMetadata(
+    { width: 1080, height: 1920, fps: 30, durationSeconds: 19, codec: 'h264' },
+    tiktokRules
+  )
+).toContain('duration must be >= 20 seconds');
 ```
 
 - [ ] **Step 2: Run the output tests to verify they fail**
@@ -514,11 +551,13 @@ Expected: four valid MP4 files, four matching SRT files, and a passing JSON repo
 ### Task 7: Human QA and delivery package
 
 **Files:**
+
 - Create: `marketing/video/out/README.md`
 - Create: `marketing/video/qa-checklist.md`
 - Modify: `marketing/video/data/proof/README.md` only if an approved metrics claim is actually included.
 
 **Interfaces:**
+
 - Consumes the rendered/verified package from Task 6.
 - Produces a reviewer-readable delivery package with exact filenames and claim evidence status.
 

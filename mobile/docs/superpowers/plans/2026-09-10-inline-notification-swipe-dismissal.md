@@ -46,7 +46,9 @@
     };
     const wrapper = mountAppShell();
     const notification = wrapper.get('.in-app-notification');
-    handlers.handleInAppNotificationPointerDown({ clientY: 180 } as PointerEvent);
+    handlers.handleInAppNotificationPointerDown({
+      clientY: 180,
+    } as PointerEvent);
     handlers.handleInAppNotificationPointerUp({ clientY: 120 } as PointerEvent);
     expect(state.dismissInAppNotification).toHaveBeenCalledOnce();
   });
@@ -59,7 +61,9 @@
     };
     const wrapper = mountAppShell();
     const notification = wrapper.get('.in-app-notification');
-    handlers.handleInAppNotificationPointerDown({ clientY: 180 } as PointerEvent);
+    handlers.handleInAppNotificationPointerDown({
+      clientY: 180,
+    } as PointerEvent);
     handlers.handleInAppNotificationPointerUp({ clientY: 150 } as PointerEvent);
     expect(state.dismissInAppNotification).not.toHaveBeenCalled();
     expect(wrapper.find('.in-app-notification__dismiss').exists()).toBe(false);
