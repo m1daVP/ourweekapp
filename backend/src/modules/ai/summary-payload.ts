@@ -4,6 +4,8 @@ import type { JsonValue } from '../../shared/repositories/index.js';
 import type { MeetingDto as MeetingRepositoryDto } from '../meetings/meetings.repository.js';
 
 export const SUMMARY_INPUT_MAX_CHARS = 12_000;
+export const SUMMARY_MIN_DISCUSSION_SIGNALS = 2;
+export const SUMMARY_MIN_DISCUSSION_SECTIONS = 2;
 
 export type SummaryPromptParticipant = {
   id: string;
@@ -171,6 +173,36 @@ function sanitizeSectionsForAi(sections: JsonValue[]): SanitizedMeetingStep[] {
   }
 
   return sanitized;
+}
+
+export type SummaryContentReadiness = {
+  isReady: boolean;
+  discussionSignalCount: number;
+  sectionCount: number;
+};
+
+export function getSummaryContentReadiness(
+  sections: JsonValue[],
+): SummaryContentReadiness {
+  let discussionSignalCount = 0;
+  let sectionCount = 0;
+
+  for (const section of sanitizeSectionsForAi(sections)) {
+    const sectionSignals = section.notes.length + section.agreements.length;
+
+    if (sectionSignals > 0) {
+      sectionCount += 1;
+      discussionSignalCount += sectionSignals;
+    }
+  }
+
+  return {
+    isReady:
+      discussionSignalCount >= SUMMARY_MIN_DISCUSSION_SIGNALS &&
+      sectionCount >= SUMMARY_MIN_DISCUSSION_SECTIONS,
+    discussionSignalCount,
+    sectionCount,
+  };
 }
 
 function orderParticipantsForPrompt(

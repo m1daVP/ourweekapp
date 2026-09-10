@@ -25,7 +25,10 @@ import {
 import { buildSafetyIdentifier } from './safety-identifier.js';
 import {
   buildSummaryPromptPayload,
+  getSummaryContentReadiness,
   normalizeSummaryProviderOutput,
+  SUMMARY_MIN_DISCUSSION_SECTIONS,
+  SUMMARY_MIN_DISCUSSION_SIGNALS,
 } from './summary-payload.js';
 import {
   buildSummarySystemPrompt,
@@ -229,6 +232,39 @@ export class AiSummaryService {
         409,
         'meeting_not_completed',
         'Meeting must be completed before generating a summary.',
+      );
+    }
+
+    const contentReadiness = getSummaryContentReadiness(meeting.sections);
+
+    if (!contentReadiness.isReady && request.allowLowContent !== true) {
+      this.options.logger?.warn({
+        event: 'ai_summary_generation_rejected',
+        status: 'failed',
+        reason: 'insufficient_content',
+        errorCode: 'ai_summary_insufficient_content',
+        workspaceId: auth.workspaceId,
+        meetingId: meeting.id,
+        templateId: meeting.templateId,
+        provider: providerName,
+        model,
+        promptVersion,
+        durationMs: durationMsSince(startedAtMs),
+        discussionSignalCount: contentReadiness.discussionSignalCount,
+        sectionCount: contentReadiness.sectionCount,
+        requiredDiscussionSignalCount: SUMMARY_MIN_DISCUSSION_SIGNALS,
+        requiredSectionCount: SUMMARY_MIN_DISCUSSION_SECTIONS,
+      }, 'AI summary generation rejected');
+      throw new ApiError(
+        422,
+        'ai_summary_insufficient_content',
+        'Add more meeting context before generating a recap.',
+        {
+          discussionSignalCount: contentReadiness.discussionSignalCount,
+          sectionCount: contentReadiness.sectionCount,
+          requiredDiscussionSignalCount: SUMMARY_MIN_DISCUSSION_SIGNALS,
+          requiredSectionCount: SUMMARY_MIN_DISCUSSION_SECTIONS,
+        },
       );
     }
 

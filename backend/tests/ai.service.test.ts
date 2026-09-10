@@ -86,6 +86,14 @@ function meeting(overrides: Partial<MeetingRepositoryDto> = {}): MeetingReposito
           },
         ],
       },
+      {
+        id: 'section_2',
+        title: 'Agreements',
+        prompt: 'What should be clear before next week?',
+        notes: [],
+        tasks: [],
+        agreements: [{ text: 'Review the pickup plan next Sunday.' }],
+      },
     ],
     currentSectionIndex: 0,
     aiSummary: null,
@@ -222,6 +230,76 @@ function subscription(overrides: Partial<SubscriptionDto> = {}): SubscriptionDto
 }
 
 describe('AiSummaryService', () => {
+  it('requires explicit confirmation before claiming a recap for low-content meetings', async () => {
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    const sensitiveNote = 'only-one-discussion-signal';
+    const lowContentMeeting = meeting({
+      sections: [{
+        id: 'section_1',
+        title: 'Planning',
+        prompt: 'What needs planning this week?',
+        notes: [{ text: sensitiveNote }],
+        tasks: [{ title: 'Book dentist' }],
+        agreements: [],
+      }],
+    });
+    const { ai, assistant, participants, provider, service } = createHarness({
+      meeting: lowContentMeeting,
+      logger,
+      withAssistantRepository: true,
+    });
+
+    await expect(
+      service.generateMeetingSummary(auth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({
+      statusCode: 422,
+      code: 'ai_summary_insufficient_content',
+      details: {
+        discussionSignalCount: 1,
+        sectionCount: 1,
+        requiredDiscussionSignalCount: 2,
+        requiredSectionCount: 2,
+      },
+    });
+    expect(participants.listParticipantNamesForWorkspace).not.toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
+    expect(assistant.reserveRecap).not.toHaveBeenCalled();
+    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reason: 'insufficient_content',
+        discussionSignalCount: 1,
+        sectionCount: 1,
+      }),
+      'AI summary generation rejected',
+    );
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(sensitiveNote);
+  });
+
+  it('allows a low-content recap after explicit confirmation', async () => {
+    const { ai, provider, service } = createHarness({
+      meeting: meeting({
+        sections: [{
+          id: 'section_1',
+          title: 'Planning',
+          prompt: 'What needs planning this week?',
+          notes: [{ text: 'Only one discussion signal.' }],
+          tasks: [],
+          agreements: [],
+        }],
+      }),
+    });
+
+    await service.generateMeetingSummary(
+      auth,
+      { meetingId, allowLowContent: true },
+      new Date(now),
+    );
+
+    expect(ai.claimSummaryGeneration).toHaveBeenCalledOnce();
+    expect(provider.generateMeetingSummary).toHaveBeenCalledOnce();
+  });
+
   it('rejects a stale synchronized revision before reserving or generating', async () => {
     const { ai, provider, service } = createHarness({
       meeting: meeting({ serverRevision: 3 }),
@@ -559,6 +637,14 @@ describe('AiSummaryService', () => {
             prompt: 'What needs planning this week?',
             notes: [{ text: oversizedText }],
             privateNotes: [],
+            tasks: [],
+            agreements: [],
+          },
+          {
+            id: 'section_2',
+            title: 'Agreements',
+            prompt: 'What should be clear before next week?',
+            notes: [{ text: 'Review the pickup plan.' }],
             tasks: [],
             agreements: [],
           },

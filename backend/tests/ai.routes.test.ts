@@ -228,6 +228,7 @@ describe('AI summary routes', () => {
         meetingId: '11111111-1111-4111-8111-111111111111',
         locale: 'en',
         expectedServerRevision: 3,
+        allowLowContent: true,
       },
     });
 
@@ -251,6 +252,7 @@ describe('AI summary routes', () => {
         meetingId: '11111111-1111-4111-8111-111111111111',
         locale: 'en',
         expectedServerRevision: 3,
+        allowLowContent: true,
       },
     );
     await app.close();
@@ -274,4 +276,22 @@ describe('AI summary routes', () => {
       await app.close();
     },
   );
+
+  it('rejects a non-boolean low-content override before calling the service', async () => {
+    const app = await buildAiRoutesApp();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/ai/meeting-summary',
+      headers: { authorization: 'Bearer premium-token' },
+      payload: {
+        meetingId: '11111111-1111-4111-8111-111111111111',
+        allowLowContent: 'true',
+      },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({ code: 'validation_failed' });
+    expect(routeGenerateMeetingSummary).not.toHaveBeenCalled();
+    await app.close();
+  });
 });

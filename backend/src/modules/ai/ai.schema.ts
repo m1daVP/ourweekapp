@@ -48,6 +48,7 @@ export const aiMeetingSummaryRequestSchema = z.object({
   meetingId: apiIdSchema,
   locale: trimmedString(1, VALIDATION_LIMITS.aiLocaleMaxLength).optional(),
   expectedServerRevision: serverRevisionSchema.optional(),
+  allowLowContent: z.boolean().optional(),
 });
 
 export const aiMeetingSyncSchema = z.object({
