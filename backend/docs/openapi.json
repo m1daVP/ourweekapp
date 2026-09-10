@@ -7060,8 +7060,11 @@
                   },
                   "locale": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 16
+                    "enum": [
+                      "en",
+                      "uk",
+                      "es"
+                    ]
                   },
                   "expectedServerRevision": {
                     "type": "integer",
