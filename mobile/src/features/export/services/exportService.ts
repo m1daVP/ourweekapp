@@ -12,8 +12,10 @@ import {
 import type { SupportedLocale } from '@/features/localization/types';
 import {
   downloadFileInBrowser,
+  deliverBinaryExportFile,
   shareExportFile as shareDeliveredExportFile,
 } from '@/shared/services/exportFileDeliveryService';
+import { exportMeetingPdf as requestMeetingPdf } from '@/shared/api/exportsApi';
 
 export type MeetingExportFormat = 'text' | 'markdown';
 
@@ -116,13 +118,6 @@ function createSlug(value: string) {
 function getExportBaseName(meeting: Meeting) {
   const date = getMeetingDate(meeting).toISOString().slice(0, 10);
   return `ourweek-${date}-${createSlug(meeting.title)}`;
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }
 
 function addAiSummaryText(
@@ -446,45 +441,13 @@ export function downloadExportFile(file: MeetingExportFile) {
   downloadFileInBrowser(file);
 }
 
-export function exportMeetingAsPdf(
-  meeting: Meeting,
-  context: MeetingExportContext
-) {
-  const printWindow = window.open('', '_blank');
+export async function exportMeetingAsPdf(meetingId: string) {
+  const file = await requestMeetingPdf(meetingId);
 
-  if (!printWindow) {
-    return false;
-  }
-
-  const markdown = exportMeetingAsMarkdown(meeting, context);
-  const escapedContent = escapeHtml(markdown);
-  const escapedTitle = escapeHtml(meeting.title);
-
-  printWindow.document.write(`<!doctype html>
-<html>
-  <head>
-    <title>${escapedTitle}</title>
-    <style>
-      body {
-        color: #221f1b;
-        font-family: Arial, sans-serif;
-        line-height: 1.45;
-        margin: 32px;
-      }
-      pre {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        font: inherit;
-      }
-    </style>
-  </head>
-  <body>
-    <pre>${escapedContent}</pre>
-  </body>
-</html>`);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-
-  return true;
+  return deliverBinaryExportFile({
+    content: file.blob,
+    fileName: file.fileName,
+    mimeType: 'application/pdf',
+    title: file.fileName,
+  });
 }

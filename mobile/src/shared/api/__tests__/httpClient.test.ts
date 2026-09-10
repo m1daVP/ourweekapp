@@ -50,6 +50,37 @@ afterEach(() => {
 });
 
 describe('apiRequest', () => {
+  it('returns an authenticated PDF Blob and preserves content disposition', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(new Uint8Array([0x25, 0x50, 0x44, 0x46]), {
+        headers: {
+          'content-type': 'application/pdf',
+          'content-disposition': 'attachment; filename="weekly.pdf"',
+        },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { apiRequestBlob, setApiAuthHandlers } = await loadHttpClient();
+    setApiAuthHandlers({ getAccessToken: () => 'access-token' });
+
+    const result = await apiRequestBlob('/exports/meeting/pdf', {
+      method: 'POST',
+      body: { meetingId: 'meeting-1' },
+      requiresAuth: true,
+    });
+
+    expect(result.blob.type).toBe('application/pdf');
+    expect(result.contentDisposition).toContain('filename="weekly.pdf"');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/v1/exports/meeting/pdf',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer access-token',
+        }),
+      })
+    );
+  });
+
   it('prefixes paths with /v1 and sends JSON requests', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
     vi.stubGlobal('fetch', fetchMock);

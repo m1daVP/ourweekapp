@@ -10,9 +10,27 @@ export interface ExportFileDelivery {
   title?: string;
 }
 
+export interface BinaryExportFileDelivery {
+  content: Blob;
+  fileName: string;
+  mimeType: 'application/pdf';
+  title?: string;
+}
+
 type WebNavigatorWithShare = Navigator & {
   canShare?: Navigator['canShare'];
 };
+
+function bytesToBase64(bytes: Uint8Array) {
+  const chunkSize = 0x8000;
+  let binary = '';
+
+  for (let start = 0; start < bytes.length; start += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(start, start + chunkSize));
+  }
+
+  return btoa(binary);
+}
 
 export function downloadFileInBrowser(file: ExportFileDelivery) {
   const blob = new Blob([file.content], { type: file.mimeType });
@@ -90,6 +108,78 @@ export async function shareExportFile(file: ExportFileDelivery) {
   // TODO(iOS): Verify Filesystem cache + Share behavior on a real iOS device
   // before enabling the native branch for iOS.
   return shareFileInBrowser(file);
+}
+
+async function shareBinaryFileInBrowser(file: BinaryExportFileDelivery) {
+  const exportedFile = new File([file.content], file.fileName, {
+    type: file.mimeType,
+  });
+  const shareData: ShareData = {
+    title: file.title ?? file.fileName,
+    files: [exportedFile],
+  };
+  const webNavigator = navigator as WebNavigatorWithShare;
+
+  if (webNavigator.share && webNavigator.canShare?.(shareData)) {
+    await webNavigator.share(shareData);
+    return 'shared' as const;
+  }
+
+  const url = URL.createObjectURL(file.content);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.fileName;
+  link.rel = 'noopener';
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+
+  return 'downloaded' as const;
+}
+
+async function shareBinaryFileOnNative(file: BinaryExportFileDelivery) {
+  const canShare = await Share.canShare();
+
+  if (!canShare.value) {
+    throw new Error('Native file sharing is unavailable.');
+  }
+
+  const bytes = new Uint8Array(await file.content.arrayBuffer());
+  const savedFile = await Filesystem.writeFile({
+    path: file.fileName,
+    data: bytesToBase64(bytes),
+    directory: Directory.Cache,
+    recursive: true,
+  });
+
+  try {
+    await Share.share({
+      title: file.title ?? file.fileName,
+      text: file.title ?? file.fileName,
+      files: [savedFile.uri],
+      dialogTitle: file.title ?? file.fileName,
+    });
+  } finally {
+    try {
+      await Filesystem.deleteFile({
+        path: file.fileName,
+        directory: Directory.Cache,
+      });
+    } catch (error) {
+      warnSafely('Unable to delete temporary PDF export file.', error);
+    }
+  }
+
+  return 'shared' as const;
+}
+
+export async function deliverBinaryExportFile(file: BinaryExportFileDelivery) {
+  if (Capacitor.isNativePlatform()) {
+    return shareBinaryFileOnNative(file);
+  }
+
+  return shareBinaryFileInBrowser(file);
 }
 
 export async function saveOrShareExportFile(file: ExportFileDelivery) {

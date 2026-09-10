@@ -35,6 +35,11 @@ interface ApiAuthHandlers {
   onUnauthorized?: () => Promise<void> | void;
 }
 
+type SuccessResponseParser<TResponse> = (
+  response: Response,
+  responseBody: unknown
+) => Promise<TResponse>;
+
 let authHandlers: ApiAuthHandlers | null = null;
 
 export class ApiClientError extends Error {
@@ -99,7 +104,11 @@ async function readResponseBody(response: Response) {
 
 async function sendApiRequest<TResponse>(
   path: string,
-  options: ApiRequestOptions = {}
+  options: ApiRequestOptions = {},
+  parseResponse: SuccessResponseParser<TResponse> = async (
+    _response,
+    responseBody
+  ) => responseBody as TResponse
 ) {
   const requestPath = createVersionedPath(path);
   const requestMethod = options.method ?? 'GET';
@@ -170,15 +179,16 @@ async function sendApiRequest<TResponse>(
     return undefined as TResponse;
   }
 
-  return responseBody as TResponse;
+  return parseResponse(response, responseBody);
 }
 
-export async function apiRequest<TResponse>(
+async function requestWithParser<TResponse>(
   path: string,
-  options: ApiRequestOptions = {}
+  options: ApiRequestOptions,
+  parseResponse: SuccessResponseParser<TResponse>
 ): Promise<TResponse> {
   try {
-    return await sendApiRequest<TResponse>(path, options);
+    return await sendApiRequest(path, options, parseResponse);
   } catch (error) {
     const handlers = authHandlers;
     const shouldRefresh =
@@ -199,10 +209,35 @@ export async function apiRequest<TResponse>(
       throw error;
     }
 
-    return sendApiRequest<TResponse>(path, {
-      ...options,
-      authToken: refreshedToken,
-      skipAuthRefresh: true,
-    });
+    return sendApiRequest(
+      path,
+      {
+        ...options,
+        authToken: refreshedToken,
+        skipAuthRefresh: true,
+      },
+      parseResponse
+    );
   }
+}
+
+export async function apiRequest<TResponse>(
+  path: string,
+  options: ApiRequestOptions = {}
+): Promise<TResponse> {
+  return requestWithParser(
+    path,
+    options,
+    async (_response, responseBody) => responseBody as TResponse
+  );
+}
+
+export async function apiRequestBlob(
+  path: string,
+  options: ApiRequestOptions = {}
+): Promise<{ blob: Blob; contentDisposition: string | null }> {
+  return requestWithParser(path, options, async (response) => ({
+    blob: await response.blob(),
+    contentDisposition: response.headers.get('content-disposition'),
+  }));
 }

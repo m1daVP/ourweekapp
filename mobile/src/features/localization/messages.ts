@@ -997,6 +997,10 @@ export const messages = {
       shareFailed: 'Could not share or save this export right now.',
       printOpened: 'Print view opened. Choose Save as PDF if available.',
       printFailed: 'Could not open the PDF print view on this device.',
+      pdfRequiresSync:
+        'Sync this meeting before exporting its PDF, then try again.',
+      pdfFailed:
+        'Could not create the PDF right now. Check your connection and try again.',
       generateFailed: 'Could not generate a summary right now.',
       notePlaceholders: {
         goodThings: 'One thing I appreciated was...',
@@ -2559,6 +2563,10 @@ export const messages = {
       printOpened:
         'Вікно друку відкрито. Виберіть “Зберегти як PDF”, якщо доступно.',
       printFailed: 'Не вдалося відкрити PDF-перегляд на цьому пристрої.',
+      pdfRequiresSync:
+        'Синхронізуйте цю зустріч перед експортом PDF і спробуйте ще раз.',
+      pdfFailed:
+        'Не вдалося створити PDF зараз. Перевірте з’єднання та спробуйте ще раз.',
       generateFailed: 'Не вдалося створити підсумок зараз.',
       notePlaceholders: {
         goodThings: 'Одна річ, яку я оцінив/оцінила...',
@@ -4151,6 +4159,10 @@ export const messages = {
         'Se abrió la vista de impresión. Elige Guardar como PDF si está disponible.',
       printFailed:
         'No se pudo abrir la vista de impresión PDF en este dispositivo.',
+      pdfRequiresSync:
+        'Sincroniza esta reunión antes de exportar su PDF y vuelve a intentarlo.',
+      pdfFailed:
+        'No se pudo crear el PDF ahora. Comprueba tu conexión e inténtalo de nuevo.',
       generateFailed: 'No se pudo generar un resumen ahora.',
       notePlaceholders: {
         goodThings: 'Algo que aprecié fue...',

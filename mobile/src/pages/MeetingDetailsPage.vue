@@ -37,6 +37,7 @@ import PremiumLock from '@/shared/components/PremiumLock.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useInAppNotification } from '@/shared/composables/useInAppNotification';
+import { ApiClientError } from '@/shared/api/httpClient';
 
 const meetingsStore = useMeetingsStore();
 const { t, locale } = useI18n();
@@ -245,21 +246,29 @@ async function shareOrSaveSelectedExport() {
   }
 }
 
-function printPdfExport() {
-  if (!meeting.value) {
+async function printPdfExport() {
+  if (!meeting.value || isExporting.value) {
     return;
   }
 
   exportError.value = '';
+  isExporting.value = true;
 
-  const didOpen = exportMeetingAsPdf(meeting.value, getExportContext());
-
-  if (didOpen) {
-    showInAppNotification(t('meeting.printOpened'));
-    return;
+  try {
+    const delivery = await exportMeetingAsPdf(meeting.value.id);
+    showInAppNotification(
+      delivery === 'shared'
+        ? t('meeting.sharedExport')
+        : t('meeting.savedExport')
+    );
+  } catch (error) {
+    exportError.value =
+      error instanceof ApiClientError && error.code === 'meeting_not_found'
+        ? t('meeting.pdfRequiresSync')
+        : t('meeting.pdfFailed');
+  } finally {
+    isExporting.value = false;
   }
-
-  exportError.value = t('meeting.printFailed');
 }
 
 async function generateSummary() {
