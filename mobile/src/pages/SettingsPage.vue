@@ -19,6 +19,8 @@ import type { SupportedLocale } from '@/features/localization/types';
 import HouseholdMembersSettings from '@/features/participants/components/HouseholdMembersSettings.vue';
 import type { ReminderDay } from '@/features/reminders/types';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
+import SelectPickerField from '@/shared/components/SelectPickerField.vue';
+import TimePickerField from '@/shared/components/TimePickerField.vue';
 import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useNotifications } from '@/shared/composables/useNotifications';
@@ -152,27 +154,27 @@ async function handleReminderEnabledChange(event: Event) {
   await disableReminders();
 }
 
-function updateWeeklyMeetingReminderDay(event: Event) {
+function updateWeeklyMeetingReminderDay(day: string) {
   remindersStore.updateWeeklyMeetingReminder({
-    day: toReminderDay((event.target as HTMLSelectElement).value),
+    day: toReminderDay(day),
   });
 }
 
-function updateWeeklyMeetingReminderTime(event: Event) {
+function updateWeeklyMeetingReminderTime(time: string) {
   remindersStore.updateWeeklyMeetingReminder({
-    time: (event.target as HTMLInputElement).value,
+    time,
   });
 }
 
-function updateUnfinishedTaskReminderDay(event: Event) {
+function updateUnfinishedTaskReminderDay(day: string) {
   remindersStore.updateUnfinishedTaskReminder({
-    day: toReminderDay((event.target as HTMLSelectElement).value),
+    day: toReminderDay(day),
   });
 }
 
-function updateUnfinishedTaskReminderTime(event: Event) {
+function updateUnfinishedTaskReminderTime(time: string) {
   remindersStore.updateUnfinishedTaskReminder({
-    time: (event.target as HTMLInputElement).value,
+    time,
   });
 }
 
@@ -480,35 +482,31 @@ function openReminderSheet() {
       @close="isReminderSheetOpen = false"
     >
       <div class="settings-reminder-sheet">
-        <p class="settings-reminder-sheet__intro">
+        <!-- <p class="settings-reminder-sheet__intro">
           {{ t('settings.reminderIntro') }}
-        </p>
+        </p> -->
 
         <div class="reminder-grid">
           <fieldset class="reminder-fieldset">
             <legend>{{ t('settings.weeklyMeetingReminder') }}</legend>
             <label>
               <span>{{ t('settings.day') }}</span>
-              <select
-                :value="remindersStore.settings.weeklyMeetingReminder.day"
-                @change="updateWeeklyMeetingReminderDay"
-              >
-                <option
-                  v-for="day in localizedReminderDayOptions"
-                  :key="day.value"
-                  :value="day.value"
-                >
-                  {{ day.label }}
-                </option>
-              </select>
+              <SelectPickerField
+                :model-value="remindersStore.settings.weeklyMeetingReminder.day"
+                :label="t('settings.day')"
+                :options="localizedReminderDayOptions"
+                @update:model-value="updateWeeklyMeetingReminderDay"
+              />
             </label>
             <label>
               <span>{{ t('settings.time') }}</span>
-              <input
-                type="time"
-                :step="timeInputStep"
-                :value="remindersStore.settings.weeklyMeetingReminder.time"
-                @change="updateWeeklyMeetingReminderTime"
+              <TimePickerField
+                :model-value="
+                  remindersStore.settings.weeklyMeetingReminder.time
+                "
+                :label="t('settings.time')"
+                :step-minutes="timeInputStep / 60"
+                @update:model-value="updateWeeklyMeetingReminderTime"
               />
             </label>
           </fieldset>
@@ -517,32 +515,30 @@ function openReminderSheet() {
             <legend>{{ t('settings.unfinishedTaskReminder') }}</legend>
             <label>
               <span>{{ t('settings.day') }}</span>
-              <select
-                :value="remindersStore.settings.unfinishedTaskReminder.day"
-                @change="updateUnfinishedTaskReminderDay"
-              >
-                <option
-                  v-for="day in localizedReminderDayOptions"
-                  :key="day.value"
-                  :value="day.value"
-                >
-                  {{ day.label }}
-                </option>
-              </select>
+              <SelectPickerField
+                :model-value="
+                  remindersStore.settings.unfinishedTaskReminder.day
+                "
+                :label="t('settings.day')"
+                :options="localizedReminderDayOptions"
+                @update:model-value="updateUnfinishedTaskReminderDay"
+              />
             </label>
             <label>
               <span>{{ t('settings.time') }}</span>
-              <input
-                type="time"
-                :step="timeInputStep"
-                :value="remindersStore.settings.unfinishedTaskReminder.time"
-                @change="updateUnfinishedTaskReminderTime"
+              <TimePickerField
+                :model-value="
+                  remindersStore.settings.unfinishedTaskReminder.time
+                "
+                :label="t('settings.time')"
+                :step-minutes="timeInputStep / 60"
+                @update:model-value="updateUnfinishedTaskReminderTime"
               />
             </label>
           </fieldset>
         </div>
 
-        <p class="meeting-help">{{ t('settings.reminderExample') }}</p>
+        <!-- <p class="meeting-help">{{ t('settings.reminderExample') }}</p> -->
         <p class="meeting-status" role="status">{{ reminderStatusText }}</p>
         <p v-if="notificationError" class="meeting-error" role="status">
           {{ notificationError }}

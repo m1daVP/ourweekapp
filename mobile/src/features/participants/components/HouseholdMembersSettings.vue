@@ -22,6 +22,7 @@ import {
 } from '@/features/participants/participantInvitationEligibility';
 import type { ParticipantAccessState } from '@/features/workspace/types';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
+import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 import AvatarPickerSheet from './AvatarPickerSheet.vue';
 
@@ -138,6 +139,12 @@ const typeOptions = computed<Array<{ label: string; value: ParticipantType }>>(
     { label: t('settings.participantType.other'), value: 'other' },
   ]
 );
+
+function updateParticipantType(value: string) {
+  if (value === 'adult' || value === 'child' || value === 'other') {
+    participantDraft.type = value;
+  }
+}
 const initialsPreview = computed(
   () => participantDraft.initials || getInitials(participantDraft.name)
 );
@@ -832,15 +839,12 @@ function enableParticipant(participantId: string) {
 
         <label>
           <span>{{ t('settings.type') }}</span>
-          <select v-model="participantDraft.type">
-            <option
-              v-for="type in typeOptions"
-              :key="type.value"
-              :value="type.value"
-            >
-              {{ type.label }}
-            </option>
-          </select>
+          <SelectPickerField
+            :model-value="participantDraft.type"
+            :label="t('settings.type')"
+            :options="typeOptions"
+            @update:model-value="updateParticipantType"
+          />
         </label>
 
         <!-- <button

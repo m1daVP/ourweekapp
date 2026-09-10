@@ -7,6 +7,8 @@ import { parseCalendarCallbackQuery } from '@/features/calendar/services/calenda
 import type { CalendarWeekday } from '@/features/calendar/types';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
+import SelectPickerField from '@/shared/components/SelectPickerField.vue';
+import TimePickerField from '@/shared/components/TimePickerField.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 const calendarSyncStore = useCalendarSyncStore();
@@ -131,16 +133,15 @@ function updateWeeklyMeetingSchedule(input: {
   });
 }
 
-function updateWeeklyMeetingDay(event: Event) {
+function updateWeeklyMeetingDay(day: CalendarWeekday) {
   updateWeeklyMeetingSchedule({
-    weeklyMeetingDay: (event.target as HTMLSelectElement)
-      .value as CalendarWeekday,
+    weeklyMeetingDay: day,
   });
 }
 
-function updateWeeklyMeetingTime(event: Event) {
+function updateWeeklyMeetingTime(time: string) {
   updateWeeklyMeetingSchedule({
-    weeklyMeetingTime: (event.target as HTMLInputElement).value,
+    weeklyMeetingTime: time,
   });
 }
 
@@ -232,36 +233,33 @@ function confirmDisconnect() {
             >
               <label>
                 <span>{{ t('calendar.schedule.day') }}</span>
-                <select
+                <SelectPickerField
                   data-testid="calendar-weekday"
-                  :value="
+                  :model-value="
                     calendarSyncStore.connectionStatus?.preferences
                       .weeklyMeetingDay ?? 'sunday'
                   "
+                  :label="t('calendar.schedule.day')"
+                  :options="weekdayOptions"
                   :disabled="!calendarSyncStore.isConnected"
-                  @change="updateWeeklyMeetingDay"
-                >
-                  <option
-                    v-for="weekday in weekdayOptions"
-                    :key="weekday.value"
-                    :value="weekday.value"
-                  >
-                    {{ weekday.label }}
-                  </option>
-                </select>
+                  @update:model-value="
+                    updateWeeklyMeetingDay($event as CalendarWeekday)
+                  "
+                />
               </label>
 
               <label>
                 <span>{{ t('calendar.schedule.time') }}</span>
-                <input
+                <TimePickerField
                   data-testid="calendar-time"
-                  type="time"
-                  :value="
+                  :model-value="
                     calendarSyncStore.connectionStatus?.preferences
                       .weeklyMeetingTime ?? '18:00'
                   "
+                  :label="t('calendar.schedule.time')"
+                  :step-minutes="5"
                   :disabled="!calendarSyncStore.isConnected"
-                  @change="updateWeeklyMeetingTime"
+                  @update:model-value="updateWeeklyMeetingTime"
                 />
               </label>
             </div>

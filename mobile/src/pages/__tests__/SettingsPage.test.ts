@@ -10,7 +10,12 @@ const state = vi.hoisted(() => ({
   enableReminders: vi.fn(),
   showToast: vi.fn(),
   canUseReminders: false,
-  reminderSettings: { enabled: false },
+  reminderSettings: {
+    enabled: false,
+    weeklyMeetingReminder: { day: 'sunday', time: '18:00' },
+    unfinishedTaskReminder: { day: 'wednesday', time: '18:00' },
+  },
+  updateWeeklyMeetingReminder: vi.fn(),
   subscription: {
     hasPremiumEntitlement: false,
     canManageSubscription: false,
@@ -21,7 +26,8 @@ const state = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('vue-i18n', () => ({
+vi.mock('vue-i18n', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-i18n')>()),
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
@@ -38,8 +44,15 @@ vi.mock('@/app/stores/localization', () => ({
 }));
 
 vi.mock('@/app/stores/reminders', () => ({
-  reminderDayOptions: [],
-  useRemindersStore: () => ({ settings: state.reminderSettings }),
+  reminderDayOptions: [
+    { label: 'Sunday', value: 'sunday' },
+    { label: 'Monday', value: 'monday' },
+    { label: 'Wednesday', value: 'wednesday' },
+  ],
+  useRemindersStore: () => ({
+    settings: state.reminderSettings,
+    updateWeeklyMeetingReminder: state.updateWeeklyMeetingReminder,
+  }),
 }));
 
 vi.mock('@/app/stores/subscription', () => ({
@@ -96,6 +109,14 @@ vi.mock('@/shared/components/BaseBottomSheet.vue', () => ({
   default: { name: 'BaseBottomSheet' },
 }));
 
+vi.mock('@/shared/components/SelectPickerField.vue', () => ({
+  default: { name: 'SelectPickerField' },
+}));
+
+vi.mock('@/shared/components/TimePickerField.vue', () => ({
+  default: { name: 'TimePickerField' },
+}));
+
 vi.mock('@/shared/components/UpgradePrompt.vue', () => ({
   default: { name: 'UpgradePrompt' },
 }));
@@ -107,7 +128,12 @@ function mountSettingsPage() {
     global: {
       stubs: {
         HouseholdMembersSettings: true,
-        BaseBottomSheet: true,
+        BaseBottomSheet: {
+          props: ['open'],
+          template: '<div><slot /></div>',
+        },
+        SelectPickerField: true,
+        TimePickerField: true,
         UpgradePrompt: true,
         RouterLink: true,
       },
@@ -122,6 +148,7 @@ beforeEach(() => {
   state.manageSubscription.mockReset();
   state.enableReminders.mockReset();
   state.showToast.mockReset();
+  state.updateWeeklyMeetingReminder.mockReset();
   state.canUseReminders = false;
   state.reminderSettings.enabled = false;
   Object.assign(state.subscription, {
@@ -277,5 +304,25 @@ describe('SettingsPage notification permissions', () => {
     await wrapper.get('input[type="checkbox"]').setValue(true);
 
     expect(state.showToast).not.toHaveBeenCalled();
+  });
+});
+
+describe('SettingsPage weekly reminder pickers', () => {
+  it('persists picker values through the existing reminder store action', async () => {
+    const wrapper = mountSettingsPage();
+
+    await wrapper
+      .getComponent({ name: 'SelectPickerField' })
+      .vm.$emit('update:modelValue', 'monday');
+    await wrapper
+      .getComponent({ name: 'TimePickerField' })
+      .vm.$emit('update:modelValue', '07:05');
+
+    expect(state.updateWeeklyMeetingReminder).toHaveBeenNthCalledWith(1, {
+      day: 'monday',
+    });
+    expect(state.updateWeeklyMeetingReminder).toHaveBeenNthCalledWith(2, {
+      time: '07:05',
+    });
   });
 });

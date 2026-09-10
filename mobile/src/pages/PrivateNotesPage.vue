@@ -7,6 +7,7 @@ import type { Meeting } from '@/features/meeting/types';
 import type { PrivateNote } from '@/features/private-notes/types';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
+import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 import { haptics } from '@/shared/services/hapticsService';
 
 const meetingsStore = useMeetingsStore();
@@ -27,6 +28,13 @@ const notes = computed(() => privateNotesStore.sortedNotes);
 const linkedMeetingOptions = computed(() =>
   [...meetingsStore.meetings].sort(compareMeetingsByDate)
 );
+const linkedMeetingPickerOptions = computed(() => [
+  { value: '', label: t('privateNotes.noMeetingLink') },
+  ...linkedMeetingOptions.value.map((meeting) => ({
+    value: meeting.id,
+    label: getMeetingLabel(meeting.id),
+  })),
+]);
 const isEditing = computed(() => Boolean(editingNoteId.value));
 
 function compareMeetingsByDate(first: Meeting, second: Meeting) {
@@ -192,16 +200,11 @@ function confirmDeleteNote() {
 
           <label>
             <span>{{ t('privateNotes.relatedMeeting') }}</span>
-            <select v-model="noteDraft.relatedMeetingId">
-              <option value="">{{ t('privateNotes.noMeetingLink') }}</option>
-              <option
-                v-for="meeting in linkedMeetingOptions"
-                :key="meeting.id"
-                :value="meeting.id"
-              >
-                {{ getMeetingLabel(meeting.id) }}
-              </option>
-            </select>
+            <SelectPickerField
+              v-model="noteDraft.relatedMeetingId"
+              :label="t('privateNotes.relatedMeeting')"
+              :options="linkedMeetingPickerOptions"
+            />
           </label>
 
           <div class="private-note-form__actions">

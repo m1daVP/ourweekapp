@@ -21,6 +21,9 @@ import type {
 import TaskSwipeActionCard from '@/features/tasks/components/TaskSwipeActionCard.vue';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
+import DatePickerField from '@/shared/components/DatePickerField.vue';
+import SelectPickerField from '@/shared/components/SelectPickerField.vue';
+import type { PickerOption } from '@/shared/components/SelectPickerField.vue';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
 import { haptics } from '@/shared/services/hapticsService';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
@@ -246,6 +249,22 @@ function getResponsibilityOptions(task?: Task) {
   }
 
   return [...participantsById.values()];
+}
+
+function getResponsibilityPickerOptions(task?: Task): PickerOption[] {
+  return [
+    {
+      value: 'needsDiscussion',
+      label: t('tasksPage.needsDiscussion'),
+    },
+    { value: 'shared', label: t('tasksPage.shared') },
+    ...getResponsibilityOptions(task).map((participant) => ({
+      value: participant.id,
+      label: `${participant.name}${
+        participant.isActive ? '' : t('tasksPage.disabledParticipant')
+      }`,
+    })),
+  ];
 }
 
 function resolveDraftResponsibility(choice: string) {
@@ -763,23 +782,18 @@ function openAddTaskSheet() {
         </label>
         <label>
           <span>{{ t('tasksPage.responsible') }}</span>
-          <select v-model="newTaskDraft.responsibilityChoice">
-            <option value="needsDiscussion">
-              {{ t('tasksPage.needsDiscussion') }}
-            </option>
-            <option value="shared">{{ t('tasksPage.shared') }}</option>
-            <option
-              v-for="participant in getResponsibilityOptions()"
-              :key="participant.id"
-              :value="participant.id"
-            >
-              {{ participant.name }}
-            </option>
-          </select>
+          <SelectPickerField
+            v-model="newTaskDraft.responsibilityChoice"
+            :label="t('tasksPage.responsible')"
+            :options="getResponsibilityPickerOptions()"
+          />
         </label>
         <label>
           <span>{{ t('tasksPage.stillRelevant') }}</span>
-          <input v-model="newTaskDraft.dueDate" type="date" />
+          <DatePickerField
+            v-model="newTaskDraft.dueDate"
+            :label="t('tasksPage.stillRelevant')"
+          />
         </label>
         <button type="submit" class="meeting-primary">
           {{ t('common.save') }}
@@ -807,31 +821,18 @@ function openAddTaskSheet() {
         </label>
         <label>
           <span>{{ t('tasksPage.responsible') }}</span>
-          <select
+          <SelectPickerField
             v-model="selectedTaskDraft.responsibilityChoice"
+            :label="t('tasksPage.responsible')"
+            :options="getResponsibilityPickerOptions(selectedTask)"
             :disabled="!canEditTasks"
-          >
-            <option value="needsDiscussion">
-              {{ t('tasksPage.needsDiscussion') }}
-            </option>
-            <option value="shared">{{ t('tasksPage.shared') }}</option>
-            <option
-              v-for="participant in getResponsibilityOptions(selectedTask)"
-              :key="participant.id"
-              :value="participant.id"
-            >
-              {{ participant.name
-              }}{{
-                participant.isActive ? '' : t('tasksPage.disabledParticipant')
-              }}
-            </option>
-          </select>
+          />
         </label>
         <label>
           <span>{{ t('tasksPage.stillRelevant') }}</span>
-          <input
+          <DatePickerField
             v-model="selectedTaskDraft.dueDate"
-            type="date"
+            :label="t('tasksPage.stillRelevant')"
             :disabled="!canEditTasks"
           />
         </label>

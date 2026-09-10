@@ -2406,6 +2406,264 @@ input[type='radio'] {
   line-height: 1.45;
 }
 
+.reminder-picker-field {
+  min-width: 0;
+}
+
+.reminder-picker-field__trigger {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-low);
+  padding: 8px 14px;
+  color: var(--color-on-surface);
+  text-align: left;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.reminder-picker-field__trigger:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-surface-lowest);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary-fixed) 70%, transparent);
+}
+
+.reminder-picker-field__trigger:disabled {
+  opacity: 0.62;
+}
+
+.reminder-picker-field__value {
+  overflow: hidden;
+  color: var(--color-on-surface);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reminder-picker-field__trigger > .material-symbols-outlined {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+}
+
+.reminder-day-picker,
+.reminder-time-picker {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.reminder-day-picker {
+  padding: 0 var(--space-1) var(--space-1);
+}
+
+.reminder-day-picker__options {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.reminder-day-picker__option {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-lowest);
+  padding: 0 var(--space-4);
+  color: var(--color-on-surface);
+  font-weight: 750;
+  text-align: left;
+}
+
+.reminder-day-picker__option.is-selected,
+.reminder-time-picker__option.is-selected {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary-fixed) 58%, white);
+  color: var(--color-primary);
+}
+
+.reminder-time-picker__preview {
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: 2.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-align: center;
+}
+
+.reminder-time-picker__wheels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reminder-time-picker__wheel-wrap {
+  position: relative;
+  min-width: 0;
+  height: 280px;
+}
+
+.reminder-time-picker__wheel-wrap::after {
+  position: absolute;
+  z-index: 1;
+  top: 112px;
+  right: 0;
+  left: 0;
+  height: 56px;
+  border-top: 1px solid var(--color-outline-variant);
+  border-bottom: 1px solid var(--color-outline-variant);
+  content: '';
+  pointer-events: none;
+}
+
+.reminder-time-picker__wheel {
+  height: 280px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  padding: 112px 0;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 24%,
+    black 76%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 24%,
+    black 76%,
+    transparent
+  );
+}
+
+.reminder-time-picker__wheel::-webkit-scrollbar {
+  display: none;
+}
+
+.reminder-time-picker__option {
+  display: block;
+  width: 100%;
+  height: 56px;
+  scroll-snap-align: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-on-surface-variant);
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.38;
+  transition:
+    color 120ms ease,
+    opacity 120ms ease;
+}
+
+.reminder-time-picker__option.is-selected {
+  background: transparent;
+  color: var(--color-on-surface);
+  opacity: 1;
+}
+
+.reminder-time-picker__separator {
+  color: var(--color-on-surface);
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.reminder-time-picker__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+}
+
+.date-picker {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.date-picker__header {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.date-picker__header h3 {
+  margin: 0;
+  font-size: var(--font-size-body-lg);
+  text-align: center;
+}
+
+.date-picker__header button {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-low);
+  color: var(--color-on-surface);
+}
+
+.date-picker__weekdays,
+.date-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.date-picker__weekdays span {
+  display: grid;
+  min-height: 28px;
+  place-items: center;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-label-sm);
+  font-weight: 800;
+}
+
+.date-picker__day,
+.date-picker__filler {
+  min-height: 44px;
+}
+
+.date-picker__day {
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-on-surface);
+  font-weight: 750;
+}
+
+.date-picker__day.is-selected {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.date-picker__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+}
+
 .settings-language-option {
   display: grid;
   min-height: 56px;
@@ -2605,6 +2863,61 @@ input[type='radio'] {
   align-items: center;
 }
 
+.base-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  pointer-events: none;
+}
+
+.base-dialog__scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  background: rgba(47, 42, 38, 0.42);
+  pointer-events: auto;
+}
+
+.base-dialog__panel {
+  position: relative;
+  display: grid;
+  width: min(100%, 420px);
+  max-height: min(760px, calc(100dvh - 32px));
+  gap: var(--space-4);
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-lowest);
+  box-shadow: var(--shadow-modal);
+  padding: var(--space-5);
+  pointer-events: auto;
+}
+
+.base-dialog__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.base-dialog__header h2 {
+  margin: 0;
+}
+
+.base-dialog__header button {
+  min-width: 48px;
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-low);
+  padding: 0 var(--space-3);
+  color: var(--color-on-surface);
+  font-weight: 700;
+}
+
 .confirmation-dialog {
   display: grid;
   gap: 18px;
@@ -2647,6 +2960,32 @@ input[type='radio'] {
 .base-bottom-sheet-leave-to .base-bottom-sheet__panel {
   opacity: 0;
   transform: translateY(calc(100% + 24px));
+}
+
+.base-dialog-enter-active,
+.base-dialog-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.base-dialog-enter-active .base-dialog__scrim,
+.base-dialog-leave-active .base-dialog__scrim,
+.base-dialog-enter-active .base-dialog__panel,
+.base-dialog-leave-active .base-dialog__panel {
+  transition:
+    opacity 180ms ease,
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.base-dialog-enter-from .base-dialog__scrim,
+.base-dialog-leave-to .base-dialog__scrim,
+.base-dialog-enter-from .base-dialog__panel,
+.base-dialog-leave-to .base-dialog__panel {
+  opacity: 0;
+}
+
+.base-dialog-enter-from .base-dialog__panel,
+.base-dialog-leave-to .base-dialog__panel {
+  transform: scale(0.96);
 }
 
 .action-menu-popup {
@@ -3542,7 +3881,7 @@ input[type='radio'] {
   display: grid;
   justify-items: center;
   gap: 14px;
-  padding-top: 8px;
+  /* padding-top: 8px; */
   text-align: center;
 }
 
@@ -3554,7 +3893,7 @@ input[type='radio'] {
   border-radius: 50%;
   background: color-mix(in srgb, var(--color-surface-low) 74%, white);
   color: #6f8f72;
-  box-shadow: 0 4px 14px rgba(47, 42, 38, 0.06);
+  box-shadow: 0 4px 14px rgba(47, 42, 38, 0.15);
 }
 
 .upgrade-redesign-hero__icon .material-symbols-outlined {
@@ -3562,7 +3901,7 @@ input[type='radio'] {
 }
 
 .upgrade-redesign-hero__kicker {
-  margin: 4px 0 0;
+  margin: 0;
   color: var(--color-primary);
   font-family: var(--font-display);
   font-size: var(--font-size-headline-md);
@@ -3571,7 +3910,8 @@ input[type='radio'] {
 }
 
 .upgrade-page--redesign h1 {
-  max-width: 12ch;
+  /* max-width: 12ch; */
+  max-width: 100%;
   margin: 10px 0 0;
   font-size: var(--font-size-display);
   letter-spacing: 0;
@@ -4893,7 +5233,7 @@ input[type='radio'] {
   display: grid;
   flex: 1;
   gap: 32px;
-  padding: 24px var(--edge-margin) calc(124px + env(safe-area-inset-bottom));
+  padding: 0 var(--edge-margin) calc(124px + env(safe-area-inset-bottom));
 }
 
 .meeting-summary-hero {
@@ -4925,7 +5265,8 @@ input[type='radio'] {
 }
 
 .meeting-summary-hero h2 {
-  max-width: 11.5ch;
+  /* max-width: 11.5ch; */
+  max-width: 100%;
   margin: 0 auto;
   color: #101210;
   font-family: var(--font-display);
@@ -5282,6 +5623,7 @@ input[type='radio'] {
   min-height: 64px;
   align-items: center;
   justify-content: center;
+  text-align: center;
   border-radius: var(--radius-pill);
   color: var(--color-on-surface-variant);
   font-size: var(--font-size-label-lg);

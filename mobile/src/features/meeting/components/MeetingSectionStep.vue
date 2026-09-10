@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type {
   EnrichedAgreement,
@@ -10,6 +11,8 @@ import type {
 import type { Meeting, MeetingSection } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
 import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
+import DatePickerField from '@/shared/components/DatePickerField.vue';
+import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 
 const props = defineProps<{
   activeMeetingParticipants: Participant[];
@@ -78,6 +81,17 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const participantPickerOptions = computed(() =>
+  props.activeMeetingParticipants.map((participant) => ({
+    value: participant.id,
+    label: participant.name,
+  }))
+);
+const taskResponsibilityPickerOptions = computed(() => [
+  { value: 'needsDiscussion', label: t('meeting.needsDiscussion') },
+  { value: 'shared', label: t('meeting.shared') },
+  ...participantPickerOptions.value,
+]);
 
 function updateText(event: Event) {
   return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
@@ -234,37 +248,22 @@ function updateAgreementParticipant(
       <label class="meeting-label" for="task-person">
         {{ t('meeting.responsible') }}
       </label>
-      <select
+      <SelectPickerField
         id="task-person"
-        :value="taskResponsibilityChoice"
-        @change="
-          emit(
-            'update:taskResponsibilityChoice',
-            ($event.target as HTMLSelectElement).value
-          )
-        "
-      >
-        <option value="needsDiscussion">
-          {{ t('meeting.needsDiscussion') }}
-        </option>
-        <option value="shared">{{ t('meeting.shared') }}</option>
-        <option
-          v-for="participant in activeMeetingParticipants"
-          :key="participant.id"
-          :value="participant.id"
-        >
-          {{ participant.name }}
-        </option>
-      </select>
+        :model-value="taskResponsibilityChoice"
+        :label="t('meeting.responsible')"
+        :options="taskResponsibilityPickerOptions"
+        @update:model-value="emit('update:taskResponsibilityChoice', $event)"
+      />
 
       <label class="meeting-label" for="task-due-date">
         {{ t('meeting.dueDate') }}
       </label>
-      <input
+      <DatePickerField
         id="task-due-date"
-        :value="taskDueDate"
-        type="date"
-        @input="emit('update:taskDueDate', updateText($event))"
+        :model-value="taskDueDate"
+        :label="t('meeting.dueDate')"
+        @update:model-value="emit('update:taskDueDate', $event)"
       />
       <button class="meeting-primary" type="button" @click="emit('add-task')">
         {{ t('meeting.addTask') }}
@@ -383,25 +382,14 @@ function updateAgreementParticipant(
     <label class="meeting-label" for="note-person">
       {{ t('meeting.author') }}
     </label>
-    <select
+    <SelectPickerField
       id="note-person"
-      :value="selectedParticipantId"
+      :model-value="selectedParticipantId"
+      :label="t('meeting.author')"
+      :options="participantPickerOptions"
       :disabled="!canEditMeeting"
-      @change="
-        emit(
-          'update:selectedParticipantId',
-          ($event.target as HTMLSelectElement).value
-        )
-      "
-    >
-      <option
-        v-for="participant in activeMeetingParticipants"
-        :key="participant.id"
-        :value="participant.id"
-      >
-        {{ participant.name }}
-      </option>
-    </select>
+      @update:model-value="emit('update:selectedParticipantId', $event)"
+    />
 
     <label class="meeting-label" for="meeting-note">
       {{ t('meeting.note') }}

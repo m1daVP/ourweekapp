@@ -25,7 +25,8 @@ const state = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('vue-i18n', () => ({
+vi.mock('vue-i18n', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-i18n')>()),
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
@@ -67,6 +68,20 @@ vi.mock('@/shared/components/PremiumLock.vue', () => ({
 
 vi.mock('@/shared/components/ConfirmationDialog.vue', () => ({
   default: { template: '<div />' },
+}));
+
+vi.mock('@/shared/components/SelectPickerField.vue', () => ({
+  default: {
+    name: 'SelectPickerField',
+    template: '<button v-bind="$attrs" type="button" />',
+  },
+}));
+
+vi.mock('@/shared/components/TimePickerField.vue', () => ({
+  default: {
+    name: 'TimePickerField',
+    template: '<button v-bind="$attrs" type="button" />',
+  },
 }));
 
 import CalendarSyncPage from '../CalendarSyncPage.vue';
@@ -113,7 +128,9 @@ describe('CalendarSyncPage weekly meeting schedule', () => {
   it('saves a weekday change with the stored time and device time zone', async () => {
     const wrapper = mountCalendarSyncPage();
 
-    await wrapper.get('[data-testid="calendar-weekday"]').setValue('wednesday');
+    await wrapper
+      .getComponent({ name: 'SelectPickerField' })
+      .vm.$emit('update:modelValue', 'wednesday');
 
     expect(state.updateSettings).toHaveBeenCalledWith({
       weeklyMeetingDay: 'wednesday',
@@ -125,7 +142,9 @@ describe('CalendarSyncPage weekly meeting schedule', () => {
   it('saves a time change with the stored weekday and device time zone', async () => {
     const wrapper = mountCalendarSyncPage();
 
-    await wrapper.get('[data-testid="calendar-time"]').setValue('19:30');
+    await wrapper
+      .getComponent({ name: 'TimePickerField' })
+      .vm.$emit('update:modelValue', '19:30');
 
     expect(state.updateSettings).toHaveBeenCalledWith({
       weeklyMeetingDay: 'sunday',

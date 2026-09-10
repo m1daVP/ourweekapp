@@ -10,8 +10,17 @@ import type { MeetingSection } from '@/features/meeting/types';
 import type { Participant } from '@/features/participants/types';
 import MeetingSectionStep from '../MeetingSectionStep.vue';
 
-vi.mock('vue-i18n', () => ({
+vi.mock('vue-i18n', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-i18n')>()),
   useI18n: () => ({ t: (key: string) => key }),
+}));
+
+vi.mock('@/shared/components/SelectPickerField.vue', () => ({
+  default: { name: 'SelectPickerField' },
+}));
+
+vi.mock('@/shared/components/DatePickerField.vue', () => ({
+  default: { name: 'DatePickerField' },
 }));
 
 const participant: Participant = {
