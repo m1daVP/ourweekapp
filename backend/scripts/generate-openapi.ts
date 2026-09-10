@@ -28,7 +28,6 @@ const generationEnv = {
   AI_PROVIDER: '',
   AI_API_KEY: '',
   AI_MODEL: '',
-  OPENAI_API_KEY: '',
   REVENUECAT_PROJECT_ID: '',
   REVENUECAT_API_KEY: '',
   REVENUECAT_ENTITLEMENT_ID: '',
