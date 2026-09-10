@@ -12,7 +12,9 @@ import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
   generateMeetingSummary,
   parseAiQuotaError,
+  type GenerateMeetingSummaryOptions,
 } from '@/features/meeting/aiSummaryService';
+import { getAiRecapContentReadiness } from '@/features/meeting/aiRecapContentReadiness';
 import {
   acknowledgeAiRecapDisclosure,
   hasAcknowledgedAiRecapDisclosure,
@@ -271,6 +273,9 @@ export function useMeetingSession() {
   const isDeleteRitualDialogOpen = ref(false);
   const isAiRecapDisclosureOpen = ref(false);
   const pendingAiRecapDisclosureMeetingId = ref<string | null>(null);
+  const isAiRecapLowContentOpen = ref(false);
+  const pendingAiRecapLowContentMeetingId = ref<string | null>(null);
+  const pendingAiRecapLowContentOverride = ref(false);
   const drawerSelectedParticipantId = ref('');
   const guestName = ref('');
   const checkedInParticipantIds = ref<string[]>([]);
@@ -1214,7 +1219,11 @@ export function useMeetingSession() {
   }
 
   async function finishMeeting() {
-    if (isFinishingMeeting.value || isAiRecapDisclosureOpen.value) {
+    if (
+      isFinishingMeeting.value ||
+      isAiRecapDisclosureOpen.value ||
+      isAiRecapLowContentOpen.value
+    ) {
       return;
     }
 
@@ -1250,6 +1259,20 @@ export function useMeetingSession() {
     void haptics.completeMeeting();
 
     try {
+      const completedMeeting = meetingsStore.meetings.find(
+        (meeting) => meeting.id === meetingId
+      );
+
+      if (
+        subscriptionStore.canGenerateAssistantRecap &&
+        completedMeeting &&
+        !getAiRecapContentReadiness(completedMeeting).isReady
+      ) {
+        pendingAiRecapLowContentMeetingId.value = meetingId;
+        isAiRecapLowContentOpen.value = true;
+        return;
+      }
+
       if (
         subscriptionStore.canGenerateAssistantRecap &&
         !hasAcknowledgedAiRecapDisclosure()
@@ -1270,6 +1293,7 @@ export function useMeetingSession() {
 
   async function confirmAiRecapDisclosure() {
     const meetingId = pendingAiRecapDisclosureMeetingId.value;
+    const allowLowContent = pendingAiRecapLowContentOverride.value;
 
     if (!meetingId || isFinishingMeeting.value) {
       return;
@@ -1277,11 +1301,12 @@ export function useMeetingSession() {
 
     acknowledgeAiRecapDisclosure();
     pendingAiRecapDisclosureMeetingId.value = null;
+    pendingAiRecapLowContentOverride.value = false;
     isAiRecapDisclosureOpen.value = false;
     isFinishingMeeting.value = true;
 
     try {
-      await continueCompletedMeeting(meetingId, true);
+      await continueCompletedMeeting(meetingId, true, { allowLowContent });
     } finally {
       isFinishingMeeting.value = false;
     }
@@ -1295,7 +1320,54 @@ export function useMeetingSession() {
     }
 
     pendingAiRecapDisclosureMeetingId.value = null;
+    pendingAiRecapLowContentOverride.value = false;
     isAiRecapDisclosureOpen.value = false;
+    isFinishingMeeting.value = true;
+
+    try {
+      await continueCompletedMeeting(meetingId, false);
+    } finally {
+      isFinishingMeeting.value = false;
+    }
+  }
+
+  async function confirmAiRecapLowContent() {
+    const meetingId = pendingAiRecapLowContentMeetingId.value;
+
+    if (!meetingId || isFinishingMeeting.value) {
+      return;
+    }
+
+    pendingAiRecapLowContentMeetingId.value = null;
+    isAiRecapLowContentOpen.value = false;
+    isFinishingMeeting.value = true;
+
+    try {
+      if (!hasAcknowledgedAiRecapDisclosure()) {
+        pendingAiRecapLowContentOverride.value = true;
+        pendingAiRecapDisclosureMeetingId.value = meetingId;
+        isAiRecapDisclosureOpen.value = true;
+        return;
+      }
+
+      await continueCompletedMeeting(meetingId, true, {
+        allowLowContent: true,
+      });
+    } finally {
+      isFinishingMeeting.value = false;
+    }
+  }
+
+  async function deferAiRecapLowContent() {
+    const meetingId = pendingAiRecapLowContentMeetingId.value;
+
+    if (!meetingId || isFinishingMeeting.value) {
+      return;
+    }
+
+    pendingAiRecapLowContentMeetingId.value = null;
+    isAiRecapLowContentOpen.value = false;
+    pendingAiRecapLowContentOverride.value = false;
     isFinishingMeeting.value = true;
 
     try {
@@ -1307,7 +1379,8 @@ export function useMeetingSession() {
 
   async function continueCompletedMeeting(
     meetingId: string,
-    shouldGenerateRecap: boolean
+    shouldGenerateRecap: boolean,
+    generationOptions: GenerateMeetingSummaryOptions = {}
   ) {
     let aiSummaryFailed = false;
     let aiQuotaInfo: ReturnType<typeof parseAiQuotaError> = null;
@@ -1319,7 +1392,7 @@ export function useMeetingSession() {
 
       if (completedMeeting) {
         try {
-          await generateMeetingSummary(completedMeeting);
+          await generateMeetingSummary(completedMeeting, generationOptions);
         } catch (error) {
           aiSummaryFailed = true;
           aiQuotaInfo = parseAiQuotaError(error);
@@ -1454,6 +1527,7 @@ export function useMeetingSession() {
     canEditTasks,
     canSubmitGuestDrawer,
     confirmAiRecapDisclosure,
+    confirmAiRecapLowContent,
     checkInParticipants,
     checkedInParticipantIds,
     clearDrawerParticipantSelection,
@@ -1484,6 +1558,7 @@ export function useMeetingSession() {
     hasMeetingContent,
     isCompleted,
     isAiRecapDisclosureOpen,
+    isAiRecapLowContentOpen,
     isDeleteRitualDialogOpen,
     isEndSessionDialogOpen,
     isFinalSection,
@@ -1511,6 +1586,7 @@ export function useMeetingSession() {
     reviewCounts,
     reviewTasks,
     deferAiRecapDisclosure,
+    deferAiRecapLowContent,
     restoreDeletedNote,
     restoreDeletedTask,
     sectionPrompt,

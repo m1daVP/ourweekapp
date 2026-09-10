@@ -42,6 +42,7 @@ export const messages = {
       available: 'Available',
       back: 'Back',
       close: 'Close',
+      clear: 'Clear',
       copy: 'Copy',
       dismiss: 'Dismiss',
       done: 'Done',
@@ -56,6 +57,7 @@ export const messages = {
       markdown: 'Markdown',
       next: 'Next',
       noneRecorded: 'None recorded.',
+      noDate: 'No date',
       open: 'Open',
       pdf: 'PDF',
       remove: 'Remove',
@@ -646,6 +648,8 @@ export const messages = {
       unfinishedTaskReminder: 'Unfinished task reminder',
       day: 'Day',
       time: 'Time',
+      hours: 'Hours',
+      minutes: 'Minutes',
       reminderExample:
         'Example: A gentle reminder to review unfinished agreements.',
       reminderLocked: 'Reminder settings are available with Premium.',
@@ -1436,6 +1440,12 @@ export const messages = {
           generate: 'Generate recap',
           notNow: 'Not now',
         },
+        lowContent: {
+          title: 'Add a little more context?',
+          body: 'Recaps work best when two different parts of the meeting include a note or agreement. You can still generate one now.',
+          addMore: 'Add more context',
+          generateAnyway: 'Generate anyway',
+        },
         supportReference: 'Support reference: {requestId}',
         recovery: {
           allowanceExhausted:
@@ -1559,8 +1569,8 @@ export const messages = {
         privateNotes: 'Приватні нотатки',
         calendarSync: 'Синхронізація календаря',
         account: 'Акаунт',
-        meetingDetails: 'Підсумок зустрічі',
-        meetingSummary: 'Підсумок зустрічі',
+        meetingDetails: 'Підсумок',
+        meetingSummary: 'Підсумок',
       },
       nav: {
         home: 'Головна',
@@ -1575,6 +1585,7 @@ export const messages = {
       available: 'Доступно',
       back: 'Назад',
       close: 'Закрити',
+      clear: 'Очистити',
       copy: 'Копіювати',
       dismiss: 'Закрити',
       done: 'Готово',
@@ -1589,6 +1600,7 @@ export const messages = {
       markdown: 'Markdown',
       next: 'Далі',
       noneRecorded: 'Нічого не записано.',
+      noDate: 'Без дати',
       open: 'Відкрито',
       pdf: 'PDF',
       remove: 'Видалити',
@@ -2192,6 +2204,8 @@ export const messages = {
       unfinishedTaskReminder: 'Нагадування про незавершені справи',
       day: 'День',
       time: 'Час',
+      hours: 'Години',
+      minutes: 'Хвилини',
       reminderExample:
         'Приклад: лагідне нагадування переглянути незавершені домовленості.',
       reminderLocked: 'Налаштування нагадувань доступні з Premium.',
@@ -3004,6 +3018,12 @@ export const messages = {
           generate: 'Створити підсумок',
           notNow: 'Не зараз',
         },
+        lowContent: {
+          title: 'Додати трохи більше контексту?',
+          body: 'Підсумки найкраще працюють, коли у двох різних частинах зустрічі є нотатка або домовленість. Ви все одно можете створити підсумок зараз.',
+          addMore: 'Додати контекст',
+          generateAnyway: 'Створити все одно',
+        },
         supportReference: 'Код для підтримки: {requestId}',
         recovery: {
           allowanceExhausted:
@@ -3144,6 +3164,7 @@ export const messages = {
       available: 'Disponible',
       back: 'Atrás',
       close: 'Cerrar',
+      clear: 'Borrar',
       copy: 'Copiar',
       dismiss: 'Cerrar',
       done: 'Listo',
@@ -3158,6 +3179,7 @@ export const messages = {
       markdown: 'Markdown',
       next: 'Siguiente',
       noneRecorded: 'Nada registrado.',
+      noDate: 'Sin fecha',
       open: 'Abrir',
       pdf: 'PDF',
       remove: 'Quitar',
@@ -3769,6 +3791,8 @@ export const messages = {
       unfinishedTaskReminder: 'Recordatorio de tarea pendiente',
       day: 'Día',
       time: 'Hora',
+      hours: 'Horas',
+      minutes: 'Minutos',
       reminderExample:
         'Ejemplo: Un recordatorio amable para revisar acuerdos pendientes.',
       reminderLocked:
@@ -4589,6 +4613,12 @@ export const messages = {
           body: 'Para crear un resumen, OurWeek envía las notas compartidas de la reunión, las tareas, los acuerdos y los nombres de participantes a OpenAI. Las notas privadas se excluyen. Los resúmenes con IA pueden ser inexactos, así que revísalos.',
           generate: 'Generar resumen',
           notNow: 'Ahora no',
+        },
+        lowContent: {
+          title: '¿Agregar un poco más de contexto?',
+          body: 'Los resúmenes funcionan mejor cuando dos partes diferentes de la reunión incluyen una nota o un acuerdo. Aun así puedes generar uno ahora.',
+          addMore: 'Agregar contexto',
+          generateAnyway: 'Generar de todos modos',
         },
         supportReference: 'Referencia de soporte: {requestId}',
         recovery: {

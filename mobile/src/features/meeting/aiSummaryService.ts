@@ -270,7 +270,8 @@ function normalizeBackendSummary(
 
 async function generateBackendAiSummary(
   meetingId: string,
-  expectedServerRevision: number
+  expectedServerRevision: number,
+  options: GenerateMeetingSummaryOptions
 ) {
   const abortController = new AbortController();
   const timeoutId = window.setTimeout(
@@ -284,6 +285,7 @@ async function generateBackendAiSummary(
         meetingId,
         locale: i18n.global.locale.value,
         expectedServerRevision,
+        ...(options.allowLowContent ? { allowLowContent: true } : {}),
       },
       { signal: abortController.signal }
     );
@@ -292,7 +294,14 @@ async function generateBackendAiSummary(
   }
 }
 
-export async function generateMeetingSummary(meeting: Meeting) {
+export type GenerateMeetingSummaryOptions = {
+  allowLowContent?: boolean;
+};
+
+export async function generateMeetingSummary(
+  meeting: Meeting,
+  options: GenerateMeetingSummaryOptions = {}
+) {
   const subscription = useSubscriptionStore();
   const epoch = subscription.subscriptionEpoch;
   const isCurrentSession = () => subscription.subscriptionEpoch === epoch;
@@ -310,7 +319,8 @@ export async function generateMeetingSummary(meeting: Meeting) {
   try {
     const response = await generateBackendAiSummary(
       meeting.id,
-      acknowledged.serverRevision!
+      acknowledged.serverRevision!,
+      options
     );
     refreshAllowance = true;
     if (!isCurrentSession()) throw new AiRecapUnavailableError();

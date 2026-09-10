@@ -62,6 +62,74 @@ describe('completion recap allowance', () => {
     );
   });
 
+  it('shows low-content guidance before privacy disclosure and preserves dismissal', async () => {
+    const context = setupRecapTest(false);
+    context.meetings.meetings[0]!.status = 'in_progress';
+    context.meetings.meetings[0]!.sections = [
+      context.meetings.meetings[0]!.sections[0]!,
+    ];
+    context.meetings.activeMeetingId = 'meeting-1';
+    let session!: ReturnType<typeof useMeetingSession>;
+    wrapper = mount(
+      defineComponent({
+        setup() {
+          session = useMeetingSession();
+          return {};
+        },
+        template: '<div />',
+      }),
+      { global: { plugins: [context.pinia, context.i18n] } }
+    );
+
+    await session.finishMeeting();
+
+    expect(session.isAiRecapLowContentOpen.value).toBe(true);
+    expect(session.isAiRecapDisclosureOpen.value).toBe(false);
+    expect(generateMeetingSummary).not.toHaveBeenCalled();
+
+    await session.deferAiRecapLowContent();
+
+    expect(context.meetings.meetings[0]!.status).toBe('completed');
+    expect(generateMeetingSummary).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'meeting-summary' })
+    );
+  });
+
+  it('requires privacy acknowledgement before a confirmed low-content recap', async () => {
+    const context = setupRecapTest(false);
+    context.meetings.meetings[0]!.status = 'in_progress';
+    context.meetings.meetings[0]!.sections = [
+      context.meetings.meetings[0]!.sections[0]!,
+    ];
+    context.meetings.activeMeetingId = 'meeting-1';
+    let session!: ReturnType<typeof useMeetingSession>;
+    wrapper = mount(
+      defineComponent({
+        setup() {
+          session = useMeetingSession();
+          return {};
+        },
+        template: '<div />',
+      }),
+      { global: { plugins: [context.pinia, context.i18n] } }
+    );
+
+    await session.finishMeeting();
+    await session.confirmAiRecapLowContent();
+
+    expect(session.isAiRecapLowContentOpen.value).toBe(false);
+    expect(session.isAiRecapDisclosureOpen.value).toBe(true);
+    expect(generateMeetingSummary).not.toHaveBeenCalled();
+
+    await session.confirmAiRecapDisclosure();
+
+    expect(generateMeetingSummary).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'meeting-1' }),
+      { allowLowContent: true }
+    );
+  });
+
   it.each(['eligible', 'unknown', 'exhausted', 'offline', 'viewer'] as const)(
     'preserves completion policy for %s',
     async (state) => {

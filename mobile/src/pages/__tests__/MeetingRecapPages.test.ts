@@ -141,6 +141,33 @@ describe.each([
     expect(generateMeetingSummary).toHaveBeenCalledOnce();
   });
 
+  it('asks before spending a recap on low-content meeting notes', async () => {
+    const meeting = context.meetings.meetings[0]!;
+    meeting.aiSummary = undefined;
+    meeting.sections = [meeting.sections[0]!];
+    render();
+
+    await wrapper
+      .get('[data-testid="generate-meeting-recap"]')
+      .trigger('click');
+    await nextTick();
+
+    expect(document.body.textContent).toContain('Add a little more context?');
+    expect(generateMeetingSummary).not.toHaveBeenCalled();
+
+    await (
+      document.querySelector(
+        '.confirmation-dialog__confirm'
+      ) as HTMLButtonElement
+    ).click();
+    await flushPromises();
+
+    expect(generateMeetingSummary).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'meeting-1' }),
+      { allowLowContent: true }
+    );
+  });
+
   it.each(['unknown', 'exhausted', 'viewer', 'checking'] as const)(
     'does not offer generation when %s',
     (state) => {

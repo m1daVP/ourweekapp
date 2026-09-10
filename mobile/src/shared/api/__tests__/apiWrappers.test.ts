@@ -410,6 +410,22 @@ describe('aiApi', () => {
       },
     ]);
   });
+
+  it('sends an explicit low-content override only when confirmed', async () => {
+    await generateAiMeetingSummary({
+      meetingId: 'meeting-1',
+      allowLowContent: true,
+    });
+
+    expect(lastApiCall()).toEqual([
+      '/ai/meeting-summary',
+      {
+        method: 'POST',
+        body: { meetingId: 'meeting-1', allowLowContent: true },
+        requiresAuth: true,
+      },
+    ]);
+  });
 });
 
 describe('calendarApi', () => {

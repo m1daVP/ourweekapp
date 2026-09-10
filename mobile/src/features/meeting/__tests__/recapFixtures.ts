@@ -56,6 +56,22 @@ export function meetingFixture(summary = true): Meeting {
         tasks: [],
         agreements: [],
       },
+      {
+        id: 'agreements',
+        title: 'Agreements',
+        prompt: 'What should be clear?',
+        notes: [],
+        tasks: [],
+        agreements: [
+          {
+            id: 'agreement-1',
+            sectionId: 'agreements',
+            text: 'Alternate pickup each week.',
+            participantIds: [],
+            createdAt: '2026-09-04T10:00:00.000Z',
+          },
+        ],
+      },
     ],
     currentSectionIndex: 0,
     createdAt: '2026-09-04T10:00:00.000Z',

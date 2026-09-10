@@ -6,6 +6,7 @@ export interface GenerateMeetingSummaryRequestDto {
   meetingId: string;
   locale?: SupportedLocale;
   expectedServerRevision?: number;
+  allowLowContent?: boolean;
 }
 
 export interface AiMeetingSummaryTaskDto {

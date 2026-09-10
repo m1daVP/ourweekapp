@@ -7,6 +7,7 @@ import { useParticipantsStore } from '@/app/stores/participants';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
 import AiRecapRecoveryPanel from '@/features/meeting/components/AiRecapRecoveryPanel.vue';
+import { getAiRecapContentReadiness } from '@/features/meeting/aiRecapContentReadiness';
 import {
   copyExportToClipboard,
   createMeetingExportFile,
@@ -33,6 +34,7 @@ import type {
   MeetingTask,
 } from '@/features/meeting/types';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
+import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 
 const meetingsStore = useMeetingsStore();
@@ -46,6 +48,8 @@ const { canUseFeature } = useFeatureAccess();
 const meetingId = computed(() => String(route.params.meetingId ?? ''));
 const isGeneratingSummary = ref(false);
 const aiSummaryRecovery = ref<AiRecapRecovery | null>(null);
+const isLowContentConfirmationOpen = ref(false);
+const pendingLowContentMeeting = ref<Meeting | null>(null);
 const isExportModalOpen = ref(false);
 const isExporting = ref(false);
 const exportFormat = ref<MeetingExportFormat>('text');
@@ -272,11 +276,45 @@ async function generateSummary() {
     return;
   }
 
+  if (!getAiRecapContentReadiness(meeting.value).isReady) {
+    pendingLowContentMeeting.value = meeting.value;
+    isLowContentConfirmationOpen.value = true;
+    return;
+  }
+
+  await generateSummaryForMeeting(meeting.value);
+}
+
+async function confirmLowContentGeneration() {
+  const targetMeeting = pendingLowContentMeeting.value;
+  pendingLowContentMeeting.value = null;
+  isLowContentConfirmationOpen.value = false;
+
+  if (!targetMeeting) {
+    return;
+  }
+
+  await generateSummaryForMeeting(targetMeeting, true);
+}
+
+function deferLowContentGeneration() {
+  pendingLowContentMeeting.value = null;
+  isLowContentConfirmationOpen.value = false;
+}
+
+async function generateSummaryForMeeting(
+  targetMeeting: Meeting,
+  allowLowContent = false
+) {
+  if (isGeneratingSummary.value) {
+    return;
+  }
+
   aiSummaryRecovery.value = null;
   isGeneratingSummary.value = true;
 
   try {
-    await generateMeetingSummary(meeting.value);
+    await generateMeetingSummary(targetMeeting, { allowLowContent });
   } catch (error) {
     aiSummaryRecovery.value = getAiRecapRecovery(error);
   } finally {
@@ -590,5 +628,15 @@ async function generateSummary() {
         </div>
       </div>
     </template>
+    <ConfirmationDialog
+      :open="isLowContentConfirmationOpen"
+      :title="t('ai.recap.lowContent.title')"
+      :message="t('ai.recap.lowContent.body')"
+      :confirm-label="t('ai.recap.lowContent.generateAnyway')"
+      :cancel-label="t('ai.recap.lowContent.addMore')"
+      :loading="isGeneratingSummary"
+      @close="deferLowContentGeneration"
+      @confirm="confirmLowContentGeneration"
+    />
   </section>
 </template>

@@ -24,6 +24,8 @@ import type { AvatarType } from '@/features/participants/avatarCatalog';
 import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
 import AiRecapRecoveryPanel from '@/features/meeting/components/AiRecapRecoveryPanel.vue';
+import { getAiRecapContentReadiness } from '@/features/meeting/aiRecapContentReadiness';
+import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 interface SummaryParticipant {
@@ -65,6 +67,8 @@ const shareError = ref('');
 const isSharing = ref(false);
 const aiSummaryRecovery = ref<AiRecapRecovery | null>(null);
 const isGeneratingSummary = ref(false);
+const isLowContentConfirmationOpen = ref(false);
+const pendingLowContentMeeting = ref<Meeting | null>(null);
 const { showToast } = useToast();
 
 const meetingSummaryFallbackText = {
@@ -401,11 +405,42 @@ async function handleGenerateSummary() {
     return;
   }
 
+  if (!getAiRecapContentReadiness(accessibleMeeting.value).isReady) {
+    pendingLowContentMeeting.value = accessibleMeeting.value;
+    isLowContentConfirmationOpen.value = true;
+    return;
+  }
+
+  await generateSummary(accessibleMeeting.value);
+}
+
+async function confirmLowContentGeneration() {
+  const targetMeeting = pendingLowContentMeeting.value;
+  pendingLowContentMeeting.value = null;
+  isLowContentConfirmationOpen.value = false;
+
+  if (!targetMeeting) {
+    return;
+  }
+
+  await generateSummary(targetMeeting, true);
+}
+
+function deferLowContentGeneration() {
+  pendingLowContentMeeting.value = null;
+  isLowContentConfirmationOpen.value = false;
+}
+
+async function generateSummary(meeting: Meeting, allowLowContent = false) {
+  if (isGeneratingSummary.value) {
+    return;
+  }
+
   aiSummaryRecovery.value = null;
   isGeneratingSummary.value = true;
 
   try {
-    await generateMeetingSummary(accessibleMeeting.value);
+    await generateMeetingSummary(meeting, { allowLowContent });
   } catch (error) {
     aiSummaryRecovery.value = getAiRecapRecovery(error);
   } finally {
@@ -608,5 +643,15 @@ function goBack() {
         <span>{{ t('meetingSummary.shareSummary') }}</span>
       </button>
     </footer>
+    <ConfirmationDialog
+      :open="isLowContentConfirmationOpen"
+      :title="t('ai.recap.lowContent.title')"
+      :message="t('ai.recap.lowContent.body')"
+      :confirm-label="t('ai.recap.lowContent.generateAnyway')"
+      :cancel-label="t('ai.recap.lowContent.addMore')"
+      :loading="isGeneratingSummary"
+      @close="deferLowContentGeneration"
+      @confirm="confirmLowContentGeneration"
+    />
   </article>
 </template>

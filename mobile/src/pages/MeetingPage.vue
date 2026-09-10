@@ -5,6 +5,7 @@ import ActionMenuPopup from '@/shared/components/ActionMenuPopup.vue';
 import type { ActionMenuItem } from '@/shared/components/ActionMenuPopup.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
+import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 import MeetingCheckInStep from '@/features/meeting/components/MeetingCheckInStep.vue';
 import MeetingReviewCloseStep from '@/features/meeting/components/MeetingReviewCloseStep.vue';
 import MeetingSectionStep from '@/features/meeting/components/MeetingSectionStep.vue';
@@ -37,6 +38,7 @@ const {
   closeNoteEditor,
   closeMeeting,
   confirmAiRecapDisclosure,
+  confirmAiRecapLowContent,
   confirmDeleteRitual,
   confirmEndSessionIncomplete,
   currentAgreements,
@@ -46,6 +48,7 @@ const {
   currentTasks,
   deleteNote,
   deferAiRecapDisclosure,
+  deferAiRecapLowContent,
   drawerFamilyMembers,
   drawerSelectedParticipantId,
   editingNoteParticipantId,
@@ -62,6 +65,7 @@ const {
   hasMeetingContent,
   isCompleted,
   isAiRecapDisclosureOpen,
+  isAiRecapLowContentOpen,
   isDeleteRitualDialogOpen,
   isEndSessionDialogOpen,
   isFinalSection,
@@ -135,6 +139,12 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
     disabled: !canEditMeeting.value || isCompleted.value,
   },
 ]);
+const meetingParticipantPickerOptions = computed(() =>
+  activeMeetingParticipants.value.map((participant) => ({
+    value: participant.id,
+    label: participant.name,
+  }))
+);
 </script>
 
 <template>
@@ -286,19 +296,13 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
     >
       <label for="edit-note-person">
         <span>{{ t('meeting.author') }}</span>
-        <select
+        <SelectPickerField
           id="edit-note-person"
           v-model="editingNoteParticipantId"
+          :label="t('meeting.author')"
+          :options="meetingParticipantPickerOptions"
           :disabled="!canEditMeeting"
-        >
-          <option
-            v-for="participant in activeMeetingParticipants"
-            :key="participant.id"
-            :value="participant.id"
-          >
-            {{ participant.name }}
-          </option>
-        </select>
+        />
       </label>
 
       <label for="edit-note-text">
@@ -324,6 +328,15 @@ const ritualMenuItems = computed<ActionMenuItem[]>(() => [
     </form>
   </BaseBottomSheet>
 
+  <ConfirmationDialog
+    :open="isAiRecapLowContentOpen"
+    :title="t('ai.recap.lowContent.title')"
+    :message="t('ai.recap.lowContent.body')"
+    :confirm-label="t('ai.recap.lowContent.generateAnyway')"
+    :cancel-label="t('ai.recap.lowContent.addMore')"
+    @close="deferAiRecapLowContent"
+    @confirm="confirmAiRecapLowContent"
+  />
   <ConfirmationDialog
     :open="isAiRecapDisclosureOpen"
     :title="t('ai.recap.disclosure.title')"
