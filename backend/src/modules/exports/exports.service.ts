@@ -2,25 +2,36 @@ import { requireMinimumRole, type AuthContext } from '../../shared/auth/index.js
 import { ApiError } from '../../shared/errors/index.js';
 import { isPrivateMarkedObject } from '../../shared/privacy/index.js';
 import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositories/index.js';
+import { meetingSummarySchema } from '../ai/ai.schema.js';
 import type { MeetingDto } from '../meetings/meetings.repository.js';
 import { ExportsRepository } from './exports.repository.js';
+import {
+  renderMeetingPdf,
+  type MeetingPdfDocument,
+  type MeetingPdfTask,
+} from './meeting-pdf.js';
 import type {
+  ExportMeetingPdfRequestDto,
   ExportMeetingRequestDto,
   ExportMeetingResponseDto,
   MeetingExportFormatDto,
 } from './exports.schema.js';
 
-type ExportsRepositoryPort = Pick<ExportsRepository, 'findMeetingForExport'>;
+type ExportsRepositoryPort = Pick<
+  ExportsRepository,
+  'findMeetingForExport' | 'listParticipantNamesForWorkspace'
+>;
 
 type ExportSection = {
   title?: string;
   prompt?: string;
-  notes: Array<{ participantId?: string; text: string }>;
+  notes: Array<{ participantId?: string; createdAt?: string; text: string }>;
   tasks: Array<{
     title: string;
     description?: string;
     responsibleParticipantIds?: string[];
     dueDate?: string;
+    responsibilityType?: string;
     status?: string;
   }>;
   agreements: Array<{
@@ -65,9 +76,11 @@ function sanitizeNotes(value: JsonValue | undefined) {
     }
 
     const participantId = trimmedString(item.participantId);
+    const createdAt = trimmedString(item.createdAt);
 
     notes.push({
       ...(participantId ? { participantId } : {}),
+      ...(createdAt ? { createdAt } : {}),
       text,
     });
   }
@@ -96,6 +109,7 @@ function sanitizeTasks(value: JsonValue | undefined) {
     const description = trimmedString(item.description);
     const responsibleParticipantIds = stringArray(item.responsibleParticipantIds);
     const dueDate = trimmedString(item.dueDate);
+    const responsibilityType = trimmedString(item.responsibilityType);
     const status = trimmedString(item.status);
 
     tasks.push({
@@ -103,6 +117,7 @@ function sanitizeTasks(value: JsonValue | undefined) {
       ...(description ? { description } : {}),
       ...(responsibleParticipantIds ? { responsibleParticipantIds } : {}),
       ...(dueDate ? { dueDate } : {}),
+      ...(responsibilityType ? { responsibilityType } : {}),
       ...(status ? { status } : {}),
     });
   }
@@ -278,8 +293,137 @@ function toFilename(meeting: MeetingDto, format: MeetingExportFormatDto) {
   return `${slug}-${meeting.id}.${extension}`;
 }
 
+function toPdfFilename(meeting: MeetingDto) {
+  const date = (meeting.completedAt ?? meeting.updatedAt ?? meeting.createdAt).slice(0, 10);
+  const slug = meeting.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80) || 'meeting';
+
+  return `ourweek-${date}-${slug}.pdf`;
+}
+
+function displayStatus(status: MeetingDto['status']) {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function participantIdsForExport(sections: ExportSection[]) {
+  const ids = new Set<string>();
+
+  for (const section of sections) {
+    section.notes.forEach((note) => note.participantId && ids.add(note.participantId));
+    section.tasks.forEach((task) => task.responsibleParticipantIds?.forEach((id) => ids.add(id)));
+    section.agreements.forEach((agreement) => agreement.participantIds?.forEach((id) => ids.add(id)));
+  }
+
+  return [...ids];
+}
+
+function namesForParticipantIds(ids: string[] | undefined, names: Map<string, string>) {
+  return (ids ?? []).map((id) => names.get(id)).filter((name): name is string => Boolean(name));
+}
+
+function taskResponsibleLabel(
+  task: ExportSection['tasks'][number],
+  names: Map<string, string>,
+) {
+  const participantNames = namesForParticipantIds(task.responsibleParticipantIds, names);
+
+  if (participantNames.length > 0) {
+    return participantNames.join(', ');
+  }
+
+  if (task.responsibilityType === 'shared') {
+    return 'Shared';
+  }
+
+  if (task.responsibilityType === 'needsDiscussion') {
+    return 'Needs discussion';
+  }
+
+  return undefined;
+}
+
+function toPdfTask(
+  task: ExportSection['tasks'][number],
+  names: Map<string, string>,
+): MeetingPdfTask {
+  return {
+    title: task.title,
+    ...(task.description ? { description: task.description } : {}),
+    ...(taskResponsibleLabel(task, names)
+      ? { responsible: taskResponsibleLabel(task, names) }
+      : {}),
+    ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+    ...(task.status ? { status: task.status } : {}),
+  };
+}
+
+function buildPdfDocument(
+  meeting: MeetingDto,
+  sections: ExportSection[],
+  participantNames: Map<string, string>,
+  generatedAt: Date,
+): MeetingPdfDocument {
+  const parsedSummary = meetingSummarySchema.safeParse(meeting.aiSummary);
+
+  return {
+    title: meeting.title,
+    status: displayStatus(meeting.status),
+    occurredOn: (meeting.completedAt ?? meeting.updatedAt ?? meeting.createdAt).slice(0, 10),
+    generatedOn: generatedAt.toISOString().slice(0, 10),
+    privateNotesNotice: 'Private notes are not included.',
+    ...(parsedSummary.success
+      ? {
+        summary: {
+          shortSummary: parsedSummary.data.shortSummary,
+          mainTopics: parsedSummary.data.mainTopics,
+          keyTensions: parsedSummary.data.keyTensions,
+          agreements: parsedSummary.data.agreements,
+          tasks: parsedSummary.data.tasks.map((task) => ({
+            title: task.title,
+            ...(task.responsibleParticipantIds
+              ? {
+                responsible: namesForParticipantIds(
+                  task.responsibleParticipantIds,
+                  participantNames,
+                ).join(', ') || undefined,
+              }
+              : {}),
+            ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+          })),
+          suggestedNextMeetingFocus: parsedSummary.data.suggestedNextMeetingFocus,
+        },
+      }
+      : {}),
+    sections: sections.map((section, index) => ({
+      title: section.title ?? `Section ${index + 1}`,
+      ...(section.prompt ? { prompt: section.prompt } : {}),
+      notes: section.notes.map((note) => ({
+        ...(note.participantId && participantNames.get(note.participantId)
+          ? { author: participantNames.get(note.participantId) }
+          : {}),
+        ...(note.createdAt ? { createdAt: note.createdAt } : {}),
+        text: note.text,
+      })),
+      tasks: section.tasks.map((task) => toPdfTask(task, participantNames)),
+      agreements: section.agreements.map((agreement) => ({
+        text: agreement.text,
+        ...(agreement.description ? { description: agreement.description } : {}),
+        ...(namesForParticipantIds(agreement.participantIds, participantNames).length > 0
+          ? { participants: namesForParticipantIds(agreement.participantIds, participantNames).join(', ') }
+          : {}),
+      })),
+    })),
+  };
+}
+
 export class ExportsService {
-  constructor(private readonly repository: ExportsRepositoryPort) {}
+  constructor(
+    private readonly repository: ExportsRepositoryPort,
+    private readonly pdfRenderer: (document: MeetingPdfDocument) => Promise<Buffer> = renderMeetingPdf,
+  ) {}
 
   static fromSupabase(supabase: SupabaseRepositoryClient) {
     return new ExportsService(new ExportsRepository(supabase));
@@ -309,6 +453,35 @@ export class ExportsService {
       filename: toFilename(meeting, request.format),
       content: buildExportContent(meeting, sections, request.format),
       generatedAt: now.toISOString(),
+    };
+  }
+
+  async exportMeetingPdf(
+    auth: AuthContext | undefined,
+    request: ExportMeetingPdfRequestDto,
+    now = new Date(),
+  ) {
+    const context = requireMinimumRole(auth, 'adult_member');
+    const meeting = await this.repository.findMeetingForExport(
+      context.workspaceId,
+      request.meetingId,
+    );
+
+    if (!meeting) {
+      throw new ApiError(404, 'meeting_not_found', 'Meeting not found.');
+    }
+
+    const sections = sanitizeSections(meeting.sections);
+    const participantIds = participantIdsForExport(sections);
+    const participantRows = await this.repository.listParticipantNamesForWorkspace(
+      context.workspaceId,
+      participantIds,
+    );
+    const participantNames = new Map(participantRows.map((participant) => [participant.id, participant.name]));
+
+    return {
+      filename: toPdfFilename(meeting),
+      content: await this.pdfRenderer(buildPdfDocument(meeting, sections, participantNames, now)),
     };
   }
 }

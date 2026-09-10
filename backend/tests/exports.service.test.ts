@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { ExportsService } from '../src/modules/exports/exports.service.js';
+import type { MeetingPdfDocument } from '../src/modules/exports/meeting-pdf.js';
 import type { MeetingDto } from '../src/modules/meetings/meetings.repository.js';
 import type { AuthContext } from '../src/shared/auth/index.js';
 
@@ -76,15 +77,23 @@ function meeting(overrides: Partial<MeetingDto> = {}): MeetingDto {
   };
 }
 
-function createHarness(input: { meeting?: MeetingDto | null } = {}) {
+function createHarness(input: {
+  meeting?: MeetingDto | null;
+  participantNames?: Array<{ id: string; name: string }>;
+  renderPdf?: (document: MeetingPdfDocument) => Promise<Buffer>;
+} = {}) {
   const repository = {
     findMeetingForExport: vi.fn().mockResolvedValue(
       input.meeting === undefined ? meeting() : input.meeting,
     ),
+    listParticipantNamesForWorkspace: vi.fn().mockResolvedValue(
+      input.participantNames ?? [{ id: 'participant_1', name: 'Rita' }],
+    ),
   };
-  const service = new ExportsService(repository);
+  const renderPdf = vi.fn(input.renderPdf ?? (async () => Buffer.from('%PDF-test')));
+  const service = new ExportsService(repository, renderPdf);
 
-  return { repository, service };
+  return { repository, renderPdf, service };
 }
 
 describe('ExportsService', () => {
@@ -179,5 +188,55 @@ describe('ExportsService', () => {
       code: 'forbidden',
     });
     expect(repository.findMeetingForExport).not.toHaveBeenCalled();
+  });
+
+  it('builds a privacy-safe PDF using workspace-scoped participant names', async () => {
+    const { repository, renderPdf, service } = createHarness({
+      participantNames: [
+        { id: 'participant_1', name: 'Rita' },
+        { id: 'participant_2', name: 'Alex' },
+      ],
+    });
+
+    const response = await service.exportMeetingPdf(auth, { meetingId }, new Date(now));
+
+    expect(repository.listParticipantNamesForWorkspace).toHaveBeenCalledWith(
+      workspaceId,
+      ['participant_1'],
+    );
+    expect(renderPdf).toHaveBeenCalledWith(expect.objectContaining({
+      sections: [expect.objectContaining({
+        notes: [expect.objectContaining({ author: 'Rita' })],
+        tasks: [expect.objectContaining({ responsible: 'Rita' })],
+        agreements: [expect.objectContaining({ participants: 'Rita' })],
+      })],
+    }));
+    expect(response.filename).toBe('ourweek-2026-06-07-weekly-check-in.pdf');
+    expect(response.content.subarray(0, 5).toString()).toBe('%PDF-');
+  });
+
+  it('does not pass private note text or participant IDs to the PDF renderer', async () => {
+    const { renderPdf, service } = createHarness();
+
+    await service.exportMeetingPdf(auth, { meetingId }, new Date(now));
+
+    const rendererInput = JSON.stringify(renderPdf.mock.calls);
+    expect(rendererInput).not.toContain('private true text');
+    expect(rendererInput).not.toContain('participant_1');
+    expect(rendererInput).not.toContain('This must never leave the backend.');
+  });
+
+  it('blocks viewers before loading PDF content', async () => {
+    const { repository, renderPdf, service } = createHarness();
+
+    await expect(
+      service.exportMeetingPdf(viewerAuth, { meetingId }, new Date(now)),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      code: 'forbidden',
+    });
+    expect(repository.findMeetingForExport).not.toHaveBeenCalled();
+    expect(repository.listParticipantNamesForWorkspace).not.toHaveBeenCalled();
+    expect(renderPdf).not.toHaveBeenCalled();
   });
 });

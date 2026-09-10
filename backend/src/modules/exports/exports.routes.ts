@@ -5,6 +5,8 @@ import { requireAuth } from '../auth/auth.middleware.js';
 import { requireFeature } from '../billing/require-feature.middleware.js';
 import { SubscriptionsRepository } from '../billing/subscriptions.repository.js';
 import {
+  exportMeetingPdfRequestSchema,
+  exportMeetingPdfResponseSchema,
   exportMeetingRequestSchema,
   exportMeetingResponseSchema,
 } from './exports.schema.js';
@@ -43,6 +45,36 @@ export const exportsRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       return service.exportMeeting(request.auth, request.body);
+    },
+  );
+
+  app.post(
+    '/meeting/pdf',
+    {
+      config: {
+        authRequired: true,
+      },
+      preHandler: [
+        authPreHandler,
+        requireFeature(subscriptionsRepository, 'export'),
+      ],
+      schema: {
+        body: exportMeetingPdfRequestSchema,
+        produces: ['application/pdf'],
+        response: {
+          200: exportMeetingPdfResponseSchema,
+          ...exportErrorResponses,
+        },
+      },
+    },
+    async (request, reply) => {
+      const pdf = await service.exportMeetingPdf(request.auth, request.body);
+
+      return reply
+        .type('application/pdf')
+        .header('content-disposition', `attachment; filename="${pdf.filename}"`)
+        .header('cache-control', 'private, no-store')
+        .send(pdf.content);
     },
   );
 };

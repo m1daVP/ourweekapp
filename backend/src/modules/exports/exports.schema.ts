@@ -10,6 +10,14 @@ export const exportMeetingRequestSchema = z.object({
   format: meetingExportFormatSchema.default('markdown'),
 });
 
+export const exportMeetingPdfRequestSchema = z.object({
+  meetingId: meetingIdSchema,
+});
+
+export const exportMeetingPdfResponseSchema = z.unknown().meta({
+  contentMediaType: 'application/pdf',
+});
+
 export const exportMeetingResponseSchema = z.object({
   meetingId: meetingIdSchema,
   format: meetingExportFormatSchema,
@@ -21,4 +29,5 @@ export const exportMeetingResponseSchema = z.object({
 
 export type MeetingExportFormatDto = z.infer<typeof meetingExportFormatSchema>;
 export type ExportMeetingRequestDto = z.infer<typeof exportMeetingRequestSchema>;
+export type ExportMeetingPdfRequestDto = z.infer<typeof exportMeetingPdfRequestSchema>;
 export type ExportMeetingResponseDto = z.infer<typeof exportMeetingResponseSchema>;

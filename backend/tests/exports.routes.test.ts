@@ -7,6 +7,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const routeExportMeeting = vi.hoisted(() => vi.fn());
+const routeExportMeetingPdf = vi.hoisted(() => vi.fn());
 
 vi.mock('../src/modules/auth/auth.middleware.js', async () => {
   const { ApiError } = await vi.importActual<typeof import('../src/shared/errors/index.js')>(
@@ -74,6 +75,7 @@ vi.mock('../src/modules/exports/exports.service.js', () => ({
   ExportsService: {
     fromSupabase: () => ({
       exportMeeting: routeExportMeeting,
+      exportMeetingPdf: routeExportMeetingPdf,
     }),
   },
 }));
@@ -97,6 +99,7 @@ async function buildExportsRoutesApp() {
 describe('exports routes', () => {
   beforeEach(() => {
     routeExportMeeting.mockReset();
+    routeExportMeetingPdf.mockReset();
   });
 
   it('returns 401 for unauthenticated meeting export requests', async () => {
@@ -194,6 +197,37 @@ describe('exports routes', () => {
         meetingId: '11111111-1111-4111-8111-111111111111',
         format: 'markdown',
       },
+    );
+    await app.close();
+  });
+
+  it('returns a PDF attachment through route wiring', async () => {
+    routeExportMeetingPdf.mockResolvedValueOnce({
+      filename: 'ourweek-2026-06-07-weekly-check-in.pdf',
+      content: Buffer.from('%PDF-1.7'),
+    });
+    const app = await buildExportsRoutesApp();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/exports/meeting/pdf',
+      headers: { authorization: 'Bearer premium-token' },
+      payload: { meetingId: '11111111-1111-4111-8111-111111111111' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('application/pdf');
+    expect(response.headers['content-disposition']).toContain(
+      'attachment; filename="ourweek-2026-06-07-weekly-check-in.pdf"',
+    );
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(response.rawPayload.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(routeExportMeetingPdf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: '11111111-1111-4111-8111-111111111111',
+        workspaceId: '33333333-3333-4333-8333-333333333333',
+        planType: 'premium',
+      }),
+      { meetingId: '11111111-1111-4111-8111-111111111111' },
     );
     await app.close();
   });
