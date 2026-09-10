@@ -1,0 +1,79 @@
+<style>
+  .recap-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:24px; }
+  .recap-option { cursor:pointer; border:1px solid #d9d4e5; border-radius:22px; overflow:hidden; background:#fff; transition:transform .18s ease, box-shadow .18s ease; }
+  .recap-option:hover { transform:translateY(-3px); box-shadow:0 15px 30px rgba(45,35,77,.14); }
+  .recap-phone { min-height:445px; padding:16px; background:#f7f6f9; }
+  .recap-top { display:flex; align-items:center; gap:10px; color:#5d5868; font-size:12px; margin-bottom:20px; }
+  .recap-title { font-size:21px; font-weight:800; color:#1d1a24; margin:0 0 4px; }
+  .recap-date { font-size:12px; color:#706a78; margin:0 0 18px; }
+  .recap-icon { display:inline-grid; place-items:center; width:28px; height:28px; border-radius:10px; font-size:15px; }
+  .recap-copy { font-size:14px; line-height:1.55; margin:10px 0 0; color:#29242f; }
+  .recap-note { font-size:11px; color:#756e7e; margin:12px 0 0; }
+  .recap-button { display:inline-flex; align-items:center; gap:6px; border:0; border-radius:20px; font-size:12px; font-weight:750; padding:9px 13px; margin-top:16px; }
+  .recap-quiet { height:70px; margin-top:16px; border-radius:14px; background:#fff; border:1px solid #ece8f0; padding:12px; color:#8d8795; font-size:12px; }
+  .recap-label { padding:15px 16px 17px; }
+  .recap-label h3 { margin:0 0 5px; font-size:15px; }
+  .recap-label p { margin:0; color:#6b6573; font-size:13px; line-height:1.45; }
+  .spotlight { position:relative; overflow:hidden; border:1px solid #adcfaf; border-radius:18px; padding:18px; background:linear-gradient(135deg,#f9fff7 0%,#e9f6e7 52%,#fff 100%); box-shadow:0 8px 22px rgba(69,99,73,.12); }
+  .spotlight:after { content:''; position:absolute; width:130px; height:130px; border-radius:50%; right:-55px; top:-56px; background:rgba(173,207,175,.38); }
+  .spotlight > * { position:relative; z-index:1; }
+  .spotlight .recap-icon { background:#456349; color:#fff; box-shadow:0 5px 12px rgba(69,99,73,.25); }
+  .spotlight .eyebrow { color:#456349; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+  .spotlight .recap-button { background:#456349; color:white; }
+  .beacon { display:grid; grid-template-columns:5px 1fr; border-radius:16px; overflow:hidden; background:#fff; box-shadow:0 5px 14px rgba(38,30,52,.09); }
+  .beacon-rail { background:linear-gradient(#ee9b48,#d45b73); }
+  .beacon-body { padding:17px; }
+  .beacon .recap-icon { background:#fff0df; color:#a95027; }
+  .beacon .recap-button { background:#fff0df; color:#93411f; }
+  .journal { border:1px solid #dcdbd3; border-radius:17px; padding:17px; background:#fffef8; box-shadow:0 5px 12px rgba(44,42,28,.08); }
+  .journal .recap-icon { background:#e6efe4; color:#356640; }
+  .journal blockquote { margin:13px 0 0; padding-left:13px; border-left:3px solid #769b6e; font-family:Georgia,serif; font-size:17px; line-height:1.45; color:#2d372a; }
+  .journal .recap-button { background:#e6efe4; color:#315c38; }
+  @media (max-width:800px) { .recap-options { grid-template-columns:1fr; } .recap-phone { min-height:330px; } }
+</style>
+
+<h2>Make the AI recap easier to notice</h2>
+<p class="subtitle">Each option keeps the recap clearly distinct from recorded decisions and tasks, which remain the source of truth.</p>
+
+<div class="recap-options">
+  <article class="recap-option" data-choice="spotlight" onclick="toggleSelect(this)">
+    <div class="recap-phone">
+      <div class="recap-top">← &nbsp; Summary</div>
+      <h3 class="recap-title">Weekly family check-in</h3><p class="recap-date">Sep 10, 2026</p>
+      <section class="spotlight">
+        <div class="recap-top"><span class="recap-icon">✦</span><span class="eyebrow">AI recap</span></div>
+        <strong style="font-size:18px;color:#26202f">The shared takeaway</strong>
+        <p class="recap-copy">You aligned on school pickup and agreed to keep Sunday planning short.</p>
+        <button class="recap-button">✦ Review recap</button>
+        <p class="recap-note">AI can miss context — review before relying on it.</p>
+      </section>
+      <div class="recap-quiet">✓ Decisions &nbsp; · &nbsp; 2 recorded</div>
+      <div class="recap-quiet">☑ Tasks &nbsp; · &nbsp; 1 follow-up</div>
+    </div>
+    <div class="recap-label"><h3>A. Spotlight (recommended)</h3><p>A distinct, calm hero card with a soft glow and strong title hierarchy.</p></div>
+  </article>
+
+  <article class="recap-option" data-choice="beacon" onclick="toggleSelect(this)">
+    <div class="recap-phone">
+      <div class="recap-top">← &nbsp; Summary</div>
+      <h3 class="recap-title">Weekly family check-in</h3><p class="recap-date">Sep 10, 2026</p>
+      <section class="beacon"><div class="beacon-rail"></div><div class="beacon-body"><div class="recap-top"><span class="recap-icon">✦</span><strong>AI recap</strong></div><p class="recap-copy">You aligned on school pickup and agreed to keep Sunday planning short.</p><button class="recap-button">Open recap</button></div></section>
+      <div class="recap-quiet">✓ Decisions &nbsp; · &nbsp; 2 recorded</div>
+      <div class="recap-quiet">☑ Tasks &nbsp; · &nbsp; 1 follow-up</div>
+    </div>
+    <div class="recap-label"><h3>B. Beacon rail</h3><p>More compact, with a warm visual marker that catches the eye while scanning.</p></div>
+  </article>
+
+  <article class="recap-option" data-choice="journal" onclick="toggleSelect(this)">
+    <div class="recap-phone">
+      <div class="recap-top">← &nbsp; Summary</div>
+      <h3 class="recap-title">Weekly family check-in</h3><p class="recap-date">Sep 10, 2026</p>
+      <section class="journal"><div class="recap-top"><span class="recap-icon">✦</span><strong>AI perspective</strong></div><blockquote>“You aligned on school pickup and agreed to keep Sunday planning short.”</blockquote><button class="recap-button">Read recap</button></section>
+      <div class="recap-quiet">✓ Decisions &nbsp; · &nbsp; 2 recorded</div>
+      <div class="recap-quiet">☑ Tasks &nbsp; · &nbsp; 1 follow-up</div>
+    </div>
+    <div class="recap-label"><h3>C. Journal highlight</h3><p>Feels more reflective and editorial, with the insight treated as a pull quote.</p></div>
+  </article>
+</div>
+
+<p class="subtitle" style="margin-top:20px">Click an option to select it, then tell me what feels right.</p>
