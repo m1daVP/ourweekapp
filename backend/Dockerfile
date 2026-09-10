@@ -13,6 +13,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package*.json tsconfig.json ./
 COPY src ./src
+COPY scripts/copy-runtime-assets.mjs ./scripts/copy-runtime-assets.mjs
 RUN npm run build
 
 FROM node:24-bookworm-slim AS runtime-base
