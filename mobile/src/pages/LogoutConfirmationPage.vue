@@ -43,7 +43,7 @@ async function confirmLogout() {
       </button>
       <RouterLink
         class="secondary-button link-button"
-        :to="{ name: 'account' }"
+        :to="{ name: 'settings' }"
       >
         {{ t('logout.keepSignedIn') }}
       </RouterLink>

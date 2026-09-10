@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/app/stores/auth';
@@ -8,6 +8,7 @@ import { reminderDayOptions, useRemindersStore } from '@/app/stores/reminders';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import { canPurchasePremium } from '@/features/access/premiumPurchasePolicy';
+import AccountSettingsSection from '@/features/auth/components/AccountSettingsSection.vue';
 import { featureAccessConfig } from '@/features/access/featureAccess.config';
 import type { FeatureKey } from '@/features/access/types';
 import {
@@ -25,6 +26,7 @@ import UpgradePrompt from '@/shared/components/UpgradePrompt.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useNotifications } from '@/shared/composables/useNotifications';
 import { useToast } from '@/shared/composables/useToast';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 import { appConfig } from '@/shared/config/env';
 
 const route = useRoute();
@@ -36,6 +38,7 @@ const subscriptionStore = useSubscriptionStore();
 const workspaceStore = useWorkspaceStore();
 const { canUseFeature } = useFeatureAccess();
 const { showToast } = useToast();
+const { showInAppNotification } = useInAppNotification();
 const {
   disableReminders,
   enableReminders,
@@ -47,6 +50,19 @@ const {
 } = useNotifications();
 
 void syncPermissionStatus();
+
+watch(
+  () => subscriptionStore.statusMessage,
+  (message) => {
+    if (!message) {
+      return;
+    }
+
+    showInAppNotification(message);
+    subscriptionStore.clearStatusMessage();
+  },
+  { immediate: true }
+);
 
 const isReminderSheetOpen = ref(false);
 const isLanguageSheetOpen = ref(false);
@@ -91,6 +107,16 @@ const accountStatusText = computed(() => {
 
   return t('settings.noAccount');
 });
+const subscriptionRenewalLabel = computed(() => {
+  const expiresAt = subscriptionStore.premiumEntitlement?.expiresAt;
+
+  return expiresAt ? formatDate(expiresAt) : t('account.renewalUnavailable');
+});
+const subscriptionManagementLabel = computed(() =>
+  subscriptionStore.canManageSubscription
+    ? t('account.manageAvailable')
+    : t('account.manageUnavailable')
+);
 const reminderStatusText = computed(() => {
   if (!canUseReminders.value) {
     return t('settings.reminderLocked');
@@ -132,6 +158,14 @@ function toReminderDay(value: string) {
   return reminderDayOptions.some((option) => option.value === value)
     ? (value as ReminderDay)
     : 'sunday';
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(localizationStore.locale, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(value));
 }
 
 async function handleReminderEnabledChange(event: Event) {
@@ -339,6 +373,17 @@ function openReminderSheet() {
           </li>
         </ul>
 
+        <dl class="subscription-status-list">
+          <div>
+            <dt>{{ t('account.renewal') }}</dt>
+            <dd>{{ subscriptionRenewalLabel }}</dd>
+          </div>
+          <div>
+            <dt>{{ t('account.manageSubscription') }}</dt>
+            <dd>{{ subscriptionManagementLabel }}</dd>
+          </div>
+        </dl>
+
         <button
           v-if="
             hasPremium &&
@@ -374,13 +419,6 @@ function openReminderSheet() {
           {{ t('common.restorePurchases') }}
         </button>
         <p
-          v-if="isWorkspaceOwner && subscriptionStore.statusMessage"
-          class="meeting-status settings-subscription-card__feedback"
-          role="status"
-        >
-          {{ subscriptionStore.statusMessage }}
-        </p>
-        <p
           v-if="isWorkspaceOwner && subscriptionStore.errorMessage"
           class="meeting-error settings-subscription-card__feedback"
           role="alert"
@@ -389,6 +427,8 @@ function openReminderSheet() {
         </p>
       </article>
     </section>
+
+    <AccountSettingsSection />
 
     <section class="settings-redesign-section">
       <h2 class="settings-redesign-section__title">
@@ -449,16 +489,11 @@ function openReminderSheet() {
       </div>
     </section>
 
-    <section class="settings-account-footer">
-      <RouterLink
-        class="settings-account-link"
-        :to="
-          authStore.isAuthenticated ? { name: 'account' } : { name: 'welcome' }
-        "
-      >
+    <section class="settings-footer">
+      <div class="settings-account-summary">
         <span>{{ t('settings.account') }}</span>
         <small>{{ accountStatusText }}</small>
-      </RouterLink>
+      </div>
 
       <RouterLink
         v-if="authStore.isAuthenticated"

@@ -624,6 +624,60 @@ input[type='radio'] {
   transform: translate(-50%, 8px);
 }
 
+.in-app-notification {
+  position: fixed;
+  top: calc(32px + env(safe-area-inset-top));
+  left: 50%;
+  z-index: 45;
+  display: grid;
+  width: min(calc(100vw - 32px), calc(var(--container-max-width) - 32px));
+  min-height: 56px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 32%, white);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface-lowest) 96%, transparent);
+  padding: 6px 6px 6px 14px;
+  color: var(--color-on-surface);
+  box-shadow:
+    0 18px 36px rgba(47, 42, 38, 0.16),
+    0 3px 10px rgba(47, 42, 38, 0.08);
+  transform: translateX(-50%);
+}
+
+.in-app-notification > .material-symbols-outlined {
+  color: var(--color-primary);
+  font-size: 1.25rem;
+}
+
+.in-app-notification__message {
+  font-size: var(--font-size-label-lg);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.in-app-notification--error {
+  border-color: color-mix(in srgb, var(--color-error) 42%, white);
+}
+
+.in-app-notification--error > .material-symbols-outlined {
+  color: var(--color-error);
+}
+
+.in-app-notification-enter-active,
+.in-app-notification-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.in-app-notification-enter-from,
+.in-app-notification-leave-to {
+  opacity: 0;
+  transform: translate(-50%, calc(-100% - 16px));
+}
+
 @keyframes app-toast-spinner {
   to {
     transform: rotate(360deg);
@@ -1962,12 +2016,21 @@ input[type='radio'] {
   gap: 16px;
 }
 
+.settings-account-block {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-account-block .settings-redesign-row__title {
+  padding-inline: 8px;
+}
+
 .settings-redesign-section__title {
   margin: 0;
   padding-inline: 8px;
   color: var(--color-on-surface);
   font-family: var(--font-display);
-  font-size: var(--font-size-label-lg);
+  font-size: var(--font-size-body-md);
   font-weight: 700;
   letter-spacing: 0.08em;
   line-height: 1.35;
@@ -2092,8 +2155,7 @@ input[type='radio'] {
 .settings-redesign-row:active,
 .settings-redesign-row__main:active,
 .settings-subscription-card__button:active,
-.settings-sign-out-link:active,
-.settings-account-link:active {
+.settings-sign-out-link:active {
   transform: scale(0.98);
 }
 
@@ -2158,7 +2220,7 @@ input[type='radio'] {
   gap: 6px;
   color: var(--color-on-surface);
   font-family: var(--font-display);
-  font-size: var(--font-size-body-md);
+  font-size: var(--font-size-label-lg);
   font-weight: 500;
   line-height: 1.35;
 }
@@ -2337,31 +2399,29 @@ input[type='radio'] {
   text-align: center;
 }
 
-.settings-account-footer {
+.settings-footer {
   display: grid;
   justify-items: center;
   gap: 22px;
   padding: 0 0 6px;
 }
 
-.settings-account-link {
+.settings-account-summary {
   display: grid;
   width: 100%;
   gap: 2px;
-  border-radius: 8px;
   color: var(--color-on-surface);
   padding: 0 16px;
   text-align: center;
-  text-decoration: none;
 }
 
-.settings-account-link span {
+.settings-account-summary span {
   font-family: var(--font-display);
   font-size: var(--font-size-body-md);
   font-weight: 600;
 }
 
-.settings-account-link small {
+.settings-account-summary small {
   color: var(--color-outline);
   font-size: var(--font-size-label-sm);
   line-height: 1.35;

@@ -91,7 +91,7 @@ export const messages = {
     },
     account: {
       kicker: 'Account',
-      title: 'Account settings',
+      title: 'Account',
       intro:
         'Manage the account used for sync, Premium, and future household features.',
       signedInAs: 'Signed in as',
@@ -1635,7 +1635,7 @@ export const messages = {
     },
     account: {
       kicker: 'Акаунт',
-      title: 'Налаштування акаунта',
+      title: 'Акаунт',
       intro:
         'Керуйте акаунтом для синхронізації, Premium-доступу та майбутніх функцій сімейного простору.',
       signedInAs: 'Увійшли як',
@@ -3214,7 +3214,7 @@ export const messages = {
     },
     account: {
       kicker: 'Cuenta',
-      title: 'Ajustes de la cuenta',
+      title: 'Cuenta',
       intro:
         'Administra la cuenta usada para sincronización, acceso Premium y futuras funciones del hogar.',
       signedInAs: 'Sesión iniciada como',

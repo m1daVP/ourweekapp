@@ -3,7 +3,6 @@ import { useAuthStore } from '@/app/stores/auth';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { createBackgroundAuthVerificationCoordinator } from '@/app/router/backgroundAuthVerification';
 import { legacySettingsRoutes } from '@/app/router/legacySettingsRoutes';
-import AccountPage from '@/pages/AccountPage.vue';
 import CalendarSyncPage from '@/pages/CalendarSyncPage.vue';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage.vue';
 import HomePage from '@/pages/HomePage.vue';
@@ -172,12 +171,6 @@ export const router = createRouter({
       path: '/settings/upgrade',
       name: 'upgrade',
       component: UpgradePage,
-    },
-    {
-      path: '/settings/account',
-      name: 'account',
-      component: AccountPage,
-      meta: { requiresAuth: true },
     },
     {
       path: '/logout',

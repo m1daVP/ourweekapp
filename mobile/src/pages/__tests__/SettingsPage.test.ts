@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   manageSubscription: vi.fn(),
   enableReminders: vi.fn(),
   showToast: vi.fn(),
+  showInAppNotification: vi.fn(),
   canUseReminders: false,
   reminderSettings: {
     enabled: false,
@@ -60,6 +61,9 @@ vi.mock('@/app/stores/subscription', () => ({
     ...state.subscription,
     restorePurchases: state.restorePurchases,
     manageSubscription: state.manageSubscription,
+    clearStatusMessage: () => {
+      state.subscription.statusMessage = '';
+    },
   }),
 }));
 
@@ -89,6 +93,12 @@ vi.mock('@/shared/composables/useToast', () => ({
   useToast: () => ({ showToast: state.showToast }),
 }));
 
+vi.mock('@/shared/composables/useInAppNotification', () => ({
+  useInAppNotification: () => ({
+    showInAppNotification: state.showInAppNotification,
+  }),
+}));
+
 vi.mock('@/shared/config/env', () => ({
   appConfig: {
     get isRevenueCatEnabled() {
@@ -104,6 +114,13 @@ vi.mock(
     default: { name: 'HouseholdMembersSettings' },
   })
 );
+
+vi.mock('@/features/auth/components/AccountSettingsSection.vue', () => ({
+  default: {
+    name: 'AccountSettingsSection',
+    template: '<section data-testid="account-settings-section" />',
+  },
+}));
 
 vi.mock('@/shared/components/BaseBottomSheet.vue', () => ({
   default: { name: 'BaseBottomSheet' },
@@ -148,6 +165,7 @@ beforeEach(() => {
   state.manageSubscription.mockReset();
   state.enableReminders.mockReset();
   state.showToast.mockReset();
+  state.showInAppNotification.mockReset();
   state.updateWeeklyMeetingReminder.mockReset();
   state.canUseReminders = false;
   state.reminderSettings.enabled = false;
@@ -162,6 +180,13 @@ beforeEach(() => {
 });
 
 describe('SettingsPage restore purchases', () => {
+  it('embeds account controls without an account-route link', () => {
+    const wrapper = mountSettingsPage();
+
+    expect(wrapper.find('account-settings-section-stub').exists()).toBe(true);
+    expect(wrapper.find('.settings-account-summary').exists()).toBe(true);
+  });
+
   it('shows locked Premium benefits for a Free household', () => {
     const icons = mountSettingsPage().findAll(
       '[data-testid="subscription-benefit-icon"]'
@@ -228,13 +253,16 @@ describe('SettingsPage restore purchases', () => {
     }
   );
 
-  it('renders the restore result inside the card for an owner', () => {
+  it('forwards the restore result to the in-app notification for an owner', () => {
     state.subscription.statusMessage = 'upgrade.premiumRestored';
     state.subscription.errorMessage = 'upgrade.restoreFailed';
 
     const wrapper = mountSettingsPage();
 
-    expect(wrapper.text()).toContain('upgrade.premiumRestored');
+    expect(state.showInAppNotification).toHaveBeenCalledWith(
+      'upgrade.premiumRestored'
+    );
+    expect(wrapper.text()).not.toContain('upgrade.premiumRestored');
     expect(wrapper.text()).toContain('upgrade.restoreFailed');
   });
 
