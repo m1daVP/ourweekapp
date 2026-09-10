@@ -18,6 +18,7 @@ vi.mock('@/shared/api/meetingsApi', () => ({ listMeetings: mocks.list }));
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { ApiClientError } from '@/shared/api/httpClient';
+import { i18n } from '@/features/localization/i18n';
 import { generateMeetingSummary } from '../aiSummaryService';
 
 const source: Meeting = {
@@ -64,6 +65,7 @@ beforeEach(() => {
   setActivePinia(createPinia());
   vi.clearAllMocks();
   vi.stubGlobal('window', { setTimeout, clearTimeout });
+  i18n.global.locale.value = 'en';
   useMeetingsStore().meetings = [structuredClone(source)];
   mocks.sync.mockResolvedValue(structuredClone(source));
   mocks.generate.mockResolvedValue(response());
@@ -79,6 +81,20 @@ beforeEach(() => {
 });
 
 describe('acknowledged AI generation', () => {
+  it.each(['en', 'uk', 'es'] as const)(
+    'sends the active %s app locale',
+    async (locale) => {
+      i18n.global.locale.value = locale;
+
+      await generateMeetingSummary(source);
+
+      expect(mocks.generate).toHaveBeenCalledWith(
+        expect.objectContaining({ meetingId: source.id, locale }),
+        expect.any(Object)
+      );
+    }
+  );
+
   it.each([
     null,
     { limit: 3, used: 3, remaining: 0, periodEndsAt: null, canGenerate: false },
