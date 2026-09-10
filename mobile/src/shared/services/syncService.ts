@@ -14,6 +14,7 @@ import {
   readSyncMetadata,
   readSyncResourceMetadata,
   writeSyncResourceMetadata,
+  writeMeetingSyncSnapshot,
 } from '@/shared/services/storageService';
 import {
   mergeReviewDecisions,
@@ -38,9 +39,16 @@ import {
   meetingLocalSnapshot,
   meetingSyncContent,
 } from '@/features/meeting/meetingSyncSnapshot';
+import {
+  acknowledgeMeeting,
+  preserveMeetingVersion,
+  mergeHydratedMeeting,
+  type MeetingSyncRecords,
+} from '@/features/meeting/meetingSyncMerge';
 import type { Participant } from '@/features/participants/types';
 import {
   beginRemoteSync,
+  getSyncSessionGeneration,
   endRemoteSyncSoon,
   hasInitialHydrationCompleted,
   markInitialHydrationComplete,
@@ -70,6 +78,7 @@ export interface SyncResult {
   syncedAt: string;
   skippedReason?: string;
   acknowledgedMeetings?: Meeting[];
+  retryableMeetingIds?: string[];
   conflictedMeetingIds?: string[];
 }
 
@@ -84,6 +93,63 @@ export class AiMeetingSyncRequiredError extends Error {
 }
 
 let meetingSyncQueue: Promise<unknown> = Promise.resolve();
+let hydration: { generation: number; promise: Promise<void> } | undefined;
+
+function assertSyncSession(generation: number) {
+  if (generation !== getSyncSessionGeneration())
+    throw new Error('Sync session changed');
+}
+
+function queueMeetingOperation<T>(operation: () => Promise<T>): Promise<T> {
+  const generation = getSyncSessionGeneration();
+  const run = () => {
+    assertSyncSession(generation);
+    return operation();
+  };
+  const result = meetingSyncQueue.then(run, run);
+  meetingSyncQueue = result.then(
+    () => undefined,
+    () => undefined
+  );
+  return result;
+}
+
+function meetingRecords(): MeetingSyncRecords {
+  return structuredClone(
+    readSyncResourceMetadata('meetings').meetingRecords ?? {}
+  );
+}
+
+function saveMergedMeetings(
+  meetings: Meeting[],
+  records: MeetingSyncRecords,
+  preferredId: string | null,
+  draftSavedAt: string | null
+) {
+  const store = useMeetingsStore();
+  const active = (id: string | null) =>
+    id &&
+    meetings.some(
+      (meeting) =>
+        meeting.id === id &&
+        meeting.status !== 'completed' &&
+        !meeting.deletedAt
+    )
+      ? id
+      : null;
+  const activeMeetingId = active(store.activeMeetingId) ?? active(preferredId);
+  const savedAt = latestIso(store.draftSavedAt, draftSavedAt);
+  writeMeetingSyncSnapshot(
+    { meetings, activeMeetingId, draftSavedAt: savedAt },
+    records
+  );
+  applyRemoteSyncMutation(() => {
+    store.meetings = meetings;
+    store.activeMeetingId = activeMeetingId;
+    store.draftSavedAt = savedAt;
+    useTasksStore().syncFromMeetings(meetings);
+  });
+}
 
 interface SyncParticipantsRequestDto {
   participants: ParticipantDto[];
@@ -227,37 +293,35 @@ function applyRemoteSyncMutation(mutation: () => void) {
 
 export function resetSyncRuntimeStateForTests() {
   meetingSyncQueue = Promise.resolve();
+  hydration = undefined;
   resetSyncRuntimeState();
 }
 
 function applyMeetingsFromBackend(
   response: Awaited<ReturnType<typeof listMeetings>>
 ) {
-  const meetingsStore = useMeetingsStore();
-  const localMeetings = meetingsStore.meetings;
-  const remoteMeetings = response.meetings.map(fromMeetingDto);
-  const mergedMeetings = mergeSyncItems<Meeting>(localMeetings, remoteMeetings);
-  const activeMeetingId =
-    meetingsStore.activeMeetingId &&
-    mergedMeetings.some(
-      (meeting) => meeting.id === meetingsStore.activeMeetingId
-    )
-      ? meetingsStore.activeMeetingId
-      : response.activeMeetingId &&
-          mergedMeetings.some(
-            (meeting) => meeting.id === response.activeMeetingId
-          )
-        ? response.activeMeetingId
-        : null;
-
-  meetingsStore.meetings = mergedMeetings;
-  meetingsStore.activeMeetingId = activeMeetingId;
-  meetingsStore.draftSavedAt = latestIso(
-    meetingsStore.draftSavedAt,
+  const store = useMeetingsStore();
+  const records = meetingRecords();
+  const byId = new Map(store.meetings.map((meeting) => [meeting.id, meeting]));
+  for (const dto of response.meetings) {
+    const remote = fromMeetingDto(dto);
+    const local = byId.get(remote.id);
+    const record = records[remote.id] ?? {};
+    if (!local) {
+      byId.set(remote.id, remote);
+      records[remote.id] = acknowledgeMeeting(record, remote);
+    } else {
+      const merged = mergeHydratedMeeting(local, remote, record);
+      byId.set(remote.id, merged.meeting);
+      records[remote.id] = merged.record;
+    }
+  }
+  saveMergedMeetings(
+    [...byId.values()],
+    records,
+    response.activeMeetingId,
     response.draftSavedAt
   );
-  meetingsStore.persist();
-  useTasksStore().syncFromMeetings(mergedMeetings);
 }
 
 function applyTasksFromBackend(
@@ -316,7 +380,21 @@ function applyParticipantsFromBackend(
   participantsStore.applyParticipants(mergedParticipants);
 }
 
-async function hydrateCoreDataFromBackend() {
+function hydrateCoreDataFromBackend(): Promise<void> {
+  const generation = getSyncSessionGeneration();
+  if (hydration?.generation === generation) return hydration.promise;
+  const promise = queueMeetingOperation(performCoreHydration);
+  hydration = { generation, promise };
+  void promise
+    .finally(() => {
+      if (hydration?.promise === promise) hydration = undefined;
+    })
+    .catch(() => undefined);
+  return promise;
+}
+
+async function performCoreHydration() {
+  const generation = getSyncSessionGeneration();
   if (hasInitialHydrationCompleted() || isOffline()) {
     return;
   }
@@ -326,6 +404,7 @@ async function hydrateCoreDataFromBackend() {
   try {
     const workspaceStore = useWorkspaceStore();
     const didLoadWorkspace = await workspaceStore.loadWorkspace();
+    assertSyncSession(generation);
 
     if (!didLoadWorkspace) {
       throw new Error(translate('workspace.loadFailed'));
@@ -340,6 +419,7 @@ async function hydrateCoreDataFromBackend() {
     const [participantsResponse, meetingsResponse, tasksResponse] =
       await Promise.all([listParticipants(), listMeetings(), listTasks()]);
 
+    assertSyncSession(generation);
     applyRemoteSyncMutation(() => {
       applyParticipantsFromBackend(participantsResponse);
       applyMeetingsFromBackend(meetingsResponse);
@@ -347,6 +427,7 @@ async function hydrateCoreDataFromBackend() {
     });
     markInitialHydrationComplete();
   } catch (error) {
+    assertSyncSession(generation);
     markSyncFailure('participants', error);
     markSyncFailure('meetings', error);
     markSyncFailure('tasks', error);
@@ -414,6 +495,7 @@ function conflictMeetingId(value: unknown) {
 }
 
 async function performMeetingSync(): Promise<SyncResult> {
+  const generation = getSyncSessionGeneration();
   const meetingsStore = useMeetingsStore();
   const attemptedAt = nowIso();
 
@@ -425,15 +507,40 @@ async function performMeetingSync(): Promise<SyncResult> {
   markSyncAttempt('meetings', attemptedAt);
 
   try {
-    const metadata = readSyncResourceMetadata('meetings');
     const localMeetings = meetingsStore.meetings.map(cloneMeeting);
+    const pendingRecords = meetingRecords();
+    for (const meeting of localMeetings) {
+      const record = pendingRecords[meeting.id] ?? {};
+      const content = meetingSyncContent(meeting);
+      if (record.acknowledged?.content !== content) {
+        pendingRecords[meeting.id] = {
+          ...record,
+          pendingUploads: [
+            ...new Set([...(record.pendingUploads ?? []), content]),
+          ],
+        };
+      }
+    }
+    // Journal submitted content before the request. If its response is lost,
+    // a later pull/conflict can recognize that accepted upload after restart.
+    writeMeetingSyncSnapshot(
+      {
+        meetings: localMeetings,
+        activeMeetingId: meetingsStore.activeMeetingId,
+        draftSavedAt: meetingsStore.draftSavedAt,
+      },
+      pendingRecords
+    );
     const response = await syncMeetingsApi({
       meetings: localMeetings.map(toMeetingDto),
       activeMeetingId: meetingsStore.activeMeetingId,
       draftSavedAt: meetingsStore.draftSavedAt,
       clientUpdatedAt: attemptedAt,
-      lastSyncedAt: metadata.lastSyncedAt,
+      // Existing rows require a revision. A resource-wide wall-clock cursor
+      // cannot prove that an unversioned local meeting is safe to overwrite.
     });
+    assertSyncSession(generation);
+    const records = meetingRecords();
     const currentMeetings = meetingsStore.meetings;
     const remoteMeetings = response.meetings.map(fromMeetingDto);
     const submittedById = new Map(
@@ -446,6 +553,7 @@ async function performMeetingSync(): Promise<SyncResult> {
       .map(conflictMeetingId)
       .filter((id): id is string => Boolean(id));
     const conflictedIds = new Set(conflictedMeetingIds);
+    const retryableMeetingIds: string[] = [];
     const currentById = new Map(
       currentMeetings.map((meeting) => [meeting.id, meeting])
     );
@@ -456,101 +564,148 @@ async function performMeetingSync(): Promise<SyncResult> {
         const current = currentById.get(id);
         const submitted = submittedById.get(id);
         const remote = remoteById.get(id);
-        if (!current) return remote;
-        if (
-          !submitted ||
-          meetingLocalSnapshot(current) !== meetingLocalSnapshot(submitted)
-        ) {
+        const record = records[id] ?? {};
+        if (!current) {
+          // A locally removed record must not be resurrected by its old response.
+          if (submitted) return undefined;
+          if (remote) records[id] = acknowledgeMeeting(record, remote);
+          return remote;
+        }
+        if (!remote) {
+          if (
+            submitted?.deletedAt &&
+            !conflictedIds.has(id) &&
+            meetingLocalSnapshot(current) === meetingLocalSnapshot(submitted)
+          ) {
+            // The sync endpoint processes explicit tombstones and reports any
+            // rejected delete as a conflict. Retain a recovery copy on success.
+            records[id] = {
+              ...preserveMeetingVersion(record, current),
+              pendingUploads: [],
+            };
+            return undefined;
+          }
           return current;
         }
-        if (conflictedIds.has(id)) return current;
+        const contentMatches =
+          submitted &&
+          meetingSyncContent(submitted) === meetingSyncContent(remote);
+        const revisionOnlyConflict = response.conflicts.some(
+          (conflict) =>
+            conflictMeetingId(conflict) === id &&
+            'reason' in conflict &&
+            conflict.reason === 'updated_on_client_and_server'
+        );
+        // A lost response can leave us behind even though the server already has
+        // exactly this content. Repair that revision without overwriting either side.
         if (
-          remote &&
-          meetingSyncContent(current) === meetingSyncContent(remote)
-        ) {
+          revisionOnlyConflict &&
+          contentMatches &&
+          Number.isInteger(remote.serverRevision) &&
+          remote.serverRevision! >= (current.serverRevision ?? 0)
+        )
+          conflictedIds.delete(id);
+        const acknowledged =
+          submitted &&
+          !conflictedIds.has(id) &&
+          meetingSyncContent(submitted) === meetingSyncContent(remote) &&
+          Number.isInteger(remote.serverRevision) &&
+          (remote.serverRevision ?? 0) >= (current.serverRevision ?? 0);
+        if (acknowledged) {
+          records[id] = acknowledgeMeeting(record, remote);
+          const changed =
+            meetingLocalSnapshot(current) !== meetingLocalSnapshot(submitted);
+          if (meetingSyncContent(current) !== meetingSyncContent(remote))
+            retryableMeetingIds.push(id);
           return {
             ...current,
-            aiSummary: remote.aiSummary ?? current.aiSummary,
             serverRevision: remote.serverRevision,
-            updatedAt: remote.updatedAt,
-            deletedAt: remote.deletedAt,
+            ...(changed
+              ? {}
+              : {
+                  updatedAt: remote.updatedAt,
+                  aiSummary: remote.aiSummary ?? current.aiSummary,
+                }),
           };
         }
-        return (
-          mergeSyncItems<Meeting>([current], remote ? [remote] : [])[0] ??
-          current
-        );
-      })
-      .filter((meeting): meeting is Meeting =>
-        Boolean(meeting && !meeting.deletedAt)
-      );
-    const activeMeetingId =
-      response.activeMeetingId &&
-      mergedMeetings.some((meeting) => meeting.id === response.activeMeetingId)
-        ? response.activeMeetingId
-        : meetingsStore.activeMeetingId &&
-            mergedMeetings.some(
-              (meeting) => meeting.id === meetingsStore.activeMeetingId
+        if (revisionOnlyConflict) {
+          const merged = mergeHydratedMeeting(current, remote, record);
+          if (
+            merged.meeting !== current &&
+            merged.meeting.serverRevision === remote.serverRevision
+          ) {
+            records[id] = merged.record;
+            conflictedIds.delete(id);
+            if (
+              meetingSyncContent(merged.meeting) !== meetingSyncContent(remote)
             )
-          ? meetingsStore.activeMeetingId
-          : null;
-
-    const hasConcurrentLocalChanges = currentMeetings.some((current) => {
-      const submitted = submittedById.get(current.id);
+              retryableMeetingIds.push(id);
+            return merged.meeting;
+          }
+        }
+        // Even a successful HTTP response is not permission to replace content
+        // that the server did not acknowledge. Keep a durable recovery copy.
+        records[id] = preserveMeetingVersion(record, remote);
+        return current;
+      })
+      .filter((meeting): meeting is Meeting => Boolean(meeting));
+    const hasPendingChanges = mergedMeetings.some((meeting) => {
+      const base = records[meeting.id]?.acknowledged;
       return (
-        !submitted ||
-        meetingLocalSnapshot(current) !== meetingLocalSnapshot(submitted)
+        !base ||
+        base.revision !== meeting.serverRevision ||
+        base.content !== meetingSyncContent(meeting)
       );
     });
-    applyRemoteSyncMutation(() => {
-      meetingsStore.meetings = mergedMeetings;
-      meetingsStore.activeMeetingId = activeMeetingId;
-      meetingsStore.draftSavedAt = latestIso(
-        meetingsStore.draftSavedAt,
-        response.draftSavedAt
-      );
-      meetingsStore.persist();
-      useTasksStore().syncFromMeetings(mergedMeetings);
-    });
-    markSyncSuccess('meetings', response.syncedAt, response.conflicts.length);
-    if (hasConcurrentLocalChanges) markLocalChange('meetings');
+    saveMergedMeetings(
+      mergedMeetings,
+      records,
+      response.activeMeetingId,
+      response.draftSavedAt
+    );
+    markSyncSuccess('meetings', response.syncedAt, conflictedIds.size);
+    if (hasPendingChanges) markLocalChange('meetings');
 
     return {
       resource: 'meetings',
       mode: 'backend',
       pushedCount: localMeetings.length,
       pulledCount: response.meetings.length,
-      conflictCount: response.conflicts.length,
+      conflictCount: conflictedIds.size,
       syncedAt: response.syncedAt,
       acknowledgedMeetings: remoteMeetings.map(cloneMeeting),
-      conflictedMeetingIds,
+      conflictedMeetingIds: [...conflictedIds],
+      retryableMeetingIds,
     };
   } catch (error) {
+    assertSyncSession(generation);
     markSyncFailure('meetings', error);
     throw error;
   }
 }
 
 export function syncMeetings(): Promise<SyncResult> {
-  const result = meetingSyncQueue.then(performMeetingSync, performMeetingSync);
-  meetingSyncQueue = result.then(
-    () => undefined,
-    () => undefined
-  );
-  return result;
+  return queueMeetingOperation(performMeetingSync);
 }
 
 export async function syncCompletedMeetingForAi(
   meetingId: string
 ): Promise<Meeting> {
+  const generation = getSyncSessionGeneration();
   try {
     const participantResult = await syncParticipants();
+    assertSyncSession(generation);
     if (participantResult.skippedReason)
       throw new AiMeetingSyncRequiredError('offline');
     if (participantResult.conflictCount)
       throw new AiMeetingSyncRequiredError('conflict');
 
-    const result = await syncMeetings();
+    let result = await syncMeetings();
+    assertSyncSession(generation);
+    if (result.retryableMeetingIds?.includes(meetingId)) {
+      result = await syncMeetings();
+      assertSyncSession(generation);
+    }
     if (result.skippedReason) throw new AiMeetingSyncRequiredError('offline');
     if (result.conflictedMeetingIds?.includes(meetingId)) {
       throw new AiMeetingSyncRequiredError('conflict');
@@ -580,6 +735,7 @@ export async function syncCompletedMeetingForAi(
 }
 
 export async function syncTasks(): Promise<SyncResult> {
+  const generation = getSyncSessionGeneration();
   const tasksStore = useTasksStore();
   const attemptedAt = nowIso();
 
@@ -603,6 +759,7 @@ export async function syncTasks(): Promise<SyncResult> {
       lastSyncedAt: metadata.lastSyncedAt,
     });
 
+    assertSyncSession(generation);
     applyRemoteSyncMutation(() => {
       tasksStore.tasks = mergeSyncItems<Task>(
         localTasks,
@@ -629,12 +786,14 @@ export async function syncTasks(): Promise<SyncResult> {
       syncedAt: response.syncedAt,
     };
   } catch (error) {
+    assertSyncSession(generation);
     markSyncFailure('tasks', error);
     throw error;
   }
 }
 
 export async function syncParticipants(): Promise<SyncResult> {
+  const generation = getSyncSessionGeneration();
   const participantsStore = useParticipantsStore();
   const attemptedAt = nowIso();
 
@@ -660,6 +819,7 @@ export async function syncParticipants(): Promise<SyncResult> {
         requiresAuth: true,
       }
     );
+    assertSyncSession(generation);
     const remoteParticipants = Array.isArray(response.participants)
       ? response.participants
       : [];
@@ -686,12 +846,14 @@ export async function syncParticipants(): Promise<SyncResult> {
       syncedAt,
     };
   } catch (error) {
+    assertSyncSession(generation);
     markSyncFailure('participants', error);
     throw error;
   }
 }
 
 export async function syncCoreData() {
+  const generation = getSyncSessionGeneration();
   const results: SyncResult[] = [];
   let firstError: unknown;
 
@@ -703,6 +865,7 @@ export async function syncCoreData() {
 
   if (!firstError) {
     try {
+      assertSyncSession(generation);
       results.push(await syncMeetings());
     } catch (error) {
       firstError ??= error;
@@ -711,6 +874,7 @@ export async function syncCoreData() {
 
   if (!firstError) {
     try {
+      assertSyncSession(generation);
       results.push(await syncTasks());
     } catch (error) {
       firstError ??= error;

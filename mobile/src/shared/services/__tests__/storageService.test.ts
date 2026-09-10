@@ -326,3 +326,54 @@ describe('version 6 private-note ownership migration', () => {
     }
   );
 });
+
+describe('atomic meeting sync storage', () => {
+  it('persists meeting data, base and recovery copies together and reloads them', async () => {
+    vi.resetModules();
+    const storage = new MemoryStorage();
+    vi.stubGlobal('window', { localStorage: storage });
+    let service = await import('@/shared/services/storageService');
+    service.writeStorageSlice('tasks', { tasks: [{ id: 'standalone-task' }] });
+    const meetings = {
+      meetings: [{ id: 'meeting', status: 'completed' }],
+      activeMeetingId: null,
+      draftSavedAt: null,
+    };
+    const records = {
+      meeting: {
+        acknowledged: { revision: 2, content: 'canonical-content' },
+        pendingUploads: [],
+      },
+    };
+    const writes = vi.spyOn(storage, 'setItem');
+    service.writeMeetingSyncSnapshot(meetings, records);
+    expect(writes).toHaveBeenCalledTimes(1);
+    vi.resetModules();
+    service = await import('@/shared/services/storageService');
+    expect(service.readStorageSlice('meetings', null)).toEqual(meetings);
+    expect(service.readSyncResourceMetadata('meetings').meetingRecords).toEqual(
+      records
+    );
+    expect(service.readStorageSlice('tasks', null)).toEqual({
+      tasks: [{ id: 'standalone-task' }],
+    });
+  });
+
+  it('retains both persisted and cached data if the atomic write fails', async () => {
+    vi.resetModules();
+    const storage = new MemoryStorage();
+    vi.stubGlobal('window', { localStorage: storage });
+    const service = await import('@/shared/services/storageService');
+    const before = { meetings: [{ id: 'meeting', status: 'completed' }] };
+    service.writeStorageSlice('meetings', before);
+    const rawBefore = storage.getItem('ourweek:app-data');
+    vi.spyOn(storage, 'setItem').mockImplementation(() => {
+      throw new Error('Quota exceeded');
+    });
+    expect(() =>
+      service.writeMeetingSyncSnapshot({ meetings: [] }, {})
+    ).toThrow('Unable to persist meeting sync');
+    expect(storage.getItem('ourweek:app-data')).toBe(rawBefore);
+    expect(service.readStorageSlice('meetings', null)).toEqual(before);
+  });
+});

@@ -22,6 +22,11 @@ export const isApplyingRemoteSync = shallowRef(false);
 let remoteSyncDepth = 0;
 let remoteSyncClearTimeout: ReturnType<typeof setTimeout> | null = null;
 let hasCompletedInitialHydration = false;
+let syncSessionGeneration = 0;
+
+export function getSyncSessionGeneration() {
+  return syncSessionGeneration;
+}
 
 export function beginRemoteSync() {
   if (remoteSyncClearTimeout) {
@@ -53,6 +58,7 @@ export function markInitialHydrationComplete() {
 }
 
 export function resetSyncRuntimeState() {
+  syncSessionGeneration += 1;
   if (remoteSyncClearTimeout) {
     clearTimeout(remoteSyncClearTimeout);
     remoteSyncClearTimeout = null;

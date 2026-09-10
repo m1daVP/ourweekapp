@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   writeSettingsStorage: vi.fn(),
   writeStorageSlice: vi.fn(),
   writeSyncResourceMetadata: vi.fn(),
+  writeMeetingSyncSnapshot: vi.fn(),
 }));
 
 vi.mock('@/features/localization/i18n', () => ({
@@ -37,6 +38,7 @@ vi.mock('@/shared/services/storageService', () => ({
   writeSettingsStorage: mocks.writeSettingsStorage,
   writeStorageSlice: mocks.writeStorageSlice,
   writeSyncResourceMetadata: mocks.writeSyncResourceMetadata,
+  writeMeetingSyncSnapshot: mocks.writeMeetingSyncSnapshot,
 }));
 
 vi.mock('@/shared/api/httpClient', () => ({
@@ -153,6 +155,15 @@ beforeEach(() => {
   mocks.writeSettingsStorage.mockReset();
   mocks.writeStorageSlice.mockReset();
   mocks.writeSyncResourceMetadata.mockReset();
+  mocks.writeMeetingSyncSnapshot.mockReset();
+  mocks.writeMeetingSyncSnapshot.mockImplementation(
+    (_meetings, meetingRecords) => {
+      mocks.readSyncResourceMetadata.mockReturnValue({
+        lastSyncedAt: syncedAt,
+        meetingRecords,
+      });
+    }
+  );
 
   mocks.readStorageSlice.mockImplementation(
     (_: string, fallback: unknown) => fallback
@@ -329,12 +340,16 @@ describe('syncService', () => {
     );
     meetingsStore.meetings[0]!.title = 'Changed during sync';
     respond();
-    await expect(pending).rejects.toMatchObject({ reason: 'changed' });
+    await expect(pending).resolves.toMatchObject({
+      title: 'Changed during sync',
+      serverRevision: 3,
+    });
     expect(meetingsStore.meetings[0]).toMatchObject({
       title: 'Changed during sync',
-      serverRevision: 2,
+      serverRevision: 3,
     });
-    expect(syncStatus.value.meetings.state).toBe('savedLocally');
+    expect(syncStatus.value.meetings.state).toBe('synced');
+    expect(mocks.syncMeetingsApi).toHaveBeenCalledTimes(2);
   });
 
   it('serializes overlapping meeting sync requests', async () => {
@@ -887,5 +902,308 @@ describe('syncService', () => {
       expect.objectContaining({ id: 'task-1' }),
     ]);
     expect(mocks.syncTasksApi).not.toHaveBeenCalled();
+  });
+});
+
+describe('meeting data loss regressions', () => {
+  it('keeps completed notes, agreements and tasks when hydration returns a newer empty draft', async () => {
+    const store = useMeetingsStore();
+    const completed: Meeting = {
+      ...meeting('incident'),
+      status: 'completed',
+      completedAt: updatedAt,
+      serverRevision: 1,
+      sections: [
+        {
+          id: 'goodThings',
+          title: 'Week',
+          prompt: 'Discuss',
+          notes: [
+            {
+              id: 'note',
+              sectionId: 'goodThings',
+              participantId: 'person',
+              text: 'Keep this note',
+              createdAt,
+            },
+          ],
+          tasks: [
+            {
+              id: 'task',
+              sectionId: 'goodThings',
+              title: 'Keep this task',
+              responsibilityType: 'shared',
+              responsibleParticipantIds: [],
+              status: 'open',
+              createdAt,
+              updatedAt,
+            },
+          ],
+          agreements: [
+            {
+              id: 'agreement',
+              sectionId: 'goodThings',
+              text: 'Keep this agreement',
+              participantIds: [],
+              createdAt,
+            },
+          ],
+        },
+      ],
+    };
+    store.meetings = [completed];
+    mocks.listMeetings.mockResolvedValueOnce({
+      meetings: [
+        { ...meeting('incident'), serverRevision: 2, updatedAt: syncedAt },
+      ],
+      activeMeetingId: 'incident',
+      draftSavedAt: syncedAt,
+      syncedAt,
+    });
+    await retrySync();
+    expect(store.meetings[0]).toEqual(completed);
+    expect(mocks.syncMeetingsApi.mock.calls[0]?.[0].meetings[0]).toEqual(
+      completed
+    );
+  });
+});
+
+describe('meeting sync acknowledgement and session boundaries', () => {
+  it('repairs a stale revision if the server already has exactly the submitted content', async () => {
+    const completed = {
+      ...meeting('same'),
+      status: 'completed' as const,
+      completedAt: updatedAt,
+      serverRevision: 1,
+    };
+    useMeetingsStore().meetings = [completed];
+    mocks.syncMeetingsApi.mockResolvedValueOnce({
+      meetings: [{ ...completed, serverRevision: 2 }],
+      conflicts: [
+        { resourceId: 'same', reason: 'updated_on_client_and_server' },
+      ],
+      syncedAt,
+    });
+    await expect(syncCompletedMeetingForAi('same')).resolves.toMatchObject({
+      serverRevision: 2,
+    });
+  });
+
+  it('never overwrites a meeting with an unacknowledged response even without a conflict flag', async () => {
+    const local = {
+      ...meeting('same'),
+      status: 'completed' as const,
+      completedAt: updatedAt,
+      serverRevision: 1,
+    };
+    useMeetingsStore().meetings = [local];
+    mocks.syncMeetingsApi.mockResolvedValueOnce({
+      meetings: [
+        { ...meeting('same'), serverRevision: 2, updatedAt: syncedAt },
+      ],
+      conflicts: [],
+      syncedAt,
+    });
+    await expect(syncCompletedMeetingForAi('same')).rejects.toMatchObject({
+      reason: 'changed',
+    });
+    expect(useMeetingsStore().meetings[0]).toEqual(local);
+    expect(
+      mocks.writeMeetingSyncSnapshot.mock.calls.at(-1)?.[1].same
+        .recoveryVersions[0].status
+    ).toBe('draft');
+    expect(syncStatus.value.meetings.state).toBe('savedLocally');
+  });
+
+  it('discards an in-flight upload response after a session reset', async () => {
+    const store = useMeetingsStore();
+    store.meetings = [meeting('old-user-meeting')];
+    let respond!: () => void;
+    mocks.syncMeetingsApi.mockImplementationOnce(async (payload) => {
+      await new Promise<void>((resolve) => {
+        respond = resolve;
+      });
+      return { meetings: payload.meetings, conflicts: [], syncedAt };
+    });
+    const pending = syncMeetings();
+    const rejected = expect(pending).rejects.toThrow('Sync session changed');
+    await vi.waitFor(() =>
+      expect(mocks.syncMeetingsApi).toHaveBeenCalledOnce()
+    );
+    mocks.writeMeetingSyncSnapshot.mockClear();
+    clearSyncSessionState();
+    store.meetings = [meeting('new-user-meeting')];
+    respond();
+    await rejected;
+    expect(store.meetings.map((item) => item.id)).toEqual(['new-user-meeting']);
+    expect(mocks.writeMeetingSyncSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('does not apply remote content if atomic persistence fails', async () => {
+    const store = useMeetingsStore();
+    const local = { ...meeting('same'), serverRevision: 1 };
+    store.meetings = [local];
+    mocks.syncMeetingsApi.mockResolvedValueOnce({
+      meetings: [{ ...local, serverRevision: 2 }],
+      conflicts: [],
+      syncedAt,
+    });
+    mocks.writeMeetingSyncSnapshot.mockImplementationOnce(() => {
+      throw new Error('Storage full');
+    });
+    await expect(syncMeetings()).rejects.toThrow('Storage full');
+    expect(store.meetings[0]).toEqual(local);
+    expect(syncStatus.value.meetings.state).toBe('failed');
+  });
+
+  it('deduplicates hydration and preserves edits made while the pull is pending', async () => {
+    const store = useMeetingsStore();
+    const local = { ...meeting('same'), serverRevision: 1 };
+    store.meetings = [local];
+    let respond!: () => void;
+    mocks.listMeetings.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => {
+        respond = resolve;
+      });
+      return {
+        meetings: [{ ...local, serverRevision: 2, updatedAt: syncedAt }],
+        activeMeetingId: 'same',
+        draftSavedAt: null,
+        syncedAt,
+      };
+    });
+    const first = retrySync();
+    const second = retrySync();
+    await vi.waitFor(() => expect(mocks.listMeetings).toHaveBeenCalledOnce());
+    store.meetings[0] = {
+      ...local,
+      title: 'Edited during pull',
+      status: 'completed',
+      completedAt: updatedAt,
+    };
+    respond();
+    await Promise.all([first, second]);
+    expect(store.meetings[0]).toMatchObject({
+      title: 'Edited during pull',
+      status: 'completed',
+    });
+    expect(mocks.listMeetings).toHaveBeenCalledOnce();
+  });
+});
+
+describe('lost meeting upload response', () => {
+  it('recovers the accepted draft revision after restart and uploads the completed meeting for AI', async () => {
+    const store = useMeetingsStore();
+    const draft = { ...meeting('lost-response'), serverRevision: 1 };
+    store.meetings = [draft];
+    mocks.syncMeetingsApi.mockRejectedValueOnce(
+      new Error('Connection lost after server saved')
+    );
+    await expect(syncMeetings()).rejects.toThrow('Connection lost');
+    const journal = JSON.parse(
+      JSON.stringify(mocks.readSyncResourceMetadata('meetings'))
+    );
+    store.meetings = [
+      {
+        ...draft,
+        status: 'completed',
+        completedAt: updatedAt,
+        title: 'Finished on device',
+      },
+    ];
+    resetSyncRuntimeStateForTests();
+    mocks.readSyncResourceMetadata.mockReturnValue(journal);
+    mocks.syncMeetingsApi.mockResolvedValueOnce({
+      meetings: [{ ...draft, serverRevision: 2 }],
+      conflicts: [
+        { resourceId: draft.id, reason: 'updated_on_client_and_server' },
+      ],
+      syncedAt,
+    });
+    await expect(syncCompletedMeetingForAi(draft.id)).resolves.toMatchObject({
+      status: 'completed',
+      title: 'Finished on device',
+      serverRevision: 2,
+    });
+    expect(
+      mocks.syncMeetingsApi.mock.calls.at(-1)?.[0].meetings[0]
+    ).toMatchObject({ status: 'completed', serverRevision: 2 });
+  });
+});
+
+describe('meeting revision and deletion contracts', () => {
+  it('does not authorize an unversioned legacy write using a resource timestamp', async () => {
+    useMeetingsStore().meetings = [meeting('legacy')];
+    await syncMeetings();
+    expect(
+      mocks.syncMeetingsApi.mock.calls[0]?.[0].lastSyncedAt
+    ).toBeUndefined();
+  });
+
+  it('retains a recovery copy after an explicitly submitted delete succeeds', async () => {
+    const deleted = {
+      ...meeting('deleted'),
+      serverRevision: 1,
+      deletedAt: updatedAt,
+    };
+    useMeetingsStore().meetings = [deleted];
+    mocks.syncMeetingsApi.mockResolvedValueOnce({
+      meetings: [],
+      conflicts: [],
+      syncedAt,
+    });
+    await syncMeetings();
+    expect(useMeetingsStore().meetings).toEqual([]);
+    expect(
+      mocks.writeMeetingSyncSnapshot.mock.calls.at(-1)?.[1].deleted
+        .recoveryVersions
+    ).toEqual([deleted]);
+  });
+
+  it('retains a rejected deletion for retry', async () => {
+    const deleted = {
+      ...meeting('deleted'),
+      serverRevision: 1,
+      deletedAt: updatedAt,
+    };
+    useMeetingsStore().meetings = [deleted];
+    mocks.syncMeetingsApi.mockResolvedValueOnce({
+      meetings: [],
+      conflicts: [
+        {
+          resourceId: 'deleted',
+          reason: 'deleted_on_client_updated_on_server',
+        },
+      ],
+      syncedAt,
+    });
+    await syncMeetings();
+    expect(useMeetingsStore().meetings).toEqual([deleted]);
+  });
+
+  it('discards a delayed hydration response from a previous session', async () => {
+    const store = useMeetingsStore();
+    let respond!: () => void;
+    mocks.listMeetings.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => {
+        respond = resolve;
+      });
+      return {
+        meetings: [meeting('old-user')],
+        activeMeetingId: null,
+        draftSavedAt: null,
+        syncedAt,
+      };
+    });
+    const pending = retrySync();
+    const rejected = expect(pending).rejects.toThrow('Sync session changed');
+    await vi.waitFor(() => expect(mocks.listMeetings).toHaveBeenCalledOnce());
+    clearSyncSessionState();
+    store.meetings = [meeting('new-user')];
+    respond();
+    await rejected;
+    expect(store.meetings.map((item) => item.id)).toEqual(['new-user']);
+    expect(mocks.syncMeetingsApi).not.toHaveBeenCalled();
+    expect(mocks.writeMeetingSyncSnapshot).not.toHaveBeenCalled();
   });
 });

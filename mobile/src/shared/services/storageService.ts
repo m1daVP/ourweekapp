@@ -1,4 +1,5 @@
 import { shallowRef } from 'vue';
+import type { MeetingSyncRecords } from '@/features/meeting/meetingSyncMerge';
 import { Preferences } from '@capacitor/preferences';
 import { translate } from '@/features/localization/i18n';
 import { nowIso } from '@/shared/utils/dates';
@@ -27,6 +28,7 @@ type TopLevelStorageSliceKey =
 export type SyncStorageResource = 'meetings' | 'tasks' | 'participants';
 
 interface SyncResourceMetadata {
+  meetingRecords?: MeetingSyncRecords;
   lastSyncedAt?: string;
   lastAttemptedAt?: string;
   lastSuccessfulAt?: string;
@@ -1071,6 +1073,37 @@ export function writeSyncResourceMetadata(
       },
     },
   });
+}
+
+// Save the acknowledged base and corresponding local content in one durable
+// write. A storage failure must not apply a destructive remote merge in memory.
+export function writeMeetingSyncSnapshot(
+  meetings: unknown,
+  meetingRecords: MeetingSyncRecords
+) {
+  const data = loadAppData();
+  const metadata = readSyncMetadata();
+  const next = removeStoredAuthTokenFields({
+    ...data,
+    meetings,
+    updatedAt: nowIso(),
+    syncMetadata: {
+      ...metadata,
+      resources: {
+        ...metadata.resources,
+        meetings: { ...metadata.resources.meetings, meetingRecords },
+      },
+    },
+  });
+  try {
+    const storage = getLocalStorage();
+    if (!storage) throw new Error('Meeting sync storage is unavailable');
+    storage.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    addRecoveryMessage(translate('storage.saveFailed'));
+    throw new Error('Unable to persist meeting sync');
+  }
+  cachedAppData = next;
 }
 
 export function bindSyncOwner(ownerUserId: string, ownerWorkspaceId?: string) {

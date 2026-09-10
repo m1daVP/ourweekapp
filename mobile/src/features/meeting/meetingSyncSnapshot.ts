@@ -50,6 +50,7 @@ export function meetingSyncContent(meeting: Meeting) {
     currentSectionIndex: meeting.currentSectionIndex,
     createdAt: meeting.createdAt,
     completedAt: meeting.completedAt,
+    deletedAt: meeting.deletedAt,
   });
 }
 

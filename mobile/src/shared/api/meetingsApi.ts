@@ -1,7 +1,7 @@
 import type { MeetingSummary } from '@/features/meeting/types';
 import { apiRequest } from './httpClient';
 import { nowIso } from '@/shared/utils/dates';
-import type { MeetingDto } from '@/shared/api/syncDtos';
+import type { MeetingDto, SyncConflictDto } from '@/shared/api/syncDtos';
 
 export interface ListMeetingsResponseDto {
   meetings: MeetingDto[];
@@ -22,7 +22,7 @@ export interface SyncMeetingsResponseDto {
   meetings: MeetingDto[];
   activeMeetingId: string | null;
   draftSavedAt: string | null;
-  conflicts: MeetingDto[];
+  conflicts: Array<SyncConflictDto<MeetingDto> | MeetingDto>;
   syncedAt: string;
 }
 
