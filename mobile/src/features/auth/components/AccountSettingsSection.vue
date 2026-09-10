@@ -31,7 +31,7 @@ import { nowIso } from '@/shared/utils/dates';
 
 const authStore = useAuthStore();
 const router = useRouter();
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const dataActionError = ref('');
 const { showInAppNotification } = useInAppNotification();
 const isExportingAccount = ref(false);
