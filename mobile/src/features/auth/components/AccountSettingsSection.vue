@@ -47,18 +47,6 @@ const canLinkGoogle = computed(
   () => isNativeGoogleSignInSupported() && !hasGoogleSignIn.value
 );
 
-function formatDate(value?: string) {
-  if (!value) {
-    return t('common.notAvailable');
-  }
-
-  return new Intl.DateTimeFormat(locale.value, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(value));
-}
-
 async function linkGoogleAccount() {
   const result = await authStore.linkGoogleAccount();
 
