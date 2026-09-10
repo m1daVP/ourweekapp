@@ -44,9 +44,12 @@ export const meetingSummarySchema = z.object({
   createdAt: isoDateTimeStringSchema,
 });
 
+export const aiSummaryLocaleSchema = z.enum(['en', 'uk', 'es']);
+export type AiSummaryLocale = z.infer<typeof aiSummaryLocaleSchema>;
+
 export const aiMeetingSummaryRequestSchema = z.object({
   meetingId: apiIdSchema,
-  locale: trimmedString(1, VALIDATION_LIMITS.aiLocaleMaxLength).optional(),
+  locale: aiSummaryLocaleSchema.optional(),
   expectedServerRevision: serverRevisionSchema.optional(),
   allowLowContent: z.boolean().optional(),
 });

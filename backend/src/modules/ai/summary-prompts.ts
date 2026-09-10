@@ -1,3 +1,5 @@
+import type { AiSummaryLocale } from './ai.schema.js';
+
 const TEMPLATE_SUMMARY_CONFIGURATION = {
   'weekly-family-check-in': {
     model: 'gpt-5.4-nano',
@@ -61,9 +63,22 @@ const BASE_SUMMARY_SYSTEM_PROMPT = [
   'Do not mention private notes or missing private context.',
   'If something was discussed but not resolved, do not invent closure.',
   'If a task has no clear owner or due date, leave those fields empty instead of guessing.',
-  'If outputLocale is provided, use that language. Otherwise use the main language of the meeting content.',
   'Prefer short arrays and mobile-friendly wording over polished prose.',
 ].join('\n');
+
+const SUMMARY_LANGUAGE_BY_LOCALE = {
+  en: 'English',
+  uk: 'Ukrainian',
+  es: 'Spanish',
+} as const satisfies Record<AiSummaryLocale, string>;
+
+function buildOutputLanguageInstruction(locale: AiSummaryLocale) {
+  return [
+    `Write every user-visible output value in ${SUMMARY_LANGUAGE_BY_LOCALE[locale]}.`,
+    'This includes shortSummary, mainTopics, keyTensions, agreements, task titles, and suggestedNextMeetingFocus.',
+    'Use that language even when the meeting data is written in another language.',
+  ].join('\n');
+}
 
 const TEMPLATE_SUMMARY_PROMPTS: Record<SummaryTemplateId, string> = {
   'weekly-family-check-in': [
@@ -127,9 +142,10 @@ export function resolveSummaryModel(templateId: string, fallbackModel?: string) 
   return resolveSummaryPromptConfiguration(templateId, fallbackModel).model;
 }
 
-export function buildSummarySystemPrompt(templateId: string) {
+export function buildSummarySystemPrompt(templateId: string, locale: AiSummaryLocale) {
   return [
     BASE_SUMMARY_SYSTEM_PROMPT,
+    buildOutputLanguageInstruction(locale),
     TEMPLATE_SUMMARY_PROMPTS[templateId as SummaryTemplateId] ??
       UNKNOWN_TEMPLATE_PROMPT,
   ].join('\n\n');

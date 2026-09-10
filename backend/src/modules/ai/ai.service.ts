@@ -301,7 +301,10 @@ export class AiSummaryService {
 
       throw error;
     }
-    const systemPrompt = buildSummarySystemPrompt(meeting.templateId);
+    const systemPrompt = buildSummarySystemPrompt(
+      meeting.templateId,
+      request.locale ?? 'en',
+    );
     const createdAt = now.toISOString();
     const inputHash = buildSummaryGenerationInputHash(
       systemPrompt,

@@ -51,7 +51,10 @@ export async function evaluateAiSummaryCase(
   const privateContentExcluded = !promptPayload.includes('PRIVATE_NOTE_DO_NOT_SEND');
   const startedAtMs = Date.now();
   const result = await provider.generateMeetingSummary({
-    systemPrompt: buildSummarySystemPrompt(evaluationCase.meeting.templateId),
+    systemPrompt: buildSummarySystemPrompt(
+      evaluationCase.meeting.templateId,
+      evaluationCase.locale,
+    ),
     userPrompt: promptPayload,
     model,
     maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,

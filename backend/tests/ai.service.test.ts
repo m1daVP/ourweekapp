@@ -374,6 +374,9 @@ describe('AiSummaryService', () => {
       expect.objectContaining({
         model: 'gpt-5.4-nano',
         maxOutputTokens: 800,
+        systemPrompt: expect.stringContaining(
+          'Write every user-visible output value in English.',
+        ),
       }),
     );
     expect(ai.claimSummaryGeneration).toHaveBeenCalledWith(
@@ -516,7 +519,7 @@ describe('AiSummaryService', () => {
 
     await service.generateMeetingSummary(
       auth,
-      { meetingId, locale: 'pl' },
+      { meetingId, locale: 'uk' },
       new Date(now),
     );
 
@@ -530,9 +533,12 @@ describe('AiSummaryService', () => {
 
     expect(payload).toMatchObject({
       templateId: 'weekly-family-check-in',
-      locale: 'pl',
+      locale: 'uk',
       participants: [{ id: 'participant_1', name: 'Rita' }],
     });
+    expect(call?.systemPrompt).toContain(
+      'Write every user-visible output value in Ukrainian.',
+    );
     expect(firstStep).toMatchObject({
       title: 'Planning',
       prompt: 'What needs planning this week?',
@@ -1260,7 +1266,7 @@ describe('AiSummaryService', () => {
     const otherWorkspaceAuth = { ...auth, workspaceId: '66666666-6666-4666-8666-666666666666' };
 
     await service.generateMeetingSummary(auth, { meetingId, locale: 'en' }, new Date(now));
-    await service.generateMeetingSummary(auth, { meetingId, locale: 'pl' }, new Date(now));
+    await service.generateMeetingSummary(auth, { meetingId, locale: 'uk' }, new Date(now));
     await service.generateMeetingSummary(otherWorkspaceAuth, { meetingId, locale: 'en' }, new Date(now));
 
     const [first, second, third] = ai.claimSummaryGeneration.mock.calls.map(([input]) => input);

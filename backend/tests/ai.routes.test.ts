@@ -258,6 +258,24 @@ describe('AI summary routes', () => {
     await app.close();
   });
 
+  it('rejects unsupported summary locales before calling the service', async () => {
+    const app = await buildAiRoutesApp();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/ai/meeting-summary',
+      headers: { authorization: 'Bearer premium-token' },
+      payload: {
+        meetingId: '11111111-1111-4111-8111-111111111111',
+        locale: 'pl',
+      },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({ code: 'validation_failed' });
+    expect(routeGenerateMeetingSummary).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it.each([0, -1, 1.5, '3'])(
     'rejects invalid source revision %s',
     async (expectedServerRevision) => {

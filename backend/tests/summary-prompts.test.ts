@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_SUMMARY_MODEL,
+  buildSummarySystemPrompt,
   resolveSummaryPromptConfiguration,
 } from '../src/modules/ai/summary-prompts.js';
 
@@ -32,5 +33,18 @@ describe('summary prompt configuration', () => {
       model: DEFAULT_SUMMARY_MODEL,
       promptVersion: 'unknown-template-v1',
     });
+  });
+
+  it.each([
+    ['en', 'English'],
+    ['uk', 'Ukrainian'],
+    ['es', 'Spanish'],
+  ] as const)('requires every visible value in %s', (locale, language) => {
+    const prompt = buildSummarySystemPrompt('weekly-family-check-in', locale);
+
+    expect(prompt).toContain(`Write every user-visible output value in ${language}.`);
+    expect(prompt).toContain(
+      'shortSummary, mainTopics, keyTensions, agreements, task titles, and suggestedNextMeetingFocus',
+    );
   });
 });
