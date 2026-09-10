@@ -59,8 +59,8 @@ const className = computed(() => `participant-avatar--${props.size}`);
 }
 
 .participant-avatar--small {
-  width: 28px;
-  height: 28px;
+  width: var(--participant-avatar-size, 28px);
+  height: var(--participant-avatar-size, 28px);
   font-size: 0.72rem;
 }
 

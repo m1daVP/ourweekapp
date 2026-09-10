@@ -5573,8 +5573,10 @@ input[type='radio'] {
 }
 
 .meeting-summary-avatar--assignee {
-  width: 34px;
-  height: 34px;
+  --participant-avatar-size: 34px;
+
+  width: var(--participant-avatar-size);
+  height: var(--participant-avatar-size);
   border-width: 1px;
   font-size: var(--font-size-label-sm);
 }

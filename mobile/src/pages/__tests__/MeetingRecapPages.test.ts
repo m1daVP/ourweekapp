@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { createLegacyFeatureAccessMap } from '@/features/access/legacyFeatureAccess';
+import { useParticipantsStore } from '@/app/stores/participants';
 import MeetingSummaryPage from '../MeetingSummaryPage.vue';
 import MeetingDetailsPage from '../MeetingDetailsPage.vue';
 import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
@@ -288,6 +289,42 @@ describe.each([
   });
 
   if (name === 'summary') {
+    it('shows the responsible participant picture on an action item', () => {
+      const participants = useParticipantsStore();
+      participants.participants = [
+        {
+          id: 'participant-1',
+          name: 'Taylor',
+          initials: 'TA',
+          avatarColor: '#496a8f',
+          avatarType: 'bear',
+          type: 'adult',
+          isActive: true,
+          createdAt: '2026-09-04T10:00:00.000Z',
+          updatedAt: '2026-09-04T10:00:00.000Z',
+        },
+      ];
+      const meeting = context.meetings.meetings[0]!;
+      meeting.participantIds = ['participant-1'];
+      meeting.sections[0]!.tasks = [
+        {
+          id: 'task-1',
+          sectionId: 'goodThings',
+          title: 'Book the dentist appointment',
+          responsibilityType: 'participant',
+          responsibleParticipantIds: ['participant-1'],
+          status: 'open',
+          createdAt: '2026-09-04T10:00:00.000Z',
+          updatedAt: '2026-09-04T10:00:00.000Z',
+        },
+      ];
+
+      render();
+
+      const avatar = wrapper.get('.meeting-summary-avatar--assignee');
+      expect(avatar.find('img').attributes('alt')).toBe('Taylor');
+    });
+
     it('keeps recorded commitments authoritative over divergent AI output', () => {
       addConflictingCommitments();
       render();

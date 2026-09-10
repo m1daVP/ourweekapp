@@ -42,6 +42,7 @@ interface SummaryActionItem {
   assigneeName: string;
   assigneeInitials: string;
   assigneeAvatarColor: string;
+  assigneeAvatarType: AvatarType | null;
   completed: boolean;
 }
 
@@ -287,6 +288,7 @@ function createActionItem(
     assigneeName: assignee.name,
     assigneeInitials: assignee.initials,
     assigneeAvatarColor: assignee.avatarColor,
+    assigneeAvatarType: assignee.avatarType,
     completed: task.status === 'done',
   };
 }
@@ -586,14 +588,16 @@ function goBack() {
               aria-hidden="true"
             ></span>
             <p>{{ item.title }}</p>
-            <span
+            <ParticipantAvatar
               class="meeting-summary-avatar meeting-summary-avatar--assignee"
-              :style="{ backgroundColor: item.assigneeAvatarColor }"
-              :aria-label="item.assigneeName"
-              role="img"
-            >
-              {{ item.assigneeInitials }}
-            </span>
+              :participant="{
+                name: item.assigneeName,
+                initials: item.assigneeInitials,
+                avatarColor: item.assigneeAvatarColor,
+                avatarType: item.assigneeAvatarType,
+              }"
+              size="small"
+            />
           </li>
         </ul>
         <div v-else class="meeting-summary-decision-card">
