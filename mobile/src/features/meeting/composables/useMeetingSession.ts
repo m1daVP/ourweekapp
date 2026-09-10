@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import type {
+  DeletedMeetingAgreementSnapshot,
   DeletedMeetingNoteSnapshot,
   DeletedMeetingTaskSnapshot,
 } from '@/app/stores/meetings';
@@ -294,10 +295,25 @@ export function useMeetingSession() {
   const editingNoteParticipantId = ref('');
   const editingNoteText = ref('');
   const noteEditorError = ref('');
+  const editingTaskId = ref('');
+  const taskEditorError = ref('');
+  const editingAgreementId = ref('');
+  const editingAgreementText = ref('');
+  const editingAgreementParticipantIds = ref<string[]>([]);
+  const agreementEditorError = ref('');
   const latestDeletedNote = ref<DeletedMeetingNoteSnapshot | null>(null);
   const latestDeletedTask = ref<DeletedMeetingTaskSnapshot | null>(null);
+  const latestDeletedAgreement = ref<DeletedMeetingAgreementSnapshot | null>(
+    null
+  );
 
   const taskDraft = reactive<TaskDraftState>({
+    title: '',
+    description: '',
+    responsibilityChoice: 'needsDiscussion',
+    dueDate: '',
+  });
+  const editingTaskDraft = reactive<TaskDraftState>({
     title: '',
     description: '',
     responsibilityChoice: 'needsDiscussion',
@@ -494,6 +510,10 @@ export function useMeetingSession() {
   );
   const hasMeetingContent = computed(() => reviewCounts.value.hasContent);
   const isNoteEditorOpen = computed(() => Boolean(editingNoteId.value));
+  const isTaskEditorOpen = computed(() => Boolean(editingTaskId.value));
+  const isAgreementEditorOpen = computed(() =>
+    Boolean(editingAgreementId.value)
+  );
   const currentNotes = computed(() =>
     allNotes.value.filter((note) => note.sectionId === currentSection.value?.id)
   );
@@ -569,6 +589,8 @@ export function useMeetingSession() {
     () => currentSection.value?.id,
     () => {
       closeNoteEditor();
+      closeTaskEditor();
+      closeAgreementEditor();
       noteText.value = '';
       agreementText.value = '';
       formError.value = '';
@@ -734,6 +756,13 @@ export function useMeetingSession() {
     taskDraft.responsibilityChoice = 'needsDiscussion';
   }
 
+  function resetEditingTaskForm() {
+    editingTaskDraft.title = '';
+    editingTaskDraft.description = '';
+    editingTaskDraft.dueDate = '';
+    editingTaskDraft.responsibilityChoice = 'needsDiscussion';
+  }
+
   function openGuestDrawer() {
     clearMessages();
 
@@ -880,6 +909,106 @@ export function useMeetingSession() {
     statusMessage.value = t('meeting.noteUpdated');
   }
 
+  function openTaskEditor(task: EnrichedMeetingTask) {
+    if (!canEditTasks.value || isCompleted.value) {
+      return;
+    }
+
+    clearMessages();
+    editingTaskId.value = task.id;
+    editingTaskDraft.title = task.title;
+    editingTaskDraft.description = task.description ?? '';
+    editingTaskDraft.dueDate = task.dueDate ?? '';
+    editingTaskDraft.responsibilityChoice =
+      task.responsibilityType === 'participant'
+        ? (task.responsibleParticipantIds[0] ?? 'needsDiscussion')
+        : task.responsibilityType;
+    taskEditorError.value = '';
+  }
+
+  function closeTaskEditor() {
+    editingTaskId.value = '';
+    taskEditorError.value = '';
+    resetEditingTaskForm();
+  }
+
+  function saveTaskEdit() {
+    if (!editingTaskId.value) {
+      return;
+    }
+
+    taskEditorError.value = '';
+
+    if (!canEditTasks.value || isCompleted.value) {
+      taskEditorError.value = t('meeting.roleCannotEditTasks');
+      return;
+    }
+
+    const error = meetingsStore.updateTaskDetails(editingTaskId.value, {
+      title: editingTaskDraft.title,
+      description: editingTaskDraft.description,
+      dueDate: editingTaskDraft.dueDate,
+      ...resolveTaskResponsibility(
+        editingTaskDraft.responsibilityChoice,
+        activeMeetingParticipants.value.map((participant) => participant.id)
+      ),
+    });
+
+    if (error) {
+      taskEditorError.value = error;
+      return;
+    }
+
+    closeTaskEditor();
+    statusMessage.value = t('meeting.taskUpdated');
+  }
+
+  function openAgreementEditor(agreement: EnrichedAgreement) {
+    if (!canEditMeeting.value || isCompleted.value) {
+      return;
+    }
+
+    clearMessages();
+    editingAgreementId.value = agreement.id;
+    editingAgreementText.value = agreement.text;
+    editingAgreementParticipantIds.value = [...agreement.participantIds];
+    agreementEditorError.value = '';
+  }
+
+  function closeAgreementEditor() {
+    editingAgreementId.value = '';
+    editingAgreementText.value = '';
+    editingAgreementParticipantIds.value = [];
+    agreementEditorError.value = '';
+  }
+
+  function saveAgreementEdit() {
+    if (!editingAgreementId.value) {
+      return;
+    }
+
+    agreementEditorError.value = '';
+
+    if (!canEditMeeting.value || isCompleted.value) {
+      agreementEditorError.value = t('meeting.roleCannotEditAgreements');
+      return;
+    }
+
+    const error = meetingsStore.updateAgreement(
+      editingAgreementId.value,
+      editingAgreementText.value,
+      editingAgreementParticipantIds.value
+    );
+
+    if (error) {
+      agreementEditorError.value = error;
+      return;
+    }
+
+    closeAgreementEditor();
+    statusMessage.value = t('meeting.agreementUpdated');
+  }
+
   function restoreDeletedNote() {
     const snapshot = latestDeletedNote.value;
 
@@ -1015,6 +1144,42 @@ export function useMeetingSession() {
     });
   }
 
+  function restoreDeletedAgreement() {
+    const snapshot = latestDeletedAgreement.value;
+
+    if (!snapshot) {
+      return;
+    }
+
+    latestDeletedAgreement.value = null;
+    meetingsStore.restoreAgreement(snapshot);
+  }
+
+  function deleteAgreement(agreementId: string) {
+    clearMessages();
+
+    if (!canEditMeeting.value || isCompleted.value) {
+      formError.value = t('meeting.roleCannotEditAgreements');
+      return;
+    }
+
+    const snapshot = meetingsStore.deleteAgreement(agreementId);
+
+    if (!snapshot) {
+      formError.value = t('meetingStore.agreementNotFound');
+      return;
+    }
+
+    latestDeletedAgreement.value = snapshot;
+    void showToast(t('meeting.agreementDeleted'), {
+      action: {
+        label: t('common.undo'),
+        onClick: restoreDeletedAgreement,
+      },
+      durationMs: 5200,
+    });
+  }
+
   function addAgreement() {
     const section = currentSection.value;
 
@@ -1049,7 +1214,7 @@ export function useMeetingSession() {
   }
 
   function toggleTask(taskId: string, status: MeetingTaskStatus) {
-    if (!canEditTasks.value) {
+    if (!canEditTasks.value || isCompleted.value) {
       formError.value = t('meeting.roleCannotEditTasks');
       return;
     }
@@ -1544,6 +1709,8 @@ export function useMeetingSession() {
     clearDrawerParticipantSelection,
     closeGuestDrawer,
     closeNoteEditor,
+    closeTaskEditor,
+    closeAgreementEditor,
     closeMeeting,
     currentAgreements,
     currentNotes,
@@ -1553,10 +1720,14 @@ export function useMeetingSession() {
     deleteNote,
     deleteRitual,
     deleteTask,
+    deleteAgreement,
     drawerFamilyMembers,
     drawerSelectedParticipantId,
     editingNoteParticipantId,
     editingNoteText,
+    editingTaskDraft,
+    editingAgreementParticipantIds,
+    editingAgreementText,
     editActions,
     exitMeeting,
     finishMeeting,
@@ -1577,6 +1748,8 @@ export function useMeetingSession() {
     isFirstStep,
     isGuestDrawerOpen,
     isNoteEditorOpen,
+    isTaskEditorOpen,
+    isAgreementEditorOpen,
     isParticipantCheckInStep,
     isPaused,
     isRitualMenuOpen,
@@ -1584,11 +1757,15 @@ export function useMeetingSession() {
     meetingDurationMinutes,
     neutralHint,
     noteEditorError,
+    taskEditorError,
+    agreementEditorError,
     noteEditorNeutralHint,
     notePlaceholder,
     noteText,
     openGuestDrawer,
     openNoteEditor,
+    openTaskEditor,
+    openAgreementEditor,
     participantIsCheckedIn,
     previousCompletedMeeting,
     previousCompletedMeetingLabel,
@@ -1621,5 +1798,7 @@ export function useMeetingSession() {
     confirmEndSessionIncomplete,
     saveDraft,
     saveNoteEdit,
+    saveTaskEdit,
+    saveAgreementEdit,
   };
 }

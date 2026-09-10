@@ -457,6 +457,49 @@ export const useTasksStore = defineStore('tasks', {
       task.updatedAt = deletedAt;
       this.persist();
     },
+    updateAgreement(
+      agreementId: string,
+      payload: Pick<Agreement, 'title' | 'participantIds'>
+    ) {
+      const agreement = this.agreements.find(
+        (item) => item.id === agreementId && !item.deletedAt
+      );
+
+      if (!agreement) {
+        return false;
+      }
+
+      agreement.title = payload.title.trim();
+      agreement.participantIds = uniqueStrings(payload.participantIds);
+      agreement.updatedAt = nowIso();
+      this.persist();
+      return true;
+    },
+    deleteAgreement(agreementId: string) {
+      const agreement = this.agreements.find((item) => item.id === agreementId);
+
+      if (!agreement || agreement.deletedAt) {
+        return false;
+      }
+
+      const deletedAt = nowIso();
+      agreement.deletedAt = deletedAt;
+      agreement.updatedAt = deletedAt;
+      this.persist();
+      return true;
+    },
+    restoreAgreement(agreementId: string) {
+      const agreement = this.agreements.find((item) => item.id === agreementId);
+
+      if (!agreement || !agreement.deletedAt) {
+        return false;
+      }
+
+      agreement.deletedAt = undefined;
+      agreement.updatedAt = nowIso();
+      this.persist();
+      return true;
+    },
     deleteItemsForMeeting(sourceMeetingId: string) {
       const changedAt = nowIso();
       const originalReviewDecisionLength = this.reviewDecisions.length;

@@ -319,3 +319,69 @@ describe('meetings store task editing', () => {
     });
   });
 });
+
+describe('meetings store agreement editing', () => {
+  it('updates an agreement and its mirrored record', () => {
+    const { meeting, meetingsStore } = setMeeting();
+    const tasksStore = useTasksStore();
+    meeting.sections[0].agreements.push({
+      id: 'agreement-1',
+      sectionId: 'goodThings',
+      text: 'Prepare bags on Sunday',
+      participantIds: ['participant-1'],
+      createdAt,
+    });
+    tasksStore.addAgreement({
+      id: 'agreement-1',
+      title: 'Prepare bags on Sunday',
+      participantIds: ['participant-1'],
+      sourceMeetingId: meeting.id,
+      createdAt,
+      updatedAt: createdAt,
+    });
+    storageMocks.writeStorageSlice.mockClear();
+
+    expect(
+      meetingsStore.updateAgreement('agreement-1', '  Prepare bags Friday  ', [
+        'participant-2',
+      ])
+    ).toBeNull();
+    expect(meeting.sections[0].agreements[0]).toMatchObject({
+      text: 'Prepare bags Friday',
+      participantIds: ['participant-2'],
+    });
+    expect(tasksStore.agreements[0]).toMatchObject({
+      title: 'Prepare bags Friday',
+      participantIds: ['participant-2'],
+    });
+  });
+
+  it('deletes and restores an agreement with its mirrored record', () => {
+    const { meeting, meetingsStore } = setMeeting();
+    const tasksStore = useTasksStore();
+    meeting.sections[0].agreements.push({
+      id: 'agreement-1',
+      sectionId: 'goodThings',
+      text: 'Prepare bags on Sunday',
+      participantIds: ['participant-1'],
+      createdAt,
+    });
+    tasksStore.addAgreement({
+      id: 'agreement-1',
+      title: 'Prepare bags on Sunday',
+      participantIds: ['participant-1'],
+      sourceMeetingId: meeting.id,
+      createdAt,
+      updatedAt: createdAt,
+    });
+
+    const snapshot = meetingsStore.deleteAgreement('agreement-1');
+
+    expect(snapshot?.agreement.text).toBe('Prepare bags on Sunday');
+    expect(meeting.sections[0].agreements).toEqual([]);
+    expect(tasksStore.agreements[0].deletedAt).toBeTruthy();
+    expect(meetingsStore.restoreAgreement(snapshot!)).toBe(true);
+    expect(meeting.sections[0].agreements[0].id).toBe('agreement-1');
+    expect(tasksStore.agreements[0].deletedAt).toBeUndefined();
+  });
+});

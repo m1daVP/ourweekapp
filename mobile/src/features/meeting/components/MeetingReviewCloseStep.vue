@@ -25,9 +25,13 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
+  'delete-agreement': [agreementId: string];
   'delete-note': [noteId: string];
   'delete-task': [taskId: string];
+  'edit-agreement': [agreement: EnrichedAgreement];
+  'edit-note': [note: EnrichedMeetingNote];
   'edit-actions': [];
+  'edit-task': [task: EnrichedMeetingTask];
   exit: [];
   finish: [];
   'go-back': [];
@@ -135,7 +139,7 @@ const { t } = useI18n();
                   ? t('meeting.markTaskOpen', { title: task.title })
                   : t('meeting.markTaskDone', { title: task.title })
               "
-              :disabled="!canEditTasks"
+              :disabled="!canEditTasks || isCompleted"
               @click="emit('toggle-task', task.id, task.status)"
             >
               <span class="material-symbols-outlined" aria-hidden="true">
@@ -147,6 +151,15 @@ const { t } = useI18n();
               </span>
             </button>
             <span>{{ task.title }}</span>
+            <button
+              v-if="canEditTasks && !isCompleted"
+              type="button"
+              class="meeting-note-item__edit material-symbols-outlined"
+              :aria-label="t('meeting.editTaskAria', { title: task.title })"
+              @click="emit('edit-task', task)"
+            >
+              edit
+            </button>
             <button
               v-if="canEditTasks && !isCompleted"
               type="button"
@@ -194,10 +207,37 @@ const { t } = useI18n();
           </span>
         </header>
 
-        <ul v-if="allAgreements.length" class="review-close-text-list">
+        <ul
+          v-if="allAgreements.length"
+          class="review-close-text-list review-close-text-list--actions"
+        >
           <li v-for="agreement in allAgreements" :key="agreement.id">
-            <span>{{ agreement.participantLabel }}</span>
-            <p>{{ agreement.text }}</p>
+            <div>
+              <span>{{ agreement.participantLabel }}</span>
+              <p>{{ agreement.text }}</p>
+            </div>
+            <template v-if="canEditMeeting && !isCompleted">
+              <button
+                type="button"
+                class="meeting-note-item__edit material-symbols-outlined"
+                :aria-label="
+                  t('meeting.editAgreementAria', { text: agreement.text })
+                "
+                @click="emit('edit-agreement', agreement)"
+              >
+                edit
+              </button>
+              <button
+                type="button"
+                class="review-close-delete material-symbols-outlined"
+                :aria-label="
+                  t('meeting.deleteAgreementAria', { text: agreement.text })
+                "
+                @click="emit('delete-agreement', agreement.id)"
+              >
+                delete
+              </button>
+            </template>
           </li>
         </ul>
         <p v-else class="review-close-empty">
@@ -231,6 +271,17 @@ const { t } = useI18n();
               <span>{{ note.participantName }}</span>
               <p>{{ note.text }}</p>
             </div>
+            <button
+              v-if="canEditMeeting && !isCompleted"
+              type="button"
+              class="meeting-note-item__edit material-symbols-outlined"
+              :aria-label="
+                t('meeting.editNoteAria', { author: note.participantName })
+              "
+              @click="emit('edit-note', note)"
+            >
+              edit
+            </button>
             <button
               v-if="canEditMeeting && !isCompleted"
               type="button"
@@ -515,8 +566,8 @@ const { t } = useI18n();
 
 .review-close-action-list li {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 4px;
   align-items: start;
   color: #30362f;
   font-family: var(--font-display);
@@ -535,7 +586,7 @@ const { t } = useI18n();
 }
 
 .review-close-text-list--actions li {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .review-close-text-list--actions li > div {

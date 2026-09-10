@@ -60,7 +60,10 @@ const emit = defineEmits<{
   'add-task': [];
   'delete-note': [noteId: string];
   'delete-task': [taskId: string];
+  'delete-agreement': [agreementId: string];
+  'edit-agreement': [agreement: EnrichedAgreement];
   'edit-note': [note: EnrichedMeetingNote];
+  'edit-task': [task: EnrichedMeetingTask];
   exit: [];
   finish: [];
   'go-back': [];
@@ -283,9 +286,11 @@ function updateAgreementParticipant(
         <div v-if="canEditTasks && !isCompleted" class="meeting-task-actions">
           <button
             type="button"
-            @click="emit('toggle-task', task.id, task.status)"
+            class="meeting-note-item__edit material-symbols-outlined"
+            :aria-label="t('meeting.editTaskAria', { title: task.title })"
+            @click="emit('edit-task', task)"
           >
-            {{ task.status === 'done' ? t('common.done') : t('common.open') }}
+            edit
           </button>
           <button
             type="button"
@@ -357,9 +362,40 @@ function updateAgreementParticipant(
     </button>
 
     <ul v-if="currentAgreements.length" class="meeting-list">
-      <li v-for="agreement in currentAgreements" :key="agreement.id">
-        <span>{{ agreement.participantLabel }}</span>
-        <p>{{ agreement.text }}</p>
+      <li
+        v-for="agreement in currentAgreements"
+        :key="agreement.id"
+        class="meeting-note-item"
+      >
+        <div class="meeting-note-item__content">
+          <span>{{ agreement.participantLabel }}</span>
+          <p>{{ agreement.text }}</p>
+        </div>
+        <div
+          v-if="canEditMeeting && !isCompleted"
+          class="meeting-note-item__actions"
+        >
+          <button
+            type="button"
+            class="meeting-note-item__edit material-symbols-outlined"
+            :aria-label="
+              t('meeting.editAgreementAria', { text: agreement.text })
+            "
+            @click="emit('edit-agreement', agreement)"
+          >
+            edit
+          </button>
+          <button
+            type="button"
+            class="meeting-note-item__delete material-symbols-outlined"
+            :aria-label="
+              t('meeting.deleteAgreementAria', { text: agreement.text })
+            "
+            @click="emit('delete-agreement', agreement.id)"
+          >
+            delete
+          </button>
+        </div>
       </li>
     </ul>
     <p v-else class="meeting-empty">{{ t('meeting.noAgreementsYet') }}</p>
@@ -424,16 +460,13 @@ function updateAgreementParticipant(
         >
           <button
             type="button"
-            class="meeting-note-item__edit"
+            class="meeting-note-item__edit material-symbols-outlined"
             :aria-label="
               t('meeting.editNoteAria', { author: note.participantName })
             "
             @click="emit('edit-note', note)"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">
-              edit
-            </span>
-            {{ t('common.edit') }}
+            edit
           </button>
           <button
             type="button"

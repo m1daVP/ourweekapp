@@ -133,4 +133,61 @@ describe('MeetingSectionStep', () => {
       'meeting.notes',
     ]);
   });
+
+  it('emits edit and delete actions for a current agreement', async () => {
+    const wrapper = mount(MeetingSectionStep, {
+      props: {
+        activeMeetingParticipants: [participant],
+        agreementParticipantIds: [participant.id],
+        agreementText: '',
+        canAddAgreements: true,
+        canAddTasks: true,
+        canCreateMeeting: true,
+        canCreateTasks: true,
+        canEditMeeting: true,
+        canEditTasks: true,
+        currentAgreements: [currentAgreement],
+        currentNotes: [currentNote],
+        currentSection,
+        currentStepNumber: 1,
+        currentTasks: [currentTask],
+        formError: '',
+        isCompleted: false,
+        isFinalSection: false,
+        isFinishingMeeting: false,
+        isFirstStep: true,
+        neutralHint: '',
+        notePlaceholder: '',
+        noteText: '',
+        previousCompletedMeeting: null,
+        previousCompletedMeetingLabel: '',
+        previousUnfinishedTasks: [],
+        progressPercent: '25%',
+        sectionPrompt: currentSection.prompt,
+        sectionTitle: currentSection.title,
+        selectedParticipantId: participant.id,
+        showNotes: true,
+        showTaskReview: false,
+        statusMessage: '',
+        taskDescription: '',
+        taskDueDate: '',
+        taskResponsibilityChoice: participant.id,
+        taskTitle: '',
+        totalSteps: 4,
+      },
+      global: {
+        stubs: { ParticipantAvatar: true },
+      },
+    });
+
+    await wrapper
+      .get('[aria-label="meeting.editAgreementAria"]')
+      .trigger('click');
+    await wrapper
+      .get('[aria-label="meeting.deleteAgreementAria"]')
+      .trigger('click');
+
+    expect(wrapper.emitted('edit-agreement')?.[0]).toEqual([currentAgreement]);
+    expect(wrapper.emitted('delete-agreement')?.[0]).toEqual(['agreement-1']);
+  });
 });

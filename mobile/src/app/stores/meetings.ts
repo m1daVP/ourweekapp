@@ -71,6 +71,13 @@ export interface DeletedMeetingTaskSnapshot {
   task: MeetingTask;
 }
 
+export interface DeletedMeetingAgreementSnapshot {
+  meetingId: string;
+  sectionId: MeetingSectionId;
+  sectionIndex: number;
+  agreement: Agreement;
+}
+
 interface LegacyParticipant {
   id?: string;
   name?: string;
@@ -412,6 +419,21 @@ function findNote(meeting: Meeting, noteId: string) {
   return null;
 }
 
+function findAgreement(meeting: Meeting, agreementId: string) {
+  for (const section of meeting.sections) {
+    const agreementIndex = section.agreements.findIndex(
+      (item) => item.id === agreementId
+    );
+    const agreement = section.agreements[agreementIndex];
+
+    if (agreement) {
+      return { agreement, agreementIndex, section };
+    }
+  }
+
+  return null;
+}
+
 function cloneNote(note: MeetingNote): MeetingNote {
   return { ...note };
 }
@@ -420,6 +442,13 @@ function cloneTask(task: MeetingTask): MeetingTask {
   return {
     ...task,
     responsibleParticipantIds: [...task.responsibleParticipantIds],
+  };
+}
+
+function cloneAgreement(agreement: Agreement): Agreement {
+  return {
+    ...agreement,
+    participantIds: [...agreement.participantIds],
   };
 }
 
@@ -771,11 +800,14 @@ export const useMeetingsStore = defineStore('meetings', {
       useTasksStore().updateTaskStatus(taskId, status);
       this.persist();
     },
-    updateTaskDetails(taskId: string, payload: UpdateTaskPayload) {
+    updateTaskDetails(
+      taskId: string,
+      payload: UpdateTaskPayload
+    ): string | null {
       const found = findTask(this.meetings, taskId);
 
       if (!found) {
-        return;
+        return translate('meetingStore.taskNotFound');
       }
 
       const title = payload.title?.trim();
@@ -784,7 +816,7 @@ export const useMeetingsStore = defineStore('meetings', {
 
       if (title !== undefined) {
         if (!title) {
-          return;
+          return translate('meetingStore.taskTitleRequired');
         }
 
         found.task.title = title;
@@ -810,7 +842,16 @@ export const useMeetingsStore = defineStore('meetings', {
           responsibilityType === 'participant' &&
           !responsibleParticipantIds.length
         ) {
-          return;
+          return translate('meetingStore.chooseResponsible');
+        }
+
+        if (
+          responsibleParticipantIds.some(
+            (participantId) =>
+              !found.meeting.participantIds.includes(participantId)
+          )
+        ) {
+          return translate('meetingStore.chooseFromMeeting');
         }
 
         found.task.responsibilityType = responsibilityType;
@@ -828,7 +869,16 @@ export const useMeetingsStore = defineStore('meetings', {
       const updatedAt = nowIso();
       found.task.updatedAt = updatedAt;
       found.meeting.updatedAt = updatedAt;
+      useTasksStore().updateTask(taskId, {
+        title: found.task.title,
+        description: found.task.description,
+        responsibilityType: found.task.responsibilityType,
+        responsibleParticipantIds: found.task.responsibleParticipantIds,
+        responsibleUserIds: found.task.responsibleUserIds,
+        dueDate: found.task.dueDate,
+      });
       this.persist();
+      return null;
     },
     updateTasksFromMeeting(sourceMeetingId: string, status: MeetingTaskStatus) {
       const meeting = this.meetings.find((item) => item.id === sourceMeetingId);
@@ -904,6 +954,113 @@ export const useMeetingsStore = defineStore('meetings', {
       );
       meeting.updatedAt = nowIso();
       useTasksStore().addTask({ ...task, sourceMeetingId: meeting.id });
+      this.persist();
+      return true;
+    },
+    updateAgreement(
+      agreementId: string,
+      text: string,
+      participantIds: string[]
+    ): string | null {
+      const meeting = this.activeMeeting;
+      const trimmedText = text.trim();
+      const selectedParticipantIds = uniqueStrings(participantIds);
+
+      if (!meeting || meeting.status === 'completed') {
+        return translate('meetingStore.agreementNotEditable');
+      }
+
+      if (!trimmedText) {
+        return translate('meetingStore.addAgreementFirst');
+      }
+
+      if (!selectedParticipantIds.length) {
+        return translate('meetingStore.chooseAgreementPeople');
+      }
+
+      if (
+        selectedParticipantIds.some(
+          (participantId) => !meeting.participantIds.includes(participantId)
+        )
+      ) {
+        return translate('meetingStore.choosePeopleFromMeeting');
+      }
+
+      const found = findAgreement(meeting, agreementId);
+
+      if (!found) {
+        return translate('meetingStore.agreementNotFound');
+      }
+
+      const updatedAt = nowIso();
+      found.agreement.text = trimmedText;
+      found.agreement.participantIds = selectedParticipantIds;
+      meeting.updatedAt = updatedAt;
+      useTasksStore().updateAgreement(agreementId, {
+        title: trimmedText,
+        participantIds: selectedParticipantIds,
+      });
+      this.persist();
+      return null;
+    },
+    deleteAgreement(
+      agreementId: string
+    ): DeletedMeetingAgreementSnapshot | null {
+      const meeting = this.activeMeeting;
+
+      if (!meeting || meeting.status === 'completed') {
+        return null;
+      }
+
+      const found = findAgreement(meeting, agreementId);
+
+      if (!found) {
+        return null;
+      }
+
+      const snapshot: DeletedMeetingAgreementSnapshot = {
+        meetingId: meeting.id,
+        sectionId: found.section.id,
+        sectionIndex: found.agreementIndex,
+        agreement: cloneAgreement(found.agreement),
+      };
+
+      found.section.agreements.splice(found.agreementIndex, 1);
+      meeting.updatedAt = nowIso();
+      useTasksStore().deleteAgreement(agreementId);
+      this.persist();
+      return snapshot;
+    },
+    restoreAgreement(snapshot: DeletedMeetingAgreementSnapshot) {
+      const meeting = this.activeMeeting;
+
+      if (
+        !meeting ||
+        meeting.id !== snapshot.meetingId ||
+        meeting.status === 'completed'
+      ) {
+        return false;
+      }
+
+      const section = findSection(meeting, snapshot.sectionId);
+
+      if (
+        !section ||
+        section.agreements.some(
+          (agreement) => agreement.id === snapshot.agreement.id
+        )
+      ) {
+        return false;
+      }
+
+      const agreement = cloneAgreement(snapshot.agreement);
+      section.agreements.splice(
+        Math.min(snapshot.sectionIndex, section.agreements.length),
+        0,
+        agreement
+      );
+      meeting.updatedAt = nowIso();
+      useTasksStore().restoreAgreement(agreement.id);
       this.persist();
       return true;
     },

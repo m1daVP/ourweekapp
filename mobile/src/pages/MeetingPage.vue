@@ -35,7 +35,9 @@ const {
   checkedInParticipantIds,
   clearDrawerParticipantSelection,
   closeGuestDrawer,
+  closeAgreementEditor,
   closeNoteEditor,
+  closeTaskEditor,
   closeMeeting,
   confirmAiRecapDisclosure,
   confirmAiRecapLowContent,
@@ -47,12 +49,16 @@ const {
   currentStepNumber,
   currentTasks,
   deleteNote,
+  deleteAgreement,
   deferAiRecapDisclosure,
   deferAiRecapLowContent,
   drawerFamilyMembers,
   drawerSelectedParticipantId,
   editingNoteParticipantId,
   editingNoteText,
+  editingTaskDraft,
+  editingAgreementParticipantIds,
+  editingAgreementText,
   editActions,
   exitMeeting,
   finishMeeting,
@@ -73,17 +79,23 @@ const {
   isFirstStep,
   isGuestDrawerOpen,
   isNoteEditorOpen,
+  isTaskEditorOpen,
+  isAgreementEditorOpen,
   isParticipantCheckInStep,
   isPaused,
   isRitualMenuOpen,
   meetingDurationLabel,
   neutralHint,
   noteEditorError,
+  taskEditorError,
+  agreementEditorError,
   noteEditorNeutralHint,
   notePlaceholder,
   noteText,
   openGuestDrawer,
   openNoteEditor,
+  openTaskEditor,
+  openAgreementEditor,
   previousCompletedMeeting,
   previousCompletedMeetingLabel,
   previousUnfinishedTasks,
@@ -92,6 +104,8 @@ const {
   reviewTasks,
   saveDraft,
   saveNoteEdit,
+  saveTaskEdit,
+  saveAgreementEdit,
   sectionPrompt,
   sectionTitle,
   selectDrawerParticipant,
@@ -145,6 +159,11 @@ const meetingParticipantPickerOptions = computed(() =>
     label: participant.name,
   }))
 );
+const taskResponsibilityPickerOptions = computed(() => [
+  { value: 'needsDiscussion', label: t('meeting.needsDiscussion') },
+  { value: 'shared', label: t('meeting.shared') },
+  ...meetingParticipantPickerOptions.value,
+]);
 </script>
 
 <template>
@@ -212,6 +231,10 @@ const meetingParticipantPickerOptions = computed(() =>
       @go-back="goBack"
       @delete-note="deleteNote"
       @delete-task="deleteTask"
+      @delete-agreement="deleteAgreement"
+      @edit-agreement="openAgreementEditor"
+      @edit-note="openNoteEditor"
+      @edit-task="openTaskEditor"
       @open-menu="isRitualMenuOpen = true"
       @start-new="startNewMeeting"
       @toggle-task="toggleTask"
@@ -261,7 +284,10 @@ const meetingParticipantPickerOptions = computed(() =>
       @add-task="addTask"
       @delete-note="deleteNote"
       @delete-task="deleteTask"
+      @delete-agreement="deleteAgreement"
+      @edit-agreement="openAgreementEditor"
       @edit-note="openNoteEditor"
+      @edit-task="openTaskEditor"
       @exit="closeMeeting"
       @finish="finishMeeting"
       @go-back="goBack"
@@ -320,6 +346,105 @@ const meetingParticipantPickerOptions = computed(() =>
       </p>
       <p v-if="noteEditorError" class="meeting-error" role="alert">
         {{ noteEditorError }}
+      </p>
+
+      <button v-if="canEditMeeting" type="submit" class="meeting-primary">
+        {{ t('common.save') }}
+      </button>
+    </form>
+  </BaseBottomSheet>
+
+  <BaseBottomSheet
+    :open="isTaskEditorOpen"
+    :title="t('meeting.editTask')"
+    @close="closeTaskEditor"
+  >
+    <form class="task-editor-form" @submit.prevent="saveTaskEdit">
+      <label for="edit-task-title">
+        <span>{{ t('meeting.taskTitle') }}</span>
+        <input
+          id="edit-task-title"
+          v-model="editingTaskDraft.title"
+          type="text"
+          :disabled="!canEditTasks"
+        />
+      </label>
+
+      <label for="edit-task-description">
+        <span>{{ t('meeting.optionalDetail') }}</span>
+        <textarea
+          id="edit-task-description"
+          v-model="editingTaskDraft.description"
+          rows="3"
+          :disabled="!canEditTasks"
+        />
+      </label>
+
+      <label for="edit-task-person">
+        <span>{{ t('meeting.responsible') }}</span>
+        <SelectPickerField
+          id="edit-task-person"
+          v-model="editingTaskDraft.responsibilityChoice"
+          :label="t('meeting.responsible')"
+          :options="taskResponsibilityPickerOptions"
+          :disabled="!canEditTasks"
+        />
+      </label>
+
+      <label for="edit-task-due-date">
+        <span>{{ t('meeting.dueDate') }}</span>
+        <input
+          id="edit-task-due-date"
+          v-model="editingTaskDraft.dueDate"
+          type="date"
+          :disabled="!canEditTasks"
+        />
+      </label>
+
+      <p v-if="taskEditorError" class="meeting-error" role="alert">
+        {{ taskEditorError }}
+      </p>
+
+      <button v-if="canEditTasks" type="submit" class="meeting-primary">
+        {{ t('common.save') }}
+      </button>
+    </form>
+  </BaseBottomSheet>
+
+  <BaseBottomSheet
+    :open="isAgreementEditorOpen"
+    :title="t('meeting.editAgreement')"
+    @close="closeAgreementEditor"
+  >
+    <form class="task-editor-form" @submit.prevent="saveAgreementEdit">
+      <label for="edit-agreement-text">
+        <span>{{ t('meeting.decisionOrAgreement') }}</span>
+        <textarea
+          id="edit-agreement-text"
+          v-model="editingAgreementText"
+          rows="5"
+          :disabled="!canEditMeeting"
+        />
+      </label>
+
+      <fieldset class="participant-selector">
+        <legend>{{ t('meeting.participants') }}</legend>
+        <label
+          v-for="participant in activeMeetingParticipants"
+          :key="participant.id"
+        >
+          <input
+            v-model="editingAgreementParticipantIds"
+            type="checkbox"
+            :value="participant.id"
+            :disabled="!canEditMeeting"
+          />
+          <span>{{ participant.name }}</span>
+        </label>
+      </fieldset>
+
+      <p v-if="agreementEditorError" class="meeting-error" role="alert">
+        {{ agreementEditorError }}
       </p>
 
       <button v-if="canEditMeeting" type="submit" class="meeting-primary">
