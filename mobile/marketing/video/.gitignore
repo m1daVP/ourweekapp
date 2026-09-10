@@ -1,0 +1,10 @@
+public/assets/captures/**
+!public/assets/captures/.gitkeep
+public/audio/**
+!public/audio/.gitkeep
+out/**
+!out/.gitkeep
+data/proof/*
+!data/proof/README.md
+node_modules/
+.env.local

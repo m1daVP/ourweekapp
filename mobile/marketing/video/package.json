@@ -1,0 +1,26 @@
+{
+  "name": "ourweek-promo-videos",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "preview": "remotion studio src/index.ts",
+    "capture": "tsx scripts/capture.mts",
+    "narrate": "tsx scripts/generate-narration.mts",
+    "render": "tsx scripts/render.mts",
+    "verify": "tsx scripts/verify-output.mts"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "remotion": "^4.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/react": "^19.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^6.0.0",
+    "vitest": "^4.0.0"
+  }
+}
