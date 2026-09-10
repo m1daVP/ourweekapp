@@ -28,6 +28,9 @@ export const useCalendarSyncStore = defineStore('calendarSync', {
     isConnected: (state) => Boolean(state.connectionStatus?.connected),
   },
   actions: {
+    clearStatusMessage() {
+      this.statusMessage = '';
+    },
     async initializeCalendarConnection() {
       this.isCheckingConnection = true;
       this.errorMessage = '';
@@ -35,7 +38,6 @@ export const useCalendarSyncStore = defineStore('calendarSync', {
       try {
         this.connectionStatus =
           await calendarService.getCalendarConnectionStatus();
-        this.statusMessage = this.connectionStatus.message;
       } catch (error) {
         this.errorMessage =
           error instanceof Error

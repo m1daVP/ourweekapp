@@ -7,17 +7,18 @@ import {
   submitResetPasswordConfirmation,
   type ResetPasswordValidationError,
 } from '@/features/auth/passwordReset';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const token = ref('');
 const password = ref('');
-const statusMessage = ref('');
 const formError = ref('');
 const isSubmitting = ref(false);
 const hasConfirmedReset = ref(false);
 let redirectTimeoutId: ReturnType<typeof window.setTimeout> | null = null;
+const { showInAppNotification } = useInAppNotification();
 
 onMounted(() => {
   token.value = normalizeResetPasswordToken(route.query.token);
@@ -50,7 +51,6 @@ async function handleSubmit() {
     return;
   }
 
-  statusMessage.value = '';
   formError.value = '';
   isSubmitting.value = true;
 
@@ -67,7 +67,7 @@ async function handleSubmit() {
 
     password.value = '';
     hasConfirmedReset.value = true;
-    statusMessage.value = t('auth.resetConfirmed');
+    showInAppNotification(t('auth.resetConfirmed'));
     redirectTimeoutId = window.setTimeout(() => {
       void router.replace({ name: 'sign-in' });
     }, 1600);
@@ -110,10 +110,6 @@ async function handleSubmit() {
       <p v-if="formError" class="meeting-error" role="alert">
         {{ formError }}
       </p>
-      <p v-if="statusMessage" class="meeting-status" role="status">
-        {{ statusMessage }}
-      </p>
-
       <button
         class="meeting-primary"
         type="submit"

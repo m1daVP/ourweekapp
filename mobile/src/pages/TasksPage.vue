@@ -25,6 +25,7 @@ import DatePickerField from '@/shared/components/DatePickerField.vue';
 import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 import type { PickerOption } from '@/shared/components/SelectPickerField.vue';
 import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 import { haptics } from '@/shared/services/hapticsService';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
@@ -51,6 +52,12 @@ const tasksStore = useTasksStore();
 const { can } = useWorkspacePermissions();
 const { isStartupLoading } = useStartupLoadingState();
 const { t, locale } = useI18n();
+const { showInAppNotification } = useInAppNotification();
+
+function showTaskConfirmation(message: string) {
+  statusMessage.value = '';
+  showInAppNotification(message);
+}
 
 const taskFilters: Array<{ value: TaskFilter; label: string }> = [
   { value: 'todo', label: 'To Do' },
@@ -439,7 +446,7 @@ function saveTask(task: Task) {
     dueDate: draft.dueDate,
     ...responsibility,
   });
-  statusMessage.value = t('tasksPage.taskUpdated');
+  showTaskConfirmation(t('tasksPage.taskUpdated'));
   selectedTask.value = null;
   void haptics.confirm();
 }
@@ -474,7 +481,7 @@ function addTask() {
   newTaskDraft.dueDate = '';
   newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
   isAddTaskSheetOpen.value = false;
-  statusMessage.value = t('tasksPage.updated');
+  showTaskConfirmation(t('tasksPage.updated'));
   void haptics.confirm();
 }
 
@@ -492,8 +499,9 @@ function setTaskStatus(task: Task, status: TaskStatus) {
   clearTaskCompletion(task.id);
   tasksStore.updateTaskStatus(task.id, status);
   meetingsStore.updateTaskStatus(task.id, status);
-  statusMessage.value =
-    status === 'done' ? t('tasksPage.markedDone') : t('tasksPage.updated');
+  showTaskConfirmation(
+    status === 'done' ? t('tasksPage.markedDone') : t('tasksPage.updated')
+  );
   selectedTask.value = null;
 }
 
@@ -503,7 +511,7 @@ function completeTaskWithAnimation(task: Task) {
   }
 
   setTaskCompleting(task.id, true);
-  statusMessage.value = t('tasksPage.markedDone');
+  showTaskConfirmation(t('tasksPage.markedDone'));
   selectedTask.value = null;
 
   void nextTick(() => {
@@ -617,7 +625,7 @@ function confirmDeleteTask() {
   tasksStore.deleteTask(task.id);
   meetingsStore.deleteTask(task.id);
   selectedTask.value = null;
-  statusMessage.value = t('tasksPage.taskDeleted');
+  showTaskConfirmation(t('tasksPage.taskDeleted'));
   void haptics.impact();
 }
 

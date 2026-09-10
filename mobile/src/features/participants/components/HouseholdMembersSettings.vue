@@ -24,6 +24,7 @@ import type { ParticipantAccessState } from '@/features/workspace/types';
 import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 import AvatarPickerSheet from './AvatarPickerSheet.vue';
 
 type SheetMode = 'create' | 'edit' | 'invite' | 'revoke';
@@ -35,6 +36,7 @@ const subscriptionStore = useSubscriptionStore();
 const meetingsStore = useMeetingsStore();
 const tasksStore = useTasksStore();
 const { can } = useWorkspacePermissions();
+const { showInAppNotification } = useInAppNotification();
 const canManageHouseholdParticipants = computed(() => can('manageWorkspace'));
 
 const isSheetOpen = ref(false);
@@ -335,13 +337,14 @@ async function sendInvite() {
   const deliveryFailed =
     'deliveryStatus' in accessRecord &&
     accessRecord.deliveryStatus === 'failed';
-  setParticipantMessage(
+  participantMessage.text = '';
+  showInAppNotification(
     accessRecord.status === 'active'
       ? t('settings.appAccessLinked')
       : deliveryFailed
         ? workspaceStore.errorMessage || t('workspace.saveInviteFailed')
         : t('settings.invitationSent'),
-    deliveryFailed ? 'error' : 'status'
+    { tone: deliveryFailed ? 'error' : 'status' }
   );
   closeSheet();
 }
@@ -358,7 +361,8 @@ async function resendSelectedInvitation() {
   );
 
   if (resent) {
-    setParticipantMessage(t('settings.invitationSent'));
+    participantMessage.text = '';
+    showInAppNotification(t('settings.invitationSent'));
   } else {
     revokeError.value =
       workspaceStore.errorMessage || t('workspace.saveInviteFailed');
@@ -397,13 +401,15 @@ async function confirmRevoke() {
   );
 
   if (revoked) {
-    setParticipantMessage(t('settings.invitationRevoked'));
+    participantMessage.text = '';
+    showInAppNotification(t('settings.invitationRevoked'));
     sheetMode.value = 'edit';
     return;
   }
 
   if (!workspaceStore.getParticipantPendingInvitation(participant.id)) {
-    setParticipantMessage(t('workspace.invitationNoLongerPending'));
+    participantMessage.text = '';
+    showInAppNotification(t('workspace.invitationNoLongerPending'));
     sheetMode.value = 'edit';
     return;
   }
@@ -496,7 +502,8 @@ function saveParticipantDraft() {
       return;
     }
 
-    setParticipantMessage(t('settings.participantAdded'));
+    participantMessage.text = '';
+    showInAppNotification(t('settings.participantAdded'));
 
     if (canInviteParticipant(participant)) {
       openInviteStep(participant);
@@ -523,7 +530,8 @@ function saveParticipantDraft() {
     return;
   }
 
-  setParticipantMessage(t('settings.participantUpdated'));
+  participantMessage.text = '';
+  showInAppNotification(t('settings.participantUpdated'));
   const updatedParticipant = selectedParticipant.value;
 
   if (
@@ -569,19 +577,22 @@ function hideOrRemoveParticipant(participantId: string) {
 
   if (participantIsUsed(participantId)) {
     participantsStore.disableParticipant(participantId);
-    setParticipantMessage(t('settings.participantDisabled'));
+    participantMessage.text = '';
+    showInAppNotification(t('settings.participantDisabled'));
     closeSheet();
     return;
   }
 
   participantsStore.removeParticipant(participantId);
-  setParticipantMessage(t('settings.participantRemoved'));
+  participantMessage.text = '';
+  showInAppNotification(t('settings.participantRemoved'));
   closeSheet();
 }
 
 function enableParticipant(participantId: string) {
   participantsStore.enableParticipant(participantId);
-  setParticipantMessage(t('settings.participantEnabled'));
+  participantMessage.text = '';
+  showInAppNotification(t('settings.participantEnabled'));
   closeSheet();
 }
 </script>

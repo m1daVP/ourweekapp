@@ -10,13 +10,28 @@ import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 import TimePickerField from '@/shared/components/TimePickerField.vue';
 import { useToast } from '@/shared/composables/useToast';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 
 const calendarSyncStore = useCalendarSyncStore();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { showToast } = useToast();
+const { showInAppNotification } = useInAppNotification();
 const isDisconnectConfirmationOpen = ref(false);
+
+watch(
+  () => calendarSyncStore.statusMessage,
+  (message) => {
+    if (!message) {
+      return;
+    }
+
+    showInAppNotification(message);
+    calendarSyncStore.clearStatusMessage();
+  },
+  { immediate: true }
+);
 
 watch(
   () => route.query,
@@ -282,9 +297,6 @@ function confirmDisconnect() {
           {{ t('calendar.retry') }}
         </button>
 
-        <p v-if="calendarSyncStore.statusMessage" class="meeting-status">
-          {{ calendarSyncStore.statusMessage }}
-        </p>
         <p
           v-if="calendarSyncStore.errorMessage"
           class="meeting-error"

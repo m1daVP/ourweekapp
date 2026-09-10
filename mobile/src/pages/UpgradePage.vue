@@ -1,15 +1,30 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import { useWorkspaceStore } from '@/app/stores/workspace';
 import { canPurchasePremium } from '@/features/access/premiumPurchasePolicy';
 import type { SubscriptionPlanOption } from '@/features/subscription/types';
 import { appConfig } from '@/shared/config/env';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 
 const subscriptionStore = useSubscriptionStore();
 const workspaceStore = useWorkspaceStore();
 const { t } = useI18n();
+const { showInAppNotification } = useInAppNotification();
+
+watch(
+  () => subscriptionStore.statusMessage,
+  (message) => {
+    if (!message) {
+      return;
+    }
+
+    showInAppNotification(message);
+    subscriptionStore.clearStatusMessage();
+  },
+  { immediate: true }
+);
 
 const planOrder: SubscriptionPlanOption['id'][] = [
   'premium_monthly',
@@ -234,13 +249,6 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
           {{ t('common.manageSubscription') }}
         </button>
       </template>
-      <p
-        v-if="subscriptionStore.statusMessage"
-        class="meeting-status"
-        role="status"
-      >
-        {{ subscriptionStore.statusMessage }}
-      </p>
       <p
         v-if="subscriptionStore.errorMessage"
         class="meeting-error"

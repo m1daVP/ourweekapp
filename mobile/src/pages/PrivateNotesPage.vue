@@ -8,6 +8,7 @@ import type { PrivateNote } from '@/features/private-notes/types';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import PremiumLock from '@/shared/components/PremiumLock.vue';
 import SelectPickerField from '@/shared/components/SelectPickerField.vue';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 import { haptics } from '@/shared/services/hapticsService';
 
 const meetingsStore = useMeetingsStore();
@@ -16,8 +17,8 @@ const { t, locale } = useI18n();
 
 const editingNoteId = ref<string | null>(null);
 const notePendingDelete = ref<PrivateNote | null>(null);
-const statusMessage = ref('');
 const formError = ref('');
+const { showInAppNotification } = useInAppNotification();
 const noteDraft = reactive({
   title: '',
   content: '',
@@ -69,7 +70,6 @@ function getMeetingLabel(meetingId?: string) {
 
 function clearMessages() {
   formError.value = '';
-  statusMessage.value = '';
 }
 
 function resetDraft() {
@@ -101,9 +101,11 @@ function saveNote() {
     return;
   }
 
-  statusMessage.value = editingNoteId.value
-    ? t('privateNotes.noteUpdated')
-    : t('privateNotes.noteSaved');
+  showInAppNotification(
+    editingNoteId.value
+      ? t('privateNotes.noteUpdated')
+      : t('privateNotes.noteSaved')
+  );
   resetDraft();
 }
 
@@ -136,7 +138,7 @@ function confirmDeleteNote() {
     resetDraft();
   }
 
-  statusMessage.value = t('privateNotes.noteDeleted');
+  showInAppNotification(t('privateNotes.noteDeleted'));
 }
 </script>
 
@@ -269,9 +271,6 @@ function confirmDeleteNote() {
 
       <p v-if="formError" class="meeting-error" role="alert">
         {{ formError }}
-      </p>
-      <p v-if="statusMessage" class="meeting-status" role="status">
-        {{ statusMessage }}
       </p>
     </PremiumLock>
     <ConfirmationDialog

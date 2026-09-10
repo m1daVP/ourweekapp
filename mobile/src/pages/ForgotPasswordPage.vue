@@ -2,15 +2,17 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { requestPasswordReset } from '@/shared/api/authApi';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 
 const { t } = useI18n();
 const email = ref('');
-const statusMessage = ref('');
+const hasRequestedReset = ref(false);
 const formError = ref('');
 const isSubmitting = ref(false);
+const { showInAppNotification } = useInAppNotification();
 
 async function handleSubmit() {
-  statusMessage.value = '';
+  hasRequestedReset.value = false;
   formError.value = '';
   const normalizedEmail = email.value.trim().toLowerCase();
 
@@ -23,7 +25,8 @@ async function handleSubmit() {
 
   try {
     await requestPasswordReset({ email: normalizedEmail });
-    statusMessage.value = t('auth.resetRequested');
+    hasRequestedReset.value = true;
+    showInAppNotification(t('auth.resetRequested'));
   } catch (error) {
     formError.value =
       error instanceof Error ? error.message : t('auth.resetFailed');
@@ -55,10 +58,7 @@ async function handleSubmit() {
       <p v-if="formError" class="meeting-error" role="alert">
         {{ formError }}
       </p>
-      <p v-if="statusMessage" class="meeting-status" role="status">
-        {{ statusMessage }}
-      </p>
-      <p v-if="statusMessage" class="auth-switch">
+      <p v-if="hasRequestedReset" class="auth-switch">
         <RouterLink :to="{ name: 'reset-password' }">
           {{ t('auth.enterResetCode') }}
         </RouterLink>

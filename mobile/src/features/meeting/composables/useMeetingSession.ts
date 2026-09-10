@@ -37,6 +37,7 @@ import type {
 import type { Participant } from '@/features/participants/types';
 import type { Task, TaskResponsibilityType } from '@/features/tasks/types';
 import { useToast } from '@/shared/composables/useToast';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 import { haptics } from '@/shared/services/hapticsService';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 
@@ -259,6 +260,7 @@ export function useMeetingSession() {
   const { t, locale } = useI18n();
   const { can } = useWorkspacePermissions();
   const { showToast } = useToast();
+  const { showInAppNotification } = useInAppNotification();
 
   const noteText = ref('');
   const agreementText = ref('');
@@ -267,6 +269,15 @@ export function useMeetingSession() {
   const formError = ref('');
   const statusMessage = ref('');
   const isFinishingMeeting = ref(false);
+
+  watch(statusMessage, (message) => {
+    if (!message) {
+      return;
+    }
+
+    showInAppNotification(message);
+    statusMessage.value = '';
+  });
   const isGuestDrawerOpen = ref(false);
   const isRitualMenuOpen = ref(false);
   const isEndSessionDialogOpen = ref(false);

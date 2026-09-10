@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   purchasePlan: vi.fn(),
   restorePurchases: vi.fn(),
   manageSubscription: vi.fn(),
+  showInAppNotification: vi.fn(),
   subscription: {
     availablePlans: [
       {
@@ -53,6 +54,9 @@ vi.mock('@/app/stores/subscription', () => ({
     purchasePlan: state.purchasePlan,
     restorePurchases: state.restorePurchases,
     manageSubscription: state.manageSubscription,
+    clearStatusMessage: () => {
+      state.subscription.statusMessage = '';
+    },
   }),
 }));
 
@@ -66,6 +70,12 @@ vi.mock('@/shared/config/env', () => ({
       return state.revenueCatEnabled;
     },
   },
+}));
+
+vi.mock('@/shared/composables/useInAppNotification', () => ({
+  useInAppNotification: () => ({
+    showInAppNotification: state.showInAppNotification,
+  }),
 }));
 
 import UpgradePage from '../UpgradePage.vue';
@@ -87,6 +97,7 @@ beforeEach(() => {
   state.purchasePlan.mockReset();
   state.restorePurchases.mockReset();
   state.manageSubscription.mockReset();
+  state.showInAppNotification.mockReset();
   Object.assign(state.subscription, {
     availablePlans: [
       {
@@ -229,13 +240,13 @@ describe('UpgradePage billing disclosure', () => {
     ).toBeDefined();
   });
 
-  it('renders safe status and error feedback in the Upgrade billing dock', () => {
+  it('forwards status feedback to the shared in-app notification', () => {
     state.subscription.statusMessage = 'upgrade.premiumRestored';
     state.subscription.errorMessage = 'upgrade.restoreFailed';
 
     const wrapper = mountUpgradePage();
 
-    expect(wrapper.get('[role="status"]').text()).toContain(
+    expect(state.showInAppNotification).toHaveBeenCalledWith(
       'upgrade.premiumRestored'
     );
     expect(wrapper.get('[role="alert"]').text()).toContain(

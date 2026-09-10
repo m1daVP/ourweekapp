@@ -13,6 +13,7 @@ import {
   storageRecoveryState,
 } from '@/shared/services/storageService';
 import { useToast } from '@/shared/composables/useToast';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 import { usePullToRefresh } from '@/shared/composables/usePullToRefresh';
 import {
   PageRefreshError,
@@ -36,6 +37,9 @@ const authStore = useAuthStore();
 const participantsStore = useParticipantsStore();
 const subscriptionStore = useSubscriptionStore();
 const { dismissToast, showToast, toastState } = useToast();
+const { dismissInAppNotification, notificationState } = useInAppNotification();
+const IN_APP_NOTIFICATION_SWIPE_DISMISS_THRESHOLD = 48;
+const inAppNotificationTouchStartY = ref<number | null>(null);
 const recoveryMessages = computed(() => storageRecoveryState.value.messages);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
 const currentUserParticipant = computed(() => {
@@ -66,7 +70,6 @@ const pageTitle = computed(() => {
     upgrade: t('app.routeTitles.upgrade'),
     'private-notes': t('app.routeTitles.privateNotes'),
     'calendar-sync': t('app.routeTitles.calendarSync'),
-    account: t('app.routeTitles.account'),
     'meeting-details': t('app.routeTitles.meetingDetails'),
     'meeting-summary': t('app.routeTitles.meetingSummary'),
   };
@@ -117,6 +120,25 @@ const pullIndicatorStyle = computed(
 function handleToastAction(action: () => void) {
   action();
   dismissToast();
+}
+
+function handleInAppNotificationPointerDown(event: PointerEvent) {
+  inAppNotificationTouchStartY.value = event.clientY;
+}
+
+function handleInAppNotificationPointerUp(event: PointerEvent) {
+  const startY = inAppNotificationTouchStartY.value;
+  const endY = event.clientY;
+
+  inAppNotificationTouchStartY.value = null;
+
+  if (
+    startY !== null &&
+    endY !== undefined &&
+    startY - endY >= IN_APP_NOTIFICATION_SWIPE_DISMISS_THRESHOLD
+  ) {
+    dismissInAppNotification();
+  }
 }
 
 watch(
@@ -170,6 +192,8 @@ watch(
         role="status"
         aria-live="polite"
         aria-atomic="true"
+        @pointerdown="handleInAppNotificationPointerDown"
+        @pointerup="handleInAppNotificationPointerUp"
       >
         <div class="pull-to-refresh__content">
           <span
@@ -235,6 +259,26 @@ watch(
           close
         </button>
       </div>
+    </Transition>
+    <Transition name="in-app-notification">
+      <aside
+        v-if="notificationState"
+        :key="notificationState.id"
+        :class="[
+          'in-app-notification',
+          `in-app-notification--${notificationState.tone}`,
+        ]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">
+          {{ notificationState.tone === 'error' ? 'error' : 'check_circle' }}
+        </span>
+        <span class="in-app-notification__message">
+          {{ notificationState.message }}
+        </span>
+      </aside>
     </Transition>
     <BottomNavigation v-if="showNavigation" />
   </div>

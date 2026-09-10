@@ -36,6 +36,7 @@ import type {
 import PremiumLock from '@/shared/components/PremiumLock.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 
 const meetingsStore = useMeetingsStore();
 const { t, locale } = useI18n();
@@ -44,6 +45,7 @@ const subscriptionStore = useSubscriptionStore();
 const route = useRoute();
 const router = useRouter();
 const { canUseFeature } = useFeatureAccess();
+const { showInAppNotification } = useInAppNotification();
 
 const meetingId = computed(() => String(route.params.meetingId ?? ''));
 const isGeneratingSummary = ref(false);
@@ -53,7 +55,6 @@ const pendingLowContentMeeting = ref<Meeting | null>(null);
 const isExportModalOpen = ref(false);
 const isExporting = ref(false);
 const exportFormat = ref<MeetingExportFormat>('text');
-const exportStatus = ref('');
 const exportError = ref('');
 
 const meeting = computed(
@@ -173,7 +174,6 @@ function openExportModal() {
     return;
   }
 
-  exportStatus.value = '';
   exportError.value = '';
   isExportModalOpen.value = true;
 }
@@ -205,13 +205,12 @@ async function copySelectedExport() {
     return;
   }
 
-  exportStatus.value = '';
   exportError.value = '';
   isExporting.value = true;
 
   try {
     await copyExportToClipboard(file.content);
-    exportStatus.value = t('meeting.copied');
+    showInAppNotification(t('meeting.copied'));
   } catch {
     exportError.value = t('meeting.copyFailed');
   } finally {
@@ -226,7 +225,6 @@ async function shareOrSaveSelectedExport() {
     return;
   }
 
-  exportStatus.value = '';
   exportError.value = '';
   isExporting.value = true;
 
@@ -234,12 +232,12 @@ async function shareOrSaveSelectedExport() {
     const didShare = await shareExportFile(file);
 
     if (didShare) {
-      exportStatus.value = t('meeting.sharedExport');
+      showInAppNotification(t('meeting.sharedExport'));
       return;
     }
 
     downloadExportFile(file);
-    exportStatus.value = t('meeting.savedExport');
+    showInAppNotification(t('meeting.savedExport'));
   } catch {
     exportError.value = t('meeting.shareFailed');
   } finally {
@@ -252,13 +250,12 @@ function printPdfExport() {
     return;
   }
 
-  exportStatus.value = '';
   exportError.value = '';
 
   const didOpen = exportMeetingAsPdf(meeting.value, getExportContext());
 
   if (didOpen) {
-    exportStatus.value = t('meeting.printOpened');
+    showInAppNotification(t('meeting.printOpened'));
     return;
   }
 
@@ -623,7 +620,6 @@ async function generateSummaryForMeeting(
             </button>
           </div>
 
-          <p v-if="exportStatus" class="meeting-status">{{ exportStatus }}</p>
           <p v-if="exportError" class="meeting-error">{{ exportError }}</p>
         </div>
       </div>
