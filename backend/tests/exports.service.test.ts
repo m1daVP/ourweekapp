@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { ExportsService } from '../src/modules/exports/exports.service.js';
+import { summarySourceFingerprint } from '../src/modules/ai/follow-through.js';
 import type { MeetingPdfDocument } from '../src/modules/exports/meeting-pdf.js';
 import type { MeetingDto } from '../src/modules/meetings/meetings.repository.js';
 import type { AuthContext } from '../src/shared/auth/index.js';
@@ -96,7 +97,53 @@ function createHarness(input: {
   return { repository, renderPdf, service };
 }
 
+function meetingWithSummary(freshness: 'current' | 'stale' | 'legacy') {
+  const input = meeting();
+  input.aiSummary = {
+    id: 'summary_1', meetingId, createdAt: now,
+    shortSummary: 'A practical planning conversation.',
+    mainTopics: ['Planning'], keyTensions: [], agreements: [],
+    tasks: [{ title: 'Book dentist', status: 'skipped' }, { title: 'Historical task' }],
+    suggestedNextMeetingFocus: [],
+    ...(freshness !== 'legacy' ? { followThrough: {
+      version: 1,
+      sourceFingerprint: freshness === 'current' ? summarySourceFingerprint(input) : '0'.repeat(64),
+      observations: [{
+        title: 'Clarify the handoff', explanation: 'Pickup was discussed; a backup was not recorded.',
+        question: 'What backup would you like to agree on?', kind: 'clarify',
+        reviewHorizon: 'beforeNextMeeting',
+        sourceRefs: [{ sectionId: 'section_1', sectionIndex: 0, kind: 'note', itemId: 'note_1', label: 'We agreed to split school pickup.' }],
+      }],
+    } } : {}),
+  };
+  return input;
+}
+
 describe('ExportsService', () => {
+  it.each(['current', 'stale', 'legacy'] as const)('exports %s snapshot state and preserves task status in PDF', async (freshness) => {
+    const { service, renderPdf } = createHarness({ meeting: meetingWithSummary(freshness) });
+    await service.exportMeetingPdf(auth, { meetingId }, new Date(now));
+    const summary = renderPdf.mock.calls[0]?.[0].summary;
+    expect(summary?.snapshotLabel).toContain(freshness === 'current' ? 'matches the current' : freshness === 'stale' ? 'earlier version' : 'freshness not verified');
+    expect(summary?.tasks).toEqual([{ title: 'Book dentist', status: 'skipped' }, { title: 'Historical task' }]);
+    if (freshness !== 'legacy') {
+      expect(summary?.observations?.[0]).toMatchObject({
+        title: 'Clarify the handoff', reviewHorizonLabel: 'Before the next meeting',
+        sources: ['Source (note): We agreed to split school pickup.'],
+      });
+    } else expect(summary?.observations).toBeUndefined();
+  });
+
+  it.each(['text', 'markdown'] as const)('includes evidence and stale state in %s follow-through export', async (format) => {
+    const { service } = createHarness({ meeting: meetingWithSummary('stale') });
+    const result = await service.exportMeeting(auth, { meetingId, format }, new Date(now));
+    expect(result.content).toContain('Meeting follow-through');
+    expect(result.content).toContain('based on an earlier version');
+    expect(result.content).toContain('Question: What backup would you like to agree on?');
+    expect(result.content).toContain('Source (note): We agreed to split school pickup.');
+    expect(result.content).not.toContain('Main topics');
+  });
+
   it('exports a workspace-owned meeting as markdown', async () => {
     const { repository, service } = createHarness();
     const response = await service.exportMeeting(

@@ -3,6 +3,7 @@ import { ApiError } from '../../shared/errors/index.js';
 import { isPrivateMarkedObject } from '../../shared/privacy/index.js';
 import type { JsonValue, SupabaseRepositoryClient } from '../../shared/repositories/index.js';
 import { meetingSummarySchema } from '../ai/ai.schema.js';
+import { summarySourceFingerprint } from '../ai/follow-through.js';
 import type { MeetingDto } from '../meetings/meetings.repository.js';
 import { ExportsRepository } from './exports.repository.js';
 import {
@@ -211,6 +212,26 @@ function buildExportContent(
   addLabeledLine(lines, 'Updated at', meeting.updatedAt);
   lines.push('');
 
+  const summary = meetingSummarySchema.safeParse(meeting.aiSummary);
+  if (summary.success && summary.data.followThrough) {
+    lines.push(heading(2, 'Meeting follow-through', format));
+    lines.push(summarySnapshotLabel(meeting, summary.data.followThrough.sourceFingerprint));
+    lines.push('', summary.data.shortSummary, '');
+    for (const observation of summary.data.followThrough.observations) {
+      lines.push(heading(3, observation.title, format));
+      lines.push(reviewHorizonLabel(observation.reviewHorizon));
+      lines.push(observation.explanation);
+      lines.push(`Question: ${observation.question}`);
+      for (const source of observation.sourceRefs) {
+        lines.push(bullet(`Source (${source.kind}): ${source.label}`, format));
+      }
+      lines.push('');
+    }
+    if (summary.data.followThrough.observations.length === 0) {
+      lines.push('No additional follow-up observations.', '');
+    }
+  }
+
   for (const [index, section] of sections.entries()) {
     lines.push(
       heading(2, section.title ?? `Section ${index + 1}`, format),
@@ -377,6 +398,16 @@ function buildPdfDocument(
     ...(parsedSummary.success
       ? {
         summary: {
+          snapshotLabel: summarySnapshotLabel(meeting, parsedSummary.data.followThrough?.sourceFingerprint),
+          ...(parsedSummary.data.followThrough ? {
+            observations: parsedSummary.data.followThrough.observations.map((observation) => ({
+              title: observation.title,
+              explanation: observation.explanation,
+              question: observation.question,
+              reviewHorizonLabel: reviewHorizonLabel(observation.reviewHorizon),
+              sources: observation.sourceRefs.map((source) => `Source (${source.kind}): ${source.label}`),
+            })),
+          } : {}),
           shortSummary: parsedSummary.data.shortSummary,
           mainTopics: parsedSummary.data.mainTopics,
           keyTensions: parsedSummary.data.keyTensions,
@@ -392,6 +423,7 @@ function buildPdfDocument(
               }
               : {}),
             ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+            ...(task.status ? { status: task.status } : {}),
           })),
           suggestedNextMeetingFocus: parsedSummary.data.suggestedNextMeetingFocus,
         },
@@ -417,6 +449,17 @@ function buildPdfDocument(
       })),
     })),
   };
+}
+
+function reviewHorizonLabel(horizon: 'beforeNextMeeting' | 'nextMeeting') {
+  return horizon === 'beforeNextMeeting' ? 'Before the next meeting' : 'At the next meeting';
+}
+
+function summarySnapshotLabel(meeting: MeetingDto, fingerprint?: string) {
+  if (!fingerprint) return 'Saved snapshot - freshness not verified.';
+  return fingerprint === summarySourceFingerprint(meeting)
+    ? 'Saved snapshot - matches the current shared meeting content.'
+    : 'Saved snapshot - based on an earlier version of this meeting.';
 }
 
 export class ExportsService {

@@ -31,6 +31,14 @@ export type MeetingPdfDocument = {
   generatedOn: string;
   privateNotesNotice: string;
   summary?: {
+    snapshotLabel?: string;
+    observations?: Array<{
+      title: string;
+      explanation: string;
+      question: string;
+      reviewHorizonLabel: string;
+      sources: string[];
+    }>;
     shortSummary: string;
     mainTopics: string[];
     keyTensions: string[];
@@ -287,10 +295,33 @@ function writePageFooters(document: PDFKit.PDFDocument, notice: string) {
 
 function writeSummary(document: PDFKit.PDFDocument, summary: NonNullable<MeetingPdfDocument['summary']>) {
   ensureSpace(document, 40);
-  writeText(document, 'Meeting recap', { color: colors.primary, size: 15 });
+  writeText(document, summary.observations ? 'Meeting follow-through' : 'Meeting recap', { color: colors.primary, size: 15 });
   document.moveDown(0.25);
+  writeText(document, summary.snapshotLabel ?? 'Saved snapshot - freshness not verified.', { color: colors.muted, size: 8.5 });
+  document.moveDown(0.4);
   writeText(document, summary.shortSummary, { size: 10.5, spacing: 2.5 });
   document.moveDown(0.75);
+
+  if (summary.observations) {
+    for (const observation of summary.observations) {
+      ensureSpace(document, 100);
+      writeText(document, observation.title, { color: colors.primary, size: 11.5 });
+      writeText(document, observation.reviewHorizonLabel, { color: colors.muted, size: 8.5 });
+      document.moveDown(0.3);
+      writeText(document, observation.explanation, { size: 10 });
+      document.moveDown(0.3);
+      writeText(document, `Question: ${observation.question}`, { size: 10 });
+      document.moveDown(0.3);
+      for (const source of observation.sources) {
+        writeText(document, source, { color: colors.muted, size: 8.5, spacing: 1 });
+      }
+      document.moveDown(0.8);
+    }
+    if (summary.observations.length === 0) {
+      writeText(document, 'No additional follow-up observations.', { color: colors.muted, size: 9.5 });
+    }
+    return;
+  }
 
   writeBulletList(document, 'Main topics', summary.mainTopics);
   writeBulletList(document, 'Tensions to revisit', summary.keyTensions);
@@ -298,7 +329,7 @@ function writeSummary(document: PDFKit.PDFDocument, summary: NonNullable<Meeting
 
   if (summary.tasks.length > 0) {
     ensureSpace(document, 28);
-    writeText(document, 'Open tasks', { color: colors.primary, size: 10.5 });
+    writeText(document, 'Recorded tasks', { color: colors.primary, size: 10.5 });
     document.moveDown(0.3);
     summary.tasks.forEach((task) => writeTaskCard(document, task));
     document.moveDown(0.45);
