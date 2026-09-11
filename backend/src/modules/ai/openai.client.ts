@@ -1,9 +1,11 @@
 import OpenAI from 'openai';
+import { PROVIDER_OBSERVATIONS_JSON_SCHEMA } from './follow-through.schema.js';
 
 const MEETING_SUMMARY_OUTPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
+    observations: PROVIDER_OBSERVATIONS_JSON_SCHEMA,
     shortSummary: { type: 'string' },
     mainTopics: {
       type: 'array',
@@ -44,6 +46,7 @@ const MEETING_SUMMARY_OUTPUT_SCHEMA = {
     },
   },
   required: [
+    'observations',
     'shortSummary',
     'mainTopics',
     'keyTensions',
@@ -256,6 +259,7 @@ export class OpenAiSummaryProvider implements AiSummaryProvider {
     try {
       const response = await this.client.responses.create({
         model: input.model,
+        ...(input.model === 'gpt-5-mini' ? { reasoning: { effort: 'minimal' as const } } : {}),
         instructions: input.systemPrompt,
         input: input.userPrompt,
         max_output_tokens: input.maxOutputTokens,

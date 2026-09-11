@@ -1,5 +1,6 @@
 import { requireMinimumRole, type AuthContext } from '../../shared/auth/index.js';
 import { ApiError } from '../../shared/errors/index.js';
+import { meetingSummarySchema } from '../ai/ai.schema.js';
 import {
   throwOnSupabaseError,
   type JsonValue,
@@ -440,6 +441,11 @@ export class MeetingsService {
     }
 
     const validParticipantIds = new Set(existing.participantIds);
+    const savedSummary = meetingSummarySchema.safeParse(existing.aiSummary);
+    const savedFollowThrough = savedSummary.success ? savedSummary.data.followThrough : undefined;
+    if (summary.followThrough && JSON.stringify(summary.followThrough) !== JSON.stringify(savedFollowThrough)) {
+      throw new ApiError(422, 'meeting_summary_server_owned', 'Generate AI follow-ups through the summary endpoint.');
+    }
     const missingParticipantIds = findMissingParticipantIds(
       collectSummaryParticipantIds(summary),
       validParticipantIds,
@@ -454,7 +460,7 @@ export class MeetingsService {
     const updated = await this.meetingsRepository.updateMeetingSummary(
       auth.workspaceId,
       meetingId,
-      toJsonValue(summary),
+      toJsonValue({ ...summary, ...(savedFollowThrough ? { followThrough: savedFollowThrough } : {}) }),
     );
 
     if (!updated) {

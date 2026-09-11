@@ -23,6 +23,7 @@ import {
   type AiSummaryProvider,
 } from './openai.client.js';
 import { buildSafetyIdentifier } from './safety-identifier.js';
+import { buildGroundedSummaryOutput } from './follow-through.js';
 import {
   buildSummaryPromptPayload,
   getSummaryContentReadiness,
@@ -451,7 +452,7 @@ export class AiSummaryService {
       });
       const allowedParticipantIds = new Set(participants.map((participant) => participant.id));
       const sanitizedProviderOutput = sanitizeSummaryTaskOwnerReferences(
-        normalizeSummaryProviderOutput(providerOutput),
+        buildGroundedSummaryOutput(meeting, normalizeSummaryProviderOutput(providerOutput)),
         allowedParticipantIds,
       );
       const summary = meetingSummarySchema.parse({

@@ -602,6 +602,19 @@ describe('MeetingsService', () => {
     expect(repos.meetings.updateMeetingSummary).toHaveBeenCalled();
   });
 
+  it('rejects client-authored follow-through evidence', async () => {
+    const repos = createRepositories();
+    repos.subscriptions.findCurrentSubscriptionForWorkspace.mockResolvedValue(trustedPremiumSubscription());
+    repos.meetings.findMeetingByIdForWorkspace.mockResolvedValue(repositoryMeeting());
+    const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);
+    await expect(service.saveMeetingSummary(adultAuth, meetingId, {
+      id: 'summary_1', meetingId, shortSummary: 'Done', mainTopics: [], keyTensions: [],
+      agreements: [], tasks: [], suggestedNextMeetingFocus: [], createdAt: now,
+      followThrough: { version: 1, sourceFingerprint: 'a'.repeat(64), observations: [] },
+    }, new Date(now))).rejects.toMatchObject({ code: 'meeting_summary_server_owned', statusCode: 422 });
+    expect(repos.meetings.updateMeetingSummary).not.toHaveBeenCalled();
+  });
+
   it('blocks viewers from saving meeting summaries', async () => {
     const repos = createRepositories();
     const service = new MeetingsService(repos.meetings, repos.participants, repos.subscriptions);

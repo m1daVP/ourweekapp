@@ -9,6 +9,8 @@ import {
   VALIDATION_LIMITS,
 } from '../../shared/schemas/index.js';
 import { taskTitleSchema } from '../tasks/tasks.schema.js';
+import { taskResponsibilityTypeSchema, taskStatusSchema } from '../tasks/tasks.schema.js';
+import { followThroughSchema } from './follow-through.schema.js';
 
 export const summaryTextSchema = trimmedString(
   0,
@@ -26,6 +28,9 @@ export const summaryTextListSchema = z
 
 export const meetingSummaryTaskSchema = z.object({
   title: taskTitleSchema,
+  sourceId: apiIdSchema.optional(),
+  status: taskStatusSchema.optional(),
+  responsibilityType: taskResponsibilityTypeSchema.optional(),
   responsibleParticipantIds: z.array(apiIdSchema).optional(),
   dueDate: isoDateStringSchema.optional(),
 });
@@ -41,6 +46,7 @@ export const meetingSummarySchema = z.object({
     .array(meetingSummaryTaskSchema)
     .max(VALIDATION_LIMITS.summaryListItemsMax),
   suggestedNextMeetingFocus: summaryTextListSchema,
+  followThrough: followThroughSchema.optional(),
   createdAt: isoDateTimeStringSchema,
 });
 

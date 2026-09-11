@@ -111,6 +111,7 @@ describe('AI summary routes', () => {
       }),
     ).resolves.toEqual({
       output: {
+        observations: [],
         shortSummary:
           'Mock summary: this meeting was summarized with the local mock AI provider.',
         mainTopics: ['Mock main topic'],

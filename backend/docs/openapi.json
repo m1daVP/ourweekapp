@@ -7151,6 +7151,27 @@
                                 "minLength": 1,
                                 "maxLength": 140
                               },
+                              "sourceId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "open",
+                                  "done",
+                                  "skipped"
+                                ]
+                              },
+                              "responsibilityType": {
+                                "type": "string",
+                                "enum": [
+                                  "participant",
+                                  "shared",
+                                  "needsDiscussion"
+                                ]
+                              },
                               "responsibleParticipantIds": {
                                 "type": "array",
                                 "items": {
@@ -7178,6 +7199,141 @@
                             "minLength": 1,
                             "maxLength": 1000
                           }
+                        },
+                        "followThrough": {
+                          "type": "object",
+                          "properties": {
+                            "version": {
+                              "type": "number",
+                              "enum": [
+                                1
+                              ]
+                            },
+                            "sourceFingerprint": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "observations": {
+                              "maxItems": 3,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 160
+                                  },
+                                  "explanation": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 700
+                                  },
+                                  "question": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 700
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "clarify",
+                                      "continue"
+                                    ]
+                                  },
+                                  "reviewHorizon": {
+                                    "type": "string",
+                                    "enum": [
+                                      "beforeNextMeeting",
+                                      "nextMeeting"
+                                    ]
+                                  },
+                                  "sourceRefs": {
+                                    "minItems": 1,
+                                    "maxItems": 6,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "sectionId": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "sectionIndex": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 9007199254740991
+                                        },
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "section",
+                                            "note",
+                                            "task",
+                                            "agreement"
+                                          ]
+                                        },
+                                        "itemId": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "label": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 12000
+                                        }
+                                      },
+                                      "required": [
+                                        "sectionIndex",
+                                        "kind",
+                                        "label"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  },
+                                  "action": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "openSource",
+                                          "createTask"
+                                        ]
+                                      },
+                                      "sourceRefIndex": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 5
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "sourceRefIndex"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "title",
+                                  "explanation",
+                                  "question",
+                                  "kind",
+                                  "reviewHorizon",
+                                  "sourceRefs"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "version",
+                            "sourceFingerprint",
+                            "observations"
+                          ],
+                          "additionalProperties": false
                         },
                         "createdAt": {
                           "type": "string",
@@ -12833,6 +12989,27 @@
                                       "minLength": 1,
                                       "maxLength": 140
                                     },
+                                    "sourceId": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    },
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "open",
+                                        "done",
+                                        "skipped"
+                                      ]
+                                    },
+                                    "responsibilityType": {
+                                      "type": "string",
+                                      "enum": [
+                                        "participant",
+                                        "shared",
+                                        "needsDiscussion"
+                                      ]
+                                    },
                                     "responsibleParticipantIds": {
                                       "type": "array",
                                       "items": {
@@ -12860,6 +13037,141 @@
                                   "minLength": 1,
                                   "maxLength": 1000
                                 }
+                              },
+                              "followThrough": {
+                                "type": "object",
+                                "properties": {
+                                  "version": {
+                                    "type": "number",
+                                    "enum": [
+                                      1
+                                    ]
+                                  },
+                                  "sourceFingerprint": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$"
+                                  },
+                                  "observations": {
+                                    "maxItems": 3,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 160
+                                        },
+                                        "explanation": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 700
+                                        },
+                                        "question": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 700
+                                        },
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "clarify",
+                                            "continue"
+                                          ]
+                                        },
+                                        "reviewHorizon": {
+                                          "type": "string",
+                                          "enum": [
+                                            "beforeNextMeeting",
+                                            "nextMeeting"
+                                          ]
+                                        },
+                                        "sourceRefs": {
+                                          "minItems": 1,
+                                          "maxItems": 6,
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "sectionId": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 128
+                                              },
+                                              "sectionIndex": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "maximum": 9007199254740991
+                                              },
+                                              "kind": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "section",
+                                                  "note",
+                                                  "task",
+                                                  "agreement"
+                                                ]
+                                              },
+                                              "itemId": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 128
+                                              },
+                                              "label": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 12000
+                                              }
+                                            },
+                                            "required": [
+                                              "sectionIndex",
+                                              "kind",
+                                              "label"
+                                            ],
+                                            "additionalProperties": false
+                                          }
+                                        },
+                                        "action": {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "openSource",
+                                                "createTask"
+                                              ]
+                                            },
+                                            "sourceRefIndex": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 5
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "sourceRefIndex"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      },
+                                      "required": [
+                                        "title",
+                                        "explanation",
+                                        "question",
+                                        "kind",
+                                        "reviewHorizon",
+                                        "sourceRefs"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "version",
+                                  "sourceFingerprint",
+                                  "observations"
+                                ],
+                                "additionalProperties": false
                               },
                               "createdAt": {
                                 "type": "string",
@@ -13474,6 +13786,27 @@
                                     "minLength": 1,
                                     "maxLength": 140
                                   },
+                                  "sourceId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "open",
+                                      "done",
+                                      "skipped"
+                                    ]
+                                  },
+                                  "responsibilityType": {
+                                    "type": "string",
+                                    "enum": [
+                                      "participant",
+                                      "shared",
+                                      "needsDiscussion"
+                                    ]
+                                  },
                                   "responsibleParticipantIds": {
                                     "type": "array",
                                     "items": {
@@ -13500,6 +13833,137 @@
                                 "minLength": 1,
                                 "maxLength": 1000
                               }
+                            },
+                            "followThrough": {
+                              "type": "object",
+                              "properties": {
+                                "version": {
+                                  "type": "number",
+                                  "enum": [
+                                    1
+                                  ]
+                                },
+                                "sourceFingerprint": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                },
+                                "observations": {
+                                  "maxItems": 3,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 160
+                                      },
+                                      "explanation": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 700
+                                      },
+                                      "question": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 700
+                                      },
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "clarify",
+                                          "continue"
+                                        ]
+                                      },
+                                      "reviewHorizon": {
+                                        "type": "string",
+                                        "enum": [
+                                          "beforeNextMeeting",
+                                          "nextMeeting"
+                                        ]
+                                      },
+                                      "sourceRefs": {
+                                        "minItems": 1,
+                                        "maxItems": 6,
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "sectionId": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 128
+                                            },
+                                            "sectionIndex": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 9007199254740991
+                                            },
+                                            "kind": {
+                                              "type": "string",
+                                              "enum": [
+                                                "section",
+                                                "note",
+                                                "task",
+                                                "agreement"
+                                              ]
+                                            },
+                                            "itemId": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 128
+                                            },
+                                            "label": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 12000
+                                            }
+                                          },
+                                          "required": [
+                                            "sectionIndex",
+                                            "kind",
+                                            "label"
+                                          ]
+                                        }
+                                      },
+                                      "action": {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "openSource",
+                                              "createTask"
+                                            ]
+                                          },
+                                          "sourceRefIndex": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 5
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "sourceRefIndex"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "title",
+                                      "explanation",
+                                      "question",
+                                      "kind",
+                                      "reviewHorizon",
+                                      "sourceRefs"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": [
+                                "version",
+                                "sourceFingerprint",
+                                "observations"
+                              ]
                             },
                             "createdAt": {
                               "type": "string",
@@ -13893,6 +14357,27 @@
                                       "minLength": 1,
                                       "maxLength": 140
                                     },
+                                    "sourceId": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 128
+                                    },
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "open",
+                                        "done",
+                                        "skipped"
+                                      ]
+                                    },
+                                    "responsibilityType": {
+                                      "type": "string",
+                                      "enum": [
+                                        "participant",
+                                        "shared",
+                                        "needsDiscussion"
+                                      ]
+                                    },
                                     "responsibleParticipantIds": {
                                       "type": "array",
                                       "items": {
@@ -13920,6 +14405,141 @@
                                   "minLength": 1,
                                   "maxLength": 1000
                                 }
+                              },
+                              "followThrough": {
+                                "type": "object",
+                                "properties": {
+                                  "version": {
+                                    "type": "number",
+                                    "enum": [
+                                      1
+                                    ]
+                                  },
+                                  "sourceFingerprint": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$"
+                                  },
+                                  "observations": {
+                                    "maxItems": 3,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 160
+                                        },
+                                        "explanation": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 700
+                                        },
+                                        "question": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 700
+                                        },
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "clarify",
+                                            "continue"
+                                          ]
+                                        },
+                                        "reviewHorizon": {
+                                          "type": "string",
+                                          "enum": [
+                                            "beforeNextMeeting",
+                                            "nextMeeting"
+                                          ]
+                                        },
+                                        "sourceRefs": {
+                                          "minItems": 1,
+                                          "maxItems": 6,
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "sectionId": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 128
+                                              },
+                                              "sectionIndex": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "maximum": 9007199254740991
+                                              },
+                                              "kind": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "section",
+                                                  "note",
+                                                  "task",
+                                                  "agreement"
+                                                ]
+                                              },
+                                              "itemId": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 128
+                                              },
+                                              "label": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 12000
+                                              }
+                                            },
+                                            "required": [
+                                              "sectionIndex",
+                                              "kind",
+                                              "label"
+                                            ],
+                                            "additionalProperties": false
+                                          }
+                                        },
+                                        "action": {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "openSource",
+                                                "createTask"
+                                              ]
+                                            },
+                                            "sourceRefIndex": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 5
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "sourceRefIndex"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      },
+                                      "required": [
+                                        "title",
+                                        "explanation",
+                                        "question",
+                                        "kind",
+                                        "reviewHorizon",
+                                        "sourceRefs"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "version",
+                                  "sourceFingerprint",
+                                  "observations"
+                                ],
+                                "additionalProperties": false
                               },
                               "createdAt": {
                                 "type": "string",
@@ -14323,6 +14943,27 @@
                                           "minLength": 1,
                                           "maxLength": 140
                                         },
+                                        "sourceId": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "status": {
+                                          "type": "string",
+                                          "enum": [
+                                            "open",
+                                            "done",
+                                            "skipped"
+                                          ]
+                                        },
+                                        "responsibilityType": {
+                                          "type": "string",
+                                          "enum": [
+                                            "participant",
+                                            "shared",
+                                            "needsDiscussion"
+                                          ]
+                                        },
                                         "responsibleParticipantIds": {
                                           "type": "array",
                                           "items": {
@@ -14350,6 +14991,141 @@
                                       "minLength": 1,
                                       "maxLength": 1000
                                     }
+                                  },
+                                  "followThrough": {
+                                    "type": "object",
+                                    "properties": {
+                                      "version": {
+                                        "type": "number",
+                                        "enum": [
+                                          1
+                                        ]
+                                      },
+                                      "sourceFingerprint": {
+                                        "type": "string",
+                                        "pattern": "^[a-f0-9]{64}$"
+                                      },
+                                      "observations": {
+                                        "maxItems": 3,
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "title": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 160
+                                            },
+                                            "explanation": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 700
+                                            },
+                                            "question": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 700
+                                            },
+                                            "kind": {
+                                              "type": "string",
+                                              "enum": [
+                                                "clarify",
+                                                "continue"
+                                              ]
+                                            },
+                                            "reviewHorizon": {
+                                              "type": "string",
+                                              "enum": [
+                                                "beforeNextMeeting",
+                                                "nextMeeting"
+                                              ]
+                                            },
+                                            "sourceRefs": {
+                                              "minItems": 1,
+                                              "maxItems": 6,
+                                              "type": "array",
+                                              "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "sectionId": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 128
+                                                  },
+                                                  "sectionIndex": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 9007199254740991
+                                                  },
+                                                  "kind": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "section",
+                                                      "note",
+                                                      "task",
+                                                      "agreement"
+                                                    ]
+                                                  },
+                                                  "itemId": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 128
+                                                  },
+                                                  "label": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 12000
+                                                  }
+                                                },
+                                                "required": [
+                                                  "sectionIndex",
+                                                  "kind",
+                                                  "label"
+                                                ],
+                                                "additionalProperties": false
+                                              }
+                                            },
+                                            "action": {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "openSource",
+                                                    "createTask"
+                                                  ]
+                                                },
+                                                "sourceRefIndex": {
+                                                  "type": "integer",
+                                                  "minimum": 0,
+                                                  "maximum": 5
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "sourceRefIndex"
+                                              ],
+                                              "additionalProperties": false
+                                            }
+                                          },
+                                          "required": [
+                                            "title",
+                                            "explanation",
+                                            "question",
+                                            "kind",
+                                            "reviewHorizon",
+                                            "sourceRefs"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "version",
+                                      "sourceFingerprint",
+                                      "observations"
+                                    ],
+                                    "additionalProperties": false
                                   },
                                   "createdAt": {
                                     "type": "string",
@@ -14685,6 +15461,27 @@
                                           "minLength": 1,
                                           "maxLength": 140
                                         },
+                                        "sourceId": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "status": {
+                                          "type": "string",
+                                          "enum": [
+                                            "open",
+                                            "done",
+                                            "skipped"
+                                          ]
+                                        },
+                                        "responsibilityType": {
+                                          "type": "string",
+                                          "enum": [
+                                            "participant",
+                                            "shared",
+                                            "needsDiscussion"
+                                          ]
+                                        },
                                         "responsibleParticipantIds": {
                                           "type": "array",
                                           "items": {
@@ -14712,6 +15509,141 @@
                                       "minLength": 1,
                                       "maxLength": 1000
                                     }
+                                  },
+                                  "followThrough": {
+                                    "type": "object",
+                                    "properties": {
+                                      "version": {
+                                        "type": "number",
+                                        "enum": [
+                                          1
+                                        ]
+                                      },
+                                      "sourceFingerprint": {
+                                        "type": "string",
+                                        "pattern": "^[a-f0-9]{64}$"
+                                      },
+                                      "observations": {
+                                        "maxItems": 3,
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "title": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 160
+                                            },
+                                            "explanation": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 700
+                                            },
+                                            "question": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 700
+                                            },
+                                            "kind": {
+                                              "type": "string",
+                                              "enum": [
+                                                "clarify",
+                                                "continue"
+                                              ]
+                                            },
+                                            "reviewHorizon": {
+                                              "type": "string",
+                                              "enum": [
+                                                "beforeNextMeeting",
+                                                "nextMeeting"
+                                              ]
+                                            },
+                                            "sourceRefs": {
+                                              "minItems": 1,
+                                              "maxItems": 6,
+                                              "type": "array",
+                                              "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "sectionId": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 128
+                                                  },
+                                                  "sectionIndex": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 9007199254740991
+                                                  },
+                                                  "kind": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "section",
+                                                      "note",
+                                                      "task",
+                                                      "agreement"
+                                                    ]
+                                                  },
+                                                  "itemId": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 128
+                                                  },
+                                                  "label": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 12000
+                                                  }
+                                                },
+                                                "required": [
+                                                  "sectionIndex",
+                                                  "kind",
+                                                  "label"
+                                                ],
+                                                "additionalProperties": false
+                                              }
+                                            },
+                                            "action": {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "openSource",
+                                                    "createTask"
+                                                  ]
+                                                },
+                                                "sourceRefIndex": {
+                                                  "type": "integer",
+                                                  "minimum": 0,
+                                                  "maximum": 5
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "sourceRefIndex"
+                                              ],
+                                              "additionalProperties": false
+                                            }
+                                          },
+                                          "required": [
+                                            "title",
+                                            "explanation",
+                                            "question",
+                                            "kind",
+                                            "reviewHorizon",
+                                            "sourceRefs"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "version",
+                                      "sourceFingerprint",
+                                      "observations"
+                                    ],
+                                    "additionalProperties": false
                                   },
                                   "createdAt": {
                                     "type": "string",
@@ -15037,6 +15969,27 @@
                               "minLength": 1,
                               "maxLength": 140
                             },
+                            "sourceId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "open",
+                                "done",
+                                "skipped"
+                              ]
+                            },
+                            "responsibilityType": {
+                              "type": "string",
+                              "enum": [
+                                "participant",
+                                "shared",
+                                "needsDiscussion"
+                              ]
+                            },
                             "responsibleParticipantIds": {
                               "type": "array",
                               "items": {
@@ -15063,6 +16016,137 @@
                           "minLength": 1,
                           "maxLength": 1000
                         }
+                      },
+                      "followThrough": {
+                        "type": "object",
+                        "properties": {
+                          "version": {
+                            "type": "number",
+                            "enum": [
+                              1
+                            ]
+                          },
+                          "sourceFingerprint": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "observations": {
+                            "maxItems": 3,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                },
+                                "explanation": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 700
+                                },
+                                "question": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 700
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "clarify",
+                                    "continue"
+                                  ]
+                                },
+                                "reviewHorizon": {
+                                  "type": "string",
+                                  "enum": [
+                                    "beforeNextMeeting",
+                                    "nextMeeting"
+                                  ]
+                                },
+                                "sourceRefs": {
+                                  "minItems": 1,
+                                  "maxItems": 6,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "sectionId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      },
+                                      "sectionIndex": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "section",
+                                          "note",
+                                          "task",
+                                          "agreement"
+                                        ]
+                                      },
+                                      "itemId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 128
+                                      },
+                                      "label": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 12000
+                                      }
+                                    },
+                                    "required": [
+                                      "sectionIndex",
+                                      "kind",
+                                      "label"
+                                    ]
+                                  }
+                                },
+                                "action": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "openSource",
+                                        "createTask"
+                                      ]
+                                    },
+                                    "sourceRefIndex": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 5
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "sourceRefIndex"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "title",
+                                "explanation",
+                                "question",
+                                "kind",
+                                "reviewHorizon",
+                                "sourceRefs"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "version",
+                          "sourceFingerprint",
+                          "observations"
+                        ]
                       },
                       "createdAt": {
                         "type": "string",
@@ -15402,6 +16486,27 @@
                                 "minLength": 1,
                                 "maxLength": 140
                               },
+                              "sourceId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 128
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "open",
+                                  "done",
+                                  "skipped"
+                                ]
+                              },
+                              "responsibilityType": {
+                                "type": "string",
+                                "enum": [
+                                  "participant",
+                                  "shared",
+                                  "needsDiscussion"
+                                ]
+                              },
                               "responsibleParticipantIds": {
                                 "type": "array",
                                 "items": {
@@ -15429,6 +16534,141 @@
                             "minLength": 1,
                             "maxLength": 1000
                           }
+                        },
+                        "followThrough": {
+                          "type": "object",
+                          "properties": {
+                            "version": {
+                              "type": "number",
+                              "enum": [
+                                1
+                              ]
+                            },
+                            "sourceFingerprint": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "observations": {
+                              "maxItems": 3,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 160
+                                  },
+                                  "explanation": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 700
+                                  },
+                                  "question": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 700
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "clarify",
+                                      "continue"
+                                    ]
+                                  },
+                                  "reviewHorizon": {
+                                    "type": "string",
+                                    "enum": [
+                                      "beforeNextMeeting",
+                                      "nextMeeting"
+                                    ]
+                                  },
+                                  "sourceRefs": {
+                                    "minItems": 1,
+                                    "maxItems": 6,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "sectionId": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "sectionIndex": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 9007199254740991
+                                        },
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "section",
+                                            "note",
+                                            "task",
+                                            "agreement"
+                                          ]
+                                        },
+                                        "itemId": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 128
+                                        },
+                                        "label": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 12000
+                                        }
+                                      },
+                                      "required": [
+                                        "sectionIndex",
+                                        "kind",
+                                        "label"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  },
+                                  "action": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "openSource",
+                                          "createTask"
+                                        ]
+                                      },
+                                      "sourceRefIndex": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 5
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "sourceRefIndex"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "title",
+                                  "explanation",
+                                  "question",
+                                  "kind",
+                                  "reviewHorizon",
+                                  "sourceRefs"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "version",
+                            "sourceFingerprint",
+                            "observations"
+                          ],
+                          "additionalProperties": false
                         },
                         "createdAt": {
                           "type": "string",
