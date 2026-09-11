@@ -1,5 +1,7 @@
+import { followThroughMessages } from './followThroughMessages';
 export const messages = {
   en: {
+    followThrough: followThroughMessages.en,
     app: {
       refresh: {
         pull: 'Pull to refresh',
@@ -1558,6 +1560,7 @@ export const messages = {
     },
   },
   uk: {
+    followThrough: followThroughMessages.uk,
     app: {
       refresh: {
         pull: 'Потягніть, щоб оновити',
@@ -3152,6 +3155,7 @@ export const messages = {
     },
   },
   es: {
+    followThrough: followThroughMessages.es,
     app: {
       refresh: {
         pull: 'Desliza para actualizar',

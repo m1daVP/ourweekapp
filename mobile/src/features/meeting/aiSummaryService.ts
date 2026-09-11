@@ -224,10 +224,11 @@ function normalizeBackendSummaryTask(
 ): MeetingSummaryTask {
   return {
     title: task.title,
-    responsibilityType: 'needsDiscussion',
+    responsibilityType: task.responsibilityType ?? 'needsDiscussion',
     responsibleParticipantIds: task.responsibleParticipantIds ?? [],
     ...(task.dueDate ? { dueDate: task.dueDate } : {}),
-    status: 'open',
+    status: task.status,
+    sourceId: task.sourceId,
   };
 }
 

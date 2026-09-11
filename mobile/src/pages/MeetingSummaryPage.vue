@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { followThroughExportLines } from '@/features/export/services/exportService';
+import MeetingFollowThrough from '@/features/meeting/components/MeetingFollowThrough.vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -296,7 +298,7 @@ function createActionItem(
 function isOpenTask(
   task: Pick<MeetingTask | MeetingSummaryTask, 'status'>
 ): boolean {
-  return task.status !== 'done';
+  return task.status === 'open';
 }
 
 function createSummaryViewModel(item: Meeting): SummaryViewModel {
@@ -350,6 +352,8 @@ function getShareText(summary: SummaryViewModel) {
     );
   }
 
+  if (accessibleMeeting.value?.aiSummary)
+    lines.push(...followThroughExportLines(accessibleMeeting.value));
   return lines.join('\n');
 }
 
@@ -401,7 +405,6 @@ async function handleGenerateSummary() {
     !accessibleMeeting.value ||
     accessibleMeeting.value.status !== 'completed' ||
     !subscriptionStore.canGenerateAssistantRecap ||
-    accessibleMeeting.value.aiSummary ||
     isGeneratingSummary.value
   ) {
     return;
@@ -512,7 +515,21 @@ function goBack() {
           <h2 id="summary-ai-title">{{ t('meetingSummary.aiInsight') }}</h2>
         </div>
         <template v-if="aiInsightState === 'available'">
-          <p>{{ meetingSummary.aiInsight }}</p>
+          <MeetingFollowThrough
+            v-if="accessibleMeeting?.aiSummary"
+            :meeting="accessibleMeeting"
+            :can-regenerate="
+              accessibleMeeting.status === 'completed' &&
+              subscriptionStore.canGenerateAssistantRecap
+            "
+            :generating="isGeneratingSummary"
+            @regenerate="handleGenerateSummary"
+          />
+          <AiRecapRecoveryPanel
+            v-if="aiSummaryRecovery"
+            :recovery="aiSummaryRecovery"
+            @retry="handleGenerateSummary"
+          />
           <p class="meeting-summary-ai-card__note">
             {{ meetingSummaryText('aiDisclaimer') }}
           </p>

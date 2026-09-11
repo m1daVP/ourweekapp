@@ -9,6 +9,7 @@ import {
   watch,
 } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
@@ -46,6 +47,7 @@ interface TaskCardView {
   task?: Task;
 }
 
+const route = useRoute();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const tasksStore = useTasksStore();
@@ -143,6 +145,10 @@ const emptyTaskMessage = computed(() => {
 
 onMounted(() => {
   tasksStore.syncFromMeetings(meetingsStore.meetings);
+  const requestedTask = tasksStore.tasks.find(
+    (task) => task.id === route?.query.taskId
+  );
+  if (requestedTask) selectedTask.value = requestedTask;
   newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
 });
 

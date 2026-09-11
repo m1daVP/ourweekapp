@@ -78,16 +78,42 @@ export interface MeetingTask {
   completedAt?: string;
 }
 
+export interface SummarySourceRef {
+  sectionId?: string;
+  sectionIndex: number;
+  kind: 'section' | 'note' | 'task' | 'agreement';
+  itemId?: string;
+  label: string;
+}
+
+export interface FollowThroughObservation {
+  title: string;
+  explanation: string;
+  question: string;
+  kind: 'clarify' | 'continue';
+  reviewHorizon: 'beforeNextMeeting' | 'nextMeeting';
+  sourceRefs: SummarySourceRef[];
+  action?: { type: 'openSource' | 'createTask'; sourceRefIndex: number };
+}
+
+export interface MeetingFollowThrough {
+  version: 1;
+  sourceFingerprint: string;
+  observations: FollowThroughObservation[];
+}
+
 export interface MeetingSummaryTask {
+  sourceId?: string;
   title: string;
   description?: string;
   responsibilityType: TaskResponsibilityType;
   responsibleParticipantIds: string[];
   dueDate?: string;
-  status: MeetingTaskStatus;
+  status?: MeetingTaskStatus;
 }
 
 export interface MeetingSummary {
+  followThrough?: MeetingFollowThrough;
   id: string;
   meetingId: string;
   shortSummary: string;

@@ -91,7 +91,7 @@ function getTaskMeta(
   context: MeetingExportContext
 ) {
   const details = [
-    `${translate('export.status')}: ${translate(`export.taskStatus.${task.status}`)}`,
+    `${translate('export.status')}: ${task.status ? translate(`export.taskStatus.${task.status}`) : translate('followThrough.unknownStatus')}`,
     `${translate('export.responsible')}: ${getResponsibleLabel(
       task,
       context.getParticipantName
@@ -136,6 +136,8 @@ function addAiSummaryText(
     ''
   );
 
+  if (addFollowThrough(lines, meeting)) return;
+
   addListText(
     lines,
     translate('export.mainTopics'),
@@ -152,7 +154,7 @@ function addAiSummaryText(
     meeting.aiSummary.agreements
   );
 
-  lines.push(translate('export.openTasks'));
+  lines.push(translate('meeting.tasks'));
   if (meeting.aiSummary.tasks.length) {
     for (const task of meeting.aiSummary.tasks) {
       lines.push(`- ${task.title}`);
@@ -200,6 +202,8 @@ function addAiSummaryMarkdown(
     ''
   );
 
+  if (addFollowThrough(lines, meeting)) return;
+
   addListMarkdown(
     lines,
     translate('export.mainTopics'),
@@ -216,7 +220,7 @@ function addAiSummaryMarkdown(
     meeting.aiSummary.agreements
   );
 
-  lines.push(`### ${translate('export.openTasks')}`);
+  lines.push(`### ${translate('meeting.tasks')}`);
   if (meeting.aiSummary.tasks.length) {
     for (const task of meeting.aiSummary.tasks) {
       lines.push(`- **${task.title}**`);
@@ -450,4 +454,24 @@ export async function exportMeetingAsPdf(meetingId: string) {
     mimeType: 'application/pdf',
     title: file.fileName,
   });
+}
+
+export function followThroughExportLines(meeting: Meeting): string[] {
+  const result = [translate('followThrough.exportSnapshot')];
+  for (const observation of meeting.aiSummary?.followThrough?.observations ??
+    []) {
+    result.push(
+      '',
+      translate(`followThrough.${observation.reviewHorizon}`),
+      observation.title,
+      observation.explanation,
+      `${translate('followThrough.suggestion')}: ${observation.question}`,
+      `${translate('followThrough.evidence')}: ${observation.sourceRefs.map((source) => source.label).join('; ')}`
+    );
+  }
+  return result;
+}
+function addFollowThrough(lines: string[], meeting: Meeting) {
+  lines.push(...followThroughExportLines(meeting));
+  return Boolean(meeting.aiSummary?.followThrough);
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import MeetingFollowThrough from '@/features/meeting/components/MeetingFollowThrough.vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
@@ -112,7 +113,8 @@ function getMeetingStatusLabel(item: Meeting) {
   return item.status === 'completed' ? t('export.finished') : t('export.draft');
 }
 
-function getTaskStatusLabel(status: MeetingTask['status']) {
+function getTaskStatusLabel(status: MeetingTask['status'] | undefined) {
+  if (!status) return t('followThrough.unknownStatus');
   return t(`meeting.taskStatus.${status}`);
 }
 
@@ -276,7 +278,6 @@ async function generateSummary() {
     !meeting.value ||
     isGeneratingSummary.value ||
     meeting.value.status !== 'completed' ||
-    Boolean(aiSummary.value) ||
     !subscriptionStore.canGenerateAssistantRecap
   ) {
     return;
@@ -407,11 +408,17 @@ async function generateSummaryForMeeting(
           @retry="generateSummary"
         />
 
-        <template v-if="aiSummary">
-          <p class="ai-summary-panel__summary">
-            {{ aiSummary.shortSummary }}
-          </p>
-
+        <MeetingFollowThrough
+          v-if="aiSummary"
+          :meeting="meeting"
+          :can-regenerate="
+            meeting.status === 'completed' &&
+            subscriptionStore.canGenerateAssistantRecap
+          "
+          :generating="isGeneratingSummary"
+          @regenerate="generateSummary"
+        />
+        <template v-if="aiSummary && !aiSummary.followThrough">
           <div class="meeting-summary__group">
             <h3>{{ t('meeting.mainTopics') }}</h3>
             <ul class="meeting-list">
@@ -440,7 +447,7 @@ async function generateSummaryForMeeting(
           </div>
 
           <div class="meeting-summary__group">
-            <h3>{{ t('meeting.openTasks') }}</h3>
+            <h3>{{ t('meeting.tasks') }}</h3>
             <ul
               v-if="aiSummary.tasks.length"
               class="meeting-list meeting-task-list"
@@ -477,7 +484,7 @@ async function generateSummaryForMeeting(
           </div>
         </template>
 
-        <p v-else class="meeting-empty">
+        <p v-if="!aiSummary" class="meeting-empty">
           {{ t('meeting.generateEmpty') }}
         </p>
       </section>

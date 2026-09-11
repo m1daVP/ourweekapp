@@ -1,4 +1,7 @@
-import type { MeetingSummary } from '@/features/meeting/types';
+import type {
+  MeetingSummary,
+  MeetingSummaryTask,
+} from '@/features/meeting/types';
 import type { SupportedLocale } from '@/features/localization/types';
 import { apiRequest } from './httpClient';
 
@@ -10,6 +13,9 @@ export interface GenerateMeetingSummaryRequestDto {
 }
 
 export interface AiMeetingSummaryTaskDto {
+  sourceId?: string;
+  status?: MeetingSummaryTask['status'];
+  responsibilityType?: MeetingSummaryTask['responsibilityType'];
   title: string;
   responsibleParticipantIds?: string[];
   dueDate?: string;

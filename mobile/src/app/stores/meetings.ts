@@ -84,6 +84,7 @@ interface LegacyParticipant {
 }
 
 interface LegacyMeetingSummaryTask {
+  sourceId?: string;
   title?: string;
   description?: string;
   responsibilityType?: TaskResponsibilityType;
@@ -93,6 +94,7 @@ interface LegacyMeetingSummaryTask {
 }
 
 interface LegacyMeetingSummary {
+  followThrough?: MeetingSummary['followThrough'];
   id?: string;
   meetingId?: string;
   shortSummary?: string;
@@ -245,12 +247,12 @@ function normalizeMeetingSummaryTask(
     title,
     description: task.description?.trim() || undefined,
     responsibilityType,
-    responsibleParticipantIds:
-      responsibilityType === 'needsDiscussion'
-        ? []
-        : uniqueStrings(task.responsibleParticipantIds ?? []),
+    responsibleParticipantIds: uniqueStrings(
+      task.responsibleParticipantIds ?? []
+    ),
     dueDate: task.dueDate?.trim() || undefined,
-    status: task.status ?? 'open',
+    status: task.status,
+    sourceId: task.sourceId,
   };
 }
 
@@ -276,6 +278,7 @@ function normalizeMeetingSummary(
     id,
     meetingId,
     shortSummary,
+    followThrough: summary.followThrough,
     mainTopics: normalizeStringList(summary.mainTopics),
     keyTensions: normalizeStringList(summary.keyTensions),
     agreements: normalizeStringList(summary.agreements),
