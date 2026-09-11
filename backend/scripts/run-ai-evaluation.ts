@@ -5,7 +5,8 @@ import { env } from '../src/config/env.js';
 import { buildSafetyIdentifier } from '../src/modules/ai/safety-identifier.js';
 import { evaluateAiSummaryCase } from '../src/modules/ai/evaluation.js';
 import { aiEvaluationCases } from '../src/modules/ai/evaluation-fixtures.js';
-import { OpenAiSummaryProvider } from '../src/modules/ai/openai.client.js';
+import { buildSummaryPromptPayload } from '../src/modules/ai/summary-payload.js';
+import { OpenAiSummaryProvider, isAiSummaryProviderError } from '../src/modules/ai/openai.client.js';
 
 function outputPathFromArguments(args: string[]) {
   const outputFlagIndex = args.indexOf('--output');
@@ -54,11 +55,50 @@ async function main() {
     env.AI_SAFETY_IDENTIFIER_SECRET,
   );
   let failed = false;
+  const includeSyntheticReview = process.argv.includes('--include-synthetic-review');
 
-  for (const evaluationCase of aiEvaluationCases) {
-    const evidence = await evaluateAiSummaryCase(evaluationCase, provider, safetyIdentifier);
-    await appendFile(outputPath, `${JSON.stringify(evidence)}\n`, 'utf8');
-    failed = failed || evidence.status === 'failed';
+  const args = process.argv.slice(2);
+  const caseIndex = args.indexOf('--case');
+  const caseId = caseIndex >= 0 ? args[caseIndex + 1] : undefined;
+  if (caseIndex >= 0 && (!caseId || !aiEvaluationCases.some((item) => item.id === caseId))) {
+    throw new Error('Pass --case with an exact synthetic corpus case id.');
+  }
+  const limitIndex = args.indexOf('--limit');
+  const limit = limitIndex >= 0 ? Number(args[limitIndex + 1]) : aiEvaluationCases.length;
+  if (!Number.isInteger(limit) || limit < 1 || limit > aiEvaluationCases.length) {
+    throw new Error(`Pass --limit as an integer from 1 to ${aiEvaluationCases.length}.`);
+  }
+  const selectedCases = aiEvaluationCases.filter((item) => !caseId || item.id === caseId).slice(0, limit);
+  for (const evaluationCase of selectedCases) {
+    let generatedOutput: unknown;
+    try {
+      const evidence = await evaluateAiSummaryCase(evaluationCase, {
+        async generateMeetingSummary(request) {
+          const result = await provider.generateMeetingSummary(request);
+          generatedOutput = result.output;
+          return result;
+        },
+      }, safetyIdentifier);
+      const row = includeSyntheticReview ? {
+        ...evidence,
+        syntheticHumanReview: {
+          input: JSON.parse(buildSummaryPromptPayload(evaluationCase.meeting, evaluationCase.participants, evaluationCase.locale)),
+          output: generatedOutput,
+          focus: evaluationCase.humanReviewFocus,
+          scores: null,
+        },
+      } : evidence;
+      await appendFile(outputPath, `${JSON.stringify(row)}\n`, 'utf8');
+      failed = failed || evidence.status === 'failed';
+    } catch (error) {
+      if (!isAiSummaryProviderError(error)) throw error;
+      failed = true;
+      await appendFile(outputPath, `${JSON.stringify({
+        caseId: evaluationCase.id, locale: evaluationCase.locale,
+        templateId: evaluationCase.meeting.templateId, status: 'failed',
+        issueCodes: [error.metadata.failureClass], providerFailure: error.metadata,
+      })}\n`, 'utf8');
+    }
   }
 
   if (failed) {
@@ -67,6 +107,8 @@ async function main() {
 }
 
 void main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? error.message : 'AI evaluation failed.'}\n`);
+  process.stderr.write(`${isAiSummaryProviderError(error)
+    ? JSON.stringify(error.metadata)
+    : error instanceof Error ? error.message : 'AI evaluation failed.'}\n`);
   process.exitCode = 1;
 });

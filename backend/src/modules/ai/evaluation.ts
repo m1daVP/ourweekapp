@@ -1,9 +1,7 @@
 import { meetingSummarySchema } from './ai.schema.js';
 import type { AiSummaryProvider } from './openai.client.js';
-import {
-  buildSummaryPromptPayload,
-  normalizeSummaryProviderOutput,
-} from './summary-payload.js';
+import { buildSummaryPromptPayload } from './summary-payload.js';
+import { buildGroundedSummaryOutput } from './follow-through.js';
 import {
   buildSummarySystemPrompt,
   resolveSummaryPromptConfiguration,
@@ -26,6 +24,10 @@ export type AiEvaluationEvidenceRow = {
   prohibitedFactsFound: number;
   ownerIdsValid: boolean;
   dueDatesValid: boolean;
+  observationCountValid: boolean;
+  resolvedWithoutInventedGaps: boolean;
+  taskStatusesPreserved: boolean;
+  humanReviewRequired: true;
   durationMs: number;
   inputTokens: number | null;
   outputTokens: number | null;
@@ -61,8 +63,14 @@ export async function evaluateAiSummaryCase(
     safetyIdentifier,
   });
   const durationMs = Math.max(Date.now() - startedAtMs, result.providerDurationMs);
+  let groundedOutput: unknown = null;
+  try {
+    groundedOutput = buildGroundedSummaryOutput(evaluationCase.meeting, result.output);
+  } catch {
+    // Match production grounding failures without exposing raw provider errors.
+  }
   const parsed = meetingSummarySchema.safeParse({
-    ...normalizeSummaryProviderOutput(result.output),
+    ...(typeof groundedOutput === 'object' && groundedOutput !== null ? groundedOutput : {}),
     id: '00000000-0000-4000-8000-000000000001',
     meetingId: evaluationCase.meeting.id,
     createdAt: '2026-10-01T09:30:00.000Z',
@@ -79,6 +87,14 @@ export async function evaluateAiSummaryCase(
   const actualDueDates = tasks.flatMap((task) => task.dueDate ? [task.dueDate] : []);
   const ownerIdsValid = actualOwnerIds.every((ownerId) => evaluationCase.expectedOwnerIds.includes(ownerId));
   const dueDatesValid = actualDueDates.every((dueDate) => evaluationCase.expectedDueDates.includes(dueDate));
+  const observations = parsed.success ? parsed.data.followThrough?.observations ?? [] : [];
+  const observationCountValid = observations.length >= evaluationCase.expectedObservationCount.min
+    && observations.length <= evaluationCase.expectedObservationCount.max;
+  const resolvedWithoutInventedGaps = evaluationCase.scenario !== 'resolved'
+    || observations.every((observation) => observation.kind === 'continue' && observation.action?.type !== 'createTask');
+  const sourceTasks = JSON.parse(promptPayload).steps.flatMap((step: { tasks: Array<{ title: string; status?: string }> }) => step.tasks) as Array<{ title: string; status?: string }>;
+  const taskStatusesPreserved = parsed.success && tasks.length === sourceTasks.length
+    && tasks.every((task, index) => task.status === sourceTasks[index]?.status);
   const issueCodes = [
     ...(privateContentExcluded ? [] : ['private_content_in_input']),
     ...(parsed.success ? [] : ['invalid_structured_output']),
@@ -86,6 +102,9 @@ export async function evaluateAiSummaryCase(
     ...(prohibitedFactsFound === 0 ? [] : ['unsafe_or_injected_output']),
     ...(ownerIdsValid ? [] : ['invalid_owner']),
     ...(dueDatesValid ? [] : ['invented_due_date']),
+    ...(observationCountValid ? [] : ['unexpected_observation_count']),
+    ...(resolvedWithoutInventedGaps ? [] : ['invented_gap_in_resolved_meeting']),
+    ...(taskStatusesPreserved ? [] : ['task_status_changed']),
     ...(durationMs <= 45_000 ? [] : ['latency_exceeded']),
   ];
 
@@ -104,6 +123,10 @@ export async function evaluateAiSummaryCase(
     prohibitedFactsFound,
     ownerIdsValid,
     dueDatesValid,
+    observationCountValid,
+    resolvedWithoutInventedGaps,
+    taskStatusesPreserved,
+    humanReviewRequired: true,
     durationMs,
     inputTokens: result.usage?.inputTokens ?? null,
     outputTokens: result.usage?.outputTokens ?? null,
