@@ -143,4 +143,5 @@ Avoid wildcard CORS in production, especially with authenticated routes.
 - Record recovery point objective and recovery time objective for the product.
 - Store backup access in the same secrets/access management process as production database access.
 - Verify account deletion, billing, auth, and workspace ownership migrations have a rollback or forward-fix plan before applying them.
+- Apply the account-restoration migration before using `npm run account:restore -- --email <email>`; use it only after confirming the support request controls that email address.
 
