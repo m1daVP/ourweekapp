@@ -9,8 +9,12 @@ import {
   resetSyncedAppDataForOwner,
 } from '@/shared/services/storageService';
 import { resetSyncRuntimeState } from '@/shared/services/syncRuntimeService';
+import type { UserRole } from '@/features/access/types';
 
-export function prepareSyncForAuthenticatedUser(userId: string) {
+export function prepareSyncForAuthenticatedUser(
+  userId: string,
+  role: UserRole = 'viewer'
+) {
   const currentMetadata = readSyncMetadata();
 
   resetSyncRuntimeState();
@@ -36,7 +40,7 @@ export function prepareSyncForAuthenticatedUser(userId: string) {
   tasksStore.reviewDecisions = [];
   participantsStore.participants = [];
   participantsStore.currentParticipantId = null;
-  workspaceStore.resetForAuthenticatedUser(userId);
+  workspaceStore.resetForAuthenticatedUser(userId, role);
 
   return { didResetSyncedData: true };
 }

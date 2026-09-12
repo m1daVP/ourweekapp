@@ -47,6 +47,7 @@ import type {
   SignInPayload,
   SignUpPayload,
 } from '@/features/auth/types';
+import type { UserRole } from '@/features/access/types';
 
 const STORAGE_VERSION = 3;
 const LEGACY_AUTH_STORAGE_KEY = 'ourweek:auth';
@@ -217,8 +218,8 @@ function clearStoredAuthTokensSafely() {
   clearLegacyAuthTokensFromLocalStorage();
 }
 
-async function prepareSyncForSessionUser(userId: string) {
-  prepareSyncForAuthenticatedUser(userId);
+async function prepareSyncForSessionUser(userId: string, role: UserRole) {
+  prepareSyncForAuthenticatedUser(userId, role);
 }
 
 function resetSyncAfterSessionEnd() {
@@ -690,7 +691,7 @@ export const useAuthStore = defineStore('auth', {
       }
 
       const nextUser = mapSessionUser(session);
-      await prepareSyncForSessionUser(nextUser.id);
+      await prepareSyncForSessionUser(nextUser.id, session.user.role);
 
       if (!isSessionCurrent()) {
         await clearStoredAuthTokensSafely();
@@ -798,7 +799,7 @@ export const useAuthStore = defineStore('auth', {
           }
 
           const nextUser = mapAuthUser(currentUser, this.user?.email);
-          await prepareSyncForSessionUser(nextUser.id);
+          await prepareSyncForSessionUser(nextUser.id, currentUser.role);
           await syncRevenueCatForSessionUser(nextUser.workspaceId);
 
           this.user = nextUser;

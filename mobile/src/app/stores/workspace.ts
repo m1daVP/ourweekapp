@@ -177,7 +177,10 @@ function createDefaultWorkspace(): Workspace {
   };
 }
 
-function createAuthenticatedPlaceholderWorkspace(userId: string): Workspace {
+function createAuthenticatedPlaceholderWorkspace(
+  userId: string,
+  role: UserRole
+): Workspace {
   const createdAt = nowIso();
 
   return {
@@ -188,7 +191,7 @@ function createAuthenticatedPlaceholderWorkspace(userId: string): Workspace {
       {
         userId,
         displayName: translate('common.weeklyUsUser'),
-        role: 'owner',
+        role,
         status: 'active',
       },
     ],
@@ -315,10 +318,6 @@ export const useWorkspaceStore = defineStore('workspace', {
         (member) => member.userId === state.currentUserId
       ) ?? null,
     currentUserRole(): UserRole {
-      if (this.currentUserId !== LOCAL_OWNER_ID && !this.lastSyncedAt) {
-        return 'viewer';
-      }
-
       return this.currentMember?.role ?? 'viewer';
     },
   },
@@ -344,8 +343,8 @@ export const useWorkspaceStore = defineStore('workspace', {
       this.lastSyncedAt = nowIso();
       this.persist();
     },
-    resetForAuthenticatedUser(userId: string) {
-      this.workspace = createAuthenticatedPlaceholderWorkspace(userId);
+    resetForAuthenticatedUser(userId: string, role: UserRole) {
+      this.workspace = createAuthenticatedPlaceholderWorkspace(userId, role);
       this.currentUserId = userId;
       this.isLoading = false;
       this.isSaving = false;

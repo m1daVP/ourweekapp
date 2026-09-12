@@ -109,7 +109,8 @@ describe('RevenueCat auth identity', () => {
     expect(mocks.logInRevenueCat).toHaveBeenCalledWith('workspace-1');
     expect(mocks.logInRevenueCat).not.toHaveBeenCalledWith('user-1');
     expect(mocks.prepareSyncForAuthenticatedUser).toHaveBeenCalledWith(
-      'user-1'
+      'user-1',
+      'owner'
     );
   });
 
@@ -118,7 +119,8 @@ describe('RevenueCat auth identity', () => {
 
     expect(mocks.logInRevenueCat).not.toHaveBeenCalled();
     expect(mocks.prepareSyncForAuthenticatedUser).toHaveBeenCalledWith(
-      'user-1'
+      'user-1',
+      'owner'
     );
   });
 

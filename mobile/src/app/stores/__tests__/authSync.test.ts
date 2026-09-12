@@ -255,7 +255,8 @@ describe('auth sync safety hooks', () => {
     });
 
     expect(mocks.prepareSyncForAuthenticatedUser).toHaveBeenCalledWith(
-      'user-1'
+      'user-1',
+      'owner'
     );
     expect(authStore.user?.id).toBe('user-1');
   });
@@ -279,7 +280,8 @@ describe('auth sync safety hooks', () => {
       expiresAt: '2026-06-13T13:00:00.000Z',
     });
     expect(mocks.prepareSyncForAuthenticatedUser).toHaveBeenCalledWith(
-      'user-1'
+      'user-1',
+      'owner'
     );
     expect(authStore.authStatus).toBe('authenticated');
     expect(authStore.authOperationStage).toBe('session_commit');

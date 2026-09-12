@@ -703,7 +703,7 @@ describe('syncService', () => {
           : fallback
     );
 
-    const result = prepareSyncForAuthenticatedUser('new-user');
+    const result = prepareSyncForAuthenticatedUser('new-user', 'owner');
 
     expect(result.didResetSyncedData).toBe(true);
     expect(mocks.resetSyncedAppDataForOwner).toHaveBeenCalledWith('new-user');
@@ -713,7 +713,7 @@ describe('syncService', () => {
     expect(participantsStore.currentParticipantId).toBeNull();
     expect(workspaceStore.workspace.ownerId).toBe('new-user');
     expect(workspaceStore.currentUserId).toBe('new-user');
-    expect(workspaceStore.currentUserRole).toBe('viewer');
+    expect(workspaceStore.currentUserRole).toBe('owner');
     expect(workspaceStore.workspace.name).not.toBe('Old household');
     expect(
       workspaceStore.workspace.members.some((member) =>
@@ -733,6 +733,12 @@ describe('syncService', () => {
     );
     expect(privateNotesStore.ownerUserId).toBe('new-user');
     expect(privateNotesStore.notes).toEqual([]);
+  });
+
+  it('keeps an invited viewer restricted before workspace hydration', () => {
+    prepareSyncForAuthenticatedUser('viewer-user', 'viewer');
+
+    expect(useWorkspaceStore().currentUserRole).toBe('viewer');
   });
 
   it('clears notes on logout and restores only the returning owner namespace', () => {
