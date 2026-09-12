@@ -270,4 +270,84 @@ describeConfigured('account deletion database behavior', () => {
     expect(second[3].data).toEqual(first[3].data);
     expect(second[4].data).toEqual(first[4].data);
   });
+
+  it('restores a sole owner and its workspace without restoring sessions or calendar credentials', async () => {
+    const scenario = await createScenario('sole-owner');
+    tracker = scenario.tracker;
+    const client = createServiceRoleClient(databaseEnvironment!);
+    const repository = new AccountRepository(client);
+
+    await repository.deleteAccountAtomically(scenario.deletingUserId, '2026-09-09T10:00:00.000Z');
+    const { data, error } = await client.rpc('account_restore', {
+      p_user_id: scenario.deletingUserId,
+    });
+    requireDatabaseSuccess(error, 'account restoration');
+
+    expect(data).toEqual([{ restored_workspace_count: 1, restored_membership_count: 1 }]);
+    expect((await client.from('users').select('deleted_at').eq('id', scenario.deletingUserId).single()).data)
+      .toEqual({ deleted_at: null });
+    expect((await client.from('workspaces').select('owner_id,deleted_at').eq('id', scenario.workspaceIds[0]).single()).data)
+      .toEqual({ owner_id: scenario.deletingUserId, deleted_at: null });
+    expect((await client.from('workspace_members')
+      .select('role,status')
+      .eq('workspace_id', scenario.workspaceIds[0])
+      .eq('user_id', scenario.deletingUserId)
+      .single()).data).toEqual({ role: 'owner', status: 'active' });
+    expect(Date.parse(
+      (await client.from('sessions').select('revoked_at').eq('id', scenario.activeSessionId).single())
+        .data?.revoked_at ?? '',
+    )).toBe(Date.parse('2026-09-09T10:00:00.000Z'));
+    expect((await client.from('calendar_connections')
+      .select('access_token_encrypted,refresh_token_encrypted')
+      .eq('id', scenario.calendarConnectionId)
+      .single()).data).toEqual({
+      access_token_encrypted: null,
+      refresh_token_encrypted: null,
+    });
+  });
+
+  it('restores a transferred owner as an adult member without changing the current owner', async () => {
+    const scenario = await createScenario('replacement-owner');
+    tracker = scenario.tracker;
+    const client = createServiceRoleClient(databaseEnvironment!);
+    const repository = new AccountRepository(client);
+
+    await repository.deleteAccountAtomically(scenario.deletingUserId, '2026-09-09T10:00:00.000Z');
+    requireDatabaseSuccess((await client.rpc('account_restore', {
+      p_user_id: scenario.deletingUserId,
+    })).error, 'account restoration');
+
+    expect((await client.from('workspaces').select('owner_id,deleted_at').eq('id', scenario.workspaceIds[0]).single()).data)
+      .toEqual({ owner_id: scenario.replacementUserId, deleted_at: null });
+    expect((await client.from('workspace_members')
+      .select('role,status')
+      .eq('workspace_id', scenario.workspaceIds[0])
+      .eq('user_id', scenario.deletingUserId)
+      .single()).data).toEqual({ role: 'adult_member', status: 'active' });
+  });
+
+  it('rejects a second restoration after the account is active', async () => {
+    const scenario = await createScenario('sole-owner');
+    tracker = scenario.tracker;
+    const client = createServiceRoleClient(databaseEnvironment!);
+    const repository = new AccountRepository(client);
+
+    await repository.deleteAccountAtomically(scenario.deletingUserId, '2026-09-09T10:00:00.000Z');
+    requireDatabaseSuccess((await client.rpc('account_restore', {
+      p_user_id: scenario.deletingUserId,
+    })).error, 'first account restoration');
+    const before = await client.from('workspaces')
+      .select('owner_id,deleted_at')
+      .eq('id', scenario.workspaceIds[0])
+      .single();
+    const second = await client.rpc('account_restore', {
+      p_user_id: scenario.deletingUserId,
+    });
+
+    expect(second.error?.code).toBe('P0002');
+    expect(await client.from('workspaces')
+      .select('owner_id,deleted_at')
+      .eq('id', scenario.workspaceIds[0])
+      .single()).toEqual(before);
+  });
 });

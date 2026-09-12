@@ -52,6 +52,13 @@ select ok(
 );
 
 select ok(
+  not has_function_privilege('anon', 'public.account_restore(uuid)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.account_restore(uuid)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.account_restore(uuid)', 'EXECUTE'),
+  'account restoration is service-role only'
+);
+
+select ok(
   not has_function_privilege('anon', 'public.confirm_password_reset(text,text,timestamptz)', 'EXECUTE')
   and not has_function_privilege('authenticated', 'public.confirm_password_reset(text,text,timestamptz)', 'EXECUTE')
   and has_function_privilege('service_role', 'public.confirm_password_reset(text,text,timestamptz)', 'EXECUTE'),
