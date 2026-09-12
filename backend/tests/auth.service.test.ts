@@ -772,4 +772,68 @@ describe('auth.service', () => {
       code: 'invalid_credentials',
     });
   });
+
+  it('directs a deleted password account to support after verifying its password', async () => {
+    const { authService } = await loadAuthModules();
+    const passwordHash = await authService.hashPassword('correct-password');
+    const supabase = createSequentialSupabase([
+      {
+        data: userRow({
+          password_hash: passwordHash,
+          deleted_at: '2026-09-12T10:00:00.000Z',
+        }),
+        error: null,
+      },
+    ]);
+
+    await expect(
+      authService.signInUser(supabase, {
+        email: 'rita@example.com',
+        password: 'correct-password',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'account_deleted',
+      message: 'This account was deleted. Contact support to restore it.',
+    });
+  });
+
+  it('keeps an incorrect password for a deleted account generic', async () => {
+    const { authService } = await loadAuthModules();
+    const passwordHash = await authService.hashPassword('correct-password');
+    const supabase = createSequentialSupabase([
+      {
+        data: userRow({
+          password_hash: passwordHash,
+          deleted_at: '2026-09-12T10:00:00.000Z',
+        }),
+        error: null,
+      },
+    ]);
+
+    await expect(
+      authService.signInUser(supabase, {
+        email: 'rita@example.com',
+        password: 'wrong-password',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'invalid_credentials',
+    });
+  });
+
+  it('keeps an unknown sign-in email generic', async () => {
+    const { authService } = await loadAuthModules();
+    const supabase = createSequentialSupabase([{ data: null, error: null }]);
+
+    await expect(
+      authService.signInUser(supabase, {
+        email: 'missing@example.com',
+        password: 'correct-password',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'invalid_credentials',
+    });
+  });
 });

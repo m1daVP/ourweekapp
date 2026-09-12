@@ -141,6 +141,12 @@ const genericAuthFailure = new ApiError(
   'Email or password is incorrect.',
 );
 
+const deletedAccountFailure = new ApiError(
+  401,
+  'account_deleted',
+  'This account was deleted. Contact support to restore it.',
+);
+
 const passwordResetMessage =
   'If an account exists, reset instructions have been sent.';
 
@@ -276,6 +282,30 @@ async function getUserById(supabase: SupabaseClient, userId: string) {
     )
     .eq('id', userId)
     .is('deleted_at', null)
+    .returns<UserRow[]>()
+    .maybeSingle();
+
+  if (error) {
+    throw new ApiError(
+      500,
+      'auth_lookup_failed',
+      'Something went wrong. Please try again.',
+    );
+  }
+
+  return data;
+}
+
+async function getUserByEmailIncludingDeleted(
+  supabase: SupabaseClient,
+  email: string,
+) {
+  const { data, error } = await supabase
+    .from('users')
+    .select(
+      'id,email,display_name,password_hash,created_at,updated_at,deleted_at',
+    )
+    .eq('email_normalized', normalizeEmail(email))
     .returns<UserRow[]>()
     .maybeSingle();
 
@@ -1005,7 +1035,7 @@ export async function signInUser(
   supabase: SupabaseClient,
   body: SignInRequestDto,
 ): Promise<AuthSessionDto> {
-  const user = await getUserByEmail(supabase, body.email);
+  const user = await getUserByEmailIncludingDeleted(supabase, body.email);
 
   if (!user) {
     throw genericAuthFailure;
@@ -1019,6 +1049,10 @@ export async function signInUser(
 
   if (!validPassword) {
     throw genericAuthFailure;
+  }
+
+  if (user.deleted_at) {
+    throw deletedAccountFailure;
   }
 
   const member = await getActiveMemberForUser(supabase, user.id);
