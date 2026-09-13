@@ -6,14 +6,14 @@
 
 ## Deliverables
 
-| Video | Format | Target runtime | Voice |
-| --- | --- | ---: | --- |
-| Shipaton project presentation | 16:9, 1920×1080, 30 fps | 1:55 maximum | Founder's own voice |
-| Promo 1 — The 15-minute ritual | 9:16, 1080×1920, 30 fps | 25 seconds | AI voice plus a subtitle-only export |
-| Promo 2 — The same conversation | 9:16, 1080×1920, 30 fps | 27 seconds | AI voice plus a subtitle-only export |
-| Promo 3 — Give the task an owner | 9:16, 1080×1920, 30 fps | 24 seconds | AI voice plus a subtitle-only export |
-| Promo 4 — Bring it into next week | 9:16, 1080×1920, 30 fps | 26 seconds | AI voice plus a subtitle-only export |
-| Promo 5 — A shared memory | 9:16, 1080×1920, 30 fps | 28 seconds | AI voice plus a subtitle-only export |
+| Video                             | Format                  | Target runtime | Voice                                |
+| --------------------------------- | ----------------------- | -------------: | ------------------------------------ |
+| Shipaton project presentation     | 16:9, 1920×1080, 30 fps |   1:55 maximum | Founder's own voice                  |
+| Promo 1 — The 15-minute ritual    | 9:16, 1080×1920, 30 fps |     25 seconds | AI voice plus a subtitle-only export |
+| Promo 2 — The same conversation   | 9:16, 1080×1920, 30 fps |     27 seconds | AI voice plus a subtitle-only export |
+| Promo 3 — Give the task an owner  | 9:16, 1080×1920, 30 fps |     24 seconds | AI voice plus a subtitle-only export |
+| Promo 4 — Bring it into next week | 9:16, 1080×1920, 30 fps |     26 seconds | AI voice plus a subtitle-only export |
+| Promo 5 — A shared memory         | 9:16, 1080×1920, 30 fps |     28 seconds | AI voice plus a subtitle-only export |
 
 Create a separate English and Ukrainian edition of every video. Record the app UI in the matching language; do not place Ukrainian narration over English UI or the reverse.
 
@@ -32,17 +32,17 @@ Create a separate English and Ukrainian edition of every video. Record the app U
 
 Use exactly one fictional household so every video feels like part of the same story.
 
-| Field | English edition | Ukrainian edition |
-| --- | --- | --- |
-| Participants | Maya, Leo | Мая, Лео |
-| Positive note | Saturday breakfast felt relaxed. | Суботній сніданок був спокійним. |
-| Tension note | Mornings felt rushed this week. | Цього тижня ранки були поспішними. |
-| Main task | Book the dentist appointment | Записатися до стоматолога |
-| Task owner | Leo | Лео |
-| Task due date | Next Friday | Наступна п’ятниця |
-| Agreement | We will prepare kindergarten clothes the night before. | Ми готуватимемо одяг для садочка ввечері напередодні. |
-| Existing unfinished task | Compare internet plans | Порівняти інтернет-тарифи |
-| Meeting | Weekly family check-in | Щотижнева сімейна зустріч |
+| Field                    | English edition                                        | Ukrainian edition                                     |
+| ------------------------ | ------------------------------------------------------ | ----------------------------------------------------- |
+| Participants             | Maya, Leo                                              | Мая, Лео                                              |
+| Positive note            | Saturday breakfast felt relaxed.                       | Суботній сніданок був спокійним.                      |
+| Tension note             | Mornings felt rushed this week.                        | Цього тижня ранки були поспішними.                    |
+| Main task                | Book the dentist appointment                           | Записатися до стоматолога                             |
+| Task owner               | Leo                                                    | Лео                                                   |
+| Task due date            | Next Friday                                            | Наступна п’ятниця                                     |
+| Agreement                | We will prepare kindergarten clothes the night before. | Ми готуватимемо одяг для садочка ввечері напередодні. |
+| Existing unfinished task | Compare internet plans                                 | Порівняти інтернет-тарифи                             |
+| Meeting                  | Weekly family check-in                                 | Щотижнева сімейна зустріч                             |
 
 Seed one earlier completed meeting containing the unfinished task before recording. Use Premium only in the captures that show AI, full history, reminders, or the purchase flow. The purchase screen must use RevenueCat sandbox/test mode and must not show a real payment method.
 
@@ -64,59 +64,59 @@ Seed one earlier completed meeting containing the unfinished task before recordi
 
 Record the scenes as separate source clips. Do not attempt a single continuous 1:55 performance.
 
-| Time | Scene and exact actions | Edit direction |
-| --- | --- | --- |
-| 0:00–0:07 | Begin on the OurWeek Home screen with Maya & Leo visible. Hold for two seconds. Slowly scroll just enough to reveal the task and history shortcuts. Do not tap yet. | Start immediately on the product. Add the title `Small decisions need a place to land.` / `Малим рішенням потрібне надійне місце.` |
-| 0:07–0:15 | Tap **Tasks**, reveal `Compare internet plans`, then cut to **History** showing the earlier meeting. | Use two clean cuts. Add a subtle 105% zoom toward the unfinished task and earlier meeting card. |
-| 0:15–0:24 | Return Home. Tap **Start meeting**. On Templates, keep **Weekly family check-in** selected and tap **Start meeting**. | Let each selection state remain visible for one second. |
-| 0:24–0:32 | On check-in, tap Maya and Leo, then tap **Start ritual**. | Add a small tap ring only if native tap indicators are not recorded. |
-| 0:32–0:42 | On **Good things**, choose Maya, enter the positive note, and save it. Then cut to **Tensions**, enter the tension note, and save it. | Speed up typing to 1.5×, but show the final text at normal speed. |
-| 0:42–0:55 | Continue to **Tasks**. Tap add task, enter `Book the dentist appointment`, choose Leo as the responsible person, select next Friday, and save. | Hold on the saved task with Leo's name and due date readable. |
-| 0:55–1:06 | Continue to **Final agreements**. Add the kindergarten-clothes agreement, select both participants/shared responsibility, and save it. | Reframe toward the final saved agreement. Do not show an empty editor. |
-| 1:06–1:15 | Move to **Review & close**. Slowly scroll through Agreed actions and Agreements. Tap **Finish** and wait for completion. | Keep the 100% progress and saved outcomes readable. |
-| 1:15–1:27 | Open the completed meeting summary. Tap **Generate AI summary** only if the demo Premium entitlement is active. Show the disclosure if it appears, confirm it, then show the completed recap. | Remove provider wait time. Cut from the loading state to the finished summary; do not imply it is instantaneous. |
-| 1:27–1:37 | Open **Tasks**, show the newly assigned dentist task, then open **History** and the completed meeting. | Use a split sequence, not a split screen. Each item gets approximately five seconds. |
-| 1:37–1:47 | From Settings on a Free demo state, tap **Upgrade to Premium**. Show the real localized plans and Android/RevenueCat sandbox purchase sheet. Do not complete a charge. | The visible store price is the only price claim. Blur any store account identifier if Android exposes one. |
-| 1:47–1:52 | Cut to Settings on the Premium demo state. Open reminder settings, enable the weekly reminder, and show a separately recorded genuine Android notification. | Label it `Local Android reminder` / `Локальне нагадування Android`. Do not mention OneSignal. |
-| 1:52–1:55 | End card: OurWeek logo, `A calmer weekly rhythm.` / `Спокійніший щотижневий ритм.` and the applicable Shipaton categories. | No narration after 1:54. Hold the logo through the final frame. |
+| Time      | Scene and exact actions                                                                                                                                                                       | Edit direction                                                                                                                     |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 0:00–0:07 | Begin on the OurWeek Home screen with Maya & Leo visible. Hold for two seconds. Slowly scroll just enough to reveal the task and history shortcuts. Do not tap yet.                           | Start immediately on the product. Add the title `Small decisions need a place to land.` / `Малим рішенням потрібне надійне місце.` |
+| 0:07–0:15 | Tap **Tasks**, reveal `Compare internet plans`, then cut to **History** showing the earlier meeting.                                                                                          | Use two clean cuts. Add a subtle 105% zoom toward the unfinished task and earlier meeting card.                                    |
+| 0:15–0:24 | Return Home. Tap **Start meeting**. On Templates, keep **Weekly family check-in** selected and tap **Start meeting**.                                                                         | Let each selection state remain visible for one second.                                                                            |
+| 0:24–0:32 | On check-in, tap Maya and Leo, then tap **Start ritual**.                                                                                                                                     | Add a small tap ring only if native tap indicators are not recorded.                                                               |
+| 0:32–0:42 | On **Good things**, choose Maya, enter the positive note, and save it. Then cut to **Tensions**, enter the tension note, and save it.                                                         | Speed up typing to 1.5×, but show the final text at normal speed.                                                                  |
+| 0:42–0:55 | Continue to **Tasks**. Tap add task, enter `Book the dentist appointment`, choose Leo as the responsible person, select next Friday, and save.                                                | Hold on the saved task with Leo's name and due date readable.                                                                      |
+| 0:55–1:06 | Continue to **Final agreements**. Add the kindergarten-clothes agreement, select both participants/shared responsibility, and save it.                                                        | Reframe toward the final saved agreement. Do not show an empty editor.                                                             |
+| 1:06–1:15 | Move to **Review & close**. Slowly scroll through Agreed actions and Agreements. Tap **Finish** and wait for completion.                                                                      | Keep the 100% progress and saved outcomes readable.                                                                                |
+| 1:15–1:27 | Open the completed meeting summary. Tap **Generate AI summary** only if the demo Premium entitlement is active. Show the disclosure if it appears, confirm it, then show the completed recap. | Remove provider wait time. Cut from the loading state to the finished summary; do not imply it is instantaneous.                   |
+| 1:27–1:37 | Open **Tasks**, show the newly assigned dentist task, then open **History** and the completed meeting.                                                                                        | Use a split sequence, not a split screen. Each item gets approximately five seconds.                                               |
+| 1:37–1:47 | From Settings on a Free demo state, tap **Upgrade to Premium**. Show the real localized plans and Android/RevenueCat sandbox purchase sheet. Do not complete a charge.                        | The visible store price is the only price claim. Blur any store account identifier if Android exposes one.                         |
+| 1:47–1:52 | Cut to Settings on the Premium demo state. Open reminder settings, enable the weekly reminder, and show a separately recorded genuine Android notification.                                   | Label it `Local Android reminder` / `Локальне нагадування Android`. Do not mention OneSignal.                                      |
+| 1:52–1:55 | End card: OurWeek logo, `A calmer weekly rhythm.` / `Спокійніший щотижневий ритм.` and the applicable Shipaton categories.                                                                    | No narration after 1:54. Hold the logo through the final frame.                                                                    |
 
 ## English voice-over and subtitles
 
 Read naturally at a calm pace. The subtitle text below is already split into readable phrases; it may be burned in exactly as written.
 
-| Time | Voice-over | Burned-in subtitle |
-| --- | --- | --- |
-| 0:00–0:07 | Small household problems rarely begin as big problems. They grow when decisions have nowhere to stay. | Small problems grow<br>when decisions disappear. |
-| 0:07–0:15 | A task is mentioned, nobody owns it, and the same conversation returns next Sunday. | No owner. No follow-through.<br>The conversation returns. |
-| 0:15–0:24 | I built OurWeek to give couples and families one calm, guided place for that weekly conversation. | One calm place<br>for the weekly conversation. |
-| 0:24–0:32 | Choose who is here, start the ritual, and move through a simple structure together. | Choose who is here.<br>Start together. |
-| 0:32–0:42 | Begin with what went well, then name what felt stressful without turning the app into therapy. | Notice what worked.<br>Name what felt difficult. |
-| 0:42–0:55 | When something needs action, turn it into a task with one clear owner and a due date. | One task.<br>One clear owner. |
-| 0:55–1:06 | When you make a decision together, save it as an agreement everyone can return to. | Save the decision<br>you made together. |
-| 1:06–1:15 | Before you finish, OurWeek brings the actions, agreements, and notes into one shared review. | Review the outcome<br>before you finish. |
-| 1:15–1:27 | Premium can create an AI-assisted recap from the meeting. It is reviewed in the app, not treated as unquestionable advice. | An AI-assisted recap,<br>ready to review. |
-| 1:27–1:37 | After the meeting, tasks and history stay connected, so unfinished details do not depend on memory. | Tasks and history<br>stay connected. |
+| Time      | Voice-over                                                                                                                              | Burned-in subtitle                                              |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 0:00–0:07 | Small household problems rarely begin as big problems. They grow when decisions have nowhere to stay.                                   | Small problems grow<br>when decisions disappear.                |
+| 0:07–0:15 | A task is mentioned, nobody owns it, and the same conversation returns next Sunday.                                                     | No owner. No follow-through.<br>The conversation returns.       |
+| 0:15–0:24 | I built OurWeek to give couples and families one calm, guided place for that weekly conversation.                                       | One calm place<br>for the weekly conversation.                  |
+| 0:24–0:32 | Choose who is here, start the ritual, and move through a simple structure together.                                                     | Choose who is here.<br>Start together.                          |
+| 0:32–0:42 | Begin with what went well, then name what felt stressful without turning the app into therapy.                                          | Notice what worked.<br>Name what felt difficult.                |
+| 0:42–0:55 | When something needs action, turn it into a task with one clear owner and a due date.                                                   | One task.<br>One clear owner.                                   |
+| 0:55–1:06 | When you make a decision together, save it as an agreement everyone can return to.                                                      | Save the decision<br>you made together.                         |
+| 1:06–1:15 | Before you finish, OurWeek brings the actions, agreements, and notes into one shared review.                                            | Review the outcome<br>before you finish.                        |
+| 1:15–1:27 | Premium can create an AI-assisted recap from the meeting. It is reviewed in the app, not treated as unquestionable advice.              | An AI-assisted recap,<br>ready to review.                       |
+| 1:27–1:37 | After the meeting, tasks and history stay connected, so unfinished details do not depend on memory.                                     | Tasks and history<br>stay connected.                            |
 | 1:37–1:47 | The core ritual is free. Premium adds deeper history, AI summaries, reminders, templates, calendar sync, and export through RevenueCat. | Free for the core ritual.<br>Premium for deeper follow-through. |
-| 1:47–1:52 | A gentle local Android reminder brings the household back for the next weekly check-in. | A gentle reminder<br>for next week. |
-| 1:52–1:55 | This is OurWeek: small agreements, remembered. | OurWeek<br>Small agreements, remembered. |
+| 1:47–1:52 | A gentle local Android reminder brings the household back for the next weekly check-in.                                                 | A gentle reminder<br>for next week.                             |
+| 1:52–1:55 | This is OurWeek: small agreements, remembered.                                                                                          | OurWeek<br>Small agreements, remembered.                        |
 
 ## Ukrainian voice-over and subtitles
 
-| Time | Voice-over | Burned-in subtitle |
-| --- | --- | --- |
-| 0:00–0:07 | Побутові проблеми рідко починаються великими. Вони ростуть, коли рішенням ніде зберігатися. | Малі проблеми ростуть,<br>коли рішення зникають. |
-| 0:07–0:15 | Про завдання згадали, відповідального немає — і наступної неділі розмова повторюється. | Немає відповідального.<br>Розмова повторюється. |
-| 0:15–0:24 | Я створив OurWeek, щоб дати парам і сім’ям спокійний, структурований простір для щотижневої розмови. | Спокійний простір<br>для щотижневої розмови. |
-| 0:24–0:32 | Оберіть учасників, почніть ритуал і разом пройдіть просту послідовність кроків. | Оберіть учасників.<br>Почніть разом. |
-| 0:32–0:42 | Спочатку згадайте хороше, а потім назвіть те, що було складним — без спроб перетворити застосунок на терапію. | Помітьте, що вдалося.<br>Назвіть складне. |
-| 0:42–0:55 | Якщо щось потребує дії, перетворіть це на завдання з відповідальним і терміном. | Одне завдання.<br>Один відповідальний. |
-| 0:55–1:06 | Якщо ви разом щось вирішили, збережіть це як домовленість, до якої можна повернутися. | Збережіть спільне<br>рішення. |
-| 1:06–1:15 | Перед завершенням OurWeek збирає дії, домовленості й нотатки в одному спільному огляді. | Перегляньте результат<br>перед завершенням. |
-| 1:15–1:27 | Premium може створити AI-підсумок зустрічі. Його можна перевірити в застосунку, а не сприймати як беззаперечну пораду. | AI-підсумок,<br>готовий до перевірки. |
-| 1:27–1:37 | Після зустрічі завдання та історія залишаються пов’язаними, тому незавершені справи не залежать від пам’яті. | Завдання й історія<br>залишаються разом. |
+| Time      | Voice-over                                                                                                                                         | Burned-in subtitle                                          |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 0:00–0:07 | Побутові проблеми рідко починаються великими. Вони ростуть, коли рішенням ніде зберігатися.                                                        | Малі проблеми ростуть,<br>коли рішення зникають.            |
+| 0:07–0:15 | Про завдання згадали, відповідального немає — і наступної неділі розмова повторюється.                                                             | Немає відповідального.<br>Розмова повторюється.             |
+| 0:15–0:24 | Я створив OurWeek, щоб дати парам і сім’ям спокійний, структурований простір для щотижневої розмови.                                               | Спокійний простір<br>для щотижневої розмови.                |
+| 0:24–0:32 | Оберіть учасників, почніть ритуал і разом пройдіть просту послідовність кроків.                                                                    | Оберіть учасників.<br>Почніть разом.                        |
+| 0:32–0:42 | Спочатку згадайте хороше, а потім назвіть те, що було складним — без спроб перетворити застосунок на терапію.                                      | Помітьте, що вдалося.<br>Назвіть складне.                   |
+| 0:42–0:55 | Якщо щось потребує дії, перетворіть це на завдання з відповідальним і терміном.                                                                    | Одне завдання.<br>Один відповідальний.                      |
+| 0:55–1:06 | Якщо ви разом щось вирішили, збережіть це як домовленість, до якої можна повернутися.                                                              | Збережіть спільне<br>рішення.                               |
+| 1:06–1:15 | Перед завершенням OurWeek збирає дії, домовленості й нотатки в одному спільному огляді.                                                            | Перегляньте результат<br>перед завершенням.                 |
+| 1:15–1:27 | Premium може створити AI-підсумок зустрічі. Його можна перевірити в застосунку, а не сприймати як беззаперечну пораду.                             | AI-підсумок,<br>готовий до перевірки.                       |
+| 1:27–1:37 | Після зустрічі завдання та історія залишаються пов’язаними, тому незавершені справи не залежать від пам’яті.                                       | Завдання й історія<br>залишаються разом.                    |
 | 1:37–1:47 | Основний ритуал безкоштовний. Premium додає повну історію, AI-підсумки, нагадування, шаблони, синхронізацію календаря та експорт через RevenueCat. | Основний ритуал безкоштовний.<br>Premium — для продовження. |
-| 1:47–1:52 | Лагідне локальне нагадування Android повертає родину до наступної щотижневої зустрічі. | Лагідне нагадування<br>на наступний тиждень. |
-| 1:52–1:55 | Це OurWeek: малі домовленості, які не забуваються. | OurWeek<br>Домовленості, які не забуваються. |
+| 1:47–1:52 | Лагідне локальне нагадування Android повертає родину до наступної щотижневої зустрічі.                                                             | Лагідне нагадування<br>на наступний тиждень.                |
+| 1:52–1:55 | Це OurWeek: малі домовленості, які не забуваються.                                                                                                 | OurWeek<br>Домовленості, які не забуваються.                |
 
 ## Shipaton voice performance
 
@@ -133,25 +133,25 @@ Read naturally at a calm pace. The subtitle text below is already split into rea
 
 ## Actions
 
-| Time | App action |
-| --- | --- |
-| 0:00–0:03 | Home screen. Hold on the **15-minute weekly check-in** card, then tap **Start meeting**. |
+| Time      | App action                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------- |
+| 0:00–0:03 | Home screen. Hold on the **15-minute weekly check-in** card, then tap **Start meeting**.                |
 | 0:03–0:07 | Select **Weekly family check-in**, select Maya and Leo, and tap **Start ritual**. Use three quick cuts. |
-| 0:07–0:12 | Show the positive note saved under **Good things**. |
-| 0:12–0:18 | Show the dentist task with Leo selected, then the saved agreement. |
-| 0:18–0:23 | Show **Review & close** with the task and agreement visible. Tap **Finish**. |
-| 0:23–0:25 | OurWeek logo and CTA. |
+| 0:07–0:12 | Show the positive note saved under **Good things**.                                                     |
+| 0:12–0:18 | Show the dentist task with Leo selected, then the saved agreement.                                      |
+| 0:18–0:23 | Show **Review & close** with the task and agreement visible. Tap **Finish**.                            |
+| 0:23–0:25 | OurWeek logo and CTA.                                                                                   |
 
 ## Script
 
-| Time | English AI voice + subtitle | Ukrainian AI voice + subtitle |
-| --- | --- | --- |
-| 0:00–0:03 | A weekly check-in that actually ends with a plan. | Щотижнева розмова, яка справді завершується планом. |
-| 0:03–0:07 | Choose who is here and start together. | Оберіть учасників і почніть разом. |
-| 0:07–0:12 | Notice what worked. Name what felt difficult. | Згадайте, що вдалося. Назвіть те, що було складним. |
-| 0:12–0:18 | Give the next task an owner, and save the agreement. | Призначте відповідального й збережіть домовленість. |
-| 0:18–0:23 | Fifteen calm minutes. One shared plan for the week. | П’ятнадцять спокійних хвилин. Один спільний план на тиждень. |
-| 0:23–0:25 | Meet OurWeek. | Знайомтеся: OurWeek. |
+| Time      | English AI voice + subtitle                          | Ukrainian AI voice + subtitle                                |
+| --------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| 0:00–0:03 | A weekly check-in that actually ends with a plan.    | Щотижнева розмова, яка справді завершується планом.          |
+| 0:03–0:07 | Choose who is here and start together.               | Оберіть учасників і почніть разом.                           |
+| 0:07–0:12 | Notice what worked. Name what felt difficult.        | Згадайте, що вдалося. Назвіть те, що було складним.          |
+| 0:12–0:18 | Give the next task an owner, and save the agreement. | Призначте відповідального й збережіть домовленість.          |
+| 0:18–0:23 | Fifteen calm minutes. One shared plan for the week.  | П’ятнадцять спокійних хвилин. Один спільний план на тиждень. |
+| 0:23–0:25 | Meet OurWeek.                                        | Знайомтеся: OurWeek.                                         |
 
 **End-card CTA:** `Join the waitlist` / `Приєднуйтеся до списку очікування`
 
@@ -166,25 +166,25 @@ Read naturally at a calm pace. The subtitle text below is already split into rea
 
 ## Actions
 
-| Time | App action |
-| --- | --- |
-| 0:00–0:04 | Open History and show the older meeting with `Compare internet plans` still unfinished. |
-| 0:04–0:09 | Start a new meeting and advance to the review-unfinished-items step. |
-| 0:09–0:15 | Hold on the old task, choose to keep/carry it forward, and confirm. |
+| Time      | App action                                                                                                  |
+| --------- | ----------------------------------------------------------------------------------------------------------- |
+| 0:00–0:04 | Open History and show the older meeting with `Compare internet plans` still unfinished.                     |
+| 0:04–0:09 | Start a new meeting and advance to the review-unfinished-items step.                                        |
+| 0:09–0:15 | Hold on the old task, choose to keep/carry it forward, and confirm.                                         |
 | 0:15–0:22 | Show the carried-forward item inside the current meeting and assign it to Maya if the UI asks for an owner. |
-| 0:22–0:25 | Show the updated shared review. |
-| 0:25–0:27 | Logo and CTA. |
+| 0:22–0:25 | Show the updated shared review.                                                                             |
+| 0:25–0:27 | Logo and CTA.                                                                                               |
 
 ## Script
 
-| Time | English AI voice + subtitle | Ukrainian AI voice + subtitle |
-| --- | --- | --- |
-| 0:00–0:04 | We discussed it last Sunday. Then we forgot what we decided. | Ми обговорили це минулої неділі. А потім забули рішення. |
-| 0:04–0:09 | So the same conversation came back again. | І та сама розмова почалася знову. |
-| 0:09–0:15 | OurWeek brings unfinished items into the next check-in. | OurWeek переносить незавершені справи до наступної зустрічі. |
-| 0:15–0:22 | Keep it, update it, or close it together. | Залиште, оновіть або закрийте справу разом. |
-| 0:22–0:25 | No blame. Just a clear next step. | Без звинувачень. Лише зрозумілий наступний крок. |
-| 0:25–0:27 | Remember it with OurWeek. | Не забувайте з OurWeek. |
+| Time      | English AI voice + subtitle                                  | Ukrainian AI voice + subtitle                                |
+| --------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 0:00–0:04 | We discussed it last Sunday. Then we forgot what we decided. | Ми обговорили це минулої неділі. А потім забули рішення.     |
+| 0:04–0:09 | So the same conversation came back again.                    | І та сама розмова почалася знову.                            |
+| 0:09–0:15 | OurWeek brings unfinished items into the next check-in.      | OurWeek переносить незавершені справи до наступної зустрічі. |
+| 0:15–0:22 | Keep it, update it, or close it together.                    | Залиште, оновіть або закрийте справу разом.                  |
+| 0:22–0:25 | No blame. Just a clear next step.                            | Без звинувачень. Лише зрозумілий наступний крок.             |
+| 0:25–0:27 | Remember it with OurWeek.                                    | Не забувайте з OurWeek.                                      |
 
 **End-card CTA:** `Follow the build` / `Стежте за розробкою`
 
@@ -199,23 +199,23 @@ Read naturally at a calm pace. The subtitle text below is already split into rea
 
 ## Actions
 
-| Time | App action |
-| --- | --- |
-| 0:00–0:04 | Begin in the Tasks section of an active meeting with the empty add-task form ready. |
+| Time      | App action                                                                                |
+| --------- | ----------------------------------------------------------------------------------------- |
+| 0:00–0:04 | Begin in the Tasks section of an active meeting with the empty add-task form ready.       |
 | 0:04–0:10 | Type `Book the dentist appointment`. Cut from the first characters to the complete title. |
-| 0:10–0:15 | Open the responsibility picker and choose Leo. Select next Friday. |
-| 0:15–0:21 | Save and hold on the resulting task card with owner and due date readable. |
-| 0:21–0:24 | Logo and CTA. |
+| 0:10–0:15 | Open the responsibility picker and choose Leo. Select next Friday.                        |
+| 0:15–0:21 | Save and hold on the resulting task card with owner and due date readable.                |
+| 0:21–0:24 | Logo and CTA.                                                                             |
 
 ## Script
 
-| Time | English AI voice + subtitle | Ukrainian AI voice + subtitle |
-| --- | --- | --- |
-| 0:00–0:04 | “We should do that” is not a plan. | «Треба це зробити» — ще не план. |
+| Time      | English AI voice + subtitle                             | Ukrainian AI voice + subtitle                 |
+| --------- | ------------------------------------------------------- | --------------------------------------------- |
+| 0:00–0:04 | “We should do that” is not a plan.                      | «Треба це зробити» — ще не план.              |
 | 0:04–0:10 | Write down the next action while you are still talking. | Запишіть наступну дію просто під час розмови. |
-| 0:10–0:15 | Choose who will take care of it, and by when. | Оберіть, хто це зробить і до якого дня. |
-| 0:15–0:21 | Now everyone leaves with the same clear expectation. | Тепер усі однаково розуміють наступний крок. |
-| 0:21–0:24 | Make it clear with OurWeek. | Зробіть це зрозумілим з OurWeek. |
+| 0:10–0:15 | Choose who will take care of it, and by when.           | Оберіть, хто це зробить і до якого дня.       |
+| 0:15–0:21 | Now everyone leaves with the same clear expectation.    | Тепер усі однаково розуміють наступний крок.  |
+| 0:21–0:24 | Make it clear with OurWeek.                             | Зробіть це зрозумілим з OurWeek.              |
 
 **End-card CTA:** `One task. One owner.` / `Одне завдання. Один відповідальний.`
 
@@ -230,25 +230,25 @@ Read naturally at a calm pace. The subtitle text below is already split into rea
 
 ## Actions
 
-| Time | App action |
-| --- | --- |
+| Time      | App action                                                                             |
+| --------- | -------------------------------------------------------------------------------------- |
 | 0:00–0:04 | Start on a completed meeting's saved agreement. Zoom gently toward the agreement text. |
-| 0:04–0:10 | Cut to the next meeting's unfinished-item review showing that agreement/task again. |
-| 0:10–0:16 | Tap the option that keeps it relevant for this week. |
-| 0:16–0:22 | Show reminder settings, then a genuine local Android follow-up notification. |
-| 0:22–0:24 | Return to the meeting and show the item ready for review. |
-| 0:24–0:26 | Logo and CTA. |
+| 0:04–0:10 | Cut to the next meeting's unfinished-item review showing that agreement/task again.    |
+| 0:10–0:16 | Tap the option that keeps it relevant for this week.                                   |
+| 0:16–0:22 | Show reminder settings, then a genuine local Android follow-up notification.           |
+| 0:22–0:24 | Return to the meeting and show the item ready for review.                              |
+| 0:24–0:26 | Logo and CTA.                                                                          |
 
 ## Script
 
-| Time | English AI voice + subtitle | Ukrainian AI voice + subtitle |
-| --- | --- | --- |
-| 0:00–0:04 | A good agreement should not disappear when the meeting ends. | Хороша домовленість не має зникати після зустрічі. |
-| 0:04–0:10 | OurWeek keeps unfinished follow-ups ready for next week. | OurWeek готує незавершені справи до наступного тижня. |
-| 0:10–0:16 | Together, decide whether each one is still relevant. | Разом вирішіть, чи справа досі актуальна. |
-| 0:16–0:22 | A gentle local reminder helps you return when it is time. | Лагідне локальне нагадування допоможе повернутися вчасно. |
-| 0:22–0:24 | Follow through without the blame. | Продовжуйте без звинувачень. |
-| 0:24–0:26 | Keep the right things moving. | Рухайте важливі справи далі. |
+| Time      | English AI voice + subtitle                                  | Ukrainian AI voice + subtitle                             |
+| --------- | ------------------------------------------------------------ | --------------------------------------------------------- |
+| 0:00–0:04 | A good agreement should not disappear when the meeting ends. | Хороша домовленість не має зникати після зустрічі.        |
+| 0:04–0:10 | OurWeek keeps unfinished follow-ups ready for next week.     | OurWeek готує незавершені справи до наступного тижня.     |
+| 0:10–0:16 | Together, decide whether each one is still relevant.         | Разом вирішіть, чи справа досі актуальна.                 |
+| 0:16–0:22 | A gentle local reminder helps you return when it is time.    | Лагідне локальне нагадування допоможе повернутися вчасно. |
+| 0:22–0:24 | Follow through without the blame.                            | Продовжуйте без звинувачень.                              |
+| 0:24–0:26 | Keep the right things moving.                                | Рухайте важливі справи далі.                              |
 
 **End-card CTA:** `Carry the right things forward` / `Переносьте далі те, що важливо`
 
@@ -263,25 +263,25 @@ Read naturally at a calm pace. The subtitle text below is already split into rea
 
 ## Actions
 
-| Time | App action |
-| --- | --- |
-| 0:00–0:04 | Open a completed meeting summary. Hold on the task and agreement count. |
-| 0:04–0:10 | Scroll through the saved recap and open History. |
-| 0:10–0:17 | Return to the meeting summary and generate/show the AI-assisted recap. Cut out the wait. |
-| 0:17–0:23 | Slowly scroll the finished summary so the short overview and one useful observation are visible. |
+| Time      | App action                                                                                          |
+| --------- | --------------------------------------------------------------------------------------------------- |
+| 0:00–0:04 | Open a completed meeting summary. Hold on the task and agreement count.                             |
+| 0:04–0:10 | Scroll through the saved recap and open History.                                                    |
+| 0:10–0:17 | Return to the meeting summary and generate/show the AI-assisted recap. Cut out the wait.            |
+| 0:17–0:23 | Slowly scroll the finished summary so the short overview and one useful observation are visible.    |
 | 0:23–0:26 | Show the Premium screen with the real localized store price. Do not start a purchase in this short. |
-| 0:26–0:28 | Logo and CTA. |
+| 0:26–0:28 | Logo and CTA.                                                                                       |
 
 ## Script
 
-| Time | English AI voice + subtitle | Ukrainian AI voice + subtitle |
-| --- | --- | --- |
-| 0:00–0:04 | What did we agree on three weeks ago? | Про що ми домовилися три тижні тому? |
-| 0:04–0:10 | OurWeek keeps meetings, tasks, and agreements in one shared history. | OurWeek зберігає зустрічі, завдання й домовленості в спільній історії. |
-| 0:10–0:17 | Premium can also create an AI-assisted recap from the conversation. | Premium також може створити AI-підсумок розмови. |
-| 0:17–0:23 | Review the summary, keep what is useful, and return whenever you need it. | Перевірте підсумок, залиште корисне й повертайтеся за потреби. |
-| 0:23–0:26 | Your weekly conversation now has a memory. | Тепер ваша щотижнева розмова має пам’ять. |
-| 0:26–0:28 | Remember together with OurWeek. | Пам’ятайте разом з OurWeek. |
+| Time      | English AI voice + subtitle                                               | Ukrainian AI voice + subtitle                                          |
+| --------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 0:00–0:04 | What did we agree on three weeks ago?                                     | Про що ми домовилися три тижні тому?                                   |
+| 0:04–0:10 | OurWeek keeps meetings, tasks, and agreements in one shared history.      | OurWeek зберігає зустрічі, завдання й домовленості в спільній історії. |
+| 0:10–0:17 | Premium can also create an AI-assisted recap from the conversation.       | Premium також може створити AI-підсумок розмови.                       |
+| 0:17–0:23 | Review the summary, keep what is useful, and return whenever you need it. | Перевірте підсумок, залиште корисне й повертайтеся за потреби.         |
+| 0:23–0:26 | Your weekly conversation now has a memory.                                | Тепер ваша щотижнева розмова має пам’ять.                              |
+| 0:26–0:28 | Remember together with OurWeek.                                           | Пам’ятайте разом з OurWeek.                                            |
 
 **End-card CTA:** `Join the OurWeek waitlist` / `Приєднуйтеся до списку OurWeek`
 

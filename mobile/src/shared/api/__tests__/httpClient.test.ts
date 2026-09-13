@@ -122,21 +122,24 @@ describe('apiRequest', () => {
     );
   });
 
-  it.each(['en', 'uk', 'es'] as const)('sends %s as Accept-Language', async (locale) => {
-    activeLocale.value = locale;
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
-    vi.stubGlobal('fetch', fetchMock);
-    const { apiRequest } = await loadHttpClient();
+  it.each(['en', 'uk', 'es'] as const)(
+    'sends %s as Accept-Language',
+    async (locale) => {
+      activeLocale.value = locale;
+      const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+      vi.stubGlobal('fetch', fetchMock);
+      const { apiRequest } = await loadHttpClient();
 
-    await apiRequest('/auth/me');
+      await apiRequest('/auth/me');
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://api.test/v1/auth/me',
-      expect.objectContaining({
-        headers: expect.objectContaining({ 'Accept-Language': locale }),
-      })
-    );
-  });
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://api.test/v1/auth/me',
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'Accept-Language': locale }),
+        })
+      );
+    }
+  );
 
   it('preserves an explicit Accept-Language header from the caller', async () => {
     activeLocale.value = 'uk';
