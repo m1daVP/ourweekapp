@@ -142,6 +142,45 @@ describe('MeetingsService', () => {
     });
   });
 
+  it('accepts shared notes without an attributed participant while preserving legacy attribution', () => {
+    const sharedMeeting = apiMeeting({
+      sections: [
+        {
+          id: 'section_1',
+          notes: [{ id: 'note_shared', text: 'Morning routines were calmer.' }],
+          tasks: [],
+          agreements: [],
+        },
+      ],
+    });
+    const legacyMeeting = apiMeeting({
+      sections: [
+        {
+          id: 'section_1',
+          notes: [
+            {
+              id: 'note_legacy',
+              participantId: 'participant_1',
+              text: 'Plan Sunday.',
+            },
+          ],
+          tasks: [],
+          agreements: [],
+        },
+      ],
+    });
+
+    expect(meetingSchema.parse(sharedMeeting).sections[0]?.notes[0]).toEqual({
+      id: 'note_shared',
+      text: 'Morning routines were calmer.',
+    });
+    expect(meetingSchema.parse(legacyMeeting).sections[0]?.notes[0]).toEqual({
+      id: 'note_legacy',
+      participantId: 'participant_1',
+      text: 'Plan Sunday.',
+    });
+  });
+
   it('uses text for section agreements while tolerating legacy stored titles', () => {
     const parsed = meetingSchema.parse(apiMeeting({
       sections: [
