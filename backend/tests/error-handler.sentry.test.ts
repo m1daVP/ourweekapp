@@ -39,6 +39,22 @@ async function buildAppWithErrorHandler() {
     });
   });
 
+  app.get('/validated', {
+    schema: {
+      querystring: {
+        type: 'object',
+        required: ['name'],
+        properties: { name: { type: 'string' } },
+      },
+    },
+    handler: async () => ({ ok: true }),
+  });
+
+  app.get('/rate-limited', async () => {
+    const error = Object.assign(new Error('Rate limit exceeded'), { statusCode: 429 });
+    throw error;
+  });
+
   return app;
 }
 
@@ -49,10 +65,18 @@ describe('error handler Sentry reporting', () => {
 
   it('captures unexpected errors with request id, method and url only', async () => {
     const app = await buildAppWithErrorHandler();
-    const response = await app.inject({ method: 'GET', url: '/unexpected' });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/unexpected',
+      headers: { 'accept-language': 'uk' },
+    });
 
     expect(response.statusCode).toBe(500);
-    expect(response.json()).toMatchObject({ code: 'internal_server_error' });
+    expect(response.json()).toEqual({
+      message: 'Щось пішло не так. Спробуйте ще раз.',
+      code: 'internal_server_error',
+      details: {},
+    });
     expect(captureException).toHaveBeenCalledTimes(1);
 
     const [error, context] = captureException.mock.calls[0];
@@ -68,10 +92,18 @@ describe('error handler Sentry reporting', () => {
 
   it('does not capture expected ApiErrors', async () => {
     const app = await buildAppWithErrorHandler();
-    const response = await app.inject({ method: 'GET', url: '/expected' });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/expected',
+      headers: { 'accept-language': 'es-ES, en;q=0.8' },
+    });
 
     expect(response.statusCode).toBe(404);
-    expect(response.json()).toMatchObject({ code: 'not_found' });
+    expect(response.json()).toEqual({
+      message: 'No se encontró el elemento solicitado.',
+      code: 'not_found',
+      details: {},
+    });
     expect(captureException).not.toHaveBeenCalled();
 
     await app.close();
@@ -79,11 +111,15 @@ describe('error handler Sentry reporting', () => {
 
   it('removes internal details from 5xx ApiError responses', async () => {
     const app = await buildAppWithErrorHandler();
-    const response = await app.inject({ method: 'GET', url: '/expected-server' });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/expected-server',
+      headers: { 'accept-language': 'uk-UA' },
+    });
 
     expect(response.statusCode).toBe(500);
     expect(response.json()).toEqual({
-      message: 'Unable to load data.',
+      message: 'Щось пішло не так. Спробуйте ще раз.',
       code: 'database_failed',
       details: {},
     });
@@ -94,16 +130,57 @@ describe('error handler Sentry reporting', () => {
 
   it('preserves safe details in 4xx ApiError responses', async () => {
     const app = await buildAppWithErrorHandler();
-    const response = await app.inject({ method: 'GET', url: '/expected-client' });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/expected-client',
+      headers: { 'accept-language': 'uk' },
+    });
 
     expect(response.statusCode).toBe(409);
     expect(response.json()).toEqual({
-      message: 'The record changed.',
+      message: 'Цей елемент змінився. Оновіть сторінку та спробуйте ще раз.',
       code: 'update_conflict',
       details: { serverRevision: 2 },
     });
     expect(captureException).not.toHaveBeenCalled();
 
+    await app.close();
+  });
+
+  it('localizes validation errors without changing safe details', async () => {
+    const app = await buildAppWithErrorHandler();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/validated',
+      headers: { 'accept-language': 'uk-UA' },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({
+      message: 'Перевірте запит і спробуйте ще раз.',
+      code: 'validation_failed',
+      details: {
+        context: 'querystring',
+        issues: [expect.objectContaining({ path: '' })],
+      },
+    });
+    await app.close();
+  });
+
+  it('localizes rate-limit errors', async () => {
+    const app = await buildAppWithErrorHandler();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/rate-limited',
+      headers: { 'accept-language': 'es' },
+    });
+
+    expect(response.statusCode).toBe(429);
+    expect(response.json()).toEqual({
+      message: 'Demasiadas solicitudes. Inténtalo de nuevo más tarde.',
+      code: 'rate_limit_exceeded',
+      details: {},
+    });
     await app.close();
   });
 });

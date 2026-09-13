@@ -1,6 +1,10 @@
 import * as Sentry from '@sentry/node';
 import type { FastifyError, FastifyInstance } from 'fastify';
 
+import {
+  getLocalizedApiErrorMessage,
+  resolveApiLocale,
+} from '../localization/api-error-localization.js';
 import { ApiError, isApiError } from './api-error.js';
 
 type ValidationIssue = {
@@ -35,6 +39,8 @@ function toSafeValidationDetails(error: FastifyValidationError) {
 
 export function registerErrorHandler(app: FastifyInstance) {
   app.setErrorHandler((error: FastifyValidationError, request, reply) => {
+    const locale = resolveApiLocale(request.headers['accept-language']);
+
     if (isApiError(error)) {
       request.log.warn(
         { err: error, code: error.code, requestId: request.id },
@@ -42,7 +48,12 @@ export function registerErrorHandler(app: FastifyInstance) {
       );
 
       return reply.status(error.statusCode).send({
-        message: error.message,
+        message: getLocalizedApiErrorMessage(
+          locale,
+          error.code,
+          error.statusCode,
+          error.message,
+        ),
         code: error.code,
         details: error.statusCode >= 500 ? {} : error.details,
       });
@@ -55,7 +66,12 @@ export function registerErrorHandler(app: FastifyInstance) {
       );
 
       return reply.status(422).send({
-        message: 'Please check the request and try again.',
+        message: getLocalizedApiErrorMessage(
+          locale,
+          'validation_failed',
+          422,
+          'Please check the request and try again.',
+        ),
         code: 'validation_failed',
         details: toSafeValidationDetails(error),
       });
@@ -68,7 +84,12 @@ export function registerErrorHandler(app: FastifyInstance) {
       );
 
       return reply.status(429).send({
-        message: 'Too many requests. Please try again later.',
+        message: getLocalizedApiErrorMessage(
+          locale,
+          'rate_limit_exceeded',
+          429,
+          'Too many requests. Please try again later.',
+        ),
         code: 'rate_limit_exceeded',
         details: {},
       });
@@ -88,7 +109,12 @@ export function registerErrorHandler(app: FastifyInstance) {
     );
 
     return reply.status(internalServerError.statusCode).send({
-      message: internalServerError.message,
+      message: getLocalizedApiErrorMessage(
+        locale,
+        internalServerError.code,
+        internalServerError.statusCode,
+        internalServerError.message,
+      ),
       code: internalServerError.code,
       details: internalServerError.details,
     });
