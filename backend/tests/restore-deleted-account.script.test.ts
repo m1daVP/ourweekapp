@@ -52,4 +52,29 @@ describe('restore-deleted-account script', () => {
       .rejects.toThrow('No deleted account matches that email address.');
     expect(rpc).not.toHaveBeenCalled();
   });
+
+  it('explains when the restoration migration is not deployed', async () => {
+    const userQuery = {
+      eq: vi.fn(() => userQuery),
+      maybeSingle: vi.fn(async () => ({
+        data: { id: 'user-1', deleted_at: '2026-09-12T10:00:00.000Z' },
+        error: null,
+      })),
+      select: vi.fn(() => userQuery),
+    };
+    const restoreQuery = {
+      returns: vi.fn(async () => ({
+        data: null,
+        error: { code: 'PGRST202' },
+      })),
+    };
+    const supabase = {
+      from: vi.fn(() => userQuery),
+      rpc: vi.fn(() => restoreQuery),
+    } as unknown as SupabaseClient;
+
+    await expect(restoreDeletedAccount(supabase, 'owner@example.com')).rejects.toThrow(
+      'Account restoration is not deployed. Apply migration 20260912120000_create_account_restore_rpc.sql and retry.',
+    );
+  });
 });

@@ -42,6 +42,22 @@ function isAccountRestoreRow(value: unknown): value is AccountRestoreRow {
     && typeof row.restored_membership_count === 'number';
 }
 
+function accountRestoreFailureMessage(error: { code?: string } | null) {
+  if (error?.code === 'PGRST202') {
+    return 'Account restoration is not deployed. Apply migration 20260912120000_create_account_restore_rpc.sql and retry.';
+  }
+
+  if (error?.code === '42501') {
+    return 'Account restoration is not authorized. Verify the server-side Supabase service-role credentials.';
+  }
+
+  if (error?.code === 'P0002') {
+    return 'The account is no longer deleted.';
+  }
+
+  return 'Account restoration could not be completed.';
+}
+
 export async function restoreDeletedAccount(
   supabase: SupabaseClient,
   emailInput: string,
@@ -62,8 +78,12 @@ export async function restoreDeletedAccount(
     .returns<AccountRestoreRow[]>();
   const restoreRow = Array.isArray(data) ? data[0] : undefined;
 
-  if (error || !isAccountRestoreRow(restoreRow)) {
-    throw new Error('Account restoration could not be completed.');
+  if (error) {
+    throw new Error(accountRestoreFailureMessage(error));
+  }
+
+  if (!isAccountRestoreRow(restoreRow)) {
+    throw new Error('Account restoration returned an unexpected result. Verify the database migration and retry.');
   }
 
   return {
