@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AppConfig } from '@/shared/config/env';
 
 const debugSafely = vi.hoisted(() => vi.fn());
+const activeLocale = vi.hoisted(() => ({ value: 'en' as 'en' | 'uk' | 'es' }));
 
 const enabledConfig: AppConfig = {
   apiBaseUrl: 'http://api.test',
@@ -34,6 +35,7 @@ async function loadHttpClient(config: AppConfig = enabledConfig) {
   vi.resetModules();
   vi.doMock('@/shared/config/env', () => ({ appConfig: config }));
   vi.doMock('@/features/localization/i18n', () => ({
+    i18n: { global: { locale: activeLocale } },
     translate: (key: string) => key,
   }));
   vi.doMock('@/shared/services/safeLogService', () => ({
@@ -44,6 +46,7 @@ async function loadHttpClient(config: AppConfig = enabledConfig) {
 }
 
 afterEach(() => {
+  activeLocale.value = 'en';
   debugSafely.mockReset();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -98,6 +101,7 @@ describe('apiRequest', () => {
         body: JSON.stringify({ email: 'rita@example.com' }),
         headers: expect.objectContaining({
           Accept: 'application/json',
+          'Accept-Language': 'en',
           'Content-Type': 'application/json',
         }),
       })
@@ -115,6 +119,38 @@ describe('apiRequest', () => {
     );
     expect(JSON.stringify(debugSafely.mock.calls)).not.toContain(
       'rita@example.com'
+    );
+  });
+
+  it.each(['en', 'uk', 'es'] as const)('sends %s as Accept-Language', async (locale) => {
+    activeLocale.value = locale;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { apiRequest } = await loadHttpClient();
+
+    await apiRequest('/auth/me');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/v1/auth/me',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'Accept-Language': locale }),
+      })
+    );
+  });
+
+  it('preserves an explicit Accept-Language header from the caller', async () => {
+    activeLocale.value = 'uk';
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { apiRequest } = await loadHttpClient();
+
+    await apiRequest('/auth/me', { headers: { 'Accept-Language': 'es' } });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/v1/auth/me',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'Accept-Language': 'es' }),
+      })
     );
   });
 

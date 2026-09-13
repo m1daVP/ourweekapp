@@ -1,5 +1,5 @@
 import { appConfig } from '@/shared/config/env';
-import { translate } from '@/features/localization/i18n';
+import { i18n, translate } from '@/features/localization/i18n';
 import { debugSafely } from '@/shared/services/safeLogService';
 
 const API_VERSION_PREFIX = '/v1';
@@ -115,6 +115,7 @@ async function sendApiRequest<TResponse>(
   const startedAt = Date.now();
   const headers: Record<string, string> = {
     Accept: 'application/json',
+    'Accept-Language': i18n.global.locale.value,
     ...options.headers,
   };
 
