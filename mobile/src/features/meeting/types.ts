@@ -57,7 +57,7 @@ export type { Participant };
 export interface MeetingNote {
   id: string;
   sectionId: MeetingSectionId;
-  participantId: string;
+  participantId?: string;
   text: string;
   createdAt: string;
 }

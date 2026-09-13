@@ -118,6 +118,41 @@ describe('meetings store note editing', () => {
     vi.useRealTimers();
   });
 
+  it('adds a shared note and preserves legacy attribution when no replacement is supplied', () => {
+    const { meeting, meetingsStore } = setMeeting();
+
+    expect(
+      meetingsStore.addNote('goodThings', undefined, 'Shared context')
+    ).toBeNull();
+    expect(meeting.sections[0].notes.at(-1)).toMatchObject({
+      text: 'Shared context',
+    });
+    expect(meeting.sections[0].notes.at(-1)).not.toHaveProperty(
+      'participantId'
+    );
+
+    expect(
+      meetingsStore.updateNote('note-1', undefined, 'Updated legacy context')
+    ).toBeNull();
+    expect(meeting.sections[0].notes[0]).toMatchObject({
+      participantId: 'participant-1',
+      text: 'Updated legacy context',
+    });
+  });
+
+  it('allows explicit attribution clearing but rejects a supplied author outside the meeting', () => {
+    const { meeting, meetingsStore } = setMeeting();
+
+    expect(meetingsStore.updateNote('note-1', null, 'Shared now')).toBeNull();
+    expect(meeting.sections[0].notes[0]).not.toHaveProperty('participantId');
+
+    const originalMeeting = structuredClone(meeting);
+    expect(
+      meetingsStore.updateNote('note-1', 'participant-3', 'Invalid author')
+    ).toBe('meetingStore.chooseNoteAuthor');
+    expect(meeting).toEqual(originalMeeting);
+  });
+
   it.each([
     {
       name: 'empty text',

@@ -680,7 +680,11 @@ export function useMeetingSession() {
     meetingsStore.setActiveMeetingParticipants(checkedInParticipantIds.value);
   }
 
-  function getParticipantName(participantId: string) {
+  function getParticipantName(participantId?: string) {
+    if (!participantId) {
+      return t('meeting.shared');
+    }
+
     return (
       participantsStore.getParticipantById(participantId)?.name ??
       t('meeting.formerParticipant')
@@ -870,7 +874,7 @@ export function useMeetingSession() {
 
     clearMessages();
     editingNoteId.value = note.id;
-    editingNoteParticipantId.value = note.participantId;
+    editingNoteParticipantId.value = note.participantId ?? '';
     editingNoteText.value = note.text;
     noteEditorError.value = '';
   }

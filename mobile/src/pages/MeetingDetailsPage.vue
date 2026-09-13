@@ -118,7 +118,11 @@ function getTaskStatusLabel(status: MeetingTask['status'] | undefined) {
   return t(`meeting.taskStatus.${status}`);
 }
 
-function getParticipantName(participantId: string) {
+function getParticipantName(participantId?: string) {
+  if (!participantId) {
+    return t('meeting.shared');
+  }
+
   return (
     participantsStore.getParticipantById(participantId)?.name ??
     t('meeting.someone')

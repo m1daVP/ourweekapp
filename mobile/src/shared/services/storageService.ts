@@ -402,11 +402,15 @@ function remapMeetingSections(
       notes: Array.isArray(item.notes)
         ? item.notes.map((note) => {
             const noteItem = getRecord(note);
+            const { participantId, ...noteWithoutParticipantId } = noteItem;
+            const remappedParticipantId = remapId(participantId, idMap);
 
             return {
-              ...noteItem,
+              ...noteWithoutParticipantId,
               id: remapId(noteItem.id, idMap),
-              participantId: remapId(noteItem.participantId, idMap),
+              ...(remappedParticipantId
+                ? { participantId: remappedParticipantId }
+                : {}),
             };
           })
         : item.notes,

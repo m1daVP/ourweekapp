@@ -284,7 +284,7 @@ export function exportMeetingAsText(
     if (section.notes.length) {
       for (const note of section.notes) {
         lines.push(
-          `- ${context.getParticipantName(note.participantId)} (${formatDateTime(
+          `- ${note.participantId ? context.getParticipantName(note.participantId) : translate('meeting.shared')} (${formatDateTime(
             note.createdAt
           )}): ${note.text}`
         );
@@ -363,7 +363,7 @@ export function exportMeetingAsMarkdown(
     if (section.notes.length) {
       for (const note of section.notes) {
         lines.push(
-          `- **${context.getParticipantName(note.participantId)}** (${formatDateTime(
+          `- **${note.participantId ? context.getParticipantName(note.participantId) : translate('meeting.shared')}** (${formatDateTime(
             note.createdAt
           )}): ${note.text}`
         );

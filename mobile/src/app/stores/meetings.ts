@@ -130,11 +130,19 @@ interface LegacyAgreement {
   createdAt?: string;
 }
 
+interface LegacyMeetingNote {
+  id?: string;
+  sectionId?: MeetingSectionId;
+  participantId?: string;
+  text?: string;
+  createdAt?: string;
+}
+
 interface LegacyMeetingSection {
   id?: MeetingSectionId;
   title?: string;
   prompt?: string;
-  notes?: MeetingNote[];
+  notes?: LegacyMeetingNote[];
   tasks?: LegacyMeetingTask[];
   agreements?: LegacyAgreement[];
 }
@@ -315,6 +323,27 @@ function normalizeAgreement(
   };
 }
 
+function normalizeNote(
+  note: LegacyMeetingNote,
+  sectionId: MeetingSectionId
+): MeetingNote | null {
+  const text = note.text?.trim();
+
+  if (!text) {
+    return null;
+  }
+
+  const participantId = note.participantId?.trim();
+
+  return {
+    id: note.id ?? createId(),
+    sectionId,
+    ...(participantId ? { participantId } : {}),
+    text,
+    createdAt: note.createdAt ?? nowIso(),
+  };
+}
+
 function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
   const createdAt = meeting.createdAt ?? nowIso();
   const id = meeting.id ?? createId();
@@ -332,7 +361,10 @@ function normalizeMeeting(meeting: LegacyMeeting): Meeting | null {
       ...sectionTemplate,
       title: getMeetingSectionTitle(sectionTemplate.id, section?.title),
       prompt: getMeetingSectionPrompt(sectionTemplate.id, section?.prompt),
-      notes: section?.notes ?? [],
+      notes:
+        section?.notes
+          ?.map((note) => normalizeNote(note, sectionTemplate.id))
+          .filter((note): note is MeetingNote => Boolean(note)) ?? [],
       tasks:
         section?.tasks
           ?.map((task) => normalizeMeetingTask(task, sectionTemplate.id))
@@ -611,7 +643,7 @@ export const useMeetingsStore = defineStore('meetings', {
     },
     addNote(
       sectionId: MeetingSectionId,
-      participantId: string,
+      participantId: string | undefined,
       text: string
     ): string | null {
       const meeting = this.activeMeeting;
@@ -626,14 +658,14 @@ export const useMeetingsStore = defineStore('meetings', {
         return translate('meetingStore.addShortNote');
       }
 
-      if (!meeting.participantIds.includes(participantId)) {
+      if (participantId && !meeting.participantIds.includes(participantId)) {
         return translate('meetingStore.chooseNoteAuthor');
       }
 
       const note: MeetingNote = {
         id: createId(),
         sectionId,
-        participantId,
+        ...(participantId ? { participantId } : {}),
         text: trimmedText,
         createdAt: nowIso(),
       };
@@ -645,7 +677,7 @@ export const useMeetingsStore = defineStore('meetings', {
     },
     updateNote(
       noteId: string,
-      participantId: string,
+      participantId: string | null | undefined,
       text: string
     ): string | null {
       const meeting = this.activeMeeting;
@@ -665,12 +697,16 @@ export const useMeetingsStore = defineStore('meetings', {
         return translate('meetingStore.addShortNote');
       }
 
-      if (!meeting.participantIds.includes(participantId)) {
+      if (participantId && !meeting.participantIds.includes(participantId)) {
         return translate('meetingStore.chooseNoteAuthor');
       }
 
       const updatedAt = nowIso();
-      found.note.participantId = participantId;
+      if (participantId === null) {
+        delete found.note.participantId;
+      } else if (participantId) {
+        found.note.participantId = participantId;
+      }
       found.note.text = trimmedText;
       meeting.updatedAt = updatedAt;
       this.persist();
