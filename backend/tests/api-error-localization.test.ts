@@ -19,12 +19,43 @@ describe('API error localization', () => {
   it('localizes expected API errors by stable code', () => {
     expect(
       getLocalizedApiErrorMessage('uk', 'meeting_not_found', 404, 'Meeting not found.'),
-    ).toBe('Запитаний елемент не знайдено.');
+    ).toBe('Зустріч не знайдено.');
+  });
+
+  it.each([
+    [
+      'uk',
+      'Обліковий запис із цією адресою електронної пошти вже існує. Увійдіть у систему.',
+    ],
+    [
+      'es',
+      'Ya existe una cuenta con esta dirección de correo electrónico. Inicia sesión.',
+    ],
+  ] as const)('preserves the email-conflict meaning in %s', (locale, expected) => {
+    expect(
+      getLocalizedApiErrorMessage(
+        locale,
+        'email_already_registered',
+        409,
+        'An account with this email address already exists. Sign in instead.',
+      ),
+    ).toBe(expected);
   });
 
   it('uses the original English message when English is selected', () => {
     expect(
       getLocalizedApiErrorMessage('en', 'future_error_code', 500, 'Safe fallback.'),
     ).toBe('Safe fallback.');
+  });
+
+  it('keeps detailed fallback copy when a code has no reviewed translation', () => {
+    expect(
+      getLocalizedApiErrorMessage(
+        'es',
+        'future_error_code',
+        500,
+        'Unable to complete the specific operation.',
+      ),
+    ).toBe('Unable to complete the specific operation.');
   });
 });

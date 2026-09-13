@@ -23,7 +23,7 @@ async function buildAppWithErrorHandler() {
   });
 
   app.get('/expected', async () => {
-    throw new ApiError(404, 'not_found', 'That was not found.');
+    throw new ApiError(404, 'meeting_not_found', 'Meeting not found.');
   });
 
   app.get('/expected-server', async () => {
@@ -34,7 +34,7 @@ async function buildAppWithErrorHandler() {
   });
 
   app.get('/expected-client', async () => {
-    throw new ApiError(409, 'update_conflict', 'The record changed.', {
+    throw new ApiError(409, 'meeting_update_conflict', 'Meeting changed while saving summary.', {
       serverRevision: 2,
     });
   });
@@ -100,8 +100,8 @@ describe('error handler Sentry reporting', () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.json()).toEqual({
-      message: 'No se encontró el elemento solicitado.',
-      code: 'not_found',
+      message: 'No se encontró la reunión.',
+      code: 'meeting_not_found',
       details: {},
     });
     expect(captureException).not.toHaveBeenCalled();
@@ -114,12 +114,11 @@ describe('error handler Sentry reporting', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/expected-server',
-      headers: { 'accept-language': 'uk-UA' },
     });
 
     expect(response.statusCode).toBe(500);
     expect(response.json()).toEqual({
-      message: 'Щось пішло не так. Спробуйте ще раз.',
+      message: 'Unable to load data.',
       code: 'database_failed',
       details: {},
     });
@@ -138,8 +137,8 @@ describe('error handler Sentry reporting', () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json()).toEqual({
-      message: 'Цей елемент змінився. Оновіть сторінку та спробуйте ще раз.',
-      code: 'update_conflict',
+      message: 'Зустріч змінилася під час збереження підсумку. Оновіть дані та спробуйте ще раз.',
+      code: 'meeting_update_conflict',
       details: { serverRevision: 2 },
     });
     expect(captureException).not.toHaveBeenCalled();
