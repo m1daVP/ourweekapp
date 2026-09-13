@@ -501,13 +501,13 @@ function updateAgreementParticipant(
     >
       {{ isFirstStep ? t('common.exit') : t('common.back') }}
     </button>
-    <button
+    <!-- <button
       v-if="!isCompleted && canEditMeeting"
       type="button"
       @click="emit('save-draft')"
     >
       {{ t('meeting.saveDraft') }}
-    </button>
+    </button> -->
     <button
       v-if="!isFinalSection && !isCompleted && canEditMeeting"
       class="meeting-primary"
