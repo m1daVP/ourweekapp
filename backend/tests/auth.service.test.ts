@@ -794,7 +794,7 @@ describe('auth.service', () => {
     ).rejects.toMatchObject({
       statusCode: 401,
       code: 'account_deleted',
-      message: 'This account was deleted. Contact support to restore it.',
+      message: 'This account was deleted. To restore it, email ourweekapp@gmail.com.',
     });
   });
 

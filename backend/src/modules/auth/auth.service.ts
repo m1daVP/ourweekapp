@@ -144,7 +144,7 @@ const genericAuthFailure = new ApiError(
 const deletedAccountFailure = new ApiError(
   401,
   'account_deleted',
-  'This account was deleted. Contact support to restore it.',
+  'This account was deleted. To restore it, email ourweekapp@gmail.com.',
 );
 
 const passwordResetMessage =

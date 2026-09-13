@@ -7,7 +7,7 @@ Give users a clear response when they try to use credentials for a deleted accou
 ## Scope
 
 - Preserve the existing soft-delete model and email uniqueness rules.
-- Return a stable, non-sensitive authentication error for a deleted account: `account_deleted`, with the message `This account was deleted. Contact support to restore it.`
+- Return a stable, non-sensitive authentication error for a deleted account: `account_deleted`, with the message `This account was deleted. To restore it, email ourweekapp@gmail.com.`
 - Provide a local, operator-run restoration script and runbook.
 - Do not create a session during restoration. The restored user signs in normally afterward.
 

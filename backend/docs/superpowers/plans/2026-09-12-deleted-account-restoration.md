@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Tell a deleted password-account user to contact support and give the project owner a safe service-role CLI to restore that account and its appropriate workspace access.
+**Goal:** Tell a deleted password-account user how to reach support and give the project owner a safe service-role CLI to restore that account and its appropriate workspace access.
 
 **Architecture:** Password sign-in will fetch the matching user including soft-deleted rows, verify the password before revealing the deleted state, and return a stable `account_deleted` API error only for a verified deleted account. A forward-only PostgreSQL RPC will restore the user and all memberships that account deletion marked `removed`; it restores a soft-deleted workspace only where the restored user remains its owner and otherwise restores them as `adult_member`. A local TypeScript CLI validates one email, invokes the service-role RPC, and prints only a compact operation summary.
 
@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Keep the existing soft-delete model and global email uniqueness constraints; deleted emails cannot be registered again.
-- Return `account_deleted` with exactly `This account was deleted. Contact support to restore it.` only after a deleted user’s password is verified.
+- Return `account_deleted` with exactly `This account was deleted. To restore it, email ourweekapp@gmail.com.` only after a deleted user’s password is verified.
 - Unknown emails, incorrect passwords, and Google-only password attempts keep the existing generic `invalid_credentials` response.
 - The restoration RPC must be atomic, idempotent, and executable only by `service_role`.
 - Restore no sessions, refresh tokens, calendar credentials, or provider tokens.
@@ -44,7 +44,7 @@
 
 **Interfaces:**
 - Consumes: `normalizeEmail`, `verifyPassword`, `ApiError`, and the existing `UserRow` type.
-- Produces: `signInUser(supabase, body): Promise<AuthSessionDto>` can throw `ApiError(401, 'account_deleted', 'This account was deleted. Contact support to restore it.')`.
+- Produces: `signInUser(supabase, body): Promise<AuthSessionDto>` can throw `ApiError(401, 'account_deleted', 'This account was deleted. To restore it, email ourweekapp@gmail.com.')`.
 
 - [ ] **Step 1: Write failing service tests for the three password-sign-in branches**
 
@@ -61,7 +61,7 @@ it('returns the support-directed error for a deleted account after verifying its
   })).rejects.toMatchObject({
     statusCode: 401,
     code: 'account_deleted',
-    message: 'This account was deleted. Contact support to restore it.',
+    message: 'This account was deleted. To restore it, email ourweekapp@gmail.com.',
   });
 });
 
@@ -115,7 +115,7 @@ async function getUserByEmailIncludingDeleted(
 const deletedAccountFailure = new ApiError(
   401,
   'account_deleted',
-  'This account was deleted. Contact support to restore it.',
+  'This account was deleted. To restore it, email ourweekapp@gmail.com.',
 );
 
 // In signInUser, verify `user.password_hash` before this branch:
