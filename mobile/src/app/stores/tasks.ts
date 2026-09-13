@@ -245,7 +245,7 @@ export const useTasksStore = defineStore('tasks', {
   },
   actions: {
     persist() {
-      writeStorageSlice('tasks', {
+      return writeStorageSlice('tasks', {
         tasks: this.tasks,
         agreements: this.agreements,
         reviewDecisions: this.reviewDecisions,

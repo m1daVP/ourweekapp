@@ -5,7 +5,7 @@ import { translate } from '@/features/localization/i18n';
 import { nowIso } from '@/shared/utils/dates';
 import { createId, isUuid } from '@/shared/utils/ids';
 
-export const appDataVersion = 6;
+export const appDataVersion = 7;
 
 const APP_DATA_STORAGE_KEY = 'ourweek:app-data';
 const BACKUP_STORAGE_PREFIX = 'ourweek:app-data:backup';
@@ -23,7 +23,15 @@ const legacyStorageKeys = {
 } as const;
 
 type TopLevelStorageSliceKey =
-  'participants' | 'meetings' | 'tasks' | 'privateNotes' | 'syncMetadata';
+  | 'participants'
+  | 'meetings'
+  | 'tasks'
+  | 'privateNotes'
+  | 'meetingComposerDrafts'
+  | 'syncMetadata';
+
+export type LocalWriteResult =
+  { ok: true } | { ok: false; reason: 'unavailable' | 'write_failed' };
 
 export type SyncStorageResource = 'meetings' | 'tasks' | 'participants';
 
@@ -68,6 +76,7 @@ export interface AppDataEnvelope {
   meetings: unknown;
   tasks: unknown;
   privateNotes: unknown;
+  meetingComposerDrafts: unknown;
   syncMetadata: unknown;
   settings: AppDataSettings;
   onboarding: AppDataOnboarding;
@@ -100,6 +109,7 @@ const migrations: Record<number, Migration> = {
   3: migrateAppDataFromVersion3ToVersion4,
   4: migrateAppDataFromVersion4ToVersion5,
   5: migrateAppDataFromVersion5ToVersion6,
+  6: migrateAppDataFromVersion6ToVersion7,
 };
 
 function getLocalStorage() {
@@ -130,6 +140,7 @@ function createEmptyAppData(): AppDataEnvelope {
     meetings: null,
     tasks: null,
     privateNotes: null,
+    meetingComposerDrafts: null,
     syncMetadata: null,
     settings: {
       aiRecap: null,
@@ -294,6 +305,7 @@ function validateAppDataEnvelope(value: unknown): AppDataEnvelope | null {
     meetings: value.meetings ?? null,
     tasks: value.tasks ?? null,
     privateNotes: value.privateNotes ?? null,
+    meetingComposerDrafts: value.meetingComposerDrafts ?? null,
     syncMetadata: value.syncMetadata ?? null,
     settings: {
       aiRecap: settings.aiRecap ?? null,
@@ -827,6 +839,16 @@ export function migrateAppDataFromVersion5ToVersion6(
   };
 }
 
+export function migrateAppDataFromVersion6ToVersion7(
+  data: MigrationInput
+): MigrationInput {
+  return {
+    ...data,
+    appDataVersion: 7,
+    meetingComposerDrafts: null,
+  };
+}
+
 function migrateAppData(value: unknown): AppDataEnvelope | null {
   if (!isRecord(value)) {
     return null;
@@ -873,19 +895,21 @@ function createAppDataFromLegacyStorage(): AppDataEnvelope {
   return migrateAppData(versionOneData) ?? createEmptyAppData();
 }
 
-function persistAppData(data: AppDataEnvelope) {
+function persistAppData(data: AppDataEnvelope): LocalWriteResult {
   const safeData = removeStoredAuthTokenFields(data);
 
   cachedAppData = safeData;
 
   if (!canUseLocalStorage()) {
-    return;
+    return { ok: false, reason: 'unavailable' };
   }
 
   try {
     getLocalStorage()?.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(safeData));
+    return { ok: true };
   } catch {
     addRecoveryMessage(translate('storage.saveFailed'));
+    return { ok: false, reason: 'write_failed' };
   }
 }
 
@@ -1010,14 +1034,14 @@ export function readStorageSlice<T>(
 export function writeStorageSlice(
   key: TopLevelStorageSliceKey,
   value: unknown
-) {
+): LocalWriteResult {
   const data = {
     ...loadAppData(),
     [key]: value,
     updatedAt: nowIso(),
   };
 
-  persistAppData(data);
+  return persistAppData(data);
 }
 
 function normalizeSyncMetadata(value: unknown): SyncStorageMetadata {
@@ -1128,6 +1152,7 @@ export function resetSyncedAppDataForOwner(ownerUserId: string) {
   writeStorageSlice('participants', null);
   writeStorageSlice('meetings', null);
   writeStorageSlice('tasks', null);
+  writeStorageSlice('meetingComposerDrafts', null);
   writeSettingsStorage('workspace', null);
   writeStorageSlice('syncMetadata', {
     version: 1,

@@ -510,7 +510,7 @@ export const useMeetingsStore = defineStore('meetings', {
   },
   actions: {
     persist() {
-      writeStorageSlice('meetings', {
+      return writeStorageSlice('meetings', {
         meetings: this.meetings,
         activeMeetingId: this.activeMeetingId,
         draftSavedAt: this.draftSavedAt,
