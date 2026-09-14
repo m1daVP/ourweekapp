@@ -7,21 +7,44 @@ import MeetingSectionStep from '../MeetingSectionStep.vue';
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 
 const section: MeetingSection = {
-  id: 'tasks', title: 'Tasks', prompt: 'What needs attention?', notes: [], tasks: [], agreements: [],
+  id: 'tasks',
+  title: 'Tasks',
+  prompt: 'What needs attention?',
+  notes: [],
+  tasks: [],
+  agreements: [],
 };
 
 function mountStep() {
   return mount(MeetingSectionStep, {
     props: {
-      canEditMeeting: true, canEditTasks: true, currentAgreements: [], currentNotes: [], currentSection: section,
-      currentStepNumber: 2, currentTasks: [], formError: '', isFirstStep: false,
+      canEditMeeting: true,
+      canEditTasks: true,
+      currentAgreements: [],
+      currentNotes: [],
+      currentSection: section,
+      currentStepNumber: 2,
+      currentTasks: [],
+      formError: '',
+      isFirstStep: false,
       presentation: {
-        sectionId: 'tasks', phase: 'plan', screenKind: 'conversation', promptKey: 'templates.sections',
-        allowedItemTypes: ['note', 'task', 'agreement'], primaryCaptureType: 'task',
-        addActionLabelKey: 'meeting.presentation.addTask', attributionMode: 'shared',
+        sectionId: 'tasks',
+        phase: 'plan',
+        screenKind: 'conversation',
+        promptKey: 'templates.sections',
+        allowedItemTypes: ['note', 'task', 'agreement'],
+        primaryCaptureType: 'task',
+        addActionLabelKey: 'meeting.presentation.addTask',
+        attributionMode: 'shared',
       },
-      previousCompletedMeetingLabel: '', previousUnfinishedTasks: [], progressPercent: '25%',
-      sectionPrompt: section.prompt, sectionTitle: section.title, showTaskReview: false, statusMessage: '', totalSteps: 4,
+      previousCompletedMeetingLabel: '',
+      previousUnfinishedTasks: [],
+      progressPercent: '25%',
+      sectionPrompt: section.prompt,
+      sectionTitle: section.title,
+      showTaskReview: false,
+      statusMessage: '',
+      totalSteps: 4,
     },
   });
 }
