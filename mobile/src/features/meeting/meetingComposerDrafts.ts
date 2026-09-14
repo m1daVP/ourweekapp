@@ -6,6 +6,11 @@ import {
 
 export type MeetingComposerDraftType = 'note' | 'task' | 'agreement';
 
+export type MeetingComposerDraftFields = Record<
+  string,
+  string | string[] | undefined
+>;
+
 export interface MeetingComposerDraft {
   version: 1;
   userId: string;
@@ -14,7 +19,8 @@ export interface MeetingComposerDraft {
   sectionId: MeetingSectionId;
   type: MeetingComposerDraftType;
   itemId?: string;
-  fields: Record<string, string | string[] | undefined>;
+  fields: MeetingComposerDraftFields;
+  submittedItemId?: string;
   updatedAt: string;
 }
 
