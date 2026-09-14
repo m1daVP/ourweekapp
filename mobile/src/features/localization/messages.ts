@@ -874,6 +874,23 @@ export const messages = {
       closeMeeting: 'Close meeting',
       stepOf: 'Step {current} of {total}',
       saveDraft: 'Save draft',
+      presentation: {
+        reflectHelper:
+          'Talk it through. Add a note if you want to remember something.',
+        planHelper:
+          'Talk it through. Add something only if it will help next week.',
+        agreeHelper: 'Capture the decision you want to carry forward.',
+        reviewHelper: 'Review what you recorded before you finish.',
+        addNote: 'Add note',
+        addTask: 'Add task',
+        addAgreement: 'Add agreement',
+        goodThingsExample:
+          'Was there a small moment that made the week easier?',
+        tensionsExample:
+          'Was there a routine or situation that felt harder than usual?',
+        saving: 'Saving…',
+        savedOnDevice: 'Saved on this device',
+      },
       menu: {
         label: 'Meeting menu',
         open: 'Open meeting menu',
@@ -2448,6 +2465,23 @@ export const messages = {
       closeMeeting: 'Закрити зустріч',
       stepOf: 'Крок {current} з {total}',
       saveDraft: 'Зберегти чернетку',
+      presentation: {
+        reflectHelper:
+          'Обговоріть це. Додайте нотатку, якщо хочете щось запам’ятати.',
+        planHelper:
+          'Обговоріть це. Додайте запис, лише якщо він допоможе наступного тижня.',
+        agreeHelper: 'Збережіть рішення, до якого хочете повернутися.',
+        reviewHelper: 'Перегляньте записане перед завершенням.',
+        addNote: 'Додати нотатку',
+        addTask: 'Додати завдання',
+        addAgreement: 'Додати домовленість',
+        goodThingsExample:
+          'Чи був маленький момент, який полегшив цей тиждень?',
+        tensionsExample:
+          'Чи була рутина або ситуація, яка відчувалась складнішою, ніж зазвичай?',
+        saving: 'Збереження…',
+        savedOnDevice: 'Збережено на цьому пристрої',
+      },
       menu: {
         label: 'Меню зустрічі',
         open: 'Відкрити меню зустрічі',
@@ -4056,6 +4090,23 @@ export const messages = {
       closeMeeting: 'Cerrar reunión',
       stepOf: 'Paso {current} de {total}',
       saveDraft: 'Guardar borrador',
+      presentation: {
+        reflectHelper:
+          'Hablen de ello. Agreguen una nota si quieren recordarlo.',
+        planHelper:
+          'Hablen de ello. Agreguen algo solo si ayudará la próxima semana.',
+        agreeHelper: 'Registren la decisión que quieren mantener.',
+        reviewHelper: 'Revisen lo que registraron antes de terminar.',
+        addNote: 'Agregar nota',
+        addTask: 'Agregar tarea',
+        addAgreement: 'Agregar acuerdo',
+        goodThingsExample:
+          '¿Hubo un pequeño momento que hizo la semana más fácil?',
+        tensionsExample:
+          '¿Hubo una rutina o situación que se sintió más difícil de lo habitual?',
+        saving: 'Guardando…',
+        savedOnDevice: 'Guardado en este dispositivo',
+      },
       menu: {
         label: 'Menú de la reunión',
         open: 'Abrir menú de la reunión',
