@@ -277,6 +277,38 @@ describe('AiSummaryService', () => {
     expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(sensitiveNote);
   });
 
+  it('rejects an empty meeting even when low-content generation is explicitly allowed', async () => {
+    const { ai, assistant, participants, provider, service } = createHarness({
+      meeting: meeting({
+        sections: [{
+          id: 'section_1',
+          title: 'Planning',
+          prompt: 'What needs planning this week?',
+          notes: [],
+          tasks: [],
+          agreements: [],
+        }],
+      }),
+      withAssistantRepository: true,
+    });
+
+    await expect(
+      service.generateMeetingSummary(
+        auth,
+        { meetingId, allowLowContent: true },
+        new Date(now),
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'ai_summary_no_recorded_content',
+      details: { discussionSignalCount: 0, sectionCount: 0 },
+    });
+    expect(participants.listParticipantNamesForWorkspace).not.toHaveBeenCalled();
+    expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
+    expect(assistant.reserveRecap).not.toHaveBeenCalled();
+    expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
+  });
+
   it('allows a low-content recap after explicit confirmation', async () => {
     const { ai, provider, service } = createHarness({
       meeting: meeting({

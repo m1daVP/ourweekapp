@@ -238,6 +238,33 @@ export class AiSummaryService {
 
     const contentReadiness = getSummaryContentReadiness(meeting.sections);
 
+    if (contentReadiness.discussionSignalCount === 0) {
+      this.options.logger?.warn({
+        event: 'ai_summary_generation_rejected',
+        status: 'failed',
+        reason: 'no_recorded_content',
+        errorCode: 'ai_summary_no_recorded_content',
+        workspaceId: auth.workspaceId,
+        meetingId: meeting.id,
+        templateId: meeting.templateId,
+        provider: providerName,
+        model,
+        promptVersion,
+        durationMs: durationMsSince(startedAtMs),
+        discussionSignalCount: contentReadiness.discussionSignalCount,
+        sectionCount: contentReadiness.sectionCount,
+      }, 'AI summary generation rejected');
+      throw new ApiError(
+        409,
+        'ai_summary_no_recorded_content',
+        'Record a note or agreement before generating a recap.',
+        {
+          discussionSignalCount: contentReadiness.discussionSignalCount,
+          sectionCount: contentReadiness.sectionCount,
+        },
+      );
+    }
+
     if (!contentReadiness.isReady && request.allowLowContent !== true) {
       this.options.logger?.warn({
         event: 'ai_summary_generation_rejected',
