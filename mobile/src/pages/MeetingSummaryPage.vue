@@ -125,10 +125,17 @@ const hiddenParticipantCount = computed(() =>
   Math.max(0, (meetingSummary.value?.participants.length ?? 0) - 2)
 );
 
+const aiRecapReadiness = computed(() =>
+  accessibleMeeting.value
+    ? getAiRecapContentReadiness(accessibleMeeting.value)
+    : null
+);
+
 const canGenerateAiSummary = computed(() =>
   Boolean(
     accessibleMeeting.value &&
     accessibleMeeting.value.status === 'completed' &&
+    (aiRecapReadiness.value?.discussionSignalCount ?? 0) > 0 &&
     subscriptionStore.canGenerateAssistantRecap &&
     !accessibleMeeting.value.aiSummary &&
     !aiSummaryRecovery.value &&
@@ -413,13 +420,15 @@ async function handleGenerateSummary() {
   if (
     !accessibleMeeting.value ||
     accessibleMeeting.value.status !== 'completed' ||
+    !aiRecapReadiness.value ||
+    aiRecapReadiness.value.discussionSignalCount === 0 ||
     !subscriptionStore.canGenerateAssistantRecap ||
     isGeneratingSummary.value
   ) {
     return;
   }
 
-  if (!getAiRecapContentReadiness(accessibleMeeting.value).isReady) {
+  if (!aiRecapReadiness.value.isReady) {
     pendingLowContentMeeting.value = accessibleMeeting.value;
     isLowContentConfirmationOpen.value = true;
     return;

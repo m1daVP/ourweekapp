@@ -169,6 +169,22 @@ describe.each([
     );
   });
 
+  it('does not offer AI generation for a completed meeting without recorded content', () => {
+    const meeting = context.meetings.meetings[0]!;
+    meeting.aiSummary = undefined;
+    meeting.sections = meeting.sections.map((section) => ({
+      ...section,
+      notes: [],
+      tasks: [],
+      agreements: [],
+    }));
+    render();
+
+    expect(wrapper.find('[data-testid="generate-meeting-recap"]').exists()).toBe(false);
+    expect(document.body.textContent).not.toContain('Add a little more context?');
+    expect(generateMeetingSummary).not.toHaveBeenCalled();
+  });
+
   it.each(['unknown', 'exhausted', 'viewer', 'checking'] as const)(
     'does not offer generation when %s',
     (state) => {

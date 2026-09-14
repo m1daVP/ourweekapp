@@ -66,10 +66,15 @@ const meeting = computed(
 
 const aiSummary = computed(() => meeting.value?.aiSummary ?? null);
 
+const aiRecapReadiness = computed(() =>
+  meeting.value ? getAiRecapContentReadiness(meeting.value) : null
+);
+
 const canGenerateAiSummary = computed(() =>
   Boolean(
     meeting.value &&
     meeting.value.status === 'completed' &&
+    (aiRecapReadiness.value?.discussionSignalCount ?? 0) > 0 &&
     !aiSummary.value &&
     subscriptionStore.canGenerateAssistantRecap &&
     !aiSummaryRecovery.value
@@ -282,12 +287,14 @@ async function generateSummary() {
     !meeting.value ||
     isGeneratingSummary.value ||
     meeting.value.status !== 'completed' ||
+    !aiRecapReadiness.value ||
+    aiRecapReadiness.value.discussionSignalCount === 0 ||
     !subscriptionStore.canGenerateAssistantRecap
   ) {
     return;
   }
 
-  if (!getAiRecapContentReadiness(meeting.value).isReady) {
+  if (!aiRecapReadiness.value.isReady) {
     pendingLowContentMeeting.value = meeting.value;
     isLowContentConfirmationOpen.value = true;
     return;
