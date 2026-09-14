@@ -27,6 +27,11 @@ import {
   getMeetingTemplateName,
   taskSectionIds,
 } from '@/features/meeting/meetingTemplates';
+import { getSectionPresentation } from '@/features/meeting/meetingPresentation';
+import type {
+  MeetingComposerDraftFields,
+  MeetingComposerDraftType,
+} from '@/features/meeting/meetingComposerDrafts';
 import type {
   Agreement,
   Meeting,
@@ -378,6 +383,19 @@ export function useMeetingSession() {
         activeMeeting.value.sections.length - 1
     )
   );
+  const currentPresentation = computed(() => {
+    const meeting = activeMeeting.value;
+    const section = currentSection.value;
+
+    return meeting && section
+      ? getSectionPresentation(
+          meeting.templateId,
+          section.id,
+          meeting.currentSectionIndex,
+          meeting.sections.length
+        )
+      : null;
+  });
   const canAddTasks = computed(() =>
     currentSection.value
       ? taskSectionIds.includes(currentSection.value.id)
@@ -1217,6 +1235,66 @@ export function useMeetingSession() {
     void haptics.confirm();
   }
 
+  async function submitCapturedItem(
+    type: MeetingComposerDraftType,
+    fields: MeetingComposerDraftFields
+  ): Promise<{ ok: true; itemId: string } | { ok: false; message: string }> {
+    const meeting = activeMeeting.value;
+    const section = currentSection.value;
+
+    if (!meeting || !section || !canEditMeeting.value) {
+      return { ok: false, message: t('meeting.roleCannotEditMeetings') };
+    }
+
+    let error: string | null;
+    if (type === 'note') {
+      error = meetingsStore.addNote(section.id, undefined, String(fields.text ?? ''));
+    } else if (type === 'task') {
+      error = meetingsStore.addTask(section.id, {
+        title: String(fields.title ?? ''),
+        description: String(fields.description ?? '') || undefined,
+        dueDate: String(fields.dueDate ?? '') || undefined,
+        ...resolveTaskResponsibility(
+          String(fields.responsibilityChoice ?? 'needsDiscussion'),
+          activeMeetingParticipants.value.map((participant) => participant.id)
+        ),
+      });
+    } else {
+      error = meetingsStore.addAgreement(
+        section.id,
+        String(fields.text ?? ''),
+        activeMeetingParticipants.value.map((participant) => participant.id)
+      );
+    }
+
+    if (error) {
+      return { ok: false, message: error };
+    }
+
+    // Store mutations update memory first. A second, observable write is the
+    // acknowledgement used by the composer before it removes its local draft.
+    const write = meetingsStore.persist();
+    if (!write.ok) {
+      return { ok: false, message: t('meeting.presentation.saveFailed') };
+    }
+
+    const savedSection = meeting.sections.find((item) => item.id === section.id);
+    const item =
+      type === 'note'
+        ? savedSection?.notes.at(-1)
+        : type === 'task'
+          ? savedSection?.tasks.at(-1)
+          : savedSection?.agreements.at(-1);
+
+    if (!item) {
+      return { ok: false, message: t('meeting.presentation.saveFailed') };
+    }
+
+    statusMessage.value = t('meeting.presentation.savedOnDevice');
+    void haptics.confirm();
+    return { ok: true, itemId: item.id };
+  }
+
   function toggleTask(taskId: string, status: MeetingTaskStatus) {
     if (!canEditTasks.value || isCompleted.value) {
       formError.value = t('meeting.roleCannotEditTasks');
@@ -1315,6 +1393,17 @@ export function useMeetingSession() {
   }
 
   function closeMeeting() {
+    if (!isCompleted.value && canEditMeeting.value) {
+      clearMessages();
+
+      if (!meetingsStore.pauseMeeting() || !meetingsStore.persist().ok) {
+        formError.value = t('meeting.presentation.saveFailed');
+        return;
+      }
+
+      statusMessage.value = t('meeting.presentation.savedOnDevice');
+    }
+
     router.push({ name: 'home' });
   }
 
@@ -1353,7 +1442,15 @@ export function useMeetingSession() {
     }
 
     meetingsStore.saveDraft();
+    const write = meetingsStore.persist();
+
+    if (!write.ok) {
+      formError.value = t('meeting.presentation.saveFailed');
+      return false;
+    }
+
     statusMessage.value = t('meeting.draftSaved');
+    return true;
   }
 
   function saveDraftAndExit() {
@@ -1362,8 +1459,9 @@ export function useMeetingSession() {
       return;
     }
 
-    saveDraft();
-    exitMeeting();
+    if (saveDraft()) {
+      exitMeeting();
+    }
   }
 
   function pauseRitual() {
@@ -1718,6 +1816,7 @@ export function useMeetingSession() {
     closeMeeting,
     currentAgreements,
     currentNotes,
+    currentPresentation,
     currentSection,
     currentStepNumber,
     currentTasks,
@@ -1788,6 +1887,7 @@ export function useMeetingSession() {
     showNotes,
     showTaskReview,
     startNewMeeting,
+    submitCapturedItem,
     startRitual,
     statusMessage,
     taskDraft,

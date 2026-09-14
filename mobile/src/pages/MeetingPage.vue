@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ActionMenuPopup from '@/shared/components/ActionMenuPopup.vue';
 import type { ActionMenuItem } from '@/shared/components/ActionMenuPopup.vue';
@@ -9,7 +9,10 @@ import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 import MeetingCheckInStep from '@/features/meeting/components/MeetingCheckInStep.vue';
 import MeetingReviewCloseStep from '@/features/meeting/components/MeetingReviewCloseStep.vue';
 import MeetingSectionStep from '@/features/meeting/components/MeetingSectionStep.vue';
+import MeetingItemComposer from '@/features/meeting/components/MeetingItemComposer.vue';
 import { useMeetingSession } from '@/features/meeting/composables/useMeetingSession';
+import { useWorkspaceStore } from '@/app/stores/workspace';
+import type { MeetingComposerDraftType } from '@/features/meeting/meetingComposerDrafts';
 
 const { t } = useI18n();
 const {
@@ -45,6 +48,7 @@ const {
   confirmEndSessionIncomplete,
   currentAgreements,
   currentNotes,
+  currentPresentation,
   currentSection,
   currentStepNumber,
   currentTasks,
@@ -113,6 +117,7 @@ const {
   showNotes,
   showTaskReview,
   startNewMeeting,
+  submitCapturedItem,
   startRitual,
   statusMessage,
   taskDraft,
@@ -121,6 +126,28 @@ const {
   toggleTask,
   totalSteps,
 } = useMeetingSession();
+
+const workspaceStore = useWorkspaceStore();
+const composerType = ref<MeetingComposerDraftType | null>(null);
+const composerScope = computed(() => {
+  const meeting = activeMeeting.value;
+  const section = currentSection.value;
+  const type = composerType.value;
+
+  return meeting && section && type
+    ? {
+        userId: workspaceStore.currentUserId,
+        workspaceId: workspaceStore.workspace.id,
+        meetingId: meeting.id,
+        sectionId: section.id,
+        type,
+      }
+    : null;
+});
+
+function openComposer(type: MeetingComposerDraftType) {
+  composerType.value = type;
+}
 
 const ritualMenuItems = computed<ActionMenuItem[]>(() => [
   {
@@ -242,19 +269,6 @@ const taskResponsibilityPickerOptions = computed(() => [
 
     <MeetingSectionStep
       v-else
-      v-model:agreement-participant-ids="agreementParticipantIds"
-      v-model:agreement-text="agreementText"
-      v-model:note-text="noteText"
-      v-model:selected-participant-id="selectedParticipantId"
-      v-model:task-description="taskDraft.description"
-      v-model:task-due-date="taskDraft.dueDate"
-      v-model:task-responsibility-choice="taskDraft.responsibilityChoice"
-      v-model:task-title="taskDraft.title"
-      :active-meeting-participants="activeMeetingParticipants"
-      :can-add-agreements="canAddAgreements"
-      :can-add-tasks="canAddTasks"
-      :can-create-meeting="canCreateMeeting"
-      :can-create-tasks="canCreateTasks"
       :can-edit-meeting="canEditMeeting"
       :can-edit-tasks="canEditTasks"
       :current-agreements="currentAgreements"
@@ -263,25 +277,17 @@ const taskResponsibilityPickerOptions = computed(() => [
       :current-step-number="currentStepNumber"
       :current-tasks="currentTasks"
       :form-error="formError"
-      :is-completed="isCompleted"
-      :is-final-section="isFinalSection"
-      :is-finishing-meeting="isFinishingMeeting"
       :is-first-step="isFirstStep"
-      :neutral-hint="neutralHint"
-      :note-placeholder="notePlaceholder(currentSection.id)"
-      :previous-completed-meeting="previousCompletedMeeting"
+      :presentation="currentPresentation!"
       :previous-completed-meeting-label="previousCompletedMeetingLabel()"
       :previous-unfinished-tasks="previousUnfinishedTasks"
       :progress-percent="progressPercent"
       :section-prompt="sectionPrompt(currentSection.id, currentSection.prompt)"
       :section-title="sectionTitle(currentSection.id, currentSection.title)"
-      :show-notes="showNotes"
       :show-task-review="showTaskReview"
       :status-message="statusMessage"
       :total-steps="totalSteps"
-      @add-agreement="addAgreement"
-      @add-note="addNote"
-      @add-task="addTask"
+      @capture="openComposer"
       @delete-note="deleteNote"
       @delete-task="deleteTask"
       @delete-agreement="deleteAgreement"
@@ -289,16 +295,23 @@ const taskResponsibilityPickerOptions = computed(() => [
       @edit-note="openNoteEditor"
       @edit-task="openTaskEditor"
       @exit="closeMeeting"
-      @finish="finishMeeting"
       @go-back="goBack"
       @go-next="goNext"
       @handle-unfinished-tasks="handleUnfinishedTasks"
       @open-menu="isRitualMenuOpen = true"
-      @save-draft="saveDraft"
-      @start-new="startNewMeeting"
       @toggle-task="toggleTask"
     />
   </section>
+
+  <MeetingItemComposer
+    v-if="composerScope"
+    :open="Boolean(composerType)"
+    :scope="composerScope"
+    :participants="activeMeetingParticipants"
+    :submit-item="({ type, fields }) => submitCapturedItem(type, fields)"
+    @close="composerType = null"
+    @saved="composerType = null"
+  />
 
   <section v-else class="page-stack">
     <div>
