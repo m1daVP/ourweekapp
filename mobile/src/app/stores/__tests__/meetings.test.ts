@@ -420,3 +420,46 @@ describe('meetings store agreement editing', () => {
     expect(tasksStore.agreements[0].deletedAt).toBeUndefined();
   });
 });
+
+describe('meetings store completion', () => {
+  it('completes an empty active meeting after its local write succeeds', () => {
+    const { meeting, meetingsStore } = setMeeting();
+    meeting.sections[0].notes = [];
+    meeting.sections[0].tasks = [];
+    storageMocks.writeStorageSlice.mockReturnValue({ ok: true });
+
+    expect(meetingsStore.finishMeeting()).toBeNull();
+    expect(meeting.status).toBe('completed');
+    expect(meeting.completedAt).toBeTruthy();
+  });
+
+  it('restores the editable meeting when completion cannot be persisted', () => {
+    const { meeting, meetingsStore } = setMeeting();
+    const originalMeeting = structuredClone(meeting);
+    storageMocks.writeStorageSlice.mockReturnValue({
+      ok: false,
+      reason: 'write_failed',
+    });
+
+    expect(meetingsStore.finishMeeting()).toBe(
+      'meeting.presentation.saveFailed'
+    );
+    expect(meeting).toEqual(originalMeeting);
+    expect(meetingsStore.activeMeetingId).toBe(meeting.id);
+  });
+
+  it('preserves the original completion timestamp on a repeated finish', () => {
+    vi.useFakeTimers();
+    const { meeting, meetingsStore } = setMeeting();
+    storageMocks.writeStorageSlice.mockReturnValue({ ok: true });
+    vi.setSystemTime(new Date('2026-06-22T10:05:00.000Z'));
+
+    expect(meetingsStore.finishMeeting()).toBeNull();
+    const completedAt = meeting.completedAt;
+    vi.setSystemTime(new Date('2026-06-22T10:10:00.000Z'));
+
+    expect(meetingsStore.finishMeeting()).toBeNull();
+    expect(meeting.completedAt).toBe(completedAt);
+    vi.useRealTimers();
+  });
+});

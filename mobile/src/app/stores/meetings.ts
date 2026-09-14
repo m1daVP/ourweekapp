@@ -487,15 +487,6 @@ function cloneAgreement(agreement: Agreement): Agreement {
   };
 }
 
-function meetingHasContent(meeting: Meeting) {
-  return meeting.sections.some(
-    (section) =>
-      section.notes.length > 0 ||
-      section.tasks.length > 0 ||
-      section.agreements.length > 0
-  );
-}
-
 export const useMeetingsStore = defineStore('meetings', {
   state: (): MeetingsState => getStoredState(),
   getters: {
@@ -1267,17 +1258,30 @@ export const useMeetingsStore = defineStore('meetings', {
         return translate('meetingStore.openBeforeFinish');
       }
 
-      if (!meetingHasContent(meeting)) {
-        return translate('meeting.atLeastOne');
+      if (meeting.status === 'completed') {
+        return null;
       }
 
+      const previousState = {
+        status: meeting.status,
+        completedAt: meeting.completedAt,
+        updatedAt: meeting.updatedAt,
+        currentSectionIndex: meeting.currentSectionIndex,
+      };
+      const previousDraftSavedAt = this.draftSavedAt;
       const completedAt = nowIso();
       meeting.status = 'completed';
       meeting.completedAt = completedAt;
       meeting.updatedAt = completedAt;
       meeting.currentSectionIndex = meeting.sections.length - 1;
       this.draftSavedAt = null;
-      this.persist();
+
+      if (!this.persist().ok) {
+        Object.assign(meeting, previousState);
+        this.draftSavedAt = previousDraftSavedAt;
+        return translate('meeting.presentation.saveFailed');
+      }
+
       return null;
     },
   },

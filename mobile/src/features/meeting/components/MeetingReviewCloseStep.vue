@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type {
   EnrichedAgreement,
@@ -7,7 +8,7 @@ import type {
   MeetingReviewCounts,
 } from '@/features/meeting/composables/useMeetingSession';
 
-defineProps<{
+const props = defineProps<{
   allAgreements: EnrichedAgreement[];
   allNotes: EnrichedMeetingNote[];
   allTasks: EnrichedMeetingTask[];
@@ -28,6 +29,7 @@ const emit = defineEmits<{
   'delete-agreement': [agreementId: string];
   'delete-note': [noteId: string];
   'delete-task': [taskId: string];
+  capture: [type: 'note' | 'task' | 'agreement'];
   'edit-agreement': [agreement: EnrichedAgreement];
   'edit-note': [note: EnrichedMeetingNote];
   'edit-actions': [];
@@ -40,7 +42,34 @@ const emit = defineEmits<{
   'toggle-task': [taskId: string, status: EnrichedMeetingTask['status']];
 }>();
 
-const { t } = useI18n();
+const { t, te } = useI18n();
+const areNotesExpanded = ref(false);
+const emptyReviewText = () =>
+  te('meeting.reviewEmpty')
+    ? t('meeting.reviewEmpty')
+    : 'You made time to check in. Nothing was recorded.';
+const notesToggleText = computed(() => {
+  const key = areNotesExpanded.value
+    ? 'meeting.hideRecordedNotes'
+    : 'meeting.showRecordedNotes';
+  const fallback = areNotesExpanded.value ? 'Hide notes' : 'Show notes';
+  return te(key) ? t(key) : fallback;
+});
+const notesBySection = computed(() => {
+  const groups = new Map<string, EnrichedMeetingNote[]>();
+
+  for (const note of props.allNotes) {
+    groups.set(note.sectionTitle, [
+      ...(groups.get(note.sectionTitle) ?? []),
+      note,
+    ]);
+  }
+
+  return [...groups.entries()].map(([sectionTitle, notes]) => ({
+    sectionTitle,
+    notes,
+  }));
+});
 </script>
 
 <template>
@@ -111,6 +140,7 @@ const { t } = useI18n();
       </section> -->
 
       <section
+        v-if="allTasks.length"
         class="review-close-card review-close-actions-card"
         aria-labelledby="review-close-actions-title"
       >
@@ -150,7 +180,10 @@ const { t } = useI18n();
                 }}
               </span>
             </button>
-            <span>{{ task.title }}</span>
+            <span>
+              {{ task.title }}
+              <small>{{ task.responsibilityLabel }}</small>
+            </span>
             <button
               v-if="canEditTasks && !isCompleted"
               type="button"
@@ -171,10 +204,6 @@ const { t } = useI18n();
             </button>
           </li>
         </ul>
-        <p v-else class="review-close-empty">
-          {{ t('meeting.noAgreedActionsYet') }}
-        </p>
-
         <button
           type="button"
           class="review-close-edit"
@@ -189,6 +218,7 @@ const { t } = useI18n();
       </section>
 
       <section
+        v-if="allAgreements.length"
         class="review-close-card"
         aria-labelledby="review-close-agreements-title"
       >
@@ -240,12 +270,10 @@ const { t } = useI18n();
             </template>
           </li>
         </ul>
-        <p v-else class="review-close-empty">
-          {{ t('meeting.noAgreementsYet') }}
-        </p>
       </section>
 
       <section
+        v-if="allNotes.length"
         class="review-close-card"
         aria-labelledby="review-close-notes-title"
       >
@@ -262,47 +290,85 @@ const { t } = useI18n();
           </span>
         </header>
 
+        <button
+          type="button"
+          class="review-close-edit"
+          :aria-expanded="areNotesExpanded"
+          @click="areNotesExpanded = !areNotesExpanded"
+        >
+          {{ notesToggleText }}
+        </button>
         <ul
-          v-if="allNotes.length"
+          v-if="areNotesExpanded"
           class="review-close-text-list review-close-text-list--actions"
         >
-          <li v-for="note in allNotes" :key="note.id">
-            <div>
-              <span>{{ note.participantName }}</span>
-              <p>{{ note.text }}</p>
-            </div>
-            <button
-              v-if="canEditMeeting && !isCompleted"
-              type="button"
-              class="meeting-note-item__edit material-symbols-outlined"
-              :aria-label="
-                t('meeting.editNoteAria', { author: note.participantName })
-              "
-              @click="emit('edit-note', note)"
-            >
-              edit
-            </button>
-            <button
-              v-if="canEditMeeting && !isCompleted"
-              type="button"
-              class="review-close-delete material-symbols-outlined"
-              :aria-label="
-                t('meeting.deleteNoteAria', { author: note.participantName })
-              "
-              @click="emit('delete-note', note.id)"
-            >
-              delete
-            </button>
+          <li v-for="group in notesBySection" :key="group.sectionTitle">
+            <span>{{ group.sectionTitle }}</span>
+            <ul class="review-close-text-list review-close-text-list--actions">
+              <li v-for="note in group.notes" :key="note.id">
+                <div>
+                  <span>{{ note.participantName }}</span>
+                  <p>{{ note.text }}</p>
+                </div>
+                <button
+                  v-if="canEditMeeting && !isCompleted"
+                  type="button"
+                  class="meeting-note-item__edit material-symbols-outlined"
+                  :aria-label="
+                    t('meeting.editNoteAria', { author: note.participantName })
+                  "
+                  @click="emit('edit-note', note)"
+                >
+                  edit
+                </button>
+                <button
+                  v-if="canEditMeeting && !isCompleted"
+                  type="button"
+                  class="review-close-delete material-symbols-outlined"
+                  :aria-label="
+                    t('meeting.deleteNoteAria', {
+                      author: note.participantName,
+                    })
+                  "
+                  @click="emit('delete-note', note.id)"
+                >
+                  delete
+                </button>
+              </li>
+            </ul>
           </li>
         </ul>
-        <p v-else class="review-close-empty">
-          {{ t('meeting.noNotesYet') }}
-        </p>
       </section>
 
-      <p v-if="!hasMeetingContent" class="meeting-help">
-        {{ t('meeting.atLeastOne') }}
-      </p>
+      <section v-if="!hasMeetingContent" class="review-close-card">
+        <p class="review-close-empty">{{ emptyReviewText() }}</p>
+      </section>
+      <section v-if="!isCompleted && canEditMeeting" class="review-close-card">
+        <p class="meeting-help">{{ t('meeting.reviewReadyText') }}</p>
+        <div class="review-close-capture-actions">
+          <button
+            type="button"
+            class="review-close-edit"
+            @click="emit('capture', 'agreement')"
+          >
+            {{ t('meeting.addAgreement') }}
+          </button>
+          <button
+            type="button"
+            class="review-close-edit"
+            @click="emit('capture', 'task')"
+          >
+            {{ t('meeting.addTask') }}
+          </button>
+          <button
+            type="button"
+            class="review-close-edit"
+            @click="emit('capture', 'note')"
+          >
+            {{ t('meeting.addNote') }}
+          </button>
+        </div>
+      </section>
       <p v-if="formError" class="meeting-error" role="alert">
         {{ formError }}
       </p>
@@ -580,6 +646,15 @@ const { t } = useI18n();
   overflow-wrap: anywhere;
 }
 
+.review-close-action-list small {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-outline);
+  font-family: var(--font-body);
+  font-size: var(--font-size-label-sm);
+  font-weight: 650;
+}
+
 .review-close-text-list li {
   display: grid;
   gap: 4px;
@@ -664,6 +739,12 @@ const { t } = useI18n();
     'wght' 600,
     'GRAD' 0,
     'opsz' 20;
+}
+
+.review-close-capture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .review-close-stats {

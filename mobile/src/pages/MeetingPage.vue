@@ -78,6 +78,7 @@ const {
   isAiRecapLowContentOpen,
   isDeleteRitualDialogOpen,
   isEndSessionDialogOpen,
+  isDraftResolutionOpen,
   isFinalSection,
   isFinishingMeeting,
   isFirstStep,
@@ -106,6 +107,9 @@ const {
   progressPercent,
   reviewCounts,
   reviewTasks,
+  reviewOutstandingDraft,
+  returnToFinalReview,
+  discardOutstandingDraftsAndFinish,
   saveDraft,
   saveNoteEdit,
   saveTaskEdit,
@@ -129,6 +133,7 @@ const {
 
 const workspaceStore = useWorkspaceStore();
 const composerType = ref<MeetingComposerDraftType | null>(null);
+const isReviewingDraft = ref(false);
 const composerScope = computed(() => {
   const meeting = activeMeeting.value;
   const section = currentSection.value;
@@ -147,6 +152,22 @@ const composerScope = computed(() => {
 
 function openComposer(type: MeetingComposerDraftType) {
   composerType.value = type;
+}
+
+function handleReviewOutstandingDraft() {
+  const scope = reviewOutstandingDraft();
+  if (!scope) return;
+
+  isReviewingDraft.value = true;
+  composerType.value = scope.type;
+}
+
+function closeComposer() {
+  composerType.value = null;
+  if (isReviewingDraft.value) {
+    isReviewingDraft.value = false;
+    returnToFinalReview();
+  }
 }
 
 const ritualMenuItems = computed<ActionMenuItem[]>(() => [
@@ -253,6 +274,7 @@ const taskResponsibilityPickerOptions = computed(() => [
       :review-counts="reviewCounts"
       :status-message="statusMessage"
       @edit-actions="editActions"
+      @capture="openComposer"
       @exit="closeMeeting"
       @finish="finishMeeting"
       @go-back="goBack"
@@ -309,8 +331,8 @@ const taskResponsibilityPickerOptions = computed(() => [
     :scope="composerScope"
     :participants="activeMeetingParticipants"
     :submit-item="({ type, fields }) => submitCapturedItem(type, fields)"
-    @close="composerType = null"
-    @saved="composerType = null"
+    @close="closeComposer"
+    @saved="closeComposer"
   />
 
   <section v-else class="page-stack">
@@ -466,6 +488,16 @@ const taskResponsibilityPickerOptions = computed(() => [
     </form>
   </BaseBottomSheet>
 
+  <ConfirmationDialog
+    :open="isDraftResolutionOpen"
+    :title="t('meeting.resolveDraftsTitle')"
+    :message="t('meeting.resolveDraftsText')"
+    :confirm-label="t('meeting.discardDraftsFinish')"
+    :cancel-label="t('meeting.reviewDrafts')"
+    destructive
+    @close="handleReviewOutstandingDraft"
+    @confirm="discardOutstandingDraftsAndFinish"
+  />
   <ConfirmationDialog
     :open="isAiRecapLowContentOpen"
     :title="t('ai.recap.lowContent.title')"

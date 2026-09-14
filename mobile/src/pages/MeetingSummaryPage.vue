@@ -88,6 +88,7 @@ const meetingSummaryFallbackText = {
   aiGenerate: 'Generate AI insight',
   noDecisions: 'No decisions were recorded in this meeting.',
   noActions: 'No action items were recorded in this meeting.',
+  emptyRecorded: 'You made time to check in. Nothing was recorded.',
   unavailableTitle: 'Summary unavailable',
   unavailableText:
     'This meeting summary is not available on this device right now.',
@@ -186,6 +187,14 @@ const aiInsightState = computed<AiInsightState>(() => {
 });
 
 const unavailableText = computed(() => meetingSummaryText('unavailableText'));
+const emptyRecordedText = computed(() => meetingSummaryText('emptyRecorded'));
+const hasRecordedContent = computed(() =>
+  Boolean(
+    meetingSummary.value &&
+    (meetingSummary.value.keyDecisions.length ||
+      meetingSummary.value.actionItems.length)
+  )
+);
 
 function getMeetingDate(item: Meeting) {
   return new Date(item.completedAt ?? item.updatedAt ?? item.createdAt);
@@ -485,7 +494,9 @@ function goBack() {
         </span>
         <div>
           <h2 id="summary-title">{{ meetingSummary.title }}</h2>
-          <p>{{ meetingSummary.date }}</p>
+          <p>
+            {{ hasRecordedContent ? meetingSummary.date : emptyRecordedText }}
+          </p>
         </div>
         <div class="meeting-summary-avatar-stack" aria-hidden="true">
           <ParticipantAvatar

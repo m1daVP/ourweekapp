@@ -13,6 +13,7 @@ vi.mock('@/shared/services/storageService', () => ({
 
 import {
   discardMeetingComposerDraft,
+  getMeetingComposerDraftsForMeeting,
   loadMeetingComposerDraft,
   saveMeetingComposerDraft,
 } from '../meetingComposerDrafts';
@@ -56,5 +57,25 @@ describe('meeting composer drafts', () => {
     expect(loadMeetingComposerDraft({ ...draft, type: 'task' })).toMatchObject({
       fields: { title: 'Buy shoes' },
     });
+  });
+
+  it('returns only unsubmitted drafts for the current account and meeting', () => {
+    saveMeetingComposerDraft(draft);
+    saveMeetingComposerDraft({
+      ...draft,
+      type: 'task',
+      fields: { title: 'Already submitted' },
+      submittedItemId: 'task-1',
+    });
+    saveMeetingComposerDraft({
+      ...draft,
+      type: 'agreement',
+      meetingId: 'meeting-2',
+      fields: { text: 'Other meeting' },
+    });
+
+    expect(
+      getMeetingComposerDraftsForMeeting('user-1', 'workspace-1', 'meeting-1')
+    ).toEqual([draft]);
   });
 });

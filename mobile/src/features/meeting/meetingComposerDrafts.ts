@@ -58,6 +58,22 @@ export function loadMeetingComposerDraft(scope: MeetingComposerDraftScope) {
   return readDrafts().find((draft) => matchesScope(draft, scope)) ?? null;
 }
 
+export function getMeetingComposerDraftsForMeeting(
+  userId: string,
+  workspaceId: string,
+  meetingId: string
+) {
+  return readDrafts()
+    .filter(
+      (draft) =>
+        draft.userId === userId &&
+        draft.workspaceId === workspaceId &&
+        draft.meetingId === meetingId &&
+        !draft.submittedItemId
+    )
+    .sort((first, second) => first.updatedAt.localeCompare(second.updatedAt));
+}
+
 export function saveMeetingComposerDraft(draft: MeetingComposerDraft) {
   const drafts = readDrafts();
   const nextDrafts = drafts.filter((item) => !matchesScope(item, draft));

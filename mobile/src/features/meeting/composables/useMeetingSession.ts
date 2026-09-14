@@ -46,6 +46,12 @@ import { useToast } from '@/shared/composables/useToast';
 import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 import { haptics } from '@/shared/services/hapticsService';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
+import { useWorkspaceStore } from '@/app/stores/workspace';
+import {
+  discardMeetingComposerDraft,
+  getMeetingComposerDraftsForMeeting,
+  type MeetingComposerDraftScope,
+} from '@/features/meeting/meetingComposerDrafts';
 
 export const maxCheckInParticipants = 10;
 
@@ -265,6 +271,7 @@ export function useMeetingSession() {
   const router = useRouter();
   const { t, locale } = useI18n();
   const { can } = useWorkspacePermissions();
+  const workspaceStore = useWorkspaceStore();
   const { showToast } = useToast();
   const { showInAppNotification } = useInAppNotification();
 
@@ -275,6 +282,7 @@ export function useMeetingSession() {
   const formError = ref('');
   const statusMessage = ref('');
   const isFinishingMeeting = ref(false);
+  const isDraftResolutionOpen = ref(false);
 
   watch(statusMessage, (message) => {
     if (!message) {
@@ -1248,7 +1256,11 @@ export function useMeetingSession() {
 
     let error: string | null;
     if (type === 'note') {
-      error = meetingsStore.addNote(section.id, undefined, String(fields.text ?? ''));
+      error = meetingsStore.addNote(
+        section.id,
+        undefined,
+        String(fields.text ?? '')
+      );
     } else if (type === 'task') {
       error = meetingsStore.addTask(section.id, {
         title: String(fields.title ?? ''),
@@ -1278,7 +1290,9 @@ export function useMeetingSession() {
       return { ok: false, message: t('meeting.presentation.saveFailed') };
     }
 
-    const savedSection = meeting.sections.find((item) => item.id === section.id);
+    const savedSection = meeting.sections.find(
+      (item) => item.id === section.id
+    );
     const item =
       type === 'note'
         ? savedSection?.notes.at(-1)
@@ -1519,8 +1533,8 @@ export function useMeetingSession() {
       return;
     }
 
-    if (!hasMeetingContent.value) {
-      formError.value = t('meeting.atLeastOne');
+    if (getOutstandingDrafts().length) {
+      isDraftResolutionOpen.value = true;
       return;
     }
 
@@ -1534,39 +1548,65 @@ export function useMeetingSession() {
       return;
     }
 
-    void haptics.completeMeeting();
-
     try {
-      const completedMeeting = meetingsStore.meetings.find(
-        (meeting) => meeting.id === meetingId
-      );
-
-      if (
-        subscriptionStore.canGenerateAssistantRecap &&
-        completedMeeting &&
-        !getAiRecapContentReadiness(completedMeeting).isReady
-      ) {
-        pendingAiRecapLowContentMeetingId.value = meetingId;
-        isAiRecapLowContentOpen.value = true;
-        return;
-      }
-
-      if (
-        subscriptionStore.canGenerateAssistantRecap &&
-        !hasAcknowledgedAiRecapDisclosure()
-      ) {
-        pendingAiRecapDisclosureMeetingId.value = meetingId;
-        isAiRecapDisclosureOpen.value = true;
-        return;
-      }
-
-      await continueCompletedMeeting(
-        meetingId,
-        subscriptionStore.canGenerateAssistantRecap
-      );
+      void haptics.completeMeeting();
+      await router.push({
+        name: 'meeting-summary',
+        params: { meetingId },
+      });
     } finally {
       isFinishingMeeting.value = false;
     }
+  }
+
+  function getOutstandingDrafts() {
+    const meetingId = activeMeeting.value?.id;
+    if (!meetingId) return [];
+
+    return getMeetingComposerDraftsForMeeting(
+      workspaceStore.currentUserId,
+      workspaceStore.workspace.id,
+      meetingId
+    );
+  }
+
+  function reviewOutstandingDraft(): MeetingComposerDraftScope | null {
+    const draft = getOutstandingDrafts()[0];
+    const meeting = activeMeeting.value;
+    if (!draft || !meeting) return null;
+
+    const sectionIndex = meeting.sections.findIndex(
+      (section) => section.id === draft.sectionId
+    );
+    if (sectionIndex < 0) return null;
+
+    isDraftResolutionOpen.value = false;
+    meetingsStore.setCurrentSection(sectionIndex);
+    return {
+      userId: draft.userId,
+      workspaceId: draft.workspaceId,
+      meetingId: draft.meetingId,
+      sectionId: draft.sectionId,
+      type: draft.type,
+      ...(draft.itemId ? { itemId: draft.itemId } : {}),
+    };
+  }
+
+  function returnToFinalReview() {
+    const meeting = activeMeeting.value;
+    if (meeting) meetingsStore.setCurrentSection(meeting.sections.length - 1);
+  }
+
+  async function discardOutstandingDraftsAndFinish() {
+    for (const draft of getOutstandingDrafts()) {
+      if (!discardMeetingComposerDraft(draft).ok) {
+        formError.value = t('meeting.presentation.saveFailed');
+        return;
+      }
+    }
+
+    isDraftResolutionOpen.value = false;
+    await finishMeeting();
   }
 
   async function confirmAiRecapDisclosure() {
@@ -1834,6 +1874,9 @@ export function useMeetingSession() {
     editActions,
     exitMeeting,
     finishMeeting,
+    reviewOutstandingDraft,
+    returnToFinalReview,
+    discardOutstandingDraftsAndFinish,
     formError,
     goBack,
     goNext,
@@ -1848,6 +1891,7 @@ export function useMeetingSession() {
     isEndSessionDialogOpen,
     isFinalSection,
     isFinishingMeeting,
+    isDraftResolutionOpen,
     isFirstStep,
     isGuestDrawerOpen,
     isNoteEditorOpen,
