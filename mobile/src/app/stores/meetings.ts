@@ -1225,32 +1225,6 @@ export const useMeetingsStore = defineStore('meetings', {
       this.persist();
       return true;
     },
-    resumeActiveMeeting() {
-      const meeting = this.activeMeeting;
-
-      if (!meeting || meeting.status === 'completed') {
-        return false;
-      }
-
-      meeting.status = 'in_progress';
-      meeting.updatedAt = nowIso();
-      this.persist();
-      return true;
-    },
-    endMeetingIncomplete() {
-      const meeting = this.activeMeeting;
-
-      if (!meeting || meeting.status === 'completed') {
-        return false;
-      }
-
-      const endedAt = nowIso();
-      meeting.status = 'incomplete';
-      meeting.updatedAt = endedAt;
-      this.draftSavedAt = endedAt;
-      this.persist();
-      return true;
-    },
     finishMeeting(): string | null {
       const meeting = this.activeMeeting;
 
