@@ -13,8 +13,10 @@ const props = withDefaults(
     modelValue: string;
     label: string;
     disabled?: boolean;
+    presentation?: 'default' | 'summary';
+    actionLabel?: string;
   }>(),
-  { disabled: false }
+  { disabled: false, presentation: 'default', actionLabel: '' }
 );
 
 const emit = defineEmits<{
@@ -133,7 +135,12 @@ function confirmDate() {
 </script>
 
 <template>
-  <div class="reminder-picker-field">
+  <div
+    :class="[
+      'reminder-picker-field',
+      { 'reminder-picker-field--summary': presentation === 'summary' },
+    ]"
+  >
     <button
       class="reminder-picker-field__trigger"
       type="button"
@@ -142,10 +149,28 @@ function confirmDate() {
       :aria-expanded="isOpen"
       @click="openPicker"
     >
-      <span class="reminder-picker-field__value">{{ triggerValue }}</span>
-      <span class="material-symbols-outlined" aria-hidden="true">
-        calendar_month
-      </span>
+      <template v-if="presentation === 'summary'">
+        <span
+          class="reminder-picker-field__calendar-icon material-symbols-outlined"
+          aria-hidden="true"
+        >
+          calendar_month
+        </span>
+        <span class="reminder-picker-field__summary-copy">
+          <span class="reminder-picker-field__summary-label">{{
+            triggerValue
+          }}</span>
+        </span>
+        <span v-if="actionLabel" class="reminder-picker-field__action">
+          {{ actionLabel }}
+        </span>
+      </template>
+      <template v-else>
+        <span class="reminder-picker-field__value">{{ triggerValue }}</span>
+        <span class="material-symbols-outlined" aria-hidden="true">
+          calendar_month
+        </span>
+      </template>
     </button>
 
     <BaseDialog :open="isOpen" :title="label" @close="closePicker">

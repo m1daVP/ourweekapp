@@ -1,18 +1,36 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ActionMenuPopup from '@/shared/components/ActionMenuPopup.vue';
 import type { ActionMenuItem } from '@/shared/components/ActionMenuPopup.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
-import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
-import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 import MeetingCheckInStep from '@/features/meeting/components/MeetingCheckInStep.vue';
 import MeetingReviewCloseStep from '@/features/meeting/components/MeetingReviewCloseStep.vue';
 import MeetingSectionStep from '@/features/meeting/components/MeetingSectionStep.vue';
 import MeetingItemComposer from '@/features/meeting/components/MeetingItemComposer.vue';
 import { useMeetingSession } from '@/features/meeting/composables/useMeetingSession';
 import { useWorkspaceStore } from '@/app/stores/workspace';
-import type { MeetingComposerDraftType } from '@/features/meeting/meetingComposerDrafts';
+import type {
+  MeetingComposerDraftScope,
+  MeetingComposerDraftType,
+} from '@/features/meeting/meetingComposerDrafts';
+import type {
+  EnrichedAgreement,
+  EnrichedMeetingNote,
+  EnrichedMeetingTask,
+} from '@/features/meeting/composables/useMeetingSession';
+
+type EditedMeetingItem =
+  | {
+      type: 'task';
+      fields: {
+        title: string;
+        description: string;
+        responsibilityChoice: string;
+        dueDate: string;
+      };
+    }
+  | { type: 'note' | 'agreement'; fields: { text: string } };
 
 const { t } = useI18n();
 const {
@@ -45,7 +63,6 @@ const {
   confirmAiRecapDisclosure,
   confirmAiRecapLowContent,
   confirmDeleteRitual,
-  confirmEndSessionIncomplete,
   currentAgreements,
   currentNotes,
   currentPresentation,
@@ -58,10 +75,8 @@ const {
   deferAiRecapLowContent,
   drawerFamilyMembers,
   drawerSelectedParticipantId,
-  editingNoteParticipantId,
   editingNoteText,
   editingTaskDraft,
-  editingAgreementParticipantIds,
   editingAgreementText,
   editActions,
   exitMeeting,
@@ -77,7 +92,6 @@ const {
   isAiRecapDisclosureOpen,
   isAiRecapLowContentOpen,
   isDeleteRitualDialogOpen,
-  isEndSessionDialogOpen,
   isDraftResolutionOpen,
   isFinalSection,
   isFinishingMeeting,
@@ -87,16 +101,9 @@ const {
   isTaskEditorOpen,
   isAgreementEditorOpen,
   isParticipantCheckInStep,
-  isPaused,
   isRitualMenuOpen,
   meetingDurationLabel,
   neutralHint,
-  noteEditorError,
-  taskEditorError,
-  agreementEditorError,
-  noteEditorNeutralHint,
-  notePlaceholder,
-  noteText,
   openGuestDrawer,
   openNoteEditor,
   openTaskEditor,
@@ -133,6 +140,12 @@ const {
 
 const workspaceStore = useWorkspaceStore();
 const composerType = ref<MeetingComposerDraftType | null>(null);
+const renderedComposerScope = ref<MeetingComposerDraftScope | null>(null);
+const editingTaskComposerScope = ref<MeetingComposerDraftScope | null>(null);
+const editingNoteComposerScope = ref<MeetingComposerDraftScope | null>(null);
+const editingAgreementComposerScope = ref<MeetingComposerDraftScope | null>(
+  null
+);
 const isReviewingDraft = ref(false);
 const composerScope = computed(() => {
   const meeting = activeMeeting.value;
@@ -148,6 +161,15 @@ const composerScope = computed(() => {
         type,
       }
     : null;
+});
+const taskEditorComposerScope = computed<MeetingComposerDraftScope | null>(
+  () =>
+    editingTaskComposerScope.value ??
+    (composerScope.value ? { ...composerScope.value, type: 'task' } : null)
+);
+
+watch(composerScope, (scope) => {
+  if (scope) renderedComposerScope.value = scope;
 });
 
 function openComposer(type: MeetingComposerDraftType) {
@@ -170,28 +192,123 @@ function closeComposer() {
   }
 }
 
+function discardRenderedComposerScope() {
+  renderedComposerScope.value = null;
+}
+
+function saveEditedTaskFromComposer(fields: {
+  title: string;
+  description: string;
+  responsibilityChoice: string;
+  dueDate: string;
+}) {
+  editingTaskDraft.title = fields.title;
+  editingTaskDraft.description = fields.description;
+  editingTaskDraft.responsibilityChoice = fields.responsibilityChoice;
+  editingTaskDraft.dueDate = fields.dueDate;
+  saveTaskEdit();
+}
+
+function saveEditedNoteFromComposer(fields: { text: string }) {
+  editingNoteText.value = fields.text;
+  saveNoteEdit();
+}
+
+function saveEditedAgreementFromComposer(fields: { text: string }) {
+  editingAgreementText.value = fields.text;
+  saveAgreementEdit();
+}
+
+function saveEditedMeetingItem(item: EditedMeetingItem) {
+  if (item.type === 'task') {
+    saveEditedTaskFromComposer(item.fields);
+    return;
+  }
+
+  if (item.type === 'note') {
+    saveEditedNoteFromComposer(item.fields);
+    return;
+  }
+
+  saveEditedAgreementFromComposer(item.fields);
+}
+
+function createItemComposerScope(
+  sectionId: MeetingComposerDraftScope['sectionId'],
+  itemId: string,
+  type: MeetingComposerDraftType
+): MeetingComposerDraftScope | null {
+  const meeting = activeMeeting.value;
+
+  return meeting
+    ? {
+        userId: workspaceStore.currentUserId,
+        workspaceId: workspaceStore.workspace.id,
+        meetingId: meeting.id,
+        sectionId,
+        type,
+        itemId,
+      }
+    : null;
+}
+
+function openTaskEditorFromMeeting(task: EnrichedMeetingTask) {
+  editingTaskComposerScope.value = createItemComposerScope(
+    task.sectionId,
+    task.id,
+    'task'
+  );
+  openTaskEditor(task);
+}
+
+function closeTaskEditorFromMeeting() {
+  closeTaskEditor();
+}
+
+function discardTaskEditorComposerScope() {
+  editingTaskComposerScope.value = null;
+}
+
+function openNoteEditorFromMeeting(note: EnrichedMeetingNote) {
+  editingNoteComposerScope.value = createItemComposerScope(
+    note.sectionId,
+    note.id,
+    'note'
+  );
+  openNoteEditor(note);
+}
+
+function closeNoteEditorFromMeeting() {
+  closeNoteEditor();
+}
+
+function discardNoteEditorComposerScope() {
+  editingNoteComposerScope.value = null;
+}
+
+function openAgreementEditorFromMeeting(agreement: EnrichedAgreement) {
+  editingAgreementComposerScope.value = createItemComposerScope(
+    agreement.sectionId,
+    agreement.id,
+    'agreement'
+  );
+  openAgreementEditor(agreement);
+}
+
+function closeAgreementEditorFromMeeting() {
+  closeAgreementEditor();
+}
+
+function discardAgreementEditorComposerScope() {
+  editingAgreementComposerScope.value = null;
+}
+
 const ritualMenuItems = computed<ActionMenuItem[]>(() => [
-  {
-    id: isPaused.value ? 'resume-ritual' : 'pause-ritual',
-    label: isPaused.value
-      ? t('meeting.menu.resumeRitual')
-      : t('meeting.menu.pauseRitual'),
-    icon: isPaused.value ? 'play_arrow' : 'pause',
-    disabled: !canEditMeeting.value,
-  },
   {
     id: 'save-draft-exit',
     label: t('meeting.menu.saveDraftExit'),
     icon: 'draft',
     disabled: !canEditMeeting.value,
-  },
-  {
-    id: 'end-session',
-    label: t('meeting.menu.endSession'),
-    icon: 'logout',
-    variant: 'destructive',
-    dividerBefore: true,
-    disabled: !canEditMeeting.value || isCompleted.value,
   },
   {
     id: 'delete-ritual',
@@ -207,11 +324,6 @@ const meetingParticipantPickerOptions = computed(() =>
     label: participant.name,
   }))
 );
-const taskResponsibilityPickerOptions = computed(() => [
-  { value: 'needsDiscussion', label: t('meeting.needsDiscussion') },
-  { value: 'shared', label: t('meeting.shared') },
-  ...meetingParticipantPickerOptions.value,
-]);
 </script>
 
 <template>
@@ -281,9 +393,9 @@ const taskResponsibilityPickerOptions = computed(() => [
       @delete-note="deleteNote"
       @delete-task="deleteTask"
       @delete-agreement="deleteAgreement"
-      @edit-agreement="openAgreementEditor"
-      @edit-note="openNoteEditor"
-      @edit-task="openTaskEditor"
+      @edit-agreement="openAgreementEditorFromMeeting"
+      @edit-note="openNoteEditorFromMeeting"
+      @edit-task="openTaskEditorFromMeeting"
       @open-menu="isRitualMenuOpen = true"
       @start-new="startNewMeeting"
       @toggle-task="toggleTask"
@@ -291,6 +403,7 @@ const taskResponsibilityPickerOptions = computed(() => [
 
     <MeetingSectionStep
       v-else
+      :active-capture-type="composerType"
       :can-edit-meeting="canEditMeeting"
       :can-edit-tasks="canEditTasks"
       :current-agreements="currentAgreements"
@@ -313,9 +426,9 @@ const taskResponsibilityPickerOptions = computed(() => [
       @delete-note="deleteNote"
       @delete-task="deleteTask"
       @delete-agreement="deleteAgreement"
-      @edit-agreement="openAgreementEditor"
-      @edit-note="openNoteEditor"
-      @edit-task="openTaskEditor"
+      @edit-agreement="openAgreementEditorFromMeeting"
+      @edit-note="openNoteEditorFromMeeting"
+      @edit-task="openTaskEditorFromMeeting"
       @exit="closeMeeting"
       @go-back="goBack"
       @go-next="goNext"
@@ -326,16 +439,20 @@ const taskResponsibilityPickerOptions = computed(() => [
   </section>
 
   <MeetingItemComposer
-    v-if="composerScope"
+    v-if="renderedComposerScope"
     :open="Boolean(composerType)"
-    :scope="composerScope"
+    :scope="renderedComposerScope"
     :participants="activeMeetingParticipants"
     :submit-item="({ type, fields }) => submitCapturedItem(type, fields)"
+    @after-close="discardRenderedComposerScope"
     @close="closeComposer"
     @saved="closeComposer"
   />
 
-  <section v-else class="page-stack">
+  <section
+    v-else-if="workspaceStore.currentUserRole === 'viewer'"
+    class="page-stack"
+  >
     <div>
       <p class="page-kicker">{{ t('meeting.weeklyMeeting') }}</p>
       <h1>{{ t('meeting.readOnlyTitle') }}</h1>
@@ -346,147 +463,40 @@ const taskResponsibilityPickerOptions = computed(() => [
     </RouterLink>
   </section>
 
-  <BaseBottomSheet
+  <MeetingItemComposer
+    v-if="editingNoteComposerScope"
     :open="isNoteEditorOpen"
-    :title="t('meeting.editNote')"
-    @close="closeNoteEditor"
-  >
-    <form
-      class="task-editor-form note-editor-form"
-      @submit.prevent="saveNoteEdit"
-    >
-      <label for="edit-note-person">
-        <span>{{ t('meeting.author') }}</span>
-        <SelectPickerField
-          id="edit-note-person"
-          v-model="editingNoteParticipantId"
-          :label="t('meeting.author')"
-          :options="meetingParticipantPickerOptions"
-          :disabled="!canEditMeeting"
-        />
-      </label>
+    :scope="editingNoteComposerScope"
+    :participants="activeMeetingParticipants"
+    :edit-item="{ type: 'note', fields: { text: editingNoteText } }"
+    :submit-edited-item="saveEditedMeetingItem"
+    :submit-item="({ type, fields }) => submitCapturedItem(type, fields)"
+    @after-close="discardNoteEditorComposerScope"
+    @close="closeNoteEditorFromMeeting"
+  />
 
-      <label for="edit-note-text">
-        <span>{{ t('meeting.note') }}</span>
-        <textarea
-          id="edit-note-text"
-          v-model="editingNoteText"
-          rows="5"
-          :disabled="!canEditMeeting"
-        />
-      </label>
-
-      <p v-if="noteEditorNeutralHint" class="meeting-help">
-        {{ noteEditorNeutralHint }}
-      </p>
-      <p v-if="noteEditorError" class="meeting-error" role="alert">
-        {{ noteEditorError }}
-      </p>
-
-      <button v-if="canEditMeeting" type="submit" class="meeting-primary">
-        {{ t('common.save') }}
-      </button>
-    </form>
-  </BaseBottomSheet>
-
-  <BaseBottomSheet
+  <MeetingItemComposer
+    v-if="taskEditorComposerScope"
     :open="isTaskEditorOpen"
-    :title="t('meeting.editTask')"
-    @close="closeTaskEditor"
-  >
-    <form class="task-editor-form" @submit.prevent="saveTaskEdit">
-      <label for="edit-task-title">
-        <span>{{ t('meeting.taskTitle') }}</span>
-        <input
-          id="edit-task-title"
-          v-model="editingTaskDraft.title"
-          type="text"
-          :disabled="!canEditTasks"
-        />
-      </label>
-
-      <label for="edit-task-description">
-        <span>{{ t('meeting.optionalDetail') }}</span>
-        <textarea
-          id="edit-task-description"
-          v-model="editingTaskDraft.description"
-          rows="3"
-          :disabled="!canEditTasks"
-        />
-      </label>
-
-      <label for="edit-task-person">
-        <span>{{ t('meeting.responsible') }}</span>
-        <SelectPickerField
-          id="edit-task-person"
-          v-model="editingTaskDraft.responsibilityChoice"
-          :label="t('meeting.responsible')"
-          :options="taskResponsibilityPickerOptions"
-          :disabled="!canEditTasks"
-        />
-      </label>
-
-      <label for="edit-task-due-date">
-        <span>{{ t('meeting.dueDate') }}</span>
-        <input
-          id="edit-task-due-date"
-          v-model="editingTaskDraft.dueDate"
-          type="date"
-          :disabled="!canEditTasks"
-        />
-      </label>
-
-      <p v-if="taskEditorError" class="meeting-error" role="alert">
-        {{ taskEditorError }}
-      </p>
-
-      <button v-if="canEditTasks" type="submit" class="meeting-primary">
-        {{ t('common.save') }}
-      </button>
-    </form>
-  </BaseBottomSheet>
-
-  <BaseBottomSheet
+    :scope="taskEditorComposerScope"
+    :participants="activeMeetingParticipants"
+    :edit-item="{ type: 'task', fields: editingTaskDraft }"
+    :submit-edited-item="saveEditedMeetingItem"
+    :submit-item="({ type, fields }) => submitCapturedItem(type, fields)"
+    @after-close="discardTaskEditorComposerScope"
+    @close="closeTaskEditorFromMeeting"
+  />
+  <MeetingItemComposer
+    v-if="editingAgreementComposerScope"
     :open="isAgreementEditorOpen"
-    :title="t('meeting.editAgreement')"
-    @close="closeAgreementEditor"
-  >
-    <form class="task-editor-form" @submit.prevent="saveAgreementEdit">
-      <label for="edit-agreement-text">
-        <span>{{ t('meeting.decisionOrAgreement') }}</span>
-        <textarea
-          id="edit-agreement-text"
-          v-model="editingAgreementText"
-          rows="5"
-          :disabled="!canEditMeeting"
-        />
-      </label>
-
-      <fieldset class="participant-selector">
-        <legend>{{ t('meeting.participants') }}</legend>
-        <label
-          v-for="participant in activeMeetingParticipants"
-          :key="participant.id"
-        >
-          <input
-            v-model="editingAgreementParticipantIds"
-            type="checkbox"
-            :value="participant.id"
-            :disabled="!canEditMeeting"
-          />
-          <span>{{ participant.name }}</span>
-        </label>
-      </fieldset>
-
-      <p v-if="agreementEditorError" class="meeting-error" role="alert">
-        {{ agreementEditorError }}
-      </p>
-
-      <button v-if="canEditMeeting" type="submit" class="meeting-primary">
-        {{ t('common.save') }}
-      </button>
-    </form>
-  </BaseBottomSheet>
+    :scope="editingAgreementComposerScope"
+    :participants="activeMeetingParticipants"
+    :edit-item="{ type: 'agreement', fields: { text: editingAgreementText } }"
+    :submit-edited-item="saveEditedMeetingItem"
+    :submit-item="({ type, fields }) => submitCapturedItem(type, fields)"
+    @after-close="discardAgreementEditorComposerScope"
+    @close="closeAgreementEditorFromMeeting"
+  />
 
   <ConfirmationDialog
     :open="isDraftResolutionOpen"
@@ -515,14 +525,6 @@ const taskResponsibilityPickerOptions = computed(() => [
     :cancel-label="t('ai.recap.disclosure.notNow')"
     @close="deferAiRecapDisclosure"
     @confirm="confirmAiRecapDisclosure"
-  />
-  <ConfirmationDialog
-    :open="isEndSessionDialogOpen"
-    :title="t('meeting.confirmEndSessionTitle')"
-    :message="t('meeting.confirmEndSessionText')"
-    :confirm-label="t('common.finish')"
-    @close="isEndSessionDialogOpen = false"
-    @confirm="confirmEndSessionIncomplete"
   />
   <ConfirmationDialog
     :open="isDeleteRitualDialogOpen"

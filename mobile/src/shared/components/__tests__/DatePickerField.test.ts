@@ -19,6 +19,26 @@ const global = {
 };
 
 describe('DatePickerField', () => {
+  it('renders a calendar summary trigger and retains the staged selection flow', async () => {
+    const wrapper = mount(DatePickerField, {
+      props: {
+        modelValue: '2026-10-28',
+        label: 'Due date',
+        presentation: 'summary',
+        actionLabel: 'Change',
+      },
+      global,
+    });
+
+    expect(wrapper.get('.reminder-picker-field--summary').text()).toContain(
+      'Change'
+    );
+    await wrapper.get('.reminder-picker-field__trigger').trigger('click');
+    await wrapper.get('[data-testid="date-picker-done"]').trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([['2026-10-28']]);
+  });
+
   it('stages a selected ISO date until Done', async () => {
     const wrapper = mount(DatePickerField, {
       props: { modelValue: '', label: 'Due date' },

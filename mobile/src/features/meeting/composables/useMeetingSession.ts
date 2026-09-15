@@ -294,7 +294,6 @@ export function useMeetingSession() {
   });
   const isGuestDrawerOpen = ref(false);
   const isRitualMenuOpen = ref(false);
-  const isEndSessionDialogOpen = ref(false);
   const isDeleteRitualDialogOpen = ref(false);
   const isAiRecapDisclosureOpen = ref(false);
   const pendingAiRecapDisclosureMeetingId = ref<string | null>(null);
@@ -366,7 +365,6 @@ export function useMeetingSession() {
   const isCompleted = computed(
     () => activeMeeting.value?.status === 'completed'
   );
-  const isPaused = computed(() => activeMeeting.value?.status === 'paused');
   const isParticipantCheckInStep = computed(() =>
     isMeetingCheckInStep(activeMeeting.value)
   );
@@ -1478,38 +1476,6 @@ export function useMeetingSession() {
     }
   }
 
-  function pauseRitual() {
-    clearMessages();
-
-    if (!canEditMeeting.value) {
-      formError.value = t('meeting.roleCannotEditMeetings');
-      return;
-    }
-
-    if (!meetingsStore.pauseMeeting()) {
-      formError.value = t('meeting.pauseRitualFailed');
-      return;
-    }
-
-    statusMessage.value = t('meeting.ritualPaused');
-  }
-
-  function resumeRitual() {
-    clearMessages();
-
-    if (!canEditMeeting.value) {
-      formError.value = t('meeting.roleCannotEditMeetings');
-      return;
-    }
-
-    if (!meetingsStore.resumeActiveMeeting()) {
-      formError.value = t('meeting.resumeRitualFailed');
-      return;
-    }
-
-    statusMessage.value = t('meeting.ritualResumed');
-  }
-
   async function finishMeeting() {
     if (
       isFinishingMeeting.value ||
@@ -1736,29 +1702,6 @@ export function useMeetingSession() {
     });
   }
 
-  function endSessionIncomplete() {
-    clearMessages();
-
-    if (!canEditMeeting.value) {
-      formError.value = t('meeting.roleCannotEditMeetings');
-      return;
-    }
-
-    isRitualMenuOpen.value = false;
-    isEndSessionDialogOpen.value = true;
-  }
-
-  function confirmEndSessionIncomplete() {
-    isEndSessionDialogOpen.value = false;
-
-    if (!meetingsStore.endMeetingIncomplete()) {
-      formError.value = t('meeting.endSessionFailed');
-      return;
-    }
-
-    router.push({ name: 'home' });
-  }
-
   function deleteRitual() {
     const meeting = activeMeeting.value;
 
@@ -1801,17 +1744,8 @@ export function useMeetingSession() {
 
   function handleRitualMenuSelect(actionId: string) {
     switch (actionId) {
-      case 'pause-ritual':
-        pauseRitual();
-        break;
-      case 'resume-ritual':
-        resumeRitual();
-        break;
       case 'save-draft-exit':
         saveDraftAndExit();
-        break;
-      case 'end-session':
-        endSessionIncomplete();
         break;
       case 'delete-ritual':
         deleteRitual();
@@ -1888,7 +1822,6 @@ export function useMeetingSession() {
     isAiRecapDisclosureOpen,
     isAiRecapLowContentOpen,
     isDeleteRitualDialogOpen,
-    isEndSessionDialogOpen,
     isFinalSection,
     isFinishingMeeting,
     isDraftResolutionOpen,
@@ -1898,7 +1831,6 @@ export function useMeetingSession() {
     isTaskEditorOpen,
     isAgreementEditorOpen,
     isParticipantCheckInStep,
-    isPaused,
     isRitualMenuOpen,
     meetingDurationLabel,
     meetingDurationMinutes,
@@ -1943,7 +1875,6 @@ export function useMeetingSession() {
     addSelectedDrawerParticipant,
     addTask,
     confirmDeleteRitual,
-    confirmEndSessionIncomplete,
     saveDraft,
     saveNoteEdit,
     saveTaskEdit,
