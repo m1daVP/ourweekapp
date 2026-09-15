@@ -11,6 +11,7 @@ const props = defineProps<{
 const { t } = useI18n();
 const emit = defineEmits<{
   close: [];
+  'after-close': [];
 }>();
 const panelElement = ref<HTMLElement | null>(null);
 let previouslyFocusedElement: HTMLElement | null = null;
@@ -128,7 +129,11 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <Transition name="base-bottom-sheet">
+    <Transition
+      name="base-bottom-sheet"
+      appear
+      @after-leave="emit('after-close')"
+    >
       <div
         v-if="open"
         class="base-bottom-sheet"
