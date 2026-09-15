@@ -9,6 +9,27 @@ vi.mock('vue-i18n', async (importOriginal) => ({
 }));
 
 describe('MeetingItemCard', () => {
+  it('uses icon-only edit and delete actions for notes', () => {
+    const wrapper = mount(MeetingItemCard, {
+      props: {
+        editable: true,
+        type: 'note',
+        item: {
+          id: 'note-1',
+          sectionId: 'reflect',
+          text: 'We made time for a walk.',
+          createdAt: '2026-09-14T10:00:00.000Z',
+          updatedAt: '2026-09-14T10:00:00.000Z',
+        },
+      },
+    });
+
+    expect(wrapper.get('[aria-label="common.edit"]').text()).toBe('edit');
+    expect(wrapper.get('[aria-label="common.delete"]').text()).toBe(
+      'delete_outline'
+    );
+  });
+
   it('keeps a task toggle and edit controls accessible', async () => {
     const wrapper = mount(MeetingItemCard, {
       props: {

@@ -18,6 +18,7 @@ const section: MeetingSection = {
 function mountStep() {
   return mount(MeetingSectionStep, {
     props: {
+      activeCaptureType: null,
       canEditMeeting: true,
       canEditTasks: true,
       currentAgreements: [],
@@ -35,6 +36,7 @@ function mountStep() {
         allowedItemTypes: ['note', 'task', 'agreement'],
         primaryCaptureType: 'task',
         addActionLabelKey: 'meeting.presentation.addTask',
+        exampleKeys: ['meeting.presentation.goodThingsExample'],
         attributionMode: 'shared',
       },
       previousCompletedMeetingLabel: '',
@@ -61,5 +63,39 @@ describe('MeetingSectionStep', () => {
     const wrapper = mountStep();
     await wrapper.get('.meeting-primary').trigger('click');
     expect(wrapper.emitted('capture')).toEqual([['task']]);
+  });
+
+  it('uses styled disclosure controls for examples and alternative capture', async () => {
+    const wrapper = mountStep();
+    const toggles = () => wrapper.findAll('button[aria-controls]');
+
+    expect(wrapper.find('details').exists()).toBe(false);
+    expect(wrapper.find('summary').exists()).toBe(false);
+    expect(toggles()).toHaveLength(2);
+    expect(toggles()[0]!.attributes('aria-expanded')).toBe('false');
+    expect(toggles()[1]!.attributes('aria-expanded')).toBe('false');
+
+    await toggles()[0]!.trigger('click');
+
+    expect(wrapper.get('.meeting-conversation__example-panel').exists()).toBe(
+      true
+    );
+    expect(toggles()[0]!.attributes('aria-expanded')).toBe('true');
+    expect(toggles()[1]!.attributes('aria-expanded')).toBe('false');
+
+    await toggles()[1]!.trigger('click');
+
+    expect(
+      wrapper.get('.meeting-conversation__alternative-actions').exists()
+    ).toBe(true);
+    expect(
+      wrapper.get('.meeting-conversation__alternative-actions button').classes()
+    ).toContain('meeting-conversation__alternative-card');
+
+    await wrapper
+      .get('.meeting-conversation__alternative-actions button')
+      .trigger('click');
+
+    expect(wrapper.emitted('capture')).toEqual([['note']]);
   });
 });

@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import MeetingItemCard from './MeetingItemCard.vue';
+import MeetingDisclosurePanel from './MeetingDisclosurePanel.vue';
 import type {
   EnrichedAgreement,
   EnrichedMeetingNote,
@@ -14,6 +15,7 @@ import type { MeetingSection } from '@/features/meeting/types';
 import type { MeetingComposerDraftType } from '@/features/meeting/meetingComposerDrafts';
 
 const props = defineProps<{
+  activeCaptureType: MeetingComposerDraftType | null;
   canEditMeeting: boolean;
   canEditTasks: boolean;
   currentAgreements: EnrichedAgreement[];
@@ -50,6 +52,7 @@ const emit = defineEmits<{
 }>();
 const { t } = useI18n();
 const examplesOpen = ref(false);
+const alternativeCaptureOpen = ref(false);
 const primaryLabel = computed(() =>
   props.presentation.addActionLabelKey
     ? t(props.presentation.addActionLabelKey)
@@ -62,6 +65,8 @@ const alternativeTypes = computed(() =>
 );
 const captureLabel = (type: MeetingComposerDraftType) =>
   t(`meeting.presentation.add${type[0].toUpperCase()}${type.slice(1)}`);
+const alternativeIcon = (type: MeetingComposerDraftType) =>
+  type === 'agreement' ? 'task_alt' : 'edit_note';
 </script>
 
 <template>
@@ -102,18 +107,6 @@ const captureLabel = (type: MeetingComposerDraftType) =>
       <p v-if="presentation.helperKey" class="meeting-help">
         {{ t(presentation.helperKey) }}
       </p>
-      <button
-        v-if="presentation.exampleKeys?.length"
-        type="button"
-        class="meeting-conversation__example-toggle"
-        :aria-expanded="examplesOpen"
-        @click="examplesOpen = !examplesOpen"
-      >
-        {{ t('meeting.needExample') }}
-      </button>
-      <ul v-if="examplesOpen" class="meeting-conversation__examples">
-        <li v-for="key in presentation.exampleKeys" :key="key">{{ t(key) }}</li>
-      </ul>
     </header>
     <section
       v-if="showTaskReview"
@@ -193,17 +186,70 @@ const captureLabel = (type: MeetingComposerDraftType) =>
       >
         {{ primaryLabel }}
       </button>
-      <details v-if="alternativeTypes.length">
-        <summary>{{ t('meeting.moreWaysToAdd') }}</summary>
-        <button
-          v-for="type in alternativeTypes"
-          :key="type"
-          type="button"
-          @click="emit('capture', type)"
+      <MeetingDisclosurePanel
+        v-if="presentation.exampleKeys?.length"
+        :open="examplesOpen"
+        :label="t('meeting.needExample')"
+        controls="meeting-examples-panel"
+        @toggle="examplesOpen = !examplesOpen"
+      >
+        <template #leading
+          ><span class="material-symbols-outlined">auto_awesome</span></template
         >
-          {{ captureLabel(type) }}
-        </button>
-      </details>
+        <div class="meeting-conversation__example-panel">
+          <p v-for="key in presentation.exampleKeys" :key="key">{{ t(key) }}</p>
+        </div>
+      </MeetingDisclosurePanel>
+      <template v-if="alternativeTypes.length">
+        <section class="meeting-conversation__optional-panel">
+          <button
+            class="meeting-conversation__optional-toggle"
+            type="button"
+            :aria-expanded="alternativeCaptureOpen"
+            aria-controls="meeting-alternative-capture-actions"
+            @click="alternativeCaptureOpen = !alternativeCaptureOpen"
+          >
+            <span
+              class="meeting-conversation__optional-icon material-symbols-outlined"
+              aria-hidden="true"
+              >auto_awesome</span
+            >
+            <span class="meeting-conversation__optional-label">{{
+              t('meeting.moreWaysToAdd')
+            }}</span>
+            <span class="material-symbols-outlined" aria-hidden="true">{{
+              alternativeCaptureOpen ? 'expand_less' : 'expand_more'
+            }}</span>
+          </button>
+          <div
+            id="meeting-alternative-capture-actions"
+            class="meeting-conversation__panel-reveal"
+            :class="{ 'is-open': alternativeCaptureOpen }"
+            :aria-hidden="!alternativeCaptureOpen"
+            :inert="!alternativeCaptureOpen"
+          >
+            <div class="meeting-conversation__panel-reveal-inner">
+              <div class="meeting-conversation__alternative-actions">
+                <button
+                  v-for="type in alternativeTypes"
+                  :key="type"
+                  class="meeting-conversation__alternative-card"
+                  :class="{ 'is-active': activeCaptureType === type }"
+                  type="button"
+                  @click="emit('capture', type)"
+                >
+                  <span
+                    class="meeting-conversation__alternative-card-icon material-symbols-outlined"
+                    aria-hidden="true"
+                    >{{ alternativeIcon(type) }}</span
+                  >
+                  <span>{{ captureLabel(type) }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </template>
     </div>
     <p v-if="formError" class="meeting-error" role="alert">{{ formError }}</p>
     <p v-if="statusMessage" class="meeting-status" role="status">
@@ -243,16 +289,134 @@ const captureLabel = (type: MeetingComposerDraftType) =>
   text-transform: uppercase;
 }
 .meeting-conversation__cards,
-.meeting-conversation__capture,
-.meeting-conversation__examples {
+.meeting-conversation__capture {
   display: grid;
   gap: 10px;
 }
-.meeting-conversation__example-toggle {
-  justify-self: start;
+.meeting-conversation__optional-panel {
+  overflow: hidden;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 32px;
+  background: #f8f7f2;
 }
-.meeting-conversation__capture details {
+.meeting-conversation__optional-toggle {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  padding: 10px 14px 10px 18px;
+  color: var(--color-primary);
+  font-size: var(--font-size-body-md);
+  font-weight: 800;
+  text-align: left;
+}
+.meeting-conversation__optional-label {
+  flex: 1;
+  margin-left: 10px;
+  font-weight: 600;
+}
+.meeting-conversation__optional-icon,
+.meeting-conversation__alternative-card-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: #e9ece5;
+  color: var(--color-primary);
+  font-size: 1.15rem;
+}
+.meeting-conversation__optional-toggle > .material-symbols-outlined:last-child {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-lowest);
+  color: var(--color-primary);
+  font-size: 1.5rem;
+}
+.meeting-conversation__example-panel {
   display: grid;
   gap: 8px;
+  padding: 0 16px 16px;
+}
+.meeting-conversation__example-panel p {
+  margin: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-lowest);
+  padding: 14px;
+  color: var(--color-on-surface-variant);
+}
+.meeting-conversation__alternative-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+.meeting-conversation__alternative-card {
+  display: grid;
+  min-height: 132px;
+  align-content: space-between;
+  justify-items: start;
+  gap: 20px;
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 58%, white);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-lowest);
+  padding: 16px;
+  color: var(--color-on-surface);
+  font-size: var(--font-size-body-lg);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  box-shadow: var(--shadow-card);
+}
+.meeting-conversation__alternative-card:active,
+.meeting-conversation__alternative-card.is-active {
+  border-color: var(--color-primary);
+  transform: translateY(1px);
+}
+.meeting-conversation__alternative-card:active
+  .meeting-conversation__alternative-card-icon,
+.meeting-conversation__alternative-card.is-active
+  .meeting-conversation__alternative-card-icon,
+.meeting-conversation__alternative-card:focus-visible
+  .meeting-conversation__alternative-card-icon {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.meeting-conversation__panel-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  transition:
+    grid-template-rows 340ms cubic-bezier(0.22, 0.8, 0.3, 1),
+    opacity 220ms ease,
+    transform 340ms cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+.meeting-conversation__panel-reveal:not(.is-open) {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.meeting-conversation__panel-reveal.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+}
+.meeting-conversation__panel-reveal-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .meeting-conversation__panel-reveal {
+    transition-duration: 0.01ms;
+  }
+}
+@media (max-width: 340px) {
+  .meeting-conversation__alternative-actions {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

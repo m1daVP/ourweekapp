@@ -7,6 +7,7 @@ import type {
   EnrichedMeetingTask,
   MeetingReviewCounts,
 } from '@/features/meeting/composables/useMeetingSession';
+import MeetingDisclosurePanel from './MeetingDisclosurePanel.vue';
 
 const props = defineProps<{
   allAgreements: EnrichedAgreement[];
@@ -55,6 +56,9 @@ const notesToggleText = computed(() => {
   const fallback = areNotesExpanded.value ? 'Hide notes' : 'Show notes';
   return te(key) ? t(key) : fallback;
 });
+const notesDisclosureLabel = computed(
+  () => `${notesToggleText.value} (${props.reviewCounts.notes})`
+);
 const notesBySection = computed(() => {
   const groups = new Map<string, EnrichedMeetingNote[]>();
 
@@ -164,6 +168,7 @@ const notesBySection = computed(() => {
             <button
               type="button"
               class="review-close-task-toggle"
+              :data-testid="`review-task-toggle-${task.id}`"
               :aria-label="
                 task.status === 'done'
                   ? t('meeting.markTaskOpen', { title: task.title })
@@ -184,42 +189,36 @@ const notesBySection = computed(() => {
               {{ task.title }}
               <small>{{ task.responsibilityLabel }}</small>
             </span>
-            <button
+            <div
               v-if="canEditTasks && !isCompleted"
-              type="button"
-              class="meeting-note-item__edit material-symbols-outlined"
-              :aria-label="t('meeting.editTaskAria', { title: task.title })"
-              @click="emit('edit-task', task)"
+              class="review-close-item-actions"
             >
-              edit
-            </button>
-            <button
-              v-if="canEditTasks && !isCompleted"
-              type="button"
-              class="review-close-delete material-symbols-outlined"
-              :aria-label="t('meeting.deleteTaskAria', { title: task.title })"
-              @click="emit('delete-task', task.id)"
-            >
-              delete
-            </button>
+              <button
+                type="button"
+                class="meeting-note-item__edit material-symbols-outlined"
+                :data-testid="`review-task-edit-${task.id}`"
+                :aria-label="t('meeting.editTaskAria', { title: task.title })"
+                @click="emit('edit-task', task)"
+              >
+                edit
+              </button>
+              <button
+                type="button"
+                class="review-close-delete material-symbols-outlined"
+                :data-testid="`review-task-delete-${task.id}`"
+                :aria-label="t('meeting.deleteTaskAria', { title: task.title })"
+                @click="emit('delete-task', task.id)"
+              >
+                delete
+              </button>
+            </div>
           </li>
         </ul>
-        <button
-          type="button"
-          class="review-close-edit"
-          :disabled="!canEditMeeting"
-          @click="emit('edit-actions')"
-        >
-          <span>{{ t('meeting.editActions') }}</span>
-          <span class="material-symbols-outlined" aria-hidden="true">
-            edit
-          </span>
-        </button>
       </section>
 
       <section
         v-if="allAgreements.length"
-        class="review-close-card"
+        class="review-close-card review-close-card--agreements"
         aria-labelledby="review-close-agreements-title"
       >
         <header class="review-close-card__header">
@@ -246,7 +245,10 @@ const notesBySection = computed(() => {
               <span>{{ agreement.participantLabel }}</span>
               <p>{{ agreement.text }}</p>
             </div>
-            <template v-if="canEditMeeting && !isCompleted">
+            <div
+              v-if="canEditMeeting && !isCompleted"
+              class="review-close-item-actions"
+            >
               <button
                 type="button"
                 class="meeting-note-item__edit material-symbols-outlined"
@@ -265,16 +267,16 @@ const notesBySection = computed(() => {
                 "
                 @click="emit('delete-agreement', agreement.id)"
               >
-                delete
+                delete_outline
               </button>
-            </template>
+            </div>
           </li>
         </ul>
       </section>
 
       <section
         v-if="allNotes.length"
-        class="review-close-card"
+        class="review-close-card review-close-card--notes"
         aria-labelledby="review-close-notes-title"
       >
         <header class="review-close-card__header">
@@ -290,60 +292,72 @@ const notesBySection = computed(() => {
           </span>
         </header>
 
-        <button
-          type="button"
-          class="review-close-edit"
-          :aria-expanded="areNotesExpanded"
-          @click="areNotesExpanded = !areNotesExpanded"
+        <p class="review-close-notes-intro">
+          {{ t('meeting.notesReviewIntro') }}
+        </p>
+
+        <MeetingDisclosurePanel
+          class="review-close-notes-picker"
+          data-testid="review-notes-picker"
+          :open="areNotesExpanded"
+          :label="notesDisclosureLabel"
+          controls="review-close-notes-list"
+          @toggle="areNotesExpanded = !areNotesExpanded"
         >
-          {{ notesToggleText }}
-        </button>
-        <ul
-          v-if="areNotesExpanded"
-          class="review-close-text-list review-close-text-list--actions"
-        >
-          <li v-for="group in notesBySection" :key="group.sectionTitle">
-            <span>{{ group.sectionTitle }}</span>
-            <ul class="review-close-text-list review-close-text-list--actions">
-              <li v-for="note in group.notes" :key="note.id">
-                <div>
-                  <span>{{ note.participantName }}</span>
-                  <p>{{ note.text }}</p>
-                </div>
-                <button
-                  v-if="canEditMeeting && !isCompleted"
-                  type="button"
-                  class="meeting-note-item__edit material-symbols-outlined"
-                  :aria-label="
-                    t('meeting.editNoteAria', { author: note.participantName })
-                  "
-                  @click="emit('edit-note', note)"
-                >
-                  edit
-                </button>
-                <button
-                  v-if="canEditMeeting && !isCompleted"
-                  type="button"
-                  class="review-close-delete material-symbols-outlined"
-                  :aria-label="
-                    t('meeting.deleteNoteAria', {
-                      author: note.participantName,
-                    })
-                  "
-                  @click="emit('delete-note', note.id)"
-                >
-                  delete
-                </button>
-              </li>
-            </ul>
-          </li>
-        </ul>
+          <ul class="review-close-note-groups">
+            <li v-for="group in notesBySection" :key="group.sectionTitle">
+              <span>{{ group.sectionTitle }}</span>
+              <ul
+                class="review-close-text-list review-close-text-list--actions"
+              >
+                <li v-for="note in group.notes" :key="note.id">
+                  <div>
+                    <!-- <span>{{ note.participantName }}</span> -->
+                    <p>{{ note.text }}</p>
+                  </div>
+                  <div
+                    v-if="canEditMeeting && !isCompleted"
+                    class="review-close-item-actions"
+                  >
+                    <button
+                      type="button"
+                      class="meeting-note-item__edit material-symbols-outlined"
+                      :aria-label="
+                        t('meeting.editNoteAria', {
+                          author: note.participantName,
+                        })
+                      "
+                      @click="emit('edit-note', note)"
+                    >
+                      edit
+                    </button>
+                    <button
+                      type="button"
+                      class="review-close-delete material-symbols-outlined"
+                      :aria-label="
+                        t('meeting.deleteNoteAria', {
+                          author: note.participantName,
+                        })
+                      "
+                      @click="emit('delete-note', note.id)"
+                    >
+                      delete_outline
+                    </button>
+                  </div>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </MeetingDisclosurePanel>
       </section>
 
       <section v-if="!hasMeetingContent" class="review-close-card">
         <p class="review-close-empty">{{ emptyReviewText() }}</p>
       </section>
-      <section v-if="!isCompleted && canEditMeeting" class="review-close-card">
+      <section
+        v-if="!isCompleted && canEditMeeting"
+        class="review-close-card review-close-card--capture"
+      >
         <p class="meeting-help">{{ t('meeting.reviewReadyText') }}</p>
         <div class="review-close-capture-actions">
           <button
@@ -351,6 +365,9 @@ const notesBySection = computed(() => {
             class="review-close-edit"
             @click="emit('capture', 'agreement')"
           >
+            <span class="material-symbols-outlined" aria-hidden="true"
+              >add</span
+            >
             {{ t('meeting.addAgreement') }}
           </button>
           <button
@@ -358,13 +375,20 @@ const notesBySection = computed(() => {
             class="review-close-edit"
             @click="emit('capture', 'task')"
           >
+            <span class="material-symbols-outlined" aria-hidden="true"
+              >add</span
+            >
             {{ t('meeting.addTask') }}
           </button>
           <button
             type="button"
             class="review-close-edit"
+            data-testid="review-capture-note"
             @click="emit('capture', 'note')"
           >
+            <span class="material-symbols-outlined" aria-hidden="true"
+              >add</span
+            >
             {{ t('meeting.addNote') }}
           </button>
         </div>
@@ -391,6 +415,7 @@ const notesBySection = computed(() => {
       <button
         v-if="!isCompleted && canEditMeeting"
         class="review-close-finish"
+        data-testid="review-finish"
         type="button"
         :disabled="isFinishingMeeting"
         @click="emit('finish')"
@@ -489,13 +514,13 @@ const notesBySection = computed(() => {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 24px;
-  padding: 28px 0;
+  gap: 16px;
+  padding: 12px 0 0;
 }
 
 .review-close-progress {
   display: grid;
-  gap: 10px;
+  gap: 6px;
 }
 
 .review-close-progress__labels {
@@ -515,7 +540,7 @@ const notesBySection = computed(() => {
 }
 
 .review-close-progress__track {
-  height: 8px;
+  height: 6px;
   overflow: hidden;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--color-outline-variant) 42%, white);
@@ -530,20 +555,21 @@ const notesBySection = computed(() => {
 .review-close-hero {
   display: grid;
   justify-items: center;
-  gap: 16px;
-  padding: 16px 0 0;
+  gap: 10px;
+  padding: 16px 0 12px;
   text-align: center;
 }
 
 .review-close-hero__icon {
   display: grid;
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
+  border: 3px solid #e4eee3;
   place-items: center;
   border-radius: var(--radius-pill);
-  background: var(--color-primary-fixed);
+  background: #c9e2cd;
   color: var(--color-primary);
-  font-size: 3rem;
+  font-size: 2.35rem;
   font-variation-settings:
     'FILL' 0,
     'wght' 500,
@@ -552,31 +578,31 @@ const notesBySection = computed(() => {
 }
 
 .review-close-hero h2 {
-  margin: 14px 0 0;
+  margin: 6px 0 0;
   color: #101210;
   font-family: var(--font-display);
-  font-size: var(--font-size-display);
+  font-size: clamp(1.7rem, 7vw, 2.05rem);
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.16;
 }
 
 .review-close-hero p {
-  max-width: 18.5em;
-  color: #30362f;
-  font-family: var(--font-display);
-  font-size: var(--font-size-body-lg);
-  line-height: 1.5;
+  max-width: 20em;
+  color: #5d685e;
+  font-family: var(--font-body);
+  font-size: var(--font-size-body-md);
+  line-height: 1.42;
 }
 
 .review-close-card {
   display: grid;
-  gap: 22px;
-  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 42%, white);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-lowest);
+  gap: 12px;
+  border: 1px solid #e8e0d3;
+  border-radius: 24px;
+  background: #fff;
   box-shadow: 0 8px 24px rgba(47, 42, 38, 0.06);
-  padding: 26px 24px;
+  padding: 16px;
 }
 
 .review-close-card__header {
@@ -584,11 +610,20 @@ const notesBySection = computed(() => {
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-outline-variant) 58%, white);
+  padding-bottom: 12px;
 }
 
 .review-close-card__title-icon {
-  color: #8a5c0d;
-  font-size: 2rem;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f1f5f0;
+  color: #365e3c;
+  font-size: 1.35rem;
   font-variation-settings:
     'FILL' 0,
     'wght' 500,
@@ -601,7 +636,7 @@ const notesBySection = computed(() => {
   overflow-wrap: anywhere;
   color: #101210;
   font-family: var(--font-display);
-  font-size: var(--font-size-headline-md);
+  font-size: var(--font-size-body-md);
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.18;
@@ -609,22 +644,24 @@ const notesBySection = computed(() => {
 
 .review-close-badge {
   display: inline-flex;
-  min-height: 38px;
+  /* min-height: 34px; */
   align-items: center;
   border-radius: var(--radius-pill);
-  background: #ffd8af;
-  padding: 0 16px;
-  color: #2f251d;
+  border: 1px solid #eadbc8;
+  background: #f7efe3;
+  padding: 2px 12px;
+  color: #81571f;
   font-family: var(--font-display);
-  font-size: var(--font-size-body-md);
+  font-size: var(--font-size-label-sm);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .review-close-action-list,
-.review-close-text-list {
+.review-close-text-list,
+.review-close-note-groups {
   display: grid;
-  gap: 18px;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -632,12 +669,17 @@ const notesBySection = computed(() => {
 
 .review-close-action-list li {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 4px;
   align-items: start;
+  border: 1px solid #ebe2d5;
+  border-radius: 18px;
+  background: #fcfbf8;
+  padding: 14px;
   color: #30362f;
   font-family: var(--font-display);
-  font-size: var(--font-size-headline-md);
+  font-size: var(--font-size-body-md);
   line-height: 1.42;
 }
 
@@ -649,19 +691,100 @@ const notesBySection = computed(() => {
 .review-close-action-list small {
   display: block;
   margin-top: 2px;
-  color: var(--color-outline);
+  width: fit-content;
+  border-radius: 8px;
+  background: #eef4ef;
+  padding: 2px 8px;
+  color: #5d705f;
   font-family: var(--font-body);
   font-size: var(--font-size-label-sm);
   font-weight: 650;
 }
 
 .review-close-text-list li {
-  display: grid;
+  display: flex;
   gap: 4px;
 }
 
-.review-close-text-list--actions li {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+.review-close-note-groups > li {
+  display: grid;
+  gap: 12px;
+}
+
+.review-close-note-groups > li > span {
+  font-weight: 600;
+  color: var(--color-secondary);
+}
+
+.review-close-note-groups .review-close-text-list--actions {
+  gap: 12px;
+}
+
+.review-close-note-groups .review-close-text-list--actions > li {
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 48%, white);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface-low) 52%, white);
+  padding: 14px 12px;
+}
+
+.review-close-card--agreements .review-close-text-list--actions > li {
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 58%, white);
+  border-radius: 20px;
+  background: #fbfaf7;
+  padding: 16px;
+}
+
+.review-close-card--agreements .review-close-text-list--actions p {
+  margin: 8px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-style: italic;
+  line-height: 1.55;
+}
+
+.review-close-notes-intro {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-body-md);
+  line-height: 1.45;
+}
+
+.review-close-notes-picker:deep(.meeting-disclosure-panel) {
+  border: 1px solid #e4ddd0;
+  border-radius: 18px;
+  background: #f8f7f2;
+}
+
+.review-close-notes-picker :deep(.meeting-disclosure-panel__toggle) {
+  min-height: 48px;
+  justify-content: center;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: var(--font-size-body-md);
+  font-weight: 700;
+}
+
+.review-close-notes-picker :deep(.meeting-disclosure-panel__label) {
+  flex: 0 1 auto;
+}
+
+.review-close-notes-picker :deep(.meeting-disclosure-panel__chevron) {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+}
+
+.review-close-notes-picker :deep(.meeting-disclosure-panel__reveal-inner) {
+  padding: 0;
+}
+
+.review-close-notes-picker.is-open
+  :deep(.meeting-disclosure-panel__reveal-inner) {
+  padding: 0 10px 10px;
 }
 
 .review-close-text-list--actions li > div {
@@ -677,15 +800,34 @@ const notesBySection = computed(() => {
 .review-close-text-list p {
   color: #30362f;
   font-family: var(--font-display);
-  font-size: var(--font-size-body-lg);
+  font-size: 0.95rem;
   line-height: 1.42;
+}
+
+.review-close-capture-actions {
+  justify-content: center;
+  border: 1px solid #e4ddd0;
+  border: 0;
+  border-radius: 18px;
+  background: #f7f5ed;
+  padding: 12px;
+}
+.review-close-capture-actions .review-close-edit {
+  min-height: 40px;
+  border: 1px solid #ded5c6;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-lowest);
+  padding: 0 12px;
+  box-shadow: 0 2px 4px rgb(47 42 38 / 10%);
+  font-size: var(--font-size-label-lg);
+  font-weight: 600;
 }
 
 .review-close-task-toggle {
   display: grid;
-  width: 32px;
-  height: 32px;
-  min-height: 32px;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
   place-items: center;
   border: 0;
   border-radius: var(--radius-pill);
@@ -696,7 +838,7 @@ const notesBySection = computed(() => {
 }
 
 .review-close-task-toggle .material-symbols-outlined {
-  font-size: 1.95rem;
+  font-size: 1.7rem;
   font-variation-settings:
     'FILL' 0,
     'wght' 300,
@@ -708,8 +850,46 @@ const notesBySection = computed(() => {
   opacity: 0.5;
 }
 
+.review-close-action-list .review-close-item-actions button {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  font-size: 1.15rem;
+}
+
 .review-close-delete {
   align-self: start;
+}
+
+.review-close-item-actions {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 2px;
+  align-items: start;
+  justify-content: flex-start;
+}
+
+.review-close-item-actions button {
+  display: grid;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  align-self: start;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  padding: 0;
+  color: var(--color-primary);
+  box-shadow: none;
+}
+
+.review-close-item-actions .review-close-delete {
+  color: var(--color-error);
 }
 
 .review-close-empty {
@@ -721,7 +901,7 @@ const notesBySection = computed(() => {
 .review-close-edit {
   display: inline-flex;
   width: fit-content;
-  min-height: 36px;
+  min-height: 32px;
   align-items: center;
   gap: 6px;
   border: 0;
@@ -744,7 +924,21 @@ const notesBySection = computed(() => {
 .review-close-capture-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
+}
+
+.review-close-card--capture {
+  gap: 10px;
+  border-color: #e4ddd0;
+  background: #f7f5ed;
+  padding: 16px 12px;
+  text-align: center;
+}
+
+.review-close-card--capture .meeting-help {
+  margin: 0;
+  color: #536057;
+  font-size: var(--font-size-body-md);
 }
 
 .review-close-stats {
@@ -794,20 +988,27 @@ const notesBySection = computed(() => {
 }
 
 .review-close-bottom-actions {
-  margin-top: auto;
+  margin: auto auto 0;
+  border: 1px solid #e4ddd0;
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px;
 }
 
 .review-close-finish {
-  min-height: 64px;
+  min-height: 56px;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   color: var(--color-on-primary);
-  font-weight: 700;
+  border-radius: var(--radius-pill);
+  background: #294d30;
+  box-shadow: 0 5px 12px rgb(41 77 48 / 22%);
+  font-weight: 800;
 }
 
 .review-close-finish .material-symbols-outlined {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-variation-settings:
     'FILL' 0,
     'wght' 600,
@@ -816,9 +1017,10 @@ const notesBySection = computed(() => {
 }
 
 .review-close-back {
-  min-height: 64px;
+  min-height: 56px;
   color: var(--color-on-surface-variant);
-  font-weight: 850;
+  border-radius: var(--radius-pill);
+  font-weight: 800;
 }
 
 @media (max-width: 360px) {

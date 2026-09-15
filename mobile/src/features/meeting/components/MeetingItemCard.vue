@@ -54,6 +54,7 @@ const taskItem = computed(() =>
     </p>
     <div v-if="editable" class="meeting-item-card__actions">
       <button
+        class="meeting-item-card__action material-symbols-outlined"
         type="button"
         :aria-label="t('common.edit')"
         @click="emit('edit', item.id)"
@@ -61,11 +62,12 @@ const taskItem = computed(() =>
         edit
       </button>
       <button
+        class="meeting-item-card__action meeting-item-card__action--delete material-symbols-outlined"
         type="button"
         :aria-label="t('common.delete')"
         @click="emit('delete', item.id)"
       >
-        delete
+        delete_outline
       </button>
     </div>
   </article>
@@ -73,17 +75,23 @@ const taskItem = computed(() =>
 
 <style scoped>
 .meeting-item-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
   align-items: start;
   gap: 8px;
-  padding: 12px;
+  padding: 16px;
   border: 1px solid var(--color-outline-variant);
-  border-radius: 12px;
+  border-radius: 16px;
+  background: var(--color-surface-lowest);
+  box-shadow: 0 2px 8px rgba(47, 42, 38, 0.06);
 }
 .meeting-item-card p {
+  min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
+  color: var(--color-on-surface);
+  line-height: 1.5;
 }
 .meeting-item-card__toggle {
   min-width: 44px;
@@ -94,6 +102,30 @@ const taskItem = computed(() =>
 }
 .meeting-item-card__actions {
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.meeting-item-card__action {
+  display: grid;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  padding: 0;
+  color: var(--color-primary);
+  font-size: 1.05rem;
+}
+.meeting-item-card__action:active {
+  background: var(--color-surface-low);
+}
+.meeting-item-card__action--delete {
+  color: var(--color-error);
 }
 </style>
