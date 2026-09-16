@@ -15,6 +15,19 @@ import { translate } from '@/features/localization/i18n';
 const ENTITLEMENT_ID = appConfig.revenueCatEntitlementId;
 
 let configurePromise: Promise<void> | null = null;
+let identityTransition: Promise<void> | null = null;
+
+function previousIdentityTransition() {
+  return identityTransition?.catch(() => undefined) ?? Promise.resolve();
+}
+
+async function requireRevenueCatIdentity() {
+  if (!identityTransition) {
+    throw new Error(translate('upgrade.billingUnavailable'));
+  }
+
+  await identityTransition;
+}
 
 function getApiKey() {
   const platform = Capacitor.getPlatform();
@@ -70,13 +83,18 @@ export async function configureRevenueCat(appUserID?: string | null) {
   await configurePromise;
 }
 
-export async function logInRevenueCat(appUserID: string) {
+export function logInRevenueCat(appUserID: string) {
   if (!isRevenueCatAvailable()) {
-    return;
+    return Promise.resolve();
   }
 
-  await configureRevenueCat();
-  await Purchases.logIn({ appUserID });
+  const operation = previousIdentityTransition().then(async () => {
+    await configureRevenueCat();
+    await Purchases.logIn({ appUserID });
+  });
+  identityTransition = operation;
+
+  return operation;
 }
 
 export async function logOutRevenueCat() {
@@ -84,13 +102,24 @@ export async function logOutRevenueCat() {
     return;
   }
 
-  await configureRevenueCat();
-  await Purchases.logOut();
+  const operation = previousIdentityTransition().then(async () => {
+    await configureRevenueCat();
+    await Purchases.logOut();
+  });
+  identityTransition = operation;
+
+  try {
+    await operation;
+  } finally {
+    if (identityTransition === operation) {
+      identityTransition = null;
+    }
+  }
 }
 
 export async function getRevenueCatCustomerInfo() {
   assertRevenueCatAvailable();
-  await configureRevenueCat();
+  await requireRevenueCatIdentity();
 
   return Purchases.getCustomerInfo();
 }
@@ -124,21 +153,21 @@ export async function findPackageByProductId(productId: string) {
 
 export async function purchasePackage(packageToPurchase: PurchasesPackage) {
   assertRevenueCatAvailable();
-  await configureRevenueCat();
+  await requireRevenueCatIdentity();
 
   return Purchases.purchasePackage({ aPackage: toRaw(packageToPurchase) });
 }
 
 export async function restoreRevenueCatPurchases() {
   assertRevenueCatAvailable();
-  await configureRevenueCat();
+  await requireRevenueCatIdentity();
 
   return Purchases.restorePurchases();
 }
 
 export async function presentPremiumPaywall() {
   assertRevenueCatAvailable();
-  await configureRevenueCat();
+  await requireRevenueCatIdentity();
 
   const { result } = await RevenueCatUI.presentPaywallIfNeeded({
     requiredEntitlementIdentifier: ENTITLEMENT_ID,
@@ -152,6 +181,6 @@ export async function presentPremiumPaywall() {
 
 export async function presentRevenueCatCustomerCenter() {
   assertRevenueCatAvailable();
-  await configureRevenueCat();
+  await requireRevenueCatIdentity();
   await RevenueCatUI.presentCustomerCenter();
 }
