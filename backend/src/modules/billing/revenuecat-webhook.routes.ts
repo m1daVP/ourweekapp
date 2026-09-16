@@ -13,6 +13,7 @@ import {
 import {
   revenueCatWebhookAckSchema,
   revenueCatWebhookBodySchema,
+  revenueCatWorkspaceIdSchema,
 } from './revenuecat-webhook.schema.js';
 import { SubscriptionsRepository } from './subscriptions.repository.js';
 
@@ -43,6 +44,14 @@ function databaseCode(error: unknown) {
   return details && typeof details === 'object' && 'databaseCode' in details
     ? details.databaseCode
     : undefined;
+}
+
+function isWorkspaceId(value: string) {
+  return revenueCatWorkspaceIdSchema.safeParse(value).success;
+}
+
+function identityCategory(value: string): 'anonymous' | 'invalid' {
+  return value.startsWith('$RCAnonymousID:') ? 'anonymous' : 'invalid';
 }
 
 export const revenueCatWebhookRoutes: FastifyPluginAsyncZod<
@@ -114,7 +123,6 @@ export const revenueCatWebhookRoutes: FastifyPluginAsyncZod<
         {
           eventId: event.id,
           eventType: event.type,
-          appUserId: event.app_user_id,
         },
         'RevenueCat webhook received',
       );
@@ -122,8 +130,8 @@ export const revenueCatWebhookRoutes: FastifyPluginAsyncZod<
       if (event.type === 'TRANSFER') {
         request.log.info(
           {
-            transferredFrom: event.transferred_from,
-            transferredTo: event.transferred_to,
+            transferredFromCount: event.transferred_from?.length ?? 0,
+            transferredToCount: event.transferred_to?.length ?? 0,
           },
           'RevenueCat transfer received',
         );
@@ -134,6 +142,18 @@ export const revenueCatWebhookRoutes: FastifyPluginAsyncZod<
         ];
 
         for (const workspaceId of new Set(transferredWorkspaceIds)) {
+          if (!isWorkspaceId(workspaceId)) {
+            request.log.warn(
+              {
+                eventId: event.id,
+                eventType: event.type,
+                identityCategory: identityCategory(workspaceId),
+              },
+              'RevenueCat webhook identity is not a workspace UUID',
+            );
+            continue;
+          }
+
           try {
             await service.syncEntitlementForWorkspace(workspaceId);
           } catch (error) {
@@ -174,6 +194,18 @@ export const revenueCatWebhookRoutes: FastifyPluginAsyncZod<
           'validation_failed',
           'Please check the request and try again.',
         );
+      }
+
+      if (!isWorkspaceId(event.app_user_id)) {
+        request.log.warn(
+          {
+            eventId: event.id,
+            eventType: event.type,
+            identityCategory: identityCategory(event.app_user_id),
+          },
+          'RevenueCat webhook identity is not a workspace UUID',
+        );
+        return { received: true as const };
       }
 
       try {

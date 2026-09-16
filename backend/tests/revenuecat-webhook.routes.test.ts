@@ -20,6 +20,9 @@ Object.assign(process.env, {
 });
 
 const secret = 'revenuecat-test-secret';
+const workspaceId = '11111111-1111-4111-8111-111111111111';
+const secondWorkspaceId = '22222222-2222-4222-8222-222222222222';
+const unknownWorkspaceId = '33333333-3333-4333-8333-333333333333';
 
 function serviceThat(error?: unknown) {
   return {
@@ -58,11 +61,11 @@ const body = {
     id: 'event-1',
     type: 'CANCELLATION',
     store: 'PLAY_STORE',
-    app_user_id: 'workspace-1',
+    app_user_id: workspaceId,
   },
 };
 
-function webhookBody(type: string, appUserId = 'workspace-1') {
+function webhookBody(type: string, appUserId = workspaceId) {
   return {
     api_version: '1.0',
     event: {
@@ -122,7 +125,7 @@ describe('RevenueCat webhook routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ received: true });
     expect(service.syncEntitlementForWorkspace).toHaveBeenCalledWith(
-      'workspace-1',
+      workspaceId,
     );
     await app.close();
   });
@@ -147,7 +150,7 @@ describe('RevenueCat webhook routes', () => {
     expect(response.json()).toEqual({ received: true });
     expect(service.syncEntitlementForWorkspace).toHaveBeenCalledOnce();
     expect(service.syncEntitlementForWorkspace).toHaveBeenCalledWith(
-      'workspace-1',
+      workspaceId,
     );
     await app.close();
   });
@@ -161,6 +164,22 @@ describe('RevenueCat webhook routes', () => {
       payload: { event: { type: 'TEST' } },
     });
     expect(response.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it('acknowledges an anonymous app user without syncing it', async () => {
+    const service = serviceThat();
+    const app = await buildApp({ service });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/revenuecat',
+      headers: { authorization: secret },
+      payload: webhookBody('INITIAL_PURCHASE', '$RCAnonymousID:anonymous-1'),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ received: true });
+    expect(service.syncEntitlementForWorkspace).not.toHaveBeenCalled();
     await app.close();
   });
 
@@ -182,7 +201,7 @@ describe('RevenueCat webhook routes', () => {
     await app.close();
   });
 
-  it('syncs deduplicated transfer targets before sources without app_user_id', async () => {
+  it('skips unusable transfer identities and syncs deduplicated workspace UUIDs', async () => {
     const service = serviceThat();
     const app = await buildApp({ service });
     const response = await app.inject({
@@ -191,17 +210,17 @@ describe('RevenueCat webhook routes', () => {
       headers: { authorization: secret },
       payload: {
         event: {
+          id: 'event-transfer',
           type: 'TRANSFER',
-          transferred_from: ['old', 'shared'],
-          transferred_to: ['new', 'shared'],
+          transferred_from: ['$RCAnonymousID:old', workspaceId],
+          transferred_to: [secondWorkspaceId, 'not-a-workspace', workspaceId],
         },
       },
     });
     expect(response.statusCode).toBe(200);
     expect(service.syncEntitlementForWorkspace.mock.calls).toEqual([
-      ['new'],
-      ['shared'],
-      ['old'],
+      [secondWorkspaceId],
+      [workspaceId],
     ]);
     await app.close();
   });
@@ -219,14 +238,14 @@ describe('RevenueCat webhook routes', () => {
       payload: {
         event: {
           type: 'TRANSFER',
-          transferred_to: ['unknown', 'workspace-2'],
+          transferred_to: [unknownWorkspaceId, secondWorkspaceId],
         },
       },
     });
     expect(response.statusCode).toBe(200);
     expect(service.syncEntitlementForWorkspace.mock.calls).toEqual([
-      ['unknown'],
-      ['workspace-2'],
+      [unknownWorkspaceId],
+      [secondWorkspaceId],
     ]);
     await app.close();
   });
@@ -241,7 +260,7 @@ describe('RevenueCat webhook routes', () => {
       payload: {
         event: {
           type: 'TRANSFER',
-          transferred_to: ['workspace-1'],
+          transferred_to: [workspaceId],
         },
       },
     });

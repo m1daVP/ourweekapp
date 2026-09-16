@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const revenueCatWorkspaceIdSchema = z.uuid();
+
 export const revenueCatWebhookEventSchema = z.looseObject({
   id: z.string().optional(),
   type: z.string().optional(),
