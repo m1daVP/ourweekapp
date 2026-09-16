@@ -7,6 +7,10 @@ const config: CapacitorConfig = {
   appName: 'OurWeek',
   webDir: 'dist',
   plugins: {
+    SystemBars: {
+      hidden: true,
+      insetsHandling: 'css',
+    },
     SplashScreen: {
       launchAutoHide: false,
       launchFadeOutDuration: 500,
