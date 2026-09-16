@@ -474,6 +474,10 @@ input[type='radio'] {
     calc(136px + env(safe-area-inset-bottom));
 }
 
+.app-shell--meeting .app-main:has(.meeting-page--review-close) {
+  padding-top: 0;
+}
+
 .floating-bottom-block {
   position: fixed;
   right: auto;

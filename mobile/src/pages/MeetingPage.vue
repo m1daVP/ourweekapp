@@ -92,7 +92,6 @@ const {
   isAiRecapDisclosureOpen,
   isAiRecapLowContentOpen,
   isDeleteRitualDialogOpen,
-  isDraftResolutionOpen,
   isFinalSection,
   isFinishingMeeting,
   isFirstStep,
@@ -114,9 +113,6 @@ const {
   progressPercent,
   reviewCounts,
   reviewTasks,
-  reviewOutstandingDraft,
-  returnToFinalReview,
-  discardOutstandingDraftsAndFinish,
   saveDraft,
   saveNoteEdit,
   saveTaskEdit,
@@ -146,7 +142,6 @@ const editingNoteComposerScope = ref<MeetingComposerDraftScope | null>(null);
 const editingAgreementComposerScope = ref<MeetingComposerDraftScope | null>(
   null
 );
-const isReviewingDraft = ref(false);
 const composerScope = computed(() => {
   const meeting = activeMeeting.value;
   const section = currentSection.value;
@@ -176,20 +171,8 @@ function openComposer(type: MeetingComposerDraftType) {
   composerType.value = type;
 }
 
-function handleReviewOutstandingDraft() {
-  const scope = reviewOutstandingDraft();
-  if (!scope) return;
-
-  isReviewingDraft.value = true;
-  composerType.value = scope.type;
-}
-
 function closeComposer() {
   composerType.value = null;
-  if (isReviewingDraft.value) {
-    isReviewingDraft.value = false;
-    returnToFinalReview();
-  }
 }
 
 function discardRenderedComposerScope() {
@@ -331,7 +314,10 @@ const meetingParticipantPickerOptions = computed(() =>
     v-if="activeMeeting && currentSection"
     :class="[
       'meeting-page',
-      { 'meeting-page--check-in': isParticipantCheckInStep },
+      {
+        'meeting-page--check-in': isParticipantCheckInStep,
+        'meeting-page--review-close': isFinalSection,
+      },
     ]"
   >
     <ActionMenuPopup
@@ -498,16 +484,6 @@ const meetingParticipantPickerOptions = computed(() =>
     @close="closeAgreementEditorFromMeeting"
   />
 
-  <ConfirmationDialog
-    :open="isDraftResolutionOpen"
-    :title="t('meeting.resolveDraftsTitle')"
-    :message="t('meeting.resolveDraftsText')"
-    :confirm-label="t('meeting.discardDraftsFinish')"
-    :cancel-label="t('meeting.reviewDrafts')"
-    destructive
-    @close="handleReviewOutstandingDraft"
-    @confirm="discardOutstandingDraftsAndFinish"
-  />
   <ConfirmationDialog
     :open="isAiRecapLowContentOpen"
     :title="t('ai.recap.lowContent.title')"
