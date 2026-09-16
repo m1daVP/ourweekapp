@@ -47,11 +47,7 @@ import { useInAppNotification } from '@/shared/composables/useInAppNotification'
 import { haptics } from '@/shared/services/hapticsService';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 import { useWorkspaceStore } from '@/app/stores/workspace';
-import {
-  discardMeetingComposerDraft,
-  getMeetingComposerDraftsForMeeting,
-  type MeetingComposerDraftScope,
-} from '@/features/meeting/meetingComposerDrafts';
+import { discardMeetingComposerDraftsForMeeting } from '@/features/meeting/meetingComposerDrafts';
 
 export const maxCheckInParticipants = 10;
 
@@ -282,7 +278,6 @@ export function useMeetingSession() {
   const formError = ref('');
   const statusMessage = ref('');
   const isFinishingMeeting = ref(false);
-  const isDraftResolutionOpen = ref(false);
 
   watch(statusMessage, (message) => {
     if (!message) {
@@ -1499,8 +1494,14 @@ export function useMeetingSession() {
       return;
     }
 
-    if (getOutstandingDrafts().length) {
-      isDraftResolutionOpen.value = true;
+    const draftCleanup = discardMeetingComposerDraftsForMeeting(
+      workspaceStore.currentUserId,
+      workspaceStore.workspace.id,
+      meetingId
+    );
+
+    if (!draftCleanup.ok) {
+      formError.value = t('meeting.presentation.saveFailed');
       return;
     }
 
@@ -1523,56 +1524,6 @@ export function useMeetingSession() {
     } finally {
       isFinishingMeeting.value = false;
     }
-  }
-
-  function getOutstandingDrafts() {
-    const meetingId = activeMeeting.value?.id;
-    if (!meetingId) return [];
-
-    return getMeetingComposerDraftsForMeeting(
-      workspaceStore.currentUserId,
-      workspaceStore.workspace.id,
-      meetingId
-    );
-  }
-
-  function reviewOutstandingDraft(): MeetingComposerDraftScope | null {
-    const draft = getOutstandingDrafts()[0];
-    const meeting = activeMeeting.value;
-    if (!draft || !meeting) return null;
-
-    const sectionIndex = meeting.sections.findIndex(
-      (section) => section.id === draft.sectionId
-    );
-    if (sectionIndex < 0) return null;
-
-    isDraftResolutionOpen.value = false;
-    meetingsStore.setCurrentSection(sectionIndex);
-    return {
-      userId: draft.userId,
-      workspaceId: draft.workspaceId,
-      meetingId: draft.meetingId,
-      sectionId: draft.sectionId,
-      type: draft.type,
-      ...(draft.itemId ? { itemId: draft.itemId } : {}),
-    };
-  }
-
-  function returnToFinalReview() {
-    const meeting = activeMeeting.value;
-    if (meeting) meetingsStore.setCurrentSection(meeting.sections.length - 1);
-  }
-
-  async function discardOutstandingDraftsAndFinish() {
-    for (const draft of getOutstandingDrafts()) {
-      if (!discardMeetingComposerDraft(draft).ok) {
-        formError.value = t('meeting.presentation.saveFailed');
-        return;
-      }
-    }
-
-    isDraftResolutionOpen.value = false;
-    await finishMeeting();
   }
 
   async function confirmAiRecapDisclosure() {
@@ -1808,9 +1759,6 @@ export function useMeetingSession() {
     editActions,
     exitMeeting,
     finishMeeting,
-    reviewOutstandingDraft,
-    returnToFinalReview,
-    discardOutstandingDraftsAndFinish,
     formError,
     goBack,
     goNext,
@@ -1824,7 +1772,6 @@ export function useMeetingSession() {
     isDeleteRitualDialogOpen,
     isFinalSection,
     isFinishingMeeting,
-    isDraftResolutionOpen,
     isFirstStep,
     isGuestDrawerOpen,
     isNoteEditorOpen,

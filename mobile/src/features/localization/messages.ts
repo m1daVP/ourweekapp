@@ -967,11 +967,6 @@ export const messages = {
       hideRecordedNotes: 'Hide notes',
       notesReviewIntro:
         'All thoughts and reflections from each part of the conversation are saved here.',
-      resolveDraftsTitle: 'Finish with unfinished drafts?',
-      resolveDraftsText:
-        'Review each draft or discard them before finishing. Drafts are never submitted automatically.',
-      reviewDrafts: 'Review drafts',
-      discardDraftsFinish: 'Discard drafts and finish',
       tasksAndResponsibilities: 'Tasks and responsibilities',
       atLeastOne: 'Add at least one note, task, or agreement before finishing.',
       finished: 'This meeting is finished.',
@@ -1821,7 +1816,7 @@ export const messages = {
       emailPlaceholder: "you{'@'}example.com",
     },
     welcome: {
-      title: 'Weekly Us',
+      title: 'OurWeek',
       tagline: 'Спокійніший спосіб планувати тиждень разом',
       intro:
         'Обговоріть завдання, гроші, дітей, плани й невеликі напружені теми, перш ніж вони стануть суперечками.',
@@ -2565,11 +2560,6 @@ export const messages = {
       hideRecordedNotes: 'Сховати нотатки',
       notesReviewIntro:
         'Усі думки та роздуми з кожного етапу діалогу охайно збережено в щоденнику пари.',
-      resolveDraftsTitle: 'Завершити з незавершеними чернетками?',
-      resolveDraftsText:
-        'Перегляньте кожну чернетку або видаліть їх перед завершенням. Чернетки ніколи не надсилаються автоматично.',
-      reviewDrafts: 'Переглянути чернетки',
-      discardDraftsFinish: 'Видалити чернетки й завершити',
       tasksAndResponsibilities: 'Завдання і відповідальні',
       atLeastOne:
         'Додайте хоча б одну нотатку, завдання або домовленість перед завершенням.',
@@ -3443,7 +3433,7 @@ export const messages = {
       emailPlaceholder: "tu{'@'}ejemplo.com",
     },
     welcome: {
-      title: 'Weekly Us',
+      title: 'OurWeek',
       tagline: 'Una forma más tranquila de planear la semana juntos',
       intro:
         'Hablen de tareas, dinero, hijos, planes y pequeñas tensiones antes de que se conviertan en discusiones.',
@@ -4194,11 +4184,6 @@ export const messages = {
       hideRecordedNotes: 'Ocultar notas',
       notesReviewIntro:
         'Todos los pensamientos y reflexiones de cada parte de la conversación se guardan aquí.',
-      resolveDraftsTitle: '¿Finalizar con borradores sin terminar?',
-      resolveDraftsText:
-        'Revisa cada borrador o descártalos antes de finalizar. Los borradores nunca se envían automáticamente.',
-      reviewDrafts: 'Revisar borradores',
-      discardDraftsFinish: 'Descartar borradores y finalizar',
       atLeastOne:
         'Agrega al menos una nota, tarea o acuerdo antes de finalizar.',
       tasksAndResponsibilities: 'Tareas',

@@ -87,6 +87,34 @@ export function discardMeetingComposerDraft(scope: MeetingComposerDraftScope) {
   );
 }
 
+export function discardMeetingComposerDraftsForMeeting(
+  userId: string,
+  workspaceId: string,
+  meetingId: string
+) {
+  const drafts = readDrafts();
+  const hasMatchingDraft = drafts.some(
+    (draft) =>
+      draft.userId === userId &&
+      draft.workspaceId === workspaceId &&
+      draft.meetingId === meetingId &&
+      !draft.submittedItemId
+  );
+
+  if (!hasMatchingDraft) return { ok: true } as const;
+
+  return writeStorageSlice(
+    draftStorageKey,
+    drafts.filter(
+      (draft) =>
+        draft.userId !== userId ||
+        draft.workspaceId !== workspaceId ||
+        draft.meetingId !== meetingId ||
+        Boolean(draft.submittedItemId)
+    )
+  );
+}
+
 export function clearMeetingComposerDraftsForUser(userId: string) {
   return writeStorageSlice(
     draftStorageKey,
