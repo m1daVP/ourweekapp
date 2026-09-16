@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import welcomeHeroUrl from '@/assets/welcome-hero.png';
+import welcomeHeroUrl from '@/assets/welcome-hero.webp';
 
 const { t } = useI18n();
 const router = useRouter();
