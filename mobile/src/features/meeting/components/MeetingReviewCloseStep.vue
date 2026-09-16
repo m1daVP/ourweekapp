@@ -243,7 +243,7 @@ const notesBySection = computed(() => {
           <li v-for="agreement in allAgreements" :key="agreement.id">
             <div>
               <span>{{ agreement.participantLabel }}</span>
-              <p>{{ agreement.text }}</p>
+              <p>«{{ agreement.text }}»</p>
             </div>
             <div
               v-if="canEditMeeting && !isCompleted"
@@ -668,9 +668,9 @@ const notesBySection = computed(() => {
 }
 
 .review-close-action-list li {
-  display: grid;
+  display: flex;
   align-items: center;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* grid-template-columns: auto minmax(0, 1fr) auto; */
   gap: 4px;
   align-items: start;
   border: 1px solid #ebe2d5;
@@ -869,6 +869,7 @@ const notesBySection = computed(() => {
   gap: 2px;
   align-items: start;
   justify-content: flex-start;
+  margin-left: auto;
 }
 
 .review-close-item-actions button {
