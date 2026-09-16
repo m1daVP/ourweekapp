@@ -42,6 +42,10 @@ export function useNotifications() {
     () => canUseReminderFeature() && remindersStore.settings.enabled
   );
 
+  function clearLastError() {
+    lastError.value = null;
+  }
+
   async function disableAfterUnsuccessfulEnable() {
     remindersStore.setEnabled(false);
 
@@ -183,6 +187,7 @@ export function useNotifications() {
 
   return {
     canScheduleReminders,
+    clearLastError,
     disableReminders,
     enableReminders,
     initializeReminderSync,

@@ -50,7 +50,6 @@ const householdNameError = ref('');
 const isAvatarPickerOpen = ref(false);
 const inviteEmail = ref('');
 const inviteError = ref('');
-const revokeError = ref('');
 const participantMessage = reactive({
   text: '',
   tone: 'status' as 'status' | 'error',
@@ -215,7 +214,6 @@ function openCreateSheet() {
   selectedParticipantId.value = null;
   originalParticipantDisplayKey.value = null;
   inviteError.value = '';
-  revokeError.value = '';
   resetDraftForCreate();
   isSheetOpen.value = true;
 }
@@ -232,7 +230,6 @@ function openEditSheet(participant: Participant) {
   participantDraft.avatarType = participant.avatarType ?? null;
   participantDraft.type = participant.type;
   inviteError.value = '';
-  revokeError.value = '';
   isInitialsEditorOpen.value = false;
   isSheetOpen.value = true;
 }
@@ -246,13 +243,11 @@ function closeSheet() {
   }
 
   if (sheetMode.value === 'revoke') {
-    revokeError.value = '';
     sheetMode.value = 'edit';
     return;
   }
 
   inviteError.value = '';
-  revokeError.value = '';
   closeAvatarPicker();
   isSheetOpen.value = false;
 }
@@ -329,8 +324,10 @@ async function sendInvite() {
   );
 
   if (!accessRecord) {
-    inviteError.value =
-      workspaceStore.errorMessage || t('workspace.saveInviteFailed');
+    showInAppNotification(
+      workspaceStore.errorMessage || t('workspace.saveInviteFailed'),
+      { tone: 'error' }
+    );
     return;
   }
 
@@ -364,8 +361,10 @@ async function resendSelectedInvitation() {
     participantMessage.text = '';
     showInAppNotification(t('settings.invitationSent'));
   } else {
-    revokeError.value =
-      workspaceStore.errorMessage || t('workspace.saveInviteFailed');
+    showInAppNotification(
+      workspaceStore.errorMessage || t('workspace.saveInviteFailed'),
+      { tone: 'error' }
+    );
   }
 }
 
@@ -374,7 +373,6 @@ function openRevokeStep() {
     return;
   }
 
-  revokeError.value = '';
   sheetMode.value = 'revoke';
 }
 
@@ -383,7 +381,6 @@ function cancelRevoke() {
     return;
   }
 
-  revokeError.value = '';
   sheetMode.value = 'edit';
 }
 
@@ -395,7 +392,6 @@ async function confirmRevoke() {
     return;
   }
 
-  revokeError.value = '';
   const revoked = await workspaceStore.revokeParticipantInvitation(
     participant.id
   );
@@ -414,8 +410,10 @@ async function confirmRevoke() {
     return;
   }
 
-  revokeError.value =
-    workspaceStore.errorMessage || t('workspace.revokeInvitationFailed');
+  showInAppNotification(
+    workspaceStore.errorMessage || t('workspace.revokeInvitationFailed'),
+    { tone: 'error' }
+  );
 }
 
 function openHouseholdNameSheet() {
@@ -448,7 +446,10 @@ async function saveHouseholdName() {
   );
 
   if (!saved) {
-    householdNameError.value = workspaceStore.errorMessage;
+    showInAppNotification(
+      workspaceStore.errorMessage || t('workspace.saveWorkspaceFailed'),
+      { tone: 'error' }
+    );
     return;
   }
 
@@ -758,10 +759,6 @@ function enableParticipant(participantId: string) {
               email: selectedPendingInvitation?.email ?? '',
             })
           }}
-        </p>
-
-        <p v-if="revokeError" class="meeting-error" role="alert">
-          {{ revokeError }}
         </p>
 
         <div class="participant-sheet-form__actions">

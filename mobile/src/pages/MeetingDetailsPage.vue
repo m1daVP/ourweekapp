@@ -57,7 +57,6 @@ const pendingLowContentMeeting = ref<Meeting | null>(null);
 const isExportModalOpen = ref(false);
 const isExporting = ref(false);
 const exportFormat = ref<MeetingExportFormat>('text');
-const exportError = ref('');
 
 const meeting = computed(
   () =>
@@ -186,7 +185,6 @@ function openExportModal() {
     return;
   }
 
-  exportError.value = '';
   isExportModalOpen.value = true;
 }
 
@@ -217,14 +215,13 @@ async function copySelectedExport() {
     return;
   }
 
-  exportError.value = '';
   isExporting.value = true;
 
   try {
     await copyExportToClipboard(file.content);
     showInAppNotification(t('meeting.copied'));
   } catch {
-    exportError.value = t('meeting.copyFailed');
+    showInAppNotification(t('meeting.copyFailed'), { tone: 'error' });
   } finally {
     isExporting.value = false;
   }
@@ -237,7 +234,6 @@ async function shareOrSaveSelectedExport() {
     return;
   }
 
-  exportError.value = '';
   isExporting.value = true;
 
   try {
@@ -251,7 +247,7 @@ async function shareOrSaveSelectedExport() {
     downloadExportFile(file);
     showInAppNotification(t('meeting.savedExport'));
   } catch {
-    exportError.value = t('meeting.shareFailed');
+    showInAppNotification(t('meeting.shareFailed'), { tone: 'error' });
   } finally {
     isExporting.value = false;
   }
@@ -262,7 +258,6 @@ async function printPdfExport() {
     return;
   }
 
-  exportError.value = '';
   isExporting.value = true;
 
   try {
@@ -273,10 +268,11 @@ async function printPdfExport() {
         : t('meeting.savedExport')
     );
   } catch (error) {
-    exportError.value =
+    const message =
       error instanceof ApiClientError && error.code === 'meeting_not_found'
         ? t('meeting.pdfRequiresSync')
         : t('meeting.pdfFailed');
+    showInAppNotification(message, { tone: 'error' });
   } finally {
     isExporting.value = false;
   }
@@ -646,8 +642,6 @@ async function generateSummaryForMeeting(
               {{ t('common.close') }}
             </button>
           </div>
-
-          <p v-if="exportError" class="meeting-error">{{ exportError }}</p>
         </div>
       </div>
     </template>

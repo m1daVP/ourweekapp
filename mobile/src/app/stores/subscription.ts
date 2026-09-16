@@ -74,6 +74,9 @@ export const useSubscriptionStore = defineStore('subscription', {
       state.assistantRecap?.canGenerate === true,
   },
   actions: {
+    clearErrorMessage() {
+      this.errorMessage = '';
+    },
     clearStatusMessage() {
       this.statusMessage = '';
     },

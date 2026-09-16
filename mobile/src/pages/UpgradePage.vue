@@ -26,6 +26,19 @@ watch(
   { immediate: true }
 );
 
+watch(
+  () => subscriptionStore.errorMessage,
+  (message) => {
+    if (!message) {
+      return;
+    }
+
+    showInAppNotification(message, { tone: 'error' });
+    subscriptionStore.clearErrorMessage();
+  },
+  { immediate: true }
+);
+
 const planOrder: SubscriptionPlanOption['id'][] = [
   'premium_monthly',
   'premium_yearly',
@@ -249,13 +262,6 @@ function getPlanMessageKey(plan: SubscriptionPlanOption) {
           {{ t('common.manageSubscription') }}
         </button>
       </template>
-      <p
-        v-if="subscriptionStore.errorMessage"
-        class="meeting-error"
-        role="alert"
-      >
-        {{ subscriptionStore.errorMessage }}
-      </p>
     </div>
   </section>
 </template>

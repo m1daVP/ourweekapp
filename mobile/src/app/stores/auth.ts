@@ -584,6 +584,9 @@ export const useAuthStore = defineStore('auth', {
       Boolean(state.user && state.authStatus === 'authenticated'),
   },
   actions: {
+    clearGoogleLinkErrorMessage() {
+      this.googleLinkErrorMessage = '';
+    },
     persist() {
       if (typeof window === 'undefined') {
         return;

@@ -28,6 +28,9 @@ export const useCalendarSyncStore = defineStore('calendarSync', {
     isConnected: (state) => Boolean(state.connectionStatus?.connected),
   },
   actions: {
+    clearErrorMessage() {
+      this.errorMessage = '';
+    },
     clearStatusMessage() {
       this.statusMessage = '';
     },

@@ -9,6 +9,11 @@ const state = vi.hoisted(() => ({
   disconnectCalendar: vi.fn(),
   retrySync: vi.fn(),
   updateSettings: vi.fn(),
+  clearErrorMessage: vi.fn(),
+  clearStatusMessage: vi.fn(),
+  showInAppNotification: vi.fn(),
+  statusMessage: '',
+  errorMessage: '',
   connectionStatus: {
     provider: 'google' as const,
     state: 'connected' as const,
@@ -44,8 +49,10 @@ vi.mock('@/app/stores/calendarSync', () => ({
     isCheckingConnection: false,
     isConnecting: false,
     isDisconnecting: false,
-    statusMessage: '',
-    errorMessage: '',
+    statusMessage: state.statusMessage,
+    errorMessage: state.errorMessage,
+    clearErrorMessage: state.clearErrorMessage,
+    clearStatusMessage: state.clearStatusMessage,
     initializeCalendarConnection: state.initializeCalendarConnection,
     connectCalendar: state.connectCalendar,
     disconnectCalendar: state.disconnectCalendar,
@@ -60,6 +67,12 @@ vi.mock('@/features/calendar/services/calendarCallback', () => ({
 
 vi.mock('@/shared/composables/useToast', () => ({
   useToast: () => ({ showToast: vi.fn() }),
+}));
+
+vi.mock('@/shared/composables/useInAppNotification', () => ({
+  useInAppNotification: () => ({
+    showInAppNotification: state.showInAppNotification,
+  }),
 }));
 
 vi.mock('@/shared/components/PremiumLock.vue', () => ({
@@ -97,6 +110,11 @@ beforeEach(() => {
   state.connectionStatus.connected = true;
   state.updateSettings.mockReset();
   state.initializeCalendarConnection.mockReset();
+  state.clearErrorMessage.mockReset();
+  state.clearStatusMessage.mockReset();
+  state.showInAppNotification.mockReset();
+  state.statusMessage = '';
+  state.errorMessage = '';
   vi.stubGlobal('Intl', {
     ...Intl,
     DateTimeFormat: () =>
@@ -111,6 +129,19 @@ afterEach(() => {
 });
 
 describe('CalendarSyncPage weekly meeting schedule', () => {
+  it('forwards calendar failures to the top notification', () => {
+    state.errorMessage = 'calendar.checkFailed';
+
+    const wrapper = mountCalendarSyncPage();
+
+    expect(state.showInAppNotification).toHaveBeenCalledWith(
+      'calendar.checkFailed',
+      { tone: 'error' }
+    );
+    expect(state.clearErrorMessage).toHaveBeenCalledOnce();
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+  });
+
   it('disables weekday and time controls before Google Calendar is connected', () => {
     state.isConnected = false;
     state.connectionStatus.connected = false;

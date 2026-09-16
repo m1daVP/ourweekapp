@@ -28,6 +28,7 @@ import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceSt
 import AiRecapRecoveryPanel from '@/features/meeting/components/AiRecapRecoveryPanel.vue';
 import { getAiRecapContentReadiness } from '@/features/meeting/aiRecapContentReadiness';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
 import { useToast } from '@/shared/composables/useToast';
 
 interface SummaryParticipant {
@@ -66,13 +67,13 @@ const { t, te, locale } = useI18n();
 const meetingsStore = useMeetingsStore();
 const participantsStore = useParticipantsStore();
 const subscriptionStore = useSubscriptionStore();
-const shareError = ref('');
 const isSharing = ref(false);
 const aiSummaryRecovery = ref<AiRecapRecovery | null>(null);
 const isGeneratingSummary = ref(false);
 const isLowContentConfirmationOpen = ref(false);
 const pendingLowContentMeeting = ref<Meeting | null>(null);
 const { showToast } = useToast();
+const { showInAppNotification } = useInAppNotification();
 
 const meetingSummaryFallbackText = {
   aiDisclaimer:
@@ -404,13 +405,12 @@ async function handleShareSummary() {
     return;
   }
 
-  shareError.value = '';
   isSharing.value = true;
 
   try {
     await shareVisibleSummary();
   } catch {
-    shareError.value = t('meetingSummary.shareFailed');
+    showInAppNotification(t('meetingSummary.shareFailed'), { tone: 'error' });
   } finally {
     isSharing.value = false;
   }
@@ -661,9 +661,6 @@ function goBack() {
       v-if="meetingSummary"
       class="meeting-summary-bottom-action floating-bottom-block"
     >
-      <p v-if="shareError" class="meeting-summary-share-error">
-        {{ shareError }}
-      </p>
       <RouterLink
         v-if="accessibleMeeting"
         class="meeting-summary-full-notes-link"

@@ -34,6 +34,19 @@ watch(
 );
 
 watch(
+  () => calendarSyncStore.errorMessage,
+  (message) => {
+    if (!message) {
+      return;
+    }
+
+    showInAppNotification(message, { tone: 'error' });
+    calendarSyncStore.clearErrorMessage();
+  },
+  { immediate: true }
+);
+
+watch(
   () => route.query,
   (query) => {
     const result = parseCalendarCallbackQuery(query);
@@ -296,14 +309,6 @@ function confirmDisconnect() {
         >
           {{ t('calendar.retry') }}
         </button>
-
-        <p
-          v-if="calendarSyncStore.errorMessage"
-          class="meeting-error"
-          role="alert"
-        >
-          {{ calendarSyncStore.errorMessage }}
-        </p>
       </section>
     </PremiumLock>
     <ConfirmationDialog

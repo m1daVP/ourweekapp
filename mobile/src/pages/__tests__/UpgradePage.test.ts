@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   purchasePlan: vi.fn(),
   restorePurchases: vi.fn(),
   manageSubscription: vi.fn(),
+  clearSubscriptionError: vi.fn(),
   showInAppNotification: vi.fn(),
   subscription: {
     availablePlans: [
@@ -57,6 +58,7 @@ vi.mock('@/app/stores/subscription', () => ({
     clearStatusMessage: () => {
       state.subscription.statusMessage = '';
     },
+    clearErrorMessage: state.clearSubscriptionError,
   }),
 }));
 
@@ -97,6 +99,7 @@ beforeEach(() => {
   state.purchasePlan.mockReset();
   state.restorePurchases.mockReset();
   state.manageSubscription.mockReset();
+  state.clearSubscriptionError.mockReset();
   state.showInAppNotification.mockReset();
   Object.assign(state.subscription, {
     availablePlans: [
@@ -240,7 +243,7 @@ describe('UpgradePage billing disclosure', () => {
     ).toBeDefined();
   });
 
-  it('forwards status feedback to the shared in-app notification', () => {
+  it('forwards subscription feedback to the shared in-app notification', () => {
     state.subscription.statusMessage = 'upgrade.premiumRestored';
     state.subscription.errorMessage = 'upgrade.restoreFailed';
 
@@ -249,8 +252,11 @@ describe('UpgradePage billing disclosure', () => {
     expect(state.showInAppNotification).toHaveBeenCalledWith(
       'upgrade.premiumRestored'
     );
-    expect(wrapper.get('[role="alert"]').text()).toContain(
-      'upgrade.restoreFailed'
+    expect(state.showInAppNotification).toHaveBeenCalledWith(
+      'upgrade.restoreFailed',
+      { tone: 'error' }
     );
+    expect(state.clearSubscriptionError).toHaveBeenCalledOnce();
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
 });

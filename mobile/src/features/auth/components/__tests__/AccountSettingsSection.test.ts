@@ -18,6 +18,8 @@ const state = vi.hoisted(() => ({
   } as TestUser | null,
   googleSupported: true,
   linkGoogleAccount: vi.fn(),
+  clearGoogleLinkErrorMessage: vi.fn(),
+  googleLinkErrorMessage: '',
   showInAppNotification: vi.fn(),
   subscription: {
     currentPlan: 'free' as const,
@@ -41,8 +43,11 @@ vi.mock('@/app/stores/auth', () => ({
     user: state.user,
     clearSessionAfterUnauthorized: vi.fn(),
     linkGoogleAccount: state.linkGoogleAccount,
+    clearGoogleLinkErrorMessage: state.clearGoogleLinkErrorMessage,
     isLinkingGoogle: false,
-    googleLinkErrorMessage: '',
+    get googleLinkErrorMessage() {
+      return state.googleLinkErrorMessage;
+    },
   }),
 }));
 
@@ -132,6 +137,8 @@ beforeEach(() => {
   state.googleSupported = true;
   state.linkGoogleAccount.mockReset();
   state.linkGoogleAccount.mockResolvedValue('linked');
+  state.clearGoogleLinkErrorMessage.mockReset();
+  state.googleLinkErrorMessage = '';
   state.showInAppNotification.mockReset();
 });
 
@@ -156,6 +163,21 @@ describe('AccountSettingsSection', () => {
     expect(wrapper.find('[data-testid="link-google-account"]').exists()).toBe(
       false
     );
+  });
+
+  it('shows a failed Google link as a top error notification', async () => {
+    state.linkGoogleAccount.mockResolvedValue('failed');
+    state.googleLinkErrorMessage = 'account.googleEmailMismatch';
+    const wrapper = mountAccountSettingsSection();
+
+    await wrapper.get('[data-testid="link-google-account"]').trigger('click');
+
+    expect(state.showInAppNotification).toHaveBeenCalledWith(
+      'account.googleEmailMismatch',
+      { tone: 'error' }
+    );
+    expect(state.clearGoogleLinkErrorMessage).toHaveBeenCalledOnce();
+    expect(wrapper.find('.meeting-error').exists()).toBe(false);
   });
 
   it('keeps account deletion inside Settings', () => {

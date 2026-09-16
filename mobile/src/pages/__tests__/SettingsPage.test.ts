@@ -8,9 +8,12 @@ const state = vi.hoisted(() => ({
   restorePurchases: vi.fn(),
   manageSubscription: vi.fn(),
   enableReminders: vi.fn(),
+  clearLastError: vi.fn(),
+  clearSubscriptionError: vi.fn(),
   showToast: vi.fn(),
   showInAppNotification: vi.fn(),
   canUseReminders: false,
+  notificationError: { value: '' as string | null },
   reminderSettings: {
     enabled: false,
     weeklyMeetingReminder: { day: 'sunday', time: '18:00' },
@@ -64,6 +67,7 @@ vi.mock('@/app/stores/subscription', () => ({
     clearStatusMessage: () => {
       state.subscription.statusMessage = '';
     },
+    clearErrorMessage: state.clearSubscriptionError,
   }),
 }));
 
@@ -79,10 +83,11 @@ vi.mock('@/shared/composables/useFeatureAccess', () => ({
 
 vi.mock('@/shared/composables/useNotifications', () => ({
   useNotifications: () => ({
+    clearLastError: state.clearLastError,
     disableReminders: vi.fn(),
     enableReminders: state.enableReminders,
     isAvailable: { value: false },
-    lastError: { value: '' },
+    lastError: state.notificationError,
     lastReminderResult: { value: null },
     permissionStatus: { value: 'unknown' },
     syncPermissionStatus: vi.fn(),
@@ -164,10 +169,13 @@ beforeEach(() => {
   state.restorePurchases.mockReset();
   state.manageSubscription.mockReset();
   state.enableReminders.mockReset();
+  state.clearLastError.mockReset();
+  state.clearSubscriptionError.mockReset();
   state.showToast.mockReset();
   state.showInAppNotification.mockReset();
   state.updateWeeklyMeetingReminder.mockReset();
   state.canUseReminders = false;
+  state.notificationError.value = '';
   state.reminderSettings.enabled = false;
   Object.assign(state.subscription, {
     hasPremiumEntitlement: false,
@@ -253,7 +261,7 @@ describe('SettingsPage restore purchases', () => {
     }
   );
 
-  it('forwards the restore result to the in-app notification for an owner', () => {
+  it('forwards subscription feedback to the top notification', () => {
     state.subscription.statusMessage = 'upgrade.premiumRestored';
     state.subscription.errorMessage = 'upgrade.restoreFailed';
 
@@ -262,8 +270,13 @@ describe('SettingsPage restore purchases', () => {
     expect(state.showInAppNotification).toHaveBeenCalledWith(
       'upgrade.premiumRestored'
     );
+    expect(state.showInAppNotification).toHaveBeenCalledWith(
+      'upgrade.restoreFailed',
+      { tone: 'error' }
+    );
+    expect(state.clearSubscriptionError).toHaveBeenCalledOnce();
     expect(wrapper.text()).not.toContain('upgrade.premiumRestored');
-    expect(wrapper.text()).toContain('upgrade.restoreFailed');
+    expect(wrapper.text()).not.toContain('upgrade.restoreFailed');
   });
 
   it('shows Manage subscription only to an owner when management is supported', async () => {
@@ -306,6 +319,19 @@ describe('SettingsPage restore purchases', () => {
 });
 
 describe('SettingsPage notification permissions', () => {
+  it('forwards reminder failures to the top notification', () => {
+    state.notificationError.value = 'notifications.updateFailed';
+
+    const wrapper = mountSettingsPage();
+
+    expect(state.showInAppNotification).toHaveBeenCalledWith(
+      'notifications.updateFailed',
+      { tone: 'error' }
+    );
+    expect(state.clearLastError).toHaveBeenCalledOnce();
+    expect(wrapper.text()).not.toContain('notifications.updateFailed');
+  });
+
   it('shows a toast and keeps reminders off when notification access is declined', async () => {
     state.canUseReminders = true;
     state.enableReminders.mockResolvedValue('permission-denied');

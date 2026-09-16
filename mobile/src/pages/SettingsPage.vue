@@ -40,6 +40,7 @@ const { canUseFeature } = useFeatureAccess();
 const { showToast } = useToast();
 const { showInAppNotification } = useInAppNotification();
 const {
+  clearLastError,
   disableReminders,
   enableReminders,
   isAvailable: notificationsAvailable,
@@ -60,6 +61,32 @@ watch(
 
     showInAppNotification(message);
     subscriptionStore.clearStatusMessage();
+  },
+  { immediate: true }
+);
+
+watch(
+  () => subscriptionStore.errorMessage,
+  (message) => {
+    if (!message) {
+      return;
+    }
+
+    showInAppNotification(message, { tone: 'error' });
+    subscriptionStore.clearErrorMessage();
+  },
+  { immediate: true }
+);
+
+watch(
+  () => notificationError.value,
+  (message) => {
+    if (!message) {
+      return;
+    }
+
+    showInAppNotification(message, { tone: 'error' });
+    clearLastError();
   },
   { immediate: true }
 );
@@ -418,13 +445,6 @@ function openReminderSheet() {
         >
           {{ t('common.restorePurchases') }}
         </button>
-        <p
-          v-if="isWorkspaceOwner && subscriptionStore.errorMessage"
-          class="meeting-error settings-subscription-card__feedback"
-          role="alert"
-        >
-          {{ subscriptionStore.errorMessage }}
-        </p>
       </article>
     </section>
 
@@ -575,9 +595,6 @@ function openReminderSheet() {
 
         <!-- <p class="meeting-help">{{ t('settings.reminderExample') }}</p> -->
         <p class="meeting-status" role="status">{{ reminderStatusText }}</p>
-        <p v-if="notificationError" class="meeting-error" role="status">
-          {{ notificationError }}
-        </p>
       </div>
     </BaseBottomSheet>
 

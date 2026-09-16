@@ -14,12 +14,17 @@ import {
   setupRecapTest,
 } from '@/features/meeting/__tests__/recapFixtures';
 
+const showInAppNotification = vi.hoisted(() => vi.fn());
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { meetingId: 'meeting-1' }, query: {} }),
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock('@/shared/composables/useToast', () => ({
   useToast: () => ({ showToast: vi.fn() }),
+}));
+vi.mock('@/shared/composables/useInAppNotification', () => ({
+  useInAppNotification: () => ({ showInAppNotification }),
 }));
 vi.mock('@/features/meeting/aiSummaryService', async (original) => ({
   ...(await original<typeof import('@/features/meeting/aiSummaryService')>()),
@@ -180,8 +185,12 @@ describe.each([
     }));
     render();
 
-    expect(wrapper.find('[data-testid="generate-meeting-recap"]').exists()).toBe(false);
-    expect(document.body.textContent).not.toContain('Add a little more context?');
+    expect(
+      wrapper.find('[data-testid="generate-meeting-recap"]').exists()
+    ).toBe(false);
+    expect(document.body.textContent).not.toContain(
+      'Add a little more context?'
+    );
     expect(generateMeetingSummary).not.toHaveBeenCalled();
   });
 
@@ -378,6 +387,28 @@ it('keeps a saved insight in ordinary share text after allowance exhaustion', as
       text: expect.stringContaining(savedRecap.shortSummary),
     })
   );
+});
+
+it('shows a top error notification when summary sharing fails', async () => {
+  Object.defineProperty(navigator, 'share', {
+    configurable: true,
+    value: vi.fn().mockRejectedValue(new Error('share unavailable')),
+  });
+  wrapper = mount(MeetingSummaryPage, {
+    global: {
+      plugins: [context.pinia, context.i18n],
+      stubs: { RouterLink: { template: '<a><slot /></a>' } },
+    },
+  });
+
+  await wrapper.get('[data-testid="share-meeting-summary"]').trigger('click');
+  await flushPromises();
+
+  expect(showInAppNotification).toHaveBeenCalledWith(
+    'Could not share this summary right now.',
+    { tone: 'error' }
+  );
+  expect(wrapper.find('.meeting-summary-share-error').exists()).toBe(false);
 });
 
 it('shares recorded commitments instead of divergent AI task and agreement output', async () => {

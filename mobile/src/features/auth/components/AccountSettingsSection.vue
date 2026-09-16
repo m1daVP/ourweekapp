@@ -32,7 +32,6 @@ import { nowIso } from '@/shared/utils/dates';
 const authStore = useAuthStore();
 const router = useRouter();
 const { t } = useI18n();
-const dataActionError = ref('');
 const { showInAppNotification } = useInAppNotification();
 const isExportingAccount = ref(false);
 const isDeletingAccount = ref(false);
@@ -52,6 +51,14 @@ async function linkGoogleAccount() {
 
   if (result === 'linked') {
     showInAppNotification(t('account.googleLinked'));
+    return;
+  }
+
+  if (result === 'failed') {
+    const message =
+      authStore.googleLinkErrorMessage || t('account.googleLinkFailed');
+    showInAppNotification(message, { tone: 'error' });
+    authStore.clearGoogleLinkErrorMessage();
   }
 }
 
@@ -67,7 +74,6 @@ async function saveAccountExport(data: unknown) {
 }
 
 async function exportAccount() {
-  dataActionError.value = '';
   isExportingAccount.value = true;
 
   try {
@@ -75,15 +81,16 @@ async function exportAccount() {
     await saveAccountExport(data);
     showInAppNotification(t('account.exportReady'));
   } catch (error) {
-    dataActionError.value =
-      error instanceof Error ? error.message : t('account.exportFailed');
+    showInAppNotification(
+      error instanceof Error ? error.message : t('account.exportFailed'),
+      { tone: 'error' }
+    );
   } finally {
     isExportingAccount.value = false;
   }
 }
 
 async function deleteAccount() {
-  dataActionError.value = '';
   isDeleteAccountDialogOpen.value = true;
 }
 
@@ -114,7 +121,6 @@ async function finishLocalCleanupAfterAccountDeletion() {
 }
 
 async function confirmDeleteAccount() {
-  dataActionError.value = '';
   isDeleteAccountDialogOpen.value = false;
   isDeletingAccount.value = true;
 
@@ -131,18 +137,16 @@ async function confirmDeleteAccount() {
   } catch (error) {
     if (error instanceof AccountDeletionCleanupError) {
       hasPostDeleteCleanupFailure.value = true;
-      dataActionError.value = '';
       return;
     }
 
-    dataActionError.value = t('account.deleteFailed');
+    showInAppNotification(t('account.deleteFailed'), { tone: 'error' });
   } finally {
     isDeletingAccount.value = false;
   }
 }
 
 async function retryLocalCleanupAfterAccountDeletion() {
-  dataActionError.value = '';
   isRetryingLocalCleanup.value = true;
 
   try {
@@ -150,7 +154,7 @@ async function retryLocalCleanupAfterAccountDeletion() {
     hasPostDeleteCleanupFailure.value = false;
     await router.replace({ name: 'welcome' });
   } catch {
-    dataActionError.value = t('account.cleanupRetryFailed');
+    showInAppNotification(t('account.cleanupRetryFailed'), { tone: 'error' });
   } finally {
     isRetryingLocalCleanup.value = false;
   }
@@ -193,9 +197,6 @@ async function continueAfterCleanupFailure() {
       >
         {{ t('account.continueWithLocalDataWarning') }}
       </button>
-      <p v-if="dataActionError" class="meeting-error" role="alert">
-        {{ dataActionError }}
-      </p>
     </div>
   </section>
 
@@ -237,13 +238,6 @@ async function continueAfterCleanupFailure() {
               : t('account.linkGoogle')
           }}
         </button>
-        <p
-          v-if="authStore.googleLinkErrorMessage"
-          class="meeting-error"
-          role="alert"
-        >
-          {{ authStore.googleLinkErrorMessage }}
-        </p>
       </div>
     </div>
 
@@ -277,9 +271,6 @@ async function continueAfterCleanupFailure() {
               : t('account.deleteAccount')
           }}
         </button>
-        <p v-if="dataActionError" class="meeting-error" role="alert">
-          {{ dataActionError }}
-        </p>
       </div>
     </div>
 
