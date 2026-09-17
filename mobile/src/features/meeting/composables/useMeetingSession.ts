@@ -9,13 +9,11 @@ import type {
 } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useTasksStore } from '@/app/stores/tasks';
-import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
   generateMeetingSummary,
   parseAiQuotaError,
   type GenerateMeetingSummaryOptions,
 } from '@/features/meeting/aiSummaryService';
-import { getAiRecapContentReadiness } from '@/features/meeting/aiRecapContentReadiness';
 import {
   acknowledgeAiRecapDisclosure,
   hasAcknowledgedAiRecapDisclosure,
@@ -263,7 +261,6 @@ export function useMeetingSession() {
   const meetingsStore = useMeetingsStore();
   const participantsStore = useParticipantsStore();
   const tasksStore = useTasksStore();
-  const subscriptionStore = useSubscriptionStore();
   const router = useRouter();
   const { t, locale } = useI18n();
   const { can } = useWorkspacePermissions();
