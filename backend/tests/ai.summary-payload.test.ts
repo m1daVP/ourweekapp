@@ -146,6 +146,38 @@ describe('summary payload helpers', () => {
     expect(serialized).not.toContain('serverRevision');
   });
 
+  it('excludes distinctive private-note and participant-email markers from the provider payload', () => {
+    const serialized = buildSummaryPromptPayload(
+      meeting({
+        sections: [
+          {
+            id: 'section_1',
+            title: 'Planning',
+            notes: [
+              { text: 'Shared plan marker: plan-7f3c.' },
+              {
+                text: 'Private marker: private-9a2e@example.invalid.',
+                isPrivate: true,
+              },
+            ],
+            tasks: [],
+            agreements: [],
+          },
+        ],
+      }),
+      [
+        { id: 'participant_1', name: 'Rita' },
+        { id: 'participant_2', name: 'Alex' },
+        { id: 'participant_3', name: 'email-marker@example.invalid' },
+      ],
+      'en',
+    );
+
+    expect(serialized).toContain('Shared plan marker: plan-7f3c.');
+    expect(serialized).not.toContain('private-9a2e@example.invalid');
+    expect(serialized).not.toContain('email-marker@example.invalid');
+  });
+
   it('normalizes nullable strict-output task fields to the public DTO shape', () => {
     expect(normalizeSummaryProviderOutput({
       shortSummary: 'Done',
