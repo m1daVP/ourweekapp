@@ -48,6 +48,8 @@ function taskFixture(): MeetingTask {
     title: 'Book the appointment',
     responsibilityType: 'needsDiscussion',
     responsibleParticipantIds: [],
+    description: 'Bring the documents with you.',
+    dueDate: '2026-09-20',
     status: 'open',
     createdAt: '2026-09-16T17:04:00.000Z',
     updatedAt: '2026-09-16T17:04:00.000Z',
@@ -104,7 +106,10 @@ describe('saved meeting summary presentation', () => {
     });
     expect(viewModel.groups[1]?.rows[0]).toMatchObject({
       title: 'Book the appointment',
-      badge: 'Open • Needs discussion',
+      detail: 'Bring the documents with you.',
+      leadingMeta: 'Needs discussion',
+      trailingMeta: 'Sep 20',
+      badge: 'Open',
     });
   });
 });

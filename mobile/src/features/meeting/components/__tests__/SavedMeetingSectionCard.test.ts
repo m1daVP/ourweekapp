@@ -47,7 +47,10 @@ const filledSection: SavedMeetingSectionViewModel = {
         {
           id: 'task-1',
           title: 'Book the appointment',
-          badge: 'Open • Needs discussion',
+          detail: 'Bring the documents with you.',
+          leadingMeta: 'Needs discussion',
+          trailingMeta: 'Sep 20',
+          badge: 'Open',
         },
       ],
     },
@@ -83,7 +86,17 @@ describe('SavedMeetingSectionCard', () => {
     expect(wrapper.findAll('.saved-meeting-item-row')).toHaveLength(3);
     expect(wrapper.text()).toContain('Rita');
     expect(wrapper.text()).toContain('Sep 16, 19:04');
-    expect(wrapper.text()).toContain('Open • Needs discussion');
+    expect(wrapper.text()).toContain('Open');
+    expect(wrapper.text()).toContain('Needs discussion');
+    expect(wrapper.text()).toContain('Sep 20');
+
+    const taskRow = wrapper.findAll('.saved-meeting-item-row')[1];
+    expect(taskRow?.find('.saved-meeting-item-row__task-meta').exists()).toBe(
+      true
+    );
+    expect(taskRow?.find('.saved-meeting-item-row__due-date').text()).toContain(
+      'Sep 20'
+    );
   });
 
   it('uses the shared item rows in the final card', () => {
