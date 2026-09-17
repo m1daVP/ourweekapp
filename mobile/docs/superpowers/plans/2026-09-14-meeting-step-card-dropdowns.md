@@ -20,10 +20,12 @@
 ### Task 1: Build and test independent card dropdowns
 
 **Files:**
+
 - Modify: `src/features/meeting/components/MeetingSectionStep.vue`
 - Modify: `src/features/meeting/components/__tests__/MeetingSectionStep.test.ts`
 
 **Interfaces:**
+
 - Consumes: `presentation.exampleKeys`, `alternativeTypes`, and `emit('capture', type)`.
 - Produces: `examplesOpen` and `alternativeCaptureOpen` accessible card-panel controls.
 
@@ -42,9 +44,13 @@ Expected: FAIL because current controls use generic secondary actions rather tha
 For each optional section, render a `meeting-conversation__optional-panel` container. Its header button contains the semantic icon, label, and chevron. When expanded, examples render as cards/list items and alternative types render as button cards:
 
 ```vue
-<button class="meeting-conversation__optional-toggle" type="button"
-  :aria-expanded="examplesOpen" aria-controls="meeting-examples-panel"
-  @click="examplesOpen = !examplesOpen">
+<button
+  class="meeting-conversation__optional-toggle"
+  type="button"
+  :aria-expanded="examplesOpen"
+  aria-controls="meeting-examples-panel"
+  @click="examplesOpen = !examplesOpen"
+>
   <span class="meeting-conversation__optional-icon material-symbols-outlined">auto_awesome</span>
   <span>{{ t('meeting.needExample') }}</span>
   <span class="material-symbols-outlined">{{ examplesOpen ? 'expand_less' : 'expand_more' }}</span>

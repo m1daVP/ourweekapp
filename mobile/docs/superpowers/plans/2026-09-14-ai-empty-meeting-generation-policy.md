@@ -21,10 +21,12 @@
 ### Task 1: Make zero-signal AI generation impossible at the backend boundary
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us-api\src\modules\ai\ai.service.ts:239-270`
 - Test: `D:\Projects\myself\weekly-us-api\tests\ai.service.test.ts:234-302`
 
 **Interfaces:**
+
 - Consumes: `getSummaryContentReadiness(meeting.sections)`, returning `discussionSignalCount` and `sectionCount`.
 - Produces: `ApiError(409, 'ai_summary_no_recorded_content', 'Record a note or agreement before generating a recap.', { discussionSignalCount: 0, sectionCount: 0 })` for a completed zero-signal meeting.
 - Preserves: `ApiError(422, 'ai_summary_insufficient_content', ...)` when a non-empty meeting is below normal readiness and has not sent `allowLowContent: true`.
@@ -37,22 +39,34 @@
   it('rejects an empty meeting even when low-content generation is explicitly allowed', async () => {
     const { ai, assistant, participants, provider, service } = createHarness({
       meeting: meeting({
-        sections: [{
-          id: 'section_1', title: 'Planning', prompt: 'Plan together',
-          notes: [], tasks: [], agreements: [],
-        }],
+        sections: [
+          {
+            id: 'section_1',
+            title: 'Planning',
+            prompt: 'Plan together',
+            notes: [],
+            tasks: [],
+            agreements: [],
+          },
+        ],
       }),
       withAssistantRepository: true,
     });
 
-    await expect(service.generateMeetingSummary(
-      auth, { meetingId, allowLowContent: true }, new Date(now),
-    )).rejects.toMatchObject({
+    await expect(
+      service.generateMeetingSummary(
+        auth,
+        { meetingId, allowLowContent: true },
+        new Date(now)
+      )
+    ).rejects.toMatchObject({
       statusCode: 409,
       code: 'ai_summary_no_recorded_content',
       details: { discussionSignalCount: 0, sectionCount: 0 },
     });
-    expect(participants.listParticipantNamesForWorkspace).not.toHaveBeenCalled();
+    expect(
+      participants.listParticipantNamesForWorkspace
+    ).not.toHaveBeenCalled();
     expect(ai.claimSummaryGeneration).not.toHaveBeenCalled();
     expect(assistant.reserveRecap).not.toHaveBeenCalled();
     expect(provider.generateMeetingSummary).not.toHaveBeenCalled();
@@ -78,7 +92,7 @@
       {
         discussionSignalCount: contentReadiness.discussionSignalCount,
         sectionCount: contentReadiness.sectionCount,
-      },
+      }
     );
   }
   ```
@@ -100,11 +114,13 @@
 ### Task 2: Hide the AI action for zero-signal recorded recaps
 
 **Files:**
+
 - Modify: `D:\Projects\myself\weekly-us\src\pages\MeetingSummaryPage.vue:128-137,412-440`
 - Modify: `D:\Projects\myself\weekly-us\src\pages\MeetingDetailsPage.vue:69-77,280-296`
 - Test: `D:\Projects\myself\weekly-us\src\pages\__tests__\MeetingRecapPages.test.ts:135-170`
 
 **Interfaces:**
+
 - Consumes: `getAiRecapContentReadiness(meeting)`, including `discussionSignalCount` and `isReady`.
 - Produces: `canGenerateAiSummary === false` for a completed eligible meeting with `discussionSignalCount === 0`.
 - Preserves: one or more signals with `isReady === false` opens the existing low-content confirmation; ready content calls `generateMeetingSummary(meeting)` without an override.
@@ -114,7 +130,9 @@
   Create a completed eligible test meeting with no notes, tasks, or agreements, set `aiSummary = undefined`, render the recap page, then assert:
 
   ```ts
-  expect(wrapper.find('[data-testid="generate-meeting-recap"]').exists()).toBe(false);
+  expect(wrapper.find('[data-testid="generate-meeting-recap"]').exists()).toBe(
+    false
+  );
   expect(document.body.textContent).not.toContain('Add a little more context?');
   expect(generateMeetingSummary).not.toHaveBeenCalled();
   ```
@@ -131,7 +149,9 @@
 
   ```ts
   const aiRecapReadiness = computed(() =>
-    accessibleMeeting.value ? getAiRecapContentReadiness(accessibleMeeting.value) : null
+    accessibleMeeting.value
+      ? getAiRecapContentReadiness(accessibleMeeting.value)
+      : null
   );
   ```
 
@@ -152,9 +172,11 @@
 ### Task 3: Run the cross-layer regression set
 
 **Files:**
+
 - No production file changes.
 
 **Interfaces:**
+
 - Verifies the frontend action policy matches the backend authorization policy for the same discussion-signal definition.
 
 - [ ] **Step 1: Run focused behavior tests from both projects.**

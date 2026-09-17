@@ -19,10 +19,12 @@
 ### Task 1: Simplify shared composer actions
 
 **Files:**
+
 - Modify: `src/features/meeting/components/MeetingItemComposer.vue`
 - Test: `src/features/meeting/components/__tests__/MeetingItemComposer.test.ts`
 
 **Interfaces:**
+
 - Consumes: the existing `close` event through the base sheet header.
 - Produces: one full-width submit action for task, note, and agreement composer modes.
 

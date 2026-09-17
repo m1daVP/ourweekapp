@@ -19,10 +19,12 @@
 ### Task 1: Unify review action layout
 
 **Files:**
+
 - Modify: `src/features/meeting/components/MeetingReviewCloseStep.vue`
 - Test: `src/features/meeting/components/__tests__/MeetingReviewCloseStep.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing edit and delete events.
 - Produces: a `.review-close-item-actions` column with edit then delete controls for tasks, agreements, and notes.
 

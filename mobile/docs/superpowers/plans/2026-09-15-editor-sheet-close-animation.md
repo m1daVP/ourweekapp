@@ -19,9 +19,11 @@
 ### Task 1: Delay edit composer cleanup
 
 **Files:**
+
 - Modify: `src/pages/MeetingPage.vue`
 
 **Interfaces:**
+
 - Consumes: `MeetingItemComposer` `close` and `after-close` events.
 - Produces: mounted edit composer instances through their close transition.
 

@@ -21,11 +21,13 @@
 ### Task 1: Establish control-audit test helpers and shared style vocabulary
 
 **Files:**
+
 - Modify: `src/shared/components/BaseButton.vue`
 - Modify: `src/styles/main.css`
 - Create: `src/shared/components/__tests__/controlAudit.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing shared button classes and Vite component compilation.
 - Produces: stable class variants for primary, secondary, danger, compact/icon, and disclosure controls.
 
@@ -37,6 +39,7 @@
 ### Task 2: Complete the meeting flow control sweep
 
 **Files:**
+
 - Modify: `src/features/meeting/components/MeetingItemComposer.vue`
 - Modify: `src/features/meeting/components/MeetingSectionStep.vue`
 - Modify: `src/features/meeting/components/MeetingReviewCloseStep.vue`
@@ -48,6 +51,7 @@
 - Modify: `src/features/meeting/components/__tests__/MeetingSectionStep.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing capture, edit, delete, task status, and form-submit events.
 - Produces: no native `details`, raw action buttons, native task responsibility selects, or native date controls in meeting screens.
 
@@ -61,6 +65,7 @@
 ### Task 3: Sweep meeting history, details, templates, and task routes
 
 **Files:**
+
 - Modify: `src/pages/MeetingTemplatesPage.vue`
 - Modify: `src/pages/MeetingDetailsPage.vue`
 - Modify: `src/pages/MeetingSummaryPage.vue`
@@ -71,6 +76,7 @@
 - Modify: matching page/component tests under `src/pages/__tests__` and feature `__tests__` folders.
 
 **Interfaces:**
+
 - Consumes: meeting history, task mutation, template selection, and summary navigation events.
 - Produces: styled list controls, filters, task actions, and reusable pickers without changed data values.
 
@@ -81,6 +87,7 @@
 ### Task 4: Sweep participant, workspace, settings, subscription, calendar, export, and private-note routes
 
 **Files:**
+
 - Modify: `src/features/participants/components/AvatarPickerSheet.vue`
 - Modify: `src/features/participants/components/HouseholdMembersSettings.vue`
 - Modify: `src/features/auth/components/AccountSettingsSection.vue`
@@ -93,6 +100,7 @@
 - Modify: matching tests.
 
 **Interfaces:**
+
 - Consumes: existing saving, subscription, OAuth preparation, and private-note actions.
 - Produces: styled settings forms, choice controls, upgrade CTAs, and destructive actions.
 
@@ -103,6 +111,7 @@
 ### Task 5: Sweep onboarding, authentication, legal, shell, dialogs, and shared components
 
 **Files:**
+
 - Modify: `src/pages/WelcomePage.vue`
 - Modify: `src/pages/SignInPage.vue`
 - Modify: `src/pages/SignUpPage.vue`
@@ -120,6 +129,7 @@
 - Modify: matching tests.
 
 **Interfaces:**
+
 - Consumes: existing auth forms, dialog close events, and picker v-model contracts.
 - Produces: consistent shared surfaces that prevent default controls from returning across all routes.
 
@@ -131,9 +141,11 @@
 ### Task 6: Final audit and Android verification
 
 **Files:**
+
 - Modify: no source files expected
 
 **Interfaces:**
+
 - Consumes: Tasks 1–5.
 - Produces: an auditable, validated mobile control system.
 
