@@ -26,10 +26,24 @@ const labelKey = computed(
       <li
         v-for="row in group.rows"
         :key="row.id"
-        class="saved-meeting-item-row"
+        :class="[
+          'saved-meeting-item-row',
+          { 'saved-meeting-item-row--task': group.kind === 'tasks' },
+        ]"
       >
         <div
-          v-if="row.leadingMeta || row.trailingMeta"
+          v-if="group.kind === 'tasks' && (row.badge || row.leadingMeta)"
+          class="saved-meeting-item-row__task-meta"
+        >
+          <span v-if="row.leadingMeta" class="saved-meeting-item-row__assignee">
+            {{ row.leadingMeta }}
+          </span>
+          <span v-if="row.badge" class="saved-meeting-item-row__badge">
+            {{ row.badge }}
+          </span>
+        </div>
+        <div
+          v-else-if="row.leadingMeta || row.trailingMeta"
           class="saved-meeting-item-row__meta"
         >
           <span v-if="row.leadingMeta">{{ row.leadingMeta }}</span>
@@ -40,10 +54,24 @@ const labelKey = computed(
             <p>{{ row.title }}</p>
             <small v-if="row.detail">{{ row.detail }}</small>
           </div>
-          <span v-if="row.badge" class="saved-meeting-item-row__badge">
+          <span
+            v-if="row.badge && group.kind !== 'tasks'"
+            class="saved-meeting-item-row__badge"
+          >
             {{ row.badge }}
           </span>
         </div>
+        <span
+          v-if="group.kind === 'tasks' && row.trailingMeta"
+          class="saved-meeting-item-row__due-date"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M7 3v3m10-3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+          </svg>
+          {{ row.trailingMeta }}
+        </span>
       </li>
     </ul>
   </section>
@@ -81,6 +109,10 @@ const labelKey = computed(
   padding: 12px 0;
 }
 
+.saved-meeting-item-row--task {
+  gap: 8px;
+}
+
 .saved-meeting-item-row + .saved-meeting-item-row {
   border-top: 1px solid
     color-mix(in srgb, var(--color-outline-variant) 42%, transparent);
@@ -103,6 +135,28 @@ const labelKey = computed(
 .saved-meeting-item-row__meta time {
   flex: none;
   color: var(--color-outline);
+}
+
+/* .saved-meeting-item-row__meta > span {
+  margin-left: auto;
+} */
+
+.saved-meeting-item-row__task-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.saved-meeting-item-row__assignee {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-label-sm);
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .saved-meeting-item-row__content {
@@ -144,6 +198,45 @@ const labelKey = computed(
   font-size: var(--font-size-label-sm);
   line-height: 1.25;
   text-align: center;
+}
+
+.saved-meeting-item-row--task .saved-meeting-item-row__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 60%;
+}
+
+.saved-meeting-item-row--task .saved-meeting-item-row__badge::before {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.saved-meeting-item-row__due-date {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-low);
+  padding: 5px 9px;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-label-sm);
+  line-height: 1.2;
+}
+
+.saved-meeting-item-row__due-date svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
 }
 
 @media (max-width: 360px) {

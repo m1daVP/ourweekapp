@@ -73,16 +73,15 @@ export function createSavedMeetingSectionViewModel(
     groups.push({
       kind: 'tasks',
       rows: section.tasks.map((task) => {
-        const detailParts = [
-          task.description?.trim(),
-          task.dueDate ? formatters.formatDueDate(task.dueDate) : undefined,
-        ].filter((value): value is string => Boolean(value));
-
         return {
           id: task.id,
           title: task.title,
-          detail: detailParts.length ? detailParts.join(' · ') : undefined,
-          badge: `${formatters.getTaskStatusLabel(task.status)} • ${formatters.getTaskResponsibleLabel(task)}`,
+          detail: task.description?.trim() || undefined,
+          leadingMeta: formatters.getTaskResponsibleLabel(task),
+          trailingMeta: task.dueDate
+            ? formatters.formatDueDate(task.dueDate)
+            : undefined,
+          badge: formatters.getTaskStatusLabel(task.status),
         };
       }),
     });
