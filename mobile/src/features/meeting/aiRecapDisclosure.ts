@@ -3,21 +3,26 @@ import {
   writeSettingsStorage,
 } from '@/shared/services/storageService';
 
-export const AI_RECAP_DISCLOSURE_VERSION = 'v1';
+export const AI_RECAP_DISCLOSURE_VERSION = 'v2';
 
-function isAcknowledgedPreference(value: unknown) {
+function isAcknowledgedPreference(value: unknown, userId: string) {
   return (
     typeof value === 'object' &&
     value !== null &&
     'version' in value &&
-    value.version === AI_RECAP_DISCLOSURE_VERSION
+    value.version === AI_RECAP_DISCLOSURE_VERSION &&
+    'userId' in value &&
+    value.userId === userId
   );
 }
 
-export function hasAcknowledgedAiRecapDisclosure() {
-  return isAcknowledgedPreference(readSettingsStorage('aiRecap', null));
+export function hasAcknowledgedAiRecapDisclosure(userId: string) {
+  return isAcknowledgedPreference(readSettingsStorage('aiRecap', null), userId);
 }
 
-export function acknowledgeAiRecapDisclosure() {
-  writeSettingsStorage('aiRecap', { version: AI_RECAP_DISCLOSURE_VERSION });
+export function acknowledgeAiRecapDisclosure(userId: string) {
+  writeSettingsStorage('aiRecap', {
+    version: AI_RECAP_DISCLOSURE_VERSION,
+    userId,
+  });
 }

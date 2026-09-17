@@ -24,8 +24,10 @@ export async function deleteAccountAndClearLocalData({
   clearLocalAppData,
   resetInMemoryStores,
   onReminderCancelError,
-}: AccountDeletionLifecycleDependencies) {
+}: AccountDeletionLifecycleDependencies): Promise<void> {
   await deleteBackendAccount();
+
+  let cleanupError: unknown;
 
   try {
     if (cancelLocalReminders) {
@@ -39,8 +41,16 @@ export async function deleteAccountAndClearLocalData({
     await clearLocalAppData();
     resetInMemoryStores();
   } catch (error) {
-    throw new AccountDeletionCleanupError(error);
-  } finally {
+    cleanupError = error;
+  }
+
+  try {
     await clearSession();
+  } catch (error) {
+    throw new AccountDeletionCleanupError(error);
+  }
+
+  if (cleanupError) {
+    throw new AccountDeletionCleanupError(cleanupError);
   }
 }

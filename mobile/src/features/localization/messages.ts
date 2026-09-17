@@ -143,7 +143,7 @@ export const messages = {
       deletingAccount: 'Deleting account...',
       deleteAccountTitle: 'Delete account?',
       deleteAccountConfirm:
-        'This deletes your account and removes OurWeek data stored on this device, including meetings, tasks, agreements, private notes, settings, and local backups. This action cannot be undone.',
+        'This deletes your account and attempts to remove OurWeek data stored on this device, including meetings, tasks, agreements, private notes, settings, and local backups. Local-only information cannot be recovered by restoring an account.',
       deleteFailed: 'Could not delete the account right now.',
       cleanupFailedTitle: 'Account deleted',
       cleanupFailedIntro:
@@ -447,8 +447,9 @@ export const messages = {
       disconnect: 'Disconnect',
       disconnectConfirmTitle: 'Disconnect Google Calendar?',
       disconnectConfirmText:
-        'OurWeek will remove every event it created in Google Calendar, then disconnect your account.',
-      noTokens: 'No Google tokens are stored in this mobile app.',
+        'OurWeek will try to remove the events it mapped, revoke Google access, and disconnect your account. If Google is unavailable, you can also remove OurWeek in your Google Account permissions.',
+      noTokens:
+        'Google access and refresh tokens are encrypted on OurWeek’s server, never stored in this mobile app.',
       callback: {
         connected: 'Google Calendar is connected.',
         failed:
@@ -991,6 +992,13 @@ export const messages = {
       skip: 'Skip',
       moveToThisWeek: 'Move to this week',
       noContentPreview: 'No notes, tasks, or agreements yet.',
+      savedSummary: {
+        sectionsTitle: 'Meeting sections',
+        sectionCount: '{count} sections',
+        filled: 'Filled',
+        empty: 'Empty',
+        sectionEmpty: 'No entries were saved in this section.',
+      },
       meetingNotFound: 'Meeting not found',
       notSaved: 'This meeting is not saved on this device.',
       backToHistory: 'Back to history',
@@ -1471,7 +1479,7 @@ export const messages = {
         retry: 'Retry recap',
         disclosure: {
           title: 'Generate an AI recap?',
-          body: 'To create a recap, OurWeek sends shared meeting notes, tasks, agreements, and participant names to OpenAI. Private notes are excluded. AI recaps can be inaccurate, so please review them.',
+          body: 'To create a recap, OurWeek sends selected shared meeting notes, tasks, agreements, and participant names through its backend to OpenAI. Private notes are excluded. The recap is saved with the meeting for household members who can access it. AI recaps can be inaccurate, so please review them.',
           generate: 'Generate recap',
           notNow: 'Not now',
         },
@@ -1721,7 +1729,7 @@ export const messages = {
       deletingAccount: 'Видалення акаунта...',
       deleteAccountTitle: 'Видалити акаунт?',
       deleteAccountConfirm:
-        'Це видалить ваш акаунт і дані OurWeek, збережені на цьому пристрої, включно із зустрічами, завданнями, домовленостями, приватними нотатками, налаштуваннями та локальними резервними копіями. Цю дію не можна скасувати.',
+        'Це видалить ваш акаунт і спробує видалити дані OurWeek, збережені на цьому пристрої, включно із зустрічами, завданнями, домовленостями, приватними нотатками, налаштуваннями та локальними резервними копіями. Локальну інформацію неможливо відновити навіть після відновлення акаунта.',
       deleteFailed: 'Не вдалося видалити акаунт зараз.',
       cleanupFailedTitle: 'Акаунт видалено',
       cleanupFailedIntro:
@@ -2033,8 +2041,9 @@ export const messages = {
       disconnect: 'Відключити',
       disconnectConfirmTitle: 'Відключити Google Calendar?',
       disconnectConfirmText:
-        'OurWeek видалить усі створені ним події з Google Calendar, а потім відключить обліковий запис.',
-      noTokens: 'У цьому мобільному додатку токени Google не зберігаються.',
+        'OurWeek спробує видалити пов’язані події, відкликати доступ Google і відключити обліковий запис. Якщо Google недоступний, ви також можете вилучити OurWeek у дозволах облікового запису Google.',
+      noTokens:
+        'Токени доступу й оновлення Google зашифровані на сервері OurWeek і ніколи не зберігаються в цьому мобільному додатку.',
       callback: {
         connected: 'Google Calendar підключено.',
         failed: 'Підключення Google Calendar не завершено. Спробуйте ще раз.',
@@ -2585,6 +2594,13 @@ export const messages = {
       skip: 'Пропустити',
       moveToThisWeek: 'Перенести на цей тиждень',
       noContentPreview: 'Нотаток, завдань або домовленостей ще немає.',
+      savedSummary: {
+        sectionsTitle: 'Розділи зустрічі',
+        sectionCount: '{count} розділів',
+        filled: 'Заповнено',
+        empty: 'Порожньо',
+        sectionEmpty: 'У цьому розділі немає збережених записів.',
+      },
       meetingNotFound: 'Зустріч не знайдено',
       notSaved: 'Цю зустріч не збережено на цьому пристрої.',
       backToHistory: 'Назад до історії',
@@ -3083,7 +3099,7 @@ export const messages = {
         retry: 'Спробувати підсумок ще раз',
         disclosure: {
           title: 'Створити ШІ-підсумок?',
-          body: 'Щоб створити підсумок, OurWeek надсилає спільні нотатки зустрічі, завдання, домовленості та імена учасників до OpenAI. Приватні нотатки не передаються. ШІ-підсумки можуть бути неточними, тому перегляньте їх.',
+          body: 'Щоб створити підсумок, OurWeek надсилає вибрані спільні нотатки зустрічі, завдання, домовленості й імена учасників через свій сервер до OpenAI. Приватні нотатки не передаються. Підсумок зберігається зі зустріччю для членів дому, які мають до неї доступ. ШІ-підсумки можуть бути неточними, тому перегляньте їх.',
           generate: 'Створити підсумок',
           notNow: 'Не зараз',
         },
@@ -3337,7 +3353,7 @@ export const messages = {
       deletingAccount: 'Eliminando cuenta...',
       deleteAccountTitle: '¿Eliminar cuenta?',
       deleteAccountConfirm:
-        'Esto elimina tu cuenta y borra los datos de OurWeek guardados en este dispositivo, incluidas reuniones, tareas, acuerdos, notas privadas, ajustes y copias locales. Esta acción no se puede deshacer.',
+        'Esto elimina tu cuenta e intenta borrar los datos de OurWeek guardados en este dispositivo, incluidas reuniones, tareas, acuerdos, notas privadas, ajustes y copias locales. La información solo local no se puede recuperar al restaurar una cuenta.',
       deleteFailed: 'No se pudo eliminar la cuenta ahora.',
       cleanupFailedTitle: 'Cuenta eliminada',
       cleanupFailedIntro:
@@ -3649,8 +3665,9 @@ export const messages = {
       disconnect: 'Desconectar',
       disconnectConfirmTitle: '¿Desconectar Google Calendar?',
       disconnectConfirmText:
-        'OurWeek eliminará todos los eventos que creó en Google Calendar y luego desconectará tu cuenta.',
-      noTokens: 'No se guardan tokens de Google en esta app móvil.',
+        'OurWeek intentará eliminar los eventos vinculados, revocar el acceso de Google y desconectar tu cuenta. Si Google no está disponible, también puedes eliminar OurWeek en los permisos de tu cuenta de Google.',
+      noTokens:
+        'Los tokens de acceso y actualización de Google se cifran en el servidor de OurWeek y nunca se guardan en esta app móvil.',
       callback: {
         connected: 'Google Calendar está conectado.',
         failed:
@@ -4209,6 +4226,13 @@ export const messages = {
       skip: 'Omitir',
       moveToThisWeek: 'Mover a esta semana',
       noContentPreview: 'Todavía no hay notas, tareas ni acuerdos.',
+      savedSummary: {
+        sectionsTitle: 'Secciones de la reunión',
+        sectionCount: '{count} secciones',
+        filled: 'Completa',
+        empty: 'Vacía',
+        sectionEmpty: 'No se guardaron entradas en esta sección.',
+      },
       meetingNotFound: 'Reunión no encontrada',
       notSaved: 'Esta reunión no está guardada en este dispositivo.',
       backToHistory: 'Volver al historial',
@@ -4713,7 +4737,7 @@ export const messages = {
         retry: 'Reintentar resumen',
         disclosure: {
           title: '¿Generar un resumen con IA?',
-          body: 'Para crear un resumen, OurWeek envía las notas compartidas de la reunión, las tareas, los acuerdos y los nombres de participantes a OpenAI. Las notas privadas se excluyen. Los resúmenes con IA pueden ser inexactos, así que revísalos.',
+          body: 'Para crear un resumen, OurWeek envía notas compartidas seleccionadas de la reunión, tareas, acuerdos y nombres de participantes a OpenAI a través de su backend. Las notas privadas se excluyen. El resumen se guarda con la reunión para los miembros del hogar que pueden acceder a ella. Los resúmenes con IA pueden ser inexactos, así que revísalos.',
           generate: 'Generar resumen',
           notNow: 'Ahora no',
         },

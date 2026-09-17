@@ -28,6 +28,20 @@ describe('legal pages', () => {
       expect(wrapper.text()).toContain('ourweekapp@gmail.com');
       expect(wrapper.text()).toContain('30 days');
       expect(wrapper.text()).toContain('90 days');
+      expect(wrapper.text()).toContain('AI summaries');
+      expect(wrapper.text()).toContain('Google Calendar');
+      expect(wrapper.text()).toContain('Diagnostics');
+      expect(wrapper.text()).toContain('If local cleanup fails');
+      expect(wrapper.text()).toContain(
+        'does not itself erase data stored on your devices'
+      );
+      expect(
+        wrapper
+          .get(
+            'a[href="https://developers.openai.com/api/docs/guides/your-data"]'
+          )
+          .text()
+      ).toBe('OpenAI API data controls');
       expect(wrapper.text()).not.toContain(
         'This policy describes the planned public v1 behavior'
       );

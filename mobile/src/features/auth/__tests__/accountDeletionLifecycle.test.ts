@@ -95,4 +95,40 @@ describe('deleteAccountAndClearLocalData', () => {
     ]);
     expect(resetInMemoryStores).not.toHaveBeenCalled();
   });
+
+  it('preserves local data when backend deletion fails', async () => {
+    const clearLocalAppData = vi.fn();
+    const clearSession = vi.fn();
+    const resetInMemoryStores = vi.fn();
+
+    await expect(
+      deleteAccountAndClearLocalData({
+        deleteBackendAccount: vi.fn().mockRejectedValue(new Error('offline')),
+        clearLocalAppData,
+        clearSession,
+        resetInMemoryStores,
+      })
+    ).rejects.toThrow('offline');
+
+    expect(clearLocalAppData).not.toHaveBeenCalled();
+    expect(clearSession).not.toHaveBeenCalled();
+    expect(resetInMemoryStores).not.toHaveBeenCalled();
+  });
+
+  it('reports session clearing failure as post-deletion cleanup failure', async () => {
+    const clearSession = vi
+      .fn()
+      .mockRejectedValue(new Error('secure storage blocked'));
+
+    await expect(
+      deleteAccountAndClearLocalData({
+        deleteBackendAccount: vi.fn().mockResolvedValue(undefined),
+        clearLocalAppData: vi.fn().mockResolvedValue(undefined),
+        clearSession,
+        resetInMemoryStores: vi.fn(),
+      })
+    ).rejects.toBeInstanceOf(AccountDeletionCleanupError);
+
+    expect(clearSession).toHaveBeenCalledOnce();
+  });
 });

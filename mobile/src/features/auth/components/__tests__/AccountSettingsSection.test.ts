@@ -26,6 +26,13 @@ const state = vi.hoisted(() => ({
   },
 }));
 
+const deletionMocks = vi.hoisted(() => ({
+  AccountDeletionCleanupError: class AccountDeletionCleanupError extends Error {},
+  clearAllLocalAppDataAfterAccountDeletion: vi.fn(),
+  deleteAccount: vi.fn(),
+  deleteAccountAndClearLocalData: vi.fn(),
+}));
+
 vi.mock('vue-i18n', async (importOriginal) => ({
   ...(await importOriginal()),
   useI18n: () => ({
@@ -91,13 +98,18 @@ vi.mock('@/app/stores/workspace', () => ({
 }));
 
 vi.mock('@/features/auth/accountDeletionLifecycle', () => ({
-  AccountDeletionCleanupError: class AccountDeletionCleanupError extends Error {},
-  deleteAccountAndClearLocalData: vi.fn(),
+  AccountDeletionCleanupError: deletionMocks.AccountDeletionCleanupError,
+  deleteAccountAndClearLocalData: deletionMocks.deleteAccountAndClearLocalData,
 }));
 
 vi.mock('@/shared/api/accountApi', () => ({
-  deleteAccount: vi.fn(),
+  deleteAccount: deletionMocks.deleteAccount,
   exportAccountData: vi.fn(),
+}));
+
+vi.mock('@/shared/services/storageService', () => ({
+  clearAllLocalAppDataAfterAccountDeletion:
+    deletionMocks.clearAllLocalAppDataAfterAccountDeletion,
 }));
 
 vi.mock('@/features/reminders/reminderService', () => ({
@@ -116,7 +128,10 @@ function mountAccountSettingsSection() {
   return shallowMount(AccountSettingsSection, {
     global: {
       stubs: {
-        ConfirmationDialog: true,
+        ConfirmationDialog: {
+          template:
+            '<button data-testid="confirm-delete" @click="$emit(\'confirm\')" />',
+        },
         RouterLink: { template: '<a><slot /></a>' },
       },
     },
@@ -140,6 +155,12 @@ beforeEach(() => {
   state.clearGoogleLinkErrorMessage.mockReset();
   state.googleLinkErrorMessage = '';
   state.showInAppNotification.mockReset();
+  deletionMocks.clearAllLocalAppDataAfterAccountDeletion.mockReset();
+  deletionMocks.deleteAccount.mockReset();
+  deletionMocks.deleteAccountAndClearLocalData.mockReset();
+  deletionMocks.clearAllLocalAppDataAfterAccountDeletion.mockResolvedValue(
+    undefined
+  );
 });
 
 describe('AccountSettingsSection', () => {
@@ -187,6 +208,26 @@ describe('AccountSettingsSection', () => {
       wrapper.find('[data-testid="external-delete-account"]').exists()
     ).toBe(false);
     expect(wrapper.find('button.history-item__delete').exists()).toBe(true);
+  });
+
+  it('retries only local cleanup after the authenticated deletion has completed', async () => {
+    deletionMocks.deleteAccountAndClearLocalData.mockRejectedValue(
+      new deletionMocks.AccountDeletionCleanupError()
+    );
+    const wrapper = mountAccountSettingsSection();
+
+    await wrapper.get('button.history-item__delete').trigger('click');
+    await wrapper.get('[data-testid="confirm-delete"]').trigger('click');
+
+    expect(deletionMocks.deleteAccountAndClearLocalData).toHaveBeenCalledOnce();
+    expect(wrapper.text()).toContain('account.cleanupFailedTitle');
+
+    await wrapper.get('button.meeting-primary').trigger('click');
+
+    expect(
+      deletionMocks.clearAllLocalAppDataAfterAccountDeletion
+    ).toHaveBeenCalledOnce();
+    expect(deletionMocks.deleteAccount).not.toHaveBeenCalled();
   });
 
   it('renders nothing when there is no signed-in account', () => {

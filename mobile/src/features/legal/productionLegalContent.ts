@@ -1,6 +1,12 @@
 export type LegalSection = Readonly<{
   heading: string;
   paragraphs: readonly string[];
+  links?: readonly LegalLink[];
+}>;
+
+export type LegalLink = Readonly<{
+  label: string;
+  url: string;
 }>;
 
 export type LegalDocument = Readonly<{
@@ -62,10 +68,51 @@ export const privacyPolicy: LegalDocument = {
       ],
     },
     {
+      heading: 'AI summaries',
+      paragraphs: [
+        'When you request an AI recap, OurWeek sends selected shared meeting notes, tasks, agreements, and participant names through our backend to OpenAI. Private notes are excluded. We show this disclosure before an account first requests a recap, and you can choose not to generate one.',
+        'Generated recaps are saved with the meeting and can be viewed by household members who can access that meeting. AI output can be incomplete or inaccurate, so review it before relying on it.',
+        'OurWeek sends recap requests to the OpenAI Responses API with response storage disabled. This avoids stored response objects, but it does not eliminate all provider retention. OpenAI says API data is not used to train or improve its models unless an account opts in; its standard abuse-monitoring logs may retain certain customer content and derived metadata for up to 30 days.',
+      ],
+      links: [
+        {
+          label: 'OpenAI API data controls',
+          url: 'https://developers.openai.com/api/docs/guides/your-data',
+        },
+      ],
+    },
+    {
+      heading: 'Google Calendar',
+      paragraphs: [
+        'When you connect Google Calendar, OurWeek stores the connected Google account email and encrypted OAuth access and refresh tokens on our server. The authorization asks for access to calendar events and your Google account email. The event permission is broader than the individual events OurWeek creates, updates, or deletes.',
+        'OurWeek uses the connection to create selected meeting reminders, task due dates, and follow-up dates in your primary Google Calendar. Calendar visibility is controlled by your Google Calendar sharing settings. We store the identifiers of the events we map so that we can manage only those mapped events.',
+        'When you disconnect, OurWeek attempts to remove its mapped events, revoke Google access, and then clears the stored tokens. A provider or connection failure can prevent an event removal or revocation; you can also remove OurWeek from your Google Account permissions.',
+      ],
+      links: [
+        {
+          label: 'Manage third-party access in your Google Account',
+          url: 'https://myaccount.google.com/permissions',
+        },
+        {
+          label: 'Google API Services User Data Policy',
+          url: 'https://developers.google.com/terms/api-services-user-data-policy',
+        },
+      ],
+    },
+    {
       heading: 'Local device data',
       paragraphs: [
         'Private notes are designed to remain on your device and are not included in shared household content or account sync. Local reminder settings and notification schedules are also stored and used on your device. You can manage notification permissions through your device settings.',
-        'Deleting the app or clearing device storage may remove local-only information. Export and account-deletion requests cannot recover local-only data that is no longer present on the device.',
+        'Deleting your account in the app also attempts to remove OurWeek data from the device used to make the request, including private notes, settings, and local app backups. If local cleanup fails, the app explains this and lets you retry. A deletion request sent through our website or by email does not itself erase data stored on your devices. Copies you exported or shared outside OurWeek may remain with you or the recipient.',
+        'To remove local-only data from another device, delete the account in that app while it is online, or clear that device’s OurWeek app storage after the account has been deleted. Private notes are local-only and are not included in normal account or meeting exports. Local-only information that has been removed cannot be restored from an account restoration or export.',
+      ],
+    },
+    {
+      heading: 'Diagnostics',
+      paragraphs: [
+        'When error diagnostics are enabled for a deployed OurWeek app or service, we use Sentry to receive limited technical reports automatically when an error occurs. These reports help us investigate reliability and security issues.',
+        'OurWeek filters reports to a generic error type, selected technical stack metadata, release and environment information, and a safe route pattern for backend errors. It excludes raw error messages, request bodies, headers, query strings, user account details, household content, arbitrary extras, and application breadcrumbs. Sentry may also process network metadata needed to receive a report, subject to its project settings.',
+        'Diagnostics reports are retained under the Sentry project’s configured retention settings. We do not enable diagnostics merely because a user uses a particular feature.',
       ],
     },
     {

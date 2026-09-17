@@ -23,6 +23,13 @@ const { t } = useI18n();
       <p v-for="paragraph in section.paragraphs" :key="paragraph">
         {{ paragraph }}
       </p>
+      <ul v-if="section.links" class="legal-page__links">
+        <li v-for="link in section.links" :key="link.url">
+          <a :href="link.url" target="_blank" rel="noopener noreferrer">
+            {{ link.label }}
+          </a>
+        </li>
+      </ul>
     </section>
 
     <RouterLink class="secondary-button link-button" :to="{ name: 'settings' }">
