@@ -498,7 +498,7 @@ input[type='radio'] {
 
 .bottom-navigation {
   display: grid;
-  min-height: 88px;
+  /* min-height: 88px; */
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 2px;
   align-items: center;
@@ -532,7 +532,7 @@ input[type='radio'] {
 }
 
 .bottom-navigation__icon {
-  font-size: 25px;
+  font-size: 24px;
 
   transition:
     font-size 0.22s ease-in-out,
@@ -1771,7 +1771,7 @@ input[type='radio'] {
 
 .meeting-step-actions {
   display: grid;
-  min-height: 88px;
+  /* min-height: 88px; */
   gap: 8px;
   align-items: center;
 }

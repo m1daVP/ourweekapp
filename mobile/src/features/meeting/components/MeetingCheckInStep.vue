@@ -519,7 +519,7 @@ function updateGuestName(event: Event) {
 }
 
 .ritual-action {
-  min-height: 64px;
+  min-height: 50px;
   padding: 0 14px;
   font-weight: 800;
   letter-spacing: 0.01em;

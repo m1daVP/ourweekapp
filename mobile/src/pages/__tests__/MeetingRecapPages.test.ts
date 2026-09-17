@@ -8,6 +8,7 @@ import MeetingSummaryPage from '../MeetingSummaryPage.vue';
 import MeetingDetailsPage from '../MeetingDetailsPage.vue';
 import { generateMeetingSummary } from '@/features/meeting/aiSummaryService';
 import { ApiClientError } from '@/shared/api/httpClient';
+import type { MeetingSection } from '@/features/meeting/types';
 import {
   allowance,
   savedRecap,
@@ -129,7 +130,9 @@ describe.each([
         expect(
           wrapper.get('.ai-summary-panel').element.closest('[inert]')
         ).toBeNull();
-        expect(wrapper.find('.premium-lock').exists()).toBe(true); // export stays gated
+        expect(
+          wrapper.find('.saved-meeting-export-card.is-locked').exists()
+        ).toBe(true); // export stays gated
         expect(context.subscription.getFeatureAccess('export').state).not.toBe(
           'available'
         );
@@ -312,6 +315,103 @@ describe.each([
       false
     );
   });
+
+  if (name === 'details') {
+    function finalAgreementsSectionFixture(): MeetingSection {
+      return {
+        id: 'finalAgreements',
+        title: 'Final agreements',
+        prompt: 'What should we agree before finishing?',
+        notes: [],
+        tasks: [],
+        agreements: [],
+      };
+    }
+
+    it('renders regular sections separately from final agreements', () => {
+      const meeting = context.meetings.meetings[0]!;
+      meeting.sections.push(finalAgreementsSectionFixture());
+
+      render();
+
+      expect(wrapper.findAll('[data-section-variant="regular"]')).toHaveLength(
+        meeting.sections.length - 1
+      );
+      expect(wrapper.findAll('[data-section-variant="final"]')).toHaveLength(1);
+      expect(
+        wrapper.get('[data-testid="saved-section-count"]').text()
+      ).toContain(String(meeting.sections.length - 1));
+    });
+
+    it('does not invent a final agreements card', () => {
+      render();
+
+      expect(wrapper.find('[data-section-variant="final"]').exists()).toBe(
+        false
+      );
+    });
+
+    it('shows inline export controls with Premium export access', () => {
+      context.subscription.currentPlan = 'premium';
+      context.subscription.featureAccess = createLegacyFeatureAccessMap({
+        planType: 'premium',
+      });
+
+      render();
+
+      expect(wrapper.get('[data-testid="saved-export-copy"]').exists()).toBe(
+        true
+      );
+      expect(
+        wrapper.findAll('.saved-meeting-export-card input[type="radio"]')
+      ).toHaveLength(2);
+      expect(
+        wrapper.find('.saved-meeting-export-card.is-locked').exists()
+      ).toBe(false);
+    });
+
+    it('shows the locked export card and upgrade action for Free access', () => {
+      render();
+
+      expect(wrapper.get('.saved-meeting-export-card.is-locked').exists()).toBe(
+        true
+      );
+      expect(wrapper.find('[data-testid="saved-export-copy"]').exists()).toBe(
+        false
+      );
+      expect(
+        wrapper.find('.saved-meeting-export-card input[type="radio"]').exists()
+      ).toBe(false);
+      expect(wrapper.get('.upgrade-prompt .secondary-button').exists()).toBe(
+        true
+      );
+      expect(wrapper.text()).toContain('Export is premium');
+    });
+
+    it('keeps the Resume action for draft meetings', () => {
+      context.meetings.meetings[0]!.status = 'draft';
+
+      render();
+
+      expect(wrapper.get('.meeting-save').text()).toBe('Resume');
+    });
+
+    it('keeps non-empty legacy AI summary details readable', () => {
+      context.meetings.meetings[0]!.aiSummary = {
+        ...savedRecap,
+        mainTopics: ['Plan the school week'],
+        agreements: ['Prepare clothes the night before'],
+      };
+
+      render();
+
+      expect(wrapper.text()).toContain('Plan the school week');
+      expect(wrapper.text()).toContain('Prepare clothes the night before');
+      expect(
+        wrapper.findAll('.saved-meeting-ai-card__legacy section')
+      ).toHaveLength(2);
+    });
+  }
 
   if (name === 'summary') {
     it('shows the responsible participant picture on an action item', () => {

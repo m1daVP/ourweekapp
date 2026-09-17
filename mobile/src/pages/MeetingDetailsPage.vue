@@ -8,7 +8,15 @@ import { useParticipantsStore } from '@/app/stores/participants';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
 import AiRecapRecoveryPanel from '@/features/meeting/components/AiRecapRecoveryPanel.vue';
+import SavedMeetingExportCard from '@/features/meeting/components/SavedMeetingExportCard.vue';
+import SavedMeetingSectionCard from '@/features/meeting/components/SavedMeetingSectionCard.vue';
+import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
 import { getAiRecapContentReadiness } from '@/features/meeting/aiRecapContentReadiness';
+import {
+  createSavedMeetingSectionViewModel,
+  splitSavedMeetingSections,
+  type SavedMeetingFormatters,
+} from '@/features/meeting/savedMeetingSummary';
 import {
   copyExportToClipboard,
   createMeetingExportFile,
@@ -34,7 +42,6 @@ import type {
   MeetingSummaryTask,
   MeetingTask,
 } from '@/features/meeting/types';
-import PremiumLock from '@/shared/components/PremiumLock.vue';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useFeatureAccess } from '@/shared/composables/useFeatureAccess';
 import { useInAppNotification } from '@/shared/composables/useInAppNotification';
@@ -54,7 +61,6 @@ const isGeneratingSummary = ref(false);
 const aiSummaryRecovery = ref<AiRecapRecovery | null>(null);
 const isLowContentConfirmationOpen = ref(false);
 const pendingLowContentMeeting = ref<Meeting | null>(null);
-const isExportModalOpen = ref(false);
 const isExporting = ref(false);
 const exportFormat = ref<MeetingExportFormat>('text');
 
@@ -92,6 +98,68 @@ const allAgreements = computed(
   () => meeting.value?.sections.flatMap((section) => section.agreements) ?? []
 );
 
+const meetingParticipants = computed(
+  () =>
+    meeting.value?.participantIds
+      .map((participantId) =>
+        participantsStore.getParticipantById(participantId)
+      )
+      .filter((participant): participant is NonNullable<typeof participant> =>
+        Boolean(participant)
+      ) ?? []
+);
+
+const visibleParticipants = computed(() =>
+  meetingParticipants.value.slice(0, 3)
+);
+
+const hiddenParticipantCount = computed(() =>
+  Math.max(
+    0,
+    meetingParticipants.value.length - visibleParticipants.value.length
+  )
+);
+
+const savedSections = computed(() =>
+  splitSavedMeetingSections(meeting.value?.sections ?? [])
+);
+
+const savedSectionFormatters = computed<SavedMeetingFormatters>(() => ({
+  formatNoteDate: formatDateTime,
+  getParticipantName,
+  getTaskStatusLabel: (status) => getTaskStatusLabel(status),
+  getTaskResponsibleLabel: (task) => getTaskResponsibleLabel(task),
+  formatDueDate,
+}));
+
+const regularSectionCards = computed(() =>
+  savedSections.value.regularSections.map((section) =>
+    createSavedMeetingSectionViewModel(
+      {
+        ...section,
+        title: sectionTitle(section),
+        prompt: sectionPrompt(section),
+      },
+      savedSectionFormatters.value
+    )
+  )
+);
+
+const finalSectionCard = computed(() => {
+  const section = savedSections.value.finalSection;
+
+  return section
+    ? createSavedMeetingSectionViewModel(
+        {
+          ...section,
+          title: sectionTitle(section),
+          prompt: sectionPrompt(section),
+        },
+        savedSectionFormatters.value
+      )
+    : null;
+});
+
 function getMeetingDate(item: Meeting) {
   return new Date(item.completedAt ?? item.updatedAt ?? item.createdAt);
 }
@@ -111,6 +179,17 @@ function formatDateTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value));
+}
+
+function formatDueDate(value: string) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T00:00:00`)
+    : new Date(value);
+
+  return new Intl.DateTimeFormat(locale.value, {
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
 }
 
 function getMeetingStatusLabel(item: Meeting) {
@@ -178,22 +257,6 @@ function sectionTitle(section: Meeting['sections'][number]) {
 
 function sectionPrompt(section: Meeting['sections'][number]) {
   return getMeetingSectionPrompt(section.id, section.prompt);
-}
-
-function openExportModal() {
-  if (!meeting.value || !canUseFeature('export')) {
-    return;
-  }
-
-  isExportModalOpen.value = true;
-}
-
-function closeExportModal() {
-  if (isExporting.value) {
-    return;
-  }
-
-  isExportModalOpen.value = false;
 }
 
 function getSelectedExportFile() {
@@ -349,14 +412,35 @@ async function generateSummaryForMeeting(
 
     <template v-else>
       <header class="meeting-details-header">
-        <div>
+        <div class="meeting-details-header__copy">
           <p class="page-kicker">{{ meetingDateLabel }}</p>
           <h1>{{ displayMeetingTitle(meeting) }}</h1>
           <p class="page-copy">
-            {{ getMeetingStatusLabel(meeting) }} - {{ allTasks.length }}
-            {{ t('meeting.tasks') }} - {{ allAgreements.length }}
-            {{ t('meeting.agreements') }}
+            <span>{{ getMeetingStatusLabel(meeting) }}</span>
+            <span>{{ allTasks.length }} {{ t('meeting.tasks') }}</span>
+            <span>
+              {{ allAgreements.length }} {{ t('meeting.agreements') }}
+            </span>
           </p>
+          <div
+            v-if="visibleParticipants.length"
+            class="meeting-details-header__participants"
+            :aria-label="t('meeting.participants')"
+          >
+            <ParticipantAvatar
+              v-for="participant in visibleParticipants"
+              :key="participant.id"
+              class="meeting-details-header__avatar"
+              :participant="participant"
+              size="small"
+            />
+            <span
+              v-if="hiddenParticipantCount"
+              class="meeting-details-header__participant-count"
+            >
+              +{{ hiddenParticipantCount }}
+            </span>
+          </div>
         </div>
         <button
           v-if="meeting.status !== 'completed'"
@@ -368,37 +452,24 @@ async function generateSummaryForMeeting(
         </button>
       </header>
 
-      <PremiumLock
-        feature="export"
-        :title="t('meeting.exportPremiumTitle')"
-        :message="t('meeting.exportPremiumMessage')"
+      <section
+        class="meeting-summary-ai-card saved-meeting-ai-card ai-summary-panel"
       >
-        <section class="meeting-panel export-panel">
-          <div>
-            <h2>{{ t('meeting.exportMeeting') }}</h2>
-            <p class="meeting-help">{{ t('meeting.exportHelp') }}</p>
-          </div>
-          <button
-            type="button"
-            class="meeting-primary"
-            @click="openExportModal"
-          >
-            {{ t('common.export') }}
-          </button>
-        </section>
-      </PremiumLock>
-
-      <section class="meeting-panel ai-summary-panel">
         <div class="ai-summary-panel__header">
-          <div>
-            <h2>{{ t('meeting.aiSummary') }}</h2>
+          <div class="saved-meeting-ai-card__heading">
+            <div class="meeting-summary-card-title">
+              <span class="material-symbols-outlined" aria-hidden="true">
+                auto_awesome
+              </span>
+              <h2>{{ t('meeting.aiSummary') }}</h2>
+            </div>
             <p class="meeting-help">{{ t('meeting.aiDisclaimer') }}</p>
           </div>
           <button
             v-if="canGenerateAiSummary"
             data-testid="generate-meeting-recap"
             type="button"
-            class="meeting-primary ai-summary-panel__button"
+            class="meeting-summary-ai-card__button ai-summary-panel__button"
             :disabled="isGeneratingSummary"
             @click="generateSummary"
           >
@@ -425,225 +496,101 @@ async function generateSummaryForMeeting(
           :generating="isGeneratingSummary"
           @regenerate="generateSummary"
         />
-        <template v-if="aiSummary && !aiSummary.followThrough">
-          <div class="meeting-summary__group">
+
+        <div
+          v-if="aiSummary && !aiSummary.followThrough"
+          class="saved-meeting-ai-card__legacy"
+        >
+          <section v-if="aiSummary.mainTopics.length">
             <h3>{{ t('meeting.mainTopics') }}</h3>
-            <ul class="meeting-list">
+            <ul>
               <li v-for="topic in aiSummary.mainTopics" :key="topic">
-                <p>{{ topic }}</p>
+                {{ topic }}
               </li>
             </ul>
-          </div>
-
-          <div class="meeting-summary__group">
+          </section>
+          <section v-if="aiSummary.keyTensions.length">
             <h3>{{ t('meeting.keyTensions') }}</h3>
-            <ul class="meeting-list">
+            <ul>
               <li v-for="tension in aiSummary.keyTensions" :key="tension">
-                <p>{{ tension }}</p>
+                {{ tension }}
               </li>
             </ul>
-          </div>
-
-          <div class="meeting-summary__group">
+          </section>
+          <section v-if="aiSummary.agreements.length">
             <h3>{{ t('meeting.agreementsMade') }}</h3>
-            <ul class="meeting-list">
+            <ul>
               <li v-for="agreement in aiSummary.agreements" :key="agreement">
-                <p>{{ agreement }}</p>
+                {{ agreement }}
               </li>
             </ul>
-          </div>
-
-          <div class="meeting-summary__group">
+          </section>
+          <section v-if="aiSummary.tasks.length">
             <h3>{{ t('meeting.tasks') }}</h3>
-            <ul
-              v-if="aiSummary.tasks.length"
-              class="meeting-list meeting-task-list"
-            >
+            <ul>
               <li v-for="task in aiSummary.tasks" :key="task.title">
-                <div>
-                  <strong>{{ task.title }}</strong>
-                  <p v-if="task.description">{{ task.description }}</p>
-                  <small>
-                    {{ getTaskStatusLabel(task.status) }} -
-                    {{ getTaskResponsibleLabel(task) }}
-                    <template v-if="task.dueDate">
-                      - {{ t('common.due') }} {{ task.dueDate }}</template
-                    >
-                  </small>
-                </div>
+                <strong>{{ task.title }}</strong>
+                <span>
+                  {{ getTaskStatusLabel(task.status) }} ·
+                  {{ getTaskResponsibleLabel(task) }}
+                </span>
               </li>
             </ul>
-            <p v-else class="meeting-empty">
-              {{ t('meeting.noOpenTasksSummarized') }}
-            </p>
-          </div>
-
-          <div class="meeting-summary__group">
+          </section>
+          <section v-if="aiSummary.suggestedNextMeetingFocus.length">
             <h3>{{ t('meeting.revisitNextWeek') }}</h3>
-            <ul class="meeting-list">
+            <ul>
               <li
                 v-for="focus in aiSummary.suggestedNextMeetingFocus"
                 :key="focus"
               >
-                <p>{{ focus }}</p>
+                {{ focus }}
               </li>
             </ul>
-          </div>
-        </template>
+          </section>
+        </div>
 
         <p v-if="!aiSummary" class="meeting-empty">
           {{ t('meeting.generateEmpty') }}
         </p>
       </section>
 
-      <section
-        v-for="section in meeting.sections"
-        :key="section.id"
-        class="meeting-panel meeting-details-section"
-      >
-        <h2>{{ sectionTitle(section) }}</h2>
-        <p class="meeting-help">{{ sectionPrompt(section) }}</p>
+      <SavedMeetingExportCard
+        v-model:format="exportFormat"
+        :available="canUseFeature('export')"
+        :exporting="isExporting"
+        @copy="copySelectedExport"
+        @share="shareOrSaveSelectedExport"
+        @pdf="printPdfExport"
+      />
 
-        <div class="meeting-summary__group">
-          <h3>{{ t('meeting.notes') }}</h3>
-          <ul v-if="section.notes.length" class="meeting-list">
-            <li v-for="note in section.notes" :key="note.id">
-              <span>
-                {{ getParticipantName(note.participantId) }} -
-                {{ formatDateTime(note.createdAt) }}
-              </span>
-              <p>{{ note.text }}</p>
-            </li>
-          </ul>
-          <p v-else class="meeting-empty">
-            {{ t('meeting.noNotesInSection') }}
-          </p>
-        </div>
+      <section class="saved-meeting-sections" aria-labelledby="sections-title">
+        <header class="saved-meeting-sections__header">
+          <h2 id="sections-title">
+            {{ t('meeting.savedSummary.sectionsTitle') }}
+          </h2>
+          <span data-testid="saved-section-count">
+            {{
+              t('meeting.savedSummary.sectionCount', {
+                count: regularSectionCards.length,
+              })
+            }}
+          </span>
+        </header>
 
-        <div class="meeting-summary__group">
-          <h3>{{ t('meeting.tasks') }}</h3>
-          <ul
-            v-if="section.tasks.length"
-            class="meeting-list meeting-task-list"
-          >
-            <li v-for="task in section.tasks" :key="task.id">
-              <div>
-                <strong>{{ task.title }}</strong>
-                <p v-if="task.description">{{ task.description }}</p>
-                <small>
-                  {{ getTaskStatusLabel(task.status) }} -
-                  {{ getTaskResponsibleLabel(task) }}
-                  <template v-if="task.dueDate">
-                    - {{ t('common.due') }} {{ task.dueDate }}</template
-                  >
-                </small>
-              </div>
-            </li>
-          </ul>
-          <p v-else class="meeting-empty">
-            {{ t('meeting.noTasksInSection') }}
-          </p>
-        </div>
-
-        <div class="meeting-summary__group">
-          <h3>{{ t('meeting.agreements') }}</h3>
-          <ul v-if="section.agreements.length" class="meeting-list">
-            <li v-for="agreement in section.agreements" :key="agreement.id">
-              <span>
-                {{
-                  agreement.participantIds.map(getParticipantName).join(', ')
-                }}
-              </span>
-              <p>{{ agreement.text }}</p>
-            </li>
-          </ul>
-          <p v-else class="meeting-empty">
-            {{ t('meeting.noAgreementsInSection') }}
-          </p>
-        </div>
+        <SavedMeetingSectionCard
+          v-for="section in regularSectionCards"
+          :key="section.id"
+          :section="section"
+          variant="regular"
+        />
       </section>
 
-      <div
-        v-if="isExportModalOpen"
-        class="agreement-modal export-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="export-modal-title"
-      >
-        <div class="agreement-modal__panel export-modal__panel">
-          <div>
-            <p class="page-kicker">{{ t('common.export') }}</p>
-            <h2 id="export-modal-title">{{ displayMeetingTitle(meeting) }}</h2>
-            <p class="meeting-help">{{ t('meeting.exportChoose') }}</p>
-          </div>
-
-          <fieldset class="export-format-options">
-            <legend>{{ t('meeting.format') }}</legend>
-            <label
-              :class="{ 'is-selected': exportFormat === 'text' }"
-              for="export-format-text"
-            >
-              <input
-                id="export-format-text"
-                v-model="exportFormat"
-                type="radio"
-                value="text"
-              />
-              <span>
-                <strong>{{ t('meeting.plainText') }}</strong>
-                <small>{{ t('meeting.plainTextHelp') }}</small>
-              </span>
-            </label>
-            <label
-              :class="{ 'is-selected': exportFormat === 'markdown' }"
-              for="export-format-markdown"
-            >
-              <input
-                id="export-format-markdown"
-                v-model="exportFormat"
-                type="radio"
-                value="markdown"
-              />
-              <span>
-                <strong>{{ t('common.markdown') }}</strong>
-                <small>{{ t('meeting.markdownHelp') }}</small>
-              </span>
-            </label>
-          </fieldset>
-
-          <div class="export-modal__actions">
-            <button
-              type="button"
-              class="meeting-primary"
-              :disabled="isExporting"
-              @click="copySelectedExport"
-            >
-              {{ t('common.copy') }}
-            </button>
-            <button
-              type="button"
-              :disabled="isExporting"
-              @click="shareOrSaveSelectedExport"
-            >
-              {{ t('common.shareOrSave') }}
-            </button>
-            <button
-              type="button"
-              :disabled="isExporting"
-              @click="printPdfExport"
-            >
-              {{ t('common.pdf') }}
-            </button>
-            <button
-              type="button"
-              :disabled="isExporting"
-              @click="closeExportModal"
-            >
-              {{ t('common.close') }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <SavedMeetingSectionCard
+        v-if="finalSectionCard"
+        :section="finalSectionCard"
+        variant="final"
+      />
     </template>
     <ConfirmationDialog
       :open="isLowContentConfirmationOpen"
@@ -657,3 +604,185 @@ async function generateSummaryForMeeting(
     />
   </section>
 </template>
+
+<style scoped>
+.meeting-details-page {
+  padding-bottom: calc(var(--section-gap) + env(safe-area-inset-bottom));
+}
+
+.meeting-details-header {
+  border: 1px solid
+    color-mix(in srgb, var(--color-outline-variant) 34%, transparent);
+  border-radius: 24px;
+  background: var(--color-surface-lowest);
+  box-shadow: var(--shadow-card);
+  padding: 18px;
+}
+
+.meeting-details-header__copy {
+  min-width: 0;
+}
+
+.meeting-details-header h1 {
+  margin: 0;
+  color: var(--color-on-surface);
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 7vw, 2rem);
+  line-height: 1.12;
+}
+
+.meeting-details-header .page-copy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 2px 0 0;
+  font-size: var(--font-size-label-lg);
+}
+
+.meeting-details-header .page-copy span + span::before {
+  margin-right: 12px;
+  color: var(--color-outline-variant);
+  content: '•';
+}
+
+.meeting-details-header__participants {
+  display: flex;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.meeting-details-header__avatar + .meeting-details-header__avatar,
+.meeting-details-header__participant-count {
+  margin-left: -7px;
+}
+
+.meeting-details-header__avatar {
+  border: 2px solid var(--color-surface-lowest);
+  border-radius: 50%;
+}
+
+.meeting-details-header__participant-count {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 2px solid var(--color-surface-lowest);
+  border-radius: 50%;
+  background: var(--color-primary-fixed);
+  color: var(--color-primary);
+  font-size: var(--font-size-label-sm);
+  font-weight: 800;
+}
+
+.saved-meeting-ai-card {
+  display: grid;
+  gap: 14px;
+}
+
+.saved-meeting-ai-card__heading {
+  display: grid;
+  gap: 6px;
+}
+
+.saved-meeting-ai-card__heading .meeting-help {
+  margin: 0;
+}
+
+.saved-meeting-ai-card__legacy {
+  display: grid;
+  gap: 14px;
+}
+
+.saved-meeting-ai-card__legacy section {
+  display: grid;
+  gap: 7px;
+}
+
+.saved-meeting-ai-card__legacy h3,
+.saved-meeting-ai-card__legacy ul {
+  margin: 0;
+}
+
+.saved-meeting-ai-card__legacy h3 {
+  color: var(--color-outline);
+  font-size: var(--font-size-label-sm);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.saved-meeting-ai-card__legacy ul {
+  display: grid;
+  gap: 8px;
+  border: 1px solid
+    color-mix(in srgb, var(--color-outline-variant) 38%, transparent);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  list-style-position: inside;
+}
+
+.saved-meeting-ai-card__legacy li {
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label-lg);
+  line-height: 1.45;
+}
+
+.saved-meeting-ai-card__legacy li strong,
+.saved-meeting-ai-card__legacy li span {
+  display: block;
+}
+
+.saved-meeting-ai-card__legacy li span {
+  margin-top: 2px;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-size-label-sm);
+}
+
+.saved-meeting-ai-card :deep(.ai-summary-panel__header) {
+  align-items: start;
+}
+
+.saved-meeting-sections {
+  display: grid;
+  gap: 14px;
+}
+
+.saved-meeting-sections__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-inline: 4px;
+}
+
+.saved-meeting-sections__header h2,
+.saved-meeting-sections__header span {
+  margin: 0;
+}
+
+.saved-meeting-sections__header h2 {
+  color: var(--color-outline);
+  font-size: var(--font-size-label-lg);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.saved-meeting-sections__header span {
+  color: var(--color-primary);
+  font-size: var(--font-size-label-sm);
+}
+
+@media (max-width: 360px) {
+  .meeting-details-header {
+    grid-template-columns: 1fr;
+  }
+
+  .meeting-details-header .meeting-save {
+    width: 100%;
+  }
+
+  .meeting-details-header .page-copy span + span::before {
+    display: none;
+  }
+}
+</style>

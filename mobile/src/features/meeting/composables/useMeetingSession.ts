@@ -1534,7 +1534,7 @@ export function useMeetingSession() {
       return;
     }
 
-    acknowledgeAiRecapDisclosure();
+    acknowledgeAiRecapDisclosure(workspaceStore.currentUserId);
     pendingAiRecapDisclosureMeetingId.value = null;
     pendingAiRecapLowContentOverride.value = false;
     isAiRecapDisclosureOpen.value = false;
@@ -1578,7 +1578,7 @@ export function useMeetingSession() {
     isFinishingMeeting.value = true;
 
     try {
-      if (!hasAcknowledgedAiRecapDisclosure()) {
+      if (!hasAcknowledgedAiRecapDisclosure(workspaceStore.currentUserId)) {
         pendingAiRecapLowContentOverride.value = true;
         pendingAiRecapDisclosureMeetingId.value = meetingId;
         isAiRecapDisclosureOpen.value = true;
