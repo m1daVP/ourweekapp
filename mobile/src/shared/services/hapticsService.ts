@@ -17,6 +17,13 @@ async function runNativeHaptic(action: () => Promise<void>) {
 export const haptics = {
   confirm: () =>
     runNativeHaptic(() => Haptics.impact({ style: ImpactStyle.Light })),
+  remove: () =>
+    runNativeHaptic(() => Haptics.impact({ style: ImpactStyle.Medium })),
+  refreshReady: () =>
+    runNativeHaptic(() => Haptics.impact({ style: ImpactStyle.Light })),
+  wheelStart: () => runNativeHaptic(() => Haptics.selectionStart()),
+  wheelChange: () => runNativeHaptic(() => Haptics.selectionChanged()),
+  wheelEnd: () => runNativeHaptic(() => Haptics.selectionEnd()),
   completeMeeting: () =>
     runNativeHaptic(() =>
       Haptics.notification({ type: NotificationType.Success })

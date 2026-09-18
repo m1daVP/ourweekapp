@@ -25,6 +25,7 @@ import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
 import SelectPickerField from '@/shared/components/SelectPickerField.vue';
 import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
 import { useInAppNotification } from '@/shared/composables/useInAppNotification';
+import { haptics } from '@/shared/services/hapticsService';
 import AvatarPickerSheet from './AvatarPickerSheet.vue';
 
 type SheetMode = 'create' | 'edit' | 'invite' | 'revoke';
@@ -505,6 +506,7 @@ function saveParticipantDraft() {
 
     participantMessage.text = '';
     showInAppNotification(t('settings.participantAdded'));
+    void haptics.confirm();
 
     if (canInviteParticipant(participant)) {
       openInviteStep(participant);
@@ -533,6 +535,7 @@ function saveParticipantDraft() {
 
   participantMessage.text = '';
   showInAppNotification(t('settings.participantUpdated'));
+  void haptics.confirm();
   const updatedParticipant = selectedParticipant.value;
 
   if (
@@ -577,9 +580,16 @@ function hideOrRemoveParticipant(participantId: string) {
   }
 
   if (participantIsUsed(participantId)) {
-    participantsStore.disableParticipant(participantId);
+    const disabledParticipant =
+      participantsStore.disableParticipant(participantId);
+
+    if (!disabledParticipant) {
+      return;
+    }
+
     participantMessage.text = '';
     showInAppNotification(t('settings.participantDisabled'));
+    void haptics.remove();
     closeSheet();
     return;
   }
@@ -587,6 +597,7 @@ function hideOrRemoveParticipant(participantId: string) {
   participantsStore.removeParticipant(participantId);
   participantMessage.text = '';
   showInAppNotification(t('settings.participantRemoved'));
+  void haptics.remove();
   closeSheet();
 }
 

@@ -9,7 +9,7 @@ const state = vi.hoisted(() => ({
   tasks: [] as Task[],
   deleteTask: vi.fn(),
   hapticConfirm: vi.fn(),
-  hapticImpact: vi.fn(),
+  hapticRemove: vi.fn(),
   updateMeetingTaskStatus: vi.fn(),
   updateTaskStatus: vi.fn(),
 }));
@@ -84,7 +84,7 @@ vi.mock('@/shared/composables/useWorkspacePermissions', () => ({
 vi.mock('@/shared/services/hapticsService', () => ({
   haptics: {
     confirm: state.hapticConfirm,
-    impact: state.hapticImpact,
+    remove: state.hapticRemove,
   },
 }));
 
@@ -116,7 +116,7 @@ function mountTasksPage() {
 beforeEach(() => {
   state.deleteTask.mockReset();
   state.hapticConfirm.mockReset();
-  state.hapticImpact.mockReset();
+  state.hapticRemove.mockReset();
   state.updateMeetingTaskStatus.mockReset();
   state.updateTaskStatus.mockReset();
   state.tasks = [
@@ -217,7 +217,7 @@ describe('TasksPage swipe actions', () => {
     await nextTick();
 
     expect(state.deleteTask).toHaveBeenCalledWith('task-1');
-    expect(state.hapticImpact).toHaveBeenCalledTimes(1);
+    expect(state.hapticRemove).toHaveBeenCalledTimes(1);
   });
 
   it('does not enable the finish swipe for a completed task', async () => {

@@ -842,6 +842,7 @@ export function useMeetingSession() {
       ]);
       selectedParticipantId.value = drawerSelectedParticipantId.value;
       closeGuestDrawer();
+      void haptics.confirm();
 
       return;
     }
@@ -881,6 +882,7 @@ export function useMeetingSession() {
     selectedParticipantId.value = participant.id;
     closeGuestDrawer();
     statusMessage.value = t('meeting.personAdded');
+    void haptics.confirm();
   }
 
   function openNoteEditor(note: EnrichedMeetingNote) {
@@ -927,6 +929,7 @@ export function useMeetingSession() {
 
     closeNoteEditor();
     statusMessage.value = t('meeting.noteUpdated');
+    void haptics.confirm();
   }
 
   function openTaskEditor(task: EnrichedMeetingTask) {
@@ -981,6 +984,7 @@ export function useMeetingSession() {
 
     closeTaskEditor();
     statusMessage.value = t('meeting.taskUpdated');
+    void haptics.confirm();
   }
 
   function openAgreementEditor(agreement: EnrichedAgreement) {
@@ -1027,6 +1031,7 @@ export function useMeetingSession() {
 
     closeAgreementEditor();
     statusMessage.value = t('meeting.agreementUpdated');
+    void haptics.confirm();
   }
 
   function restoreDeletedNote() {
@@ -1056,6 +1061,7 @@ export function useMeetingSession() {
     }
 
     latestDeletedNote.value = snapshot;
+    void haptics.remove();
     void showToast(t('meeting.noteDeleted'), {
       action: {
         label: t('common.undo'),
@@ -1092,6 +1098,7 @@ export function useMeetingSession() {
 
     noteText.value = '';
     statusMessage.value = t('meeting.noteAdded');
+    void haptics.confirm();
   }
 
   function addTask() {
@@ -1155,6 +1162,7 @@ export function useMeetingSession() {
     }
 
     latestDeletedTask.value = snapshot;
+    void haptics.remove();
     void showToast(t('meeting.taskDeleted'), {
       action: {
         label: t('common.undo'),
@@ -1191,6 +1199,7 @@ export function useMeetingSession() {
     }
 
     latestDeletedAgreement.value = snapshot;
+    void haptics.remove();
     void showToast(t('meeting.agreementDeleted'), {
       action: {
         label: t('common.undo'),
@@ -1686,7 +1695,7 @@ export function useMeetingSession() {
     }
 
     statusMessage.value = t('meeting.ritualDeleted');
-    void haptics.impact();
+    void haptics.remove();
     router.push({ name: 'home' });
   }
 

@@ -8,6 +8,7 @@ import {
   type ComputedRef,
   type Ref,
 } from 'vue';
+import { haptics } from '@/shared/services/hapticsService';
 
 export const PULL_ACTIVATION_PX = 8;
 export const PULL_THRESHOLD_PX = 72;
@@ -66,6 +67,17 @@ export function getPullToRefreshPhase(
   return distance >= PULL_THRESHOLD_PX ? 'ready' : 'pulling';
 }
 
+export function shouldPulseOnPullReadyTransition(
+  previousPhase: PullToRefreshPhase,
+  nextPhase: PullToRefreshPhase
+) {
+  return (
+    nextPhase === 'ready' &&
+    previousPhase !== 'ready' &&
+    previousPhase !== 'refreshing'
+  );
+}
+
 export function usePullToRefresh({
   container,
   enabled,
@@ -78,6 +90,7 @@ export function usePullToRefresh({
   let isTracking = false;
   let isCaptured = false;
   let listenerTarget: HTMLElement | null = null;
+  let previousPullPhase: PullToRefreshPhase = 'idle';
 
   const phase = computed(() =>
     getPullToRefreshPhase(pullDistance.value, isRefreshing.value)
@@ -93,6 +106,7 @@ export function usePullToRefresh({
   function resetGesture() {
     resetTracking();
     pullDistance.value = 0;
+    previousPullPhase = 'idle';
   }
 
   function handleTouchStart(event: TouchEvent) {
@@ -145,6 +159,16 @@ export function usePullToRefresh({
 
     isCaptured = true;
     pullDistance.value = calculatePullDistance(deltaY);
+    const nextPullPhase = getPullToRefreshPhase(
+      pullDistance.value,
+      isRefreshing.value
+    );
+
+    if (shouldPulseOnPullReadyTransition(previousPullPhase, nextPullPhase)) {
+      void haptics.refreshReady();
+    }
+
+    previousPullPhase = nextPullPhase;
 
     if (event.cancelable) {
       event.preventDefault();
@@ -158,17 +182,20 @@ export function usePullToRefresh({
 
     if (!shouldRefresh || isRefreshing.value) {
       pullDistance.value = 0;
+      previousPullPhase = 'idle';
       return;
     }
 
     isRefreshing.value = true;
     pullDistance.value = REFRESH_HOLD_DISTANCE_PX;
+    previousPullPhase = 'refreshing';
 
     try {
       await onRefresh();
     } finally {
       isRefreshing.value = false;
       pullDistance.value = 0;
+      previousPullPhase = 'idle';
     }
   }
 

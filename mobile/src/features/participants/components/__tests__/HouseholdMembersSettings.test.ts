@@ -8,6 +8,8 @@ const state = vi.hoisted(() => ({
   role: 'owner' as 'owner' | 'adult_member' | 'viewer',
   participants: [] as Participant[],
   meetings: [] as Meeting[],
+  hapticConfirm: vi.fn(),
+  hapticRemove: vi.fn(),
 }));
 
 vi.mock('vue-i18n', () => ({
@@ -99,6 +101,13 @@ vi.mock('@/shared/composables/useWorkspacePermissions', () => ({
   }),
 }));
 
+vi.mock('@/shared/services/hapticsService', () => ({
+  haptics: {
+    confirm: state.hapticConfirm,
+    remove: state.hapticRemove,
+  },
+}));
+
 import HouseholdMembersSettings from '../HouseholdMembersSettings.vue';
 
 function mountHouseholdMembersSettings() {
@@ -117,6 +126,8 @@ beforeEach(() => {
   state.role = 'owner';
   state.participants = [];
   state.meetings = [];
+  state.hapticConfirm.mockReset();
+  state.hapticRemove.mockReset();
 });
 
 describe('HouseholdMembersSettings participant creation', () => {
@@ -171,6 +182,7 @@ describe('HouseholdMembersSettings participant creation', () => {
       expect.objectContaining({ name: 'Alex', isActive: true }),
     ]);
     expect(state.meetings[0]?.participantIds).toEqual(['existing-participant']);
+    expect(state.hapticConfirm).toHaveBeenCalledOnce();
   });
 
   it('keeps active-meeting attendance unchanged when re-enabling a participant', async () => {

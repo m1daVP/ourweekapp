@@ -632,7 +632,7 @@ function confirmDeleteTask() {
   meetingsStore.deleteTask(task.id);
   selectedTask.value = null;
   showTaskConfirmation(t('tasksPage.taskDeleted'));
-  void haptics.impact();
+  void haptics.remove();
 }
 
 function openTask(card: TaskCardView) {

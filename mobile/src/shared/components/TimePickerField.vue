@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseDialog from '@/shared/components/BaseDialog.vue';
+import { haptics } from '@/shared/services/hapticsService';
 
 const props = withDefaults(
   defineProps<{
@@ -23,6 +24,8 @@ const selectedHour = ref(9);
 const selectedMinute = ref(0);
 const hourWheelElement = ref<HTMLElement | null>(null);
 const minuteWheelElement = ref<HTMLElement | null>(null);
+const activeWheel = ref<'hour' | 'minute' | null>(null);
+const wheelEndTimer = ref<number | null>(null);
 const wheelOptionHeight = 56;
 
 const minuteStep = computed(() => {
@@ -75,17 +78,69 @@ function selectClosestValue(options: ReadonlyArray<number>, scrollTop: number) {
 }
 
 function handleHourScroll(event: Event) {
-  selectedHour.value = selectClosestValue(
+  const nextHour = selectClosestValue(
     hourOptions,
     (event.currentTarget as HTMLElement).scrollTop
   );
+
+  if (nextHour === selectedHour.value) return;
+
+  selectedHour.value = nextHour;
+
+  if (activeWheel.value === 'hour') {
+    void haptics.wheelChange();
+    scheduleWheelEnd('hour');
+  }
 }
 
 function handleMinuteScroll(event: Event) {
-  selectedMinute.value = selectClosestValue(
+  const nextMinute = selectClosestValue(
     minuteOptions.value,
     (event.currentTarget as HTMLElement).scrollTop
   );
+
+  if (nextMinute === selectedMinute.value) return;
+
+  selectedMinute.value = nextMinute;
+
+  if (activeWheel.value === 'minute') {
+    void haptics.wheelChange();
+    scheduleWheelEnd('minute');
+  }
+}
+
+function startWheelInteraction(event: PointerEvent, wheel: 'hour' | 'minute') {
+  if ((event.target as HTMLElement).closest('button')) return;
+
+  if (activeWheel.value === wheel) return;
+
+  activeWheel.value = wheel;
+  void haptics.wheelStart();
+}
+
+function scheduleWheelEnd(wheel: 'hour' | 'minute') {
+  if (activeWheel.value !== wheel) return;
+
+  if (wheelEndTimer.value !== null) {
+    window.clearTimeout(wheelEndTimer.value);
+  }
+
+  wheelEndTimer.value = window.setTimeout(() => {
+    wheelEndTimer.value = null;
+    endWheelInteraction(wheel);
+  }, 120);
+}
+
+function endWheelInteraction(wheel: 'hour' | 'minute') {
+  if (activeWheel.value !== wheel) return;
+
+  if (wheelEndTimer.value !== null) {
+    window.clearTimeout(wheelEndTimer.value);
+    wheelEndTimer.value = null;
+  }
+
+  activeWheel.value = null;
+  void haptics.wheelEnd();
 }
 
 function openPicker() {
@@ -100,6 +155,10 @@ function openPicker() {
 }
 
 function closePicker() {
+  if (activeWheel.value) {
+    endWheelInteraction(activeWheel.value);
+  }
+
   isOpen.value = false;
 }
 
@@ -162,6 +221,9 @@ watch(isOpen, async (isPickerOpen) => {
               class="reminder-time-picker__wheel"
               role="listbox"
               :aria-label="t('settings.hours')"
+              @pointerdown="startWheelInteraction($event, 'hour')"
+              @pointerup="scheduleWheelEnd('hour')"
+              @pointercancel="endWheelInteraction('hour')"
               @scroll="handleHourScroll"
             >
               <button
@@ -190,6 +252,9 @@ watch(isOpen, async (isPickerOpen) => {
               class="reminder-time-picker__wheel"
               role="listbox"
               :aria-label="t('settings.minutes')"
+              @pointerdown="startWheelInteraction($event, 'minute')"
+              @pointerup="scheduleWheelEnd('minute')"
+              @pointercancel="endWheelInteraction('minute')"
               @scroll="handleMinuteScroll"
             >
               <button
