@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { followThroughExportLines } from '@/features/export/services/exportService';
-import MeetingFollowThrough from '@/features/meeting/components/MeetingFollowThrough.vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -24,8 +23,7 @@ import type {
 import type { Participant } from '@/features/participants/types';
 import type { AvatarType } from '@/features/participants/avatarCatalog';
 import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
-import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
-import AiRecapRecoveryPanel from '@/features/meeting/components/AiRecapRecoveryPanel.vue';
+import AiSummaryCard from '@/features/meeting/components/AiSummaryCard.vue';
 import { getAiRecapContentReadiness } from '@/features/meeting/aiRecapContentReadiness';
 import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
 import { useInAppNotification } from '@/shared/composables/useInAppNotification';
@@ -141,6 +139,14 @@ const canGenerateAiSummary = computed(() =>
     !accessibleMeeting.value.aiSummary &&
     !aiSummaryRecovery.value &&
     !isGeneratingSummary.value
+  )
+);
+
+const canRegenerateAiSummary = computed(() =>
+  Boolean(
+    accessibleMeeting.value &&
+    accessibleMeeting.value.status === 'completed' &&
+    subscriptionStore.canGenerateAssistantRecap
   )
 );
 
@@ -524,62 +530,23 @@ function goBack() {
         </div>
       </section>
 
-      <section
-        class="meeting-summary-ai-card"
-        aria-labelledby="summary-ai-title"
-      >
-        <div class="meeting-summary-card-title">
-          <span class="material-symbols-outlined" aria-hidden="true">
-            auto_awesome
-          </span>
-          <h2 id="summary-ai-title">{{ t('meetingSummary.aiInsight') }}</h2>
-        </div>
-        <template v-if="aiInsightState === 'available'">
-          <MeetingFollowThrough
-            v-if="accessibleMeeting?.aiSummary"
-            :meeting="accessibleMeeting"
-            :can-regenerate="
-              accessibleMeeting.status === 'completed' &&
-              subscriptionStore.canGenerateAssistantRecap
-            "
-            :generating="isGeneratingSummary"
-            @regenerate="handleGenerateSummary"
-          />
-          <AiRecapRecoveryPanel
-            v-if="aiSummaryRecovery"
-            :recovery="aiSummaryRecovery"
-            @retry="handleGenerateSummary"
-          />
-          <p class="meeting-summary-ai-card__note">
-            {{ meetingSummaryText('aiDisclaimer') }}
-          </p>
-        </template>
-        <p v-else-if="aiInsightState === 'loading'">
-          {{ meetingSummaryText('aiGenerating') }}
-        </p>
-        <AiRecapRecoveryPanel
-          v-else-if="aiInsightState === 'error' && aiSummaryRecovery"
-          :recovery="aiSummaryRecovery"
-          @retry="handleGenerateSummary"
-        />
-        <p v-else-if="aiInsightState === 'error'">
-          {{ aiSummaryErrorMessage }}
-        </p>
-        <p v-else>{{ meetingSummaryText('aiEmpty') }}</p>
-        <RecapAllowanceStatus />
-        <button
-          v-if="canGenerateAiSummary"
-          data-testid="generate-meeting-recap"
-          class="meeting-summary-ai-card__button"
-          type="button"
-          @click="handleGenerateSummary"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">
-            auto_awesome
-          </span>
-          {{ meetingSummaryText('aiGenerate') }}
-        </button>
-      </section>
+      <AiSummaryCard
+        :meeting="accessibleMeeting"
+        :state="aiInsightState"
+        :can-generate="canGenerateAiSummary"
+        :can-regenerate="canRegenerateAiSummary"
+        :generating="isGeneratingSummary"
+        :recovery="aiSummaryRecovery"
+        :error-message="aiSummaryErrorMessage"
+        :empty-message="meetingSummaryText('aiEmpty')"
+        :loading-message="meetingSummaryText('aiGenerating')"
+        :title="t('meetingSummary.aiInsight')"
+        :disclaimer="meetingSummaryText('aiDisclaimer')"
+        :generate-label="meetingSummaryText('aiGenerate')"
+        @generate="handleGenerateSummary"
+        @regenerate="handleGenerateSummary"
+        @retry="handleGenerateSummary"
+      />
 
       <section class="meeting-summary-section">
         <div class="meeting-summary-section__title">

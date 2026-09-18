@@ -143,6 +143,7 @@ describe.each([
   it('allows eligible Free users to generate without opening a paywall', async () => {
     context.meetings.meetings[0]!.aiSummary = undefined;
     render();
+    expect(wrapper.find('.ai-summary-card').exists()).toBe(true);
     const button = wrapper.get('[data-testid="generate-meeting-recap"]');
     expect(button.element.closest('[inert]')).toBeNull();
     await button.trigger('click');

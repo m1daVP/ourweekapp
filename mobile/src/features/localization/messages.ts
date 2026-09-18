@@ -1469,7 +1469,7 @@ export const messages = {
           'Recap availability could not be confirmed. Refresh to try again.',
         refresh: 'Refresh availability',
         restricted: 'Your household role cannot generate AI recaps.',
-        freeRemaining: 'Free recaps remaining: {count}',
+        freeRemaining: 'Free recaps: {count}',
         freeExhausted:
           'No free recaps remain. Saved recaps are still available.',
         premiumRemaining: 'Recaps available: {count} of {limit}, until {date}.',
@@ -3089,7 +3089,7 @@ export const messages = {
         refresh: 'Оновити доступність',
         restricted:
           'Ваша роль у домогосподарстві не дозволяє створювати ШІ-підсумки.',
-        freeRemaining: 'Залишилося безкоштовних підсумків: {count}',
+        freeRemaining: 'Безкоштовних підсумків: {count}',
         freeExhausted:
           'Безкоштовних підсумків більше немає. Збережені підсумки залишаються доступними.',
         premiumRemaining: 'Доступно підсумків: {count} із {limit}, до {date}.',
@@ -4726,7 +4726,7 @@ export const messages = {
           'No se pudo confirmar la disponibilidad de resúmenes. Actualiza para intentarlo de nuevo.',
         refresh: 'Actualizar disponibilidad',
         restricted: 'Tu rol en el hogar no permite generar resúmenes con IA.',
-        freeRemaining: 'Resúmenes gratuitos restantes: {count}',
+        freeRemaining: 'Resúmenes gratuitos: {count}',
         freeExhausted:
           'No quedan resúmenes gratuitos. Los resúmenes guardados siguen disponibles.',
         premiumRemaining:

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import MeetingFollowThrough from '@/features/meeting/components/MeetingFollowThrough.vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useMeetingsStore } from '@/app/stores/meetings';
 import { useParticipantsStore } from '@/app/stores/participants';
 import { useSubscriptionStore } from '@/app/stores/subscription';
-import RecapAllowanceStatus from '@/features/meeting/components/RecapAllowanceStatus.vue';
-import AiRecapRecoveryPanel from '@/features/meeting/components/AiRecapRecoveryPanel.vue';
+import AiSummaryCard, {
+  type AiSummaryCardState,
+} from '@/features/meeting/components/AiSummaryCard.vue';
 import SavedMeetingExportCard from '@/features/meeting/components/SavedMeetingExportCard.vue';
 import SavedMeetingSectionCard from '@/features/meeting/components/SavedMeetingSectionCard.vue';
 import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
@@ -85,6 +85,13 @@ const canGenerateAiSummary = computed(() =>
     !aiSummaryRecovery.value
   )
 );
+
+const aiSummaryState = computed<AiSummaryCardState>(() => {
+  if (aiSummary.value) return 'available';
+  if (isGeneratingSummary.value) return 'loading';
+  if (aiSummaryRecovery.value) return 'error';
+  return 'empty';
+});
 
 const meetingDateLabel = computed(() =>
   meeting.value ? formatDate(getMeetingDate(meeting.value)) : ''
@@ -452,108 +459,81 @@ async function generateSummaryForMeeting(
         </button>
       </header>
 
-      <section
-        class="meeting-summary-ai-card saved-meeting-ai-card ai-summary-panel"
+      <AiSummaryCard
+        :meeting="meeting"
+        :state="aiSummaryState"
+        :can-generate="canGenerateAiSummary"
+        :can-regenerate="
+          meeting.status === 'completed' &&
+          subscriptionStore.canGenerateAssistantRecap
+        "
+        :generating="isGeneratingSummary"
+        :recovery="aiSummaryRecovery"
+        :error-message="t('meeting.generateFailed')"
+        :empty-message="t('meetingSummary.aiEmpty')"
+        :loading-message="t('meetingSummary.aiGenerating')"
+        :title="t('meeting.aiSummary')"
+        :disclaimer="t('meetingSummary.aiDisclaimer')"
+        :generate-label="t('meetingSummary.aiGenerate')"
+        @generate="generateSummary"
+        @regenerate="generateSummary"
+        @retry="generateSummary"
       >
-        <div class="ai-summary-panel__header">
-          <div class="saved-meeting-ai-card__heading">
-            <div class="meeting-summary-card-title">
-              <span class="material-symbols-outlined" aria-hidden="true">
-                auto_awesome
-              </span>
-              <h2>{{ t('meeting.aiSummary') }}</h2>
-            </div>
-            <p class="meeting-help">{{ t('meeting.aiDisclaimer') }}</p>
-          </div>
-          <button
-            v-if="canGenerateAiSummary"
-            data-testid="generate-meeting-recap"
-            type="button"
-            class="meeting-summary-ai-card__button ai-summary-panel__button"
-            :disabled="isGeneratingSummary"
-            @click="generateSummary"
+        <template #legacy>
+          <div
+            v-if="aiSummary && !aiSummary.followThrough"
+            class="saved-meeting-ai-card__legacy"
           >
-            {{
-              t('meeting.generateSummary', { action: t('meeting.generate') })
-            }}
-          </button>
-        </div>
-
-        <RecapAllowanceStatus />
-        <AiRecapRecoveryPanel
-          v-if="aiSummaryRecovery"
-          :recovery="aiSummaryRecovery"
-          @retry="generateSummary"
-        />
-
-        <MeetingFollowThrough
-          v-if="aiSummary"
-          :meeting="meeting"
-          :can-regenerate="
-            meeting.status === 'completed' &&
-            subscriptionStore.canGenerateAssistantRecap
-          "
-          :generating="isGeneratingSummary"
-          @regenerate="generateSummary"
-        />
-
-        <div
-          v-if="aiSummary && !aiSummary.followThrough"
-          class="saved-meeting-ai-card__legacy"
-        >
-          <section v-if="aiSummary.mainTopics.length">
-            <h3>{{ t('meeting.mainTopics') }}</h3>
-            <ul>
-              <li v-for="topic in aiSummary.mainTopics" :key="topic">
-                {{ topic }}
-              </li>
-            </ul>
-          </section>
-          <section v-if="aiSummary.keyTensions.length">
-            <h3>{{ t('meeting.keyTensions') }}</h3>
-            <ul>
-              <li v-for="tension in aiSummary.keyTensions" :key="tension">
-                {{ tension }}
-              </li>
-            </ul>
-          </section>
-          <section v-if="aiSummary.agreements.length">
-            <h3>{{ t('meeting.agreementsMade') }}</h3>
-            <ul>
-              <li v-for="agreement in aiSummary.agreements" :key="agreement">
-                {{ agreement }}
-              </li>
-            </ul>
-          </section>
-          <section v-if="aiSummary.tasks.length">
-            <h3>{{ t('meeting.tasks') }}</h3>
-            <ul>
-              <li v-for="task in aiSummary.tasks" :key="task.title">
-                <strong>{{ task.title }}</strong>
-                <span>
-                  {{ getTaskStatusLabel(task.status) }} ·
-                  {{ getTaskResponsibleLabel(task) }}
-                </span>
-              </li>
-            </ul>
-          </section>
-          <section v-if="aiSummary.suggestedNextMeetingFocus.length">
-            <h3>{{ t('meeting.revisitNextWeek') }}</h3>
-            <ul>
-              <li
-                v-for="focus in aiSummary.suggestedNextMeetingFocus"
-                :key="focus"
-              >
-                {{ focus }}
-              </li>
-            </ul>
-          </section>
-        </div>
-
-        <p v-if="!aiSummary" class="meeting-empty">
-          {{ t('meeting.generateEmpty') }}
-        </p>
-      </section>
+            <section v-if="aiSummary.mainTopics.length">
+              <h3>{{ t('meeting.mainTopics') }}</h3>
+              <ul>
+                <li v-for="topic in aiSummary.mainTopics" :key="topic">
+                  {{ topic }}
+                </li>
+              </ul>
+            </section>
+            <section v-if="aiSummary.keyTensions.length">
+              <h3>{{ t('meeting.keyTensions') }}</h3>
+              <ul>
+                <li v-for="tension in aiSummary.keyTensions" :key="tension">
+                  {{ tension }}
+                </li>
+              </ul>
+            </section>
+            <section v-if="aiSummary.agreements.length">
+              <h3>{{ t('meeting.agreementsMade') }}</h3>
+              <ul>
+                <li v-for="agreement in aiSummary.agreements" :key="agreement">
+                  {{ agreement }}
+                </li>
+              </ul>
+            </section>
+            <section v-if="aiSummary.tasks.length">
+              <h3>{{ t('meeting.tasks') }}</h3>
+              <ul>
+                <li v-for="task in aiSummary.tasks" :key="task.title">
+                  <strong>{{ task.title }}</strong>
+                  <span>
+                    {{ getTaskStatusLabel(task.status) }} ·
+                    {{ getTaskResponsibleLabel(task) }}
+                  </span>
+                </li>
+              </ul>
+            </section>
+            <section v-if="aiSummary.suggestedNextMeetingFocus.length">
+              <h3>{{ t('meeting.revisitNextWeek') }}</h3>
+              <ul>
+                <li
+                  v-for="focus in aiSummary.suggestedNextMeetingFocus"
+                  :key="focus"
+                >
+                  {{ focus }}
+                </li>
+              </ul>
+            </section>
+          </div>
+        </template>
+      </AiSummaryCard>
 
       <SavedMeetingExportCard
         v-model:format="exportFormat"
@@ -674,20 +654,6 @@ async function generateSummaryForMeeting(
   font-weight: 800;
 }
 
-.saved-meeting-ai-card {
-  display: grid;
-  gap: 14px;
-}
-
-.saved-meeting-ai-card__heading {
-  display: grid;
-  gap: 6px;
-}
-
-.saved-meeting-ai-card__heading .meeting-help {
-  margin: 0;
-}
-
 .saved-meeting-ai-card__legacy {
   display: grid;
   gap: 14px;
@@ -735,10 +701,6 @@ async function generateSummaryForMeeting(
   margin-top: 2px;
   color: var(--color-on-surface-variant);
   font-size: var(--font-size-label-sm);
-}
-
-.saved-meeting-ai-card :deep(.ai-summary-panel__header) {
-  align-items: start;
 }
 
 .saved-meeting-sections {
