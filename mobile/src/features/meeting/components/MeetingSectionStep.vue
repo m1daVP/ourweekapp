@@ -276,7 +276,7 @@ const alternativeIcon = (type: MeetingComposerDraftType) =>
 .meeting-conversation {
   display: grid;
   gap: 16px;
-  padding: 20px 16px 112px;
+  padding: 20px 0 112px;
 }
 .meeting-conversation__prompt h1,
 .meeting-conversation__prompt p {

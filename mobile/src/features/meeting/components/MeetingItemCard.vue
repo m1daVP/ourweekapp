@@ -31,22 +31,11 @@ const taskItem = computed(() =>
 
 <template>
   <article class="meeting-item-card" :class="`meeting-item-card--${type}`">
-    <button
+    <span
       v-if="isTask"
-      class="meeting-item-card__toggle material-symbols-outlined"
-      type="button"
-      :aria-label="
-        taskItem?.status === 'done'
-          ? t('meeting.markTaskOpen', { title: text })
-          : t('meeting.markTaskDone', { title: text })
-      "
-      :disabled="!editable"
-      @click="taskItem && emit('toggle-task', item.id, taskItem.status)"
-    >
-      {{
-        taskItem?.status === 'done' ? 'check_circle' : 'radio_button_unchecked'
-      }}
-    </button>
+      class="meeting-summary-action-list__check"
+      aria-hidden="true"
+    ></span>
     <p
       :class="{ 'meeting-item-card__text--done': taskItem?.status === 'done' }"
     >
@@ -106,6 +95,7 @@ const taskItem = computed(() =>
   gap: 2px;
   align-items: center;
   justify-content: flex-end;
+  margin-left: auto;
 }
 .meeting-item-card__action {
   display: grid;

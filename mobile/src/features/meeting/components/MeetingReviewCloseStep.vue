@@ -688,6 +688,10 @@ const notesBySection = computed(() => {
   overflow-wrap: anywhere;
 }
 
+.review-close-action-list li > span {
+  flex-grow: 1;
+}
+
 .review-close-action-list small {
   display: block;
   margin-top: 2px;
@@ -827,6 +831,7 @@ const notesBySection = computed(() => {
   display: grid;
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   min-height: 36px;
   place-items: center;
   border: 0;
