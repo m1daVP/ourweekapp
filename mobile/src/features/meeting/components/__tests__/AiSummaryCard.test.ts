@@ -41,7 +41,10 @@ function render(
       plugins: [context.pinia, context.i18n],
       stubs: {
         RecapAllowanceStatus: {
-          template: '<div class="allowance-stub">Allowance</div>',
+          props: ['showAction', 'canGenerate', 'generating', 'generateLabel'],
+          emits: ['generate', 'upgrade'],
+          template:
+            '<div class="allowance-stub"><button v-if="showAction && canGenerate" data-testid="recap-allowance-generate" class="ai-summary-card__action" type="button" :disabled="generating" @click="$emit(\'generate\')">{{ generateLabel }}</button><button data-testid="recap-allowance-upgrade" type="button" @click="$emit(\'upgrade\')">Upgrade</button></div>',
         },
         MeetingFollowThrough: {
           emits: ['regenerate'],
@@ -64,11 +67,11 @@ describe('AiSummaryCard', () => {
     expect(card.text()).toContain('AI summary');
     expect(card.text()).toContain('No recap yet.');
     expect(card.find('.ai-summary-card__allowance').exists()).toBe(true);
-    expect(card.get('[data-testid="generate-meeting-recap"]').text()).toContain(
-      'Generate'
-    );
     expect(
-      card.get('[data-testid="generate-meeting-recap"]').classes()
+      card.get('[data-testid="recap-allowance-generate"]').text()
+    ).toContain('Generate');
+    expect(
+      card.get('[data-testid="recap-allowance-generate"]').classes()
     ).toContain('ai-summary-card__action');
   });
 
@@ -78,17 +81,20 @@ describe('AiSummaryCard', () => {
       const card = render({ state, canGenerate: false });
 
       expect(card.find('.ai-summary-card').exists()).toBe(true);
-      expect(card.find('[data-testid="generate-meeting-recap"]').exists()).toBe(
-        false
-      );
+      expect(
+        card.find('[data-testid="recap-allowance-generate"]').exists()
+      ).toBe(false);
     }
   );
 
-  it('emits generate and regenerate actions', async () => {
+  it('emits generate, upgrade, and regenerate actions', async () => {
     const card = render();
 
-    await card.get('[data-testid="generate-meeting-recap"]').trigger('click');
+    await card.get('[data-testid="recap-allowance-generate"]').trigger('click');
     expect(card.emitted('generate')).toHaveLength(1);
+
+    await card.get('[data-testid="recap-allowance-upgrade"]').trigger('click');
+    expect(card.emitted('upgrade')).toHaveLength(1);
 
     await card.setProps({
       meeting: meetingFixture(),

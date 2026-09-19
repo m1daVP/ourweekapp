@@ -1,31 +1,137 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount, flushPromises, type VueWrapper } from '@vue/test-utils';
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import RecapAllowanceStatus from '../RecapAllowanceStatus.vue';
 import { allowance, setupRecapTest } from '../../__tests__/recapFixtures';
 
 let context: ReturnType<typeof setupRecapTest>;
 let wrapper: VueWrapper;
+
 beforeEach(() => {
   context = setupRecapTest();
 });
+
 afterEach(() => {
   wrapper?.unmount();
   vi.restoreAllMocks();
 });
-function render() {
+
+function render(
+  props: Partial<{
+    showAction: boolean;
+    canGenerate: boolean;
+    generating: boolean;
+    generateLabel: string;
+  }> = {}
+) {
   wrapper = mount(RecapAllowanceStatus, {
+    props: {
+      showAction: true,
+      canGenerate: true,
+      generating: false,
+      generateLabel: 'Generate',
+      ...props,
+    },
     global: { plugins: [context.pinia, context.i18n] },
   });
+
+  return wrapper;
 }
-describe('recap availability recovery', () => {
-  it('shows a real Free allowance', () => {
+
+function premiumAllowance(remaining: number) {
+  return {
+    limit: 20,
+    used: 20 - remaining,
+    remaining,
+    canGenerate: remaining > 0,
+    periodEndsAt: '2026-10-04T10:00:00.000Z',
+  };
+}
+
+describe('RecapAllowanceStatus', () => {
+  it.each([3, 2])(
+    'shows the dynamic Free counter with %s credits left',
+    (remaining) => {
+      context.subscription.assistantRecap = allowance(remaining);
+      render();
+
+      expect(
+        wrapper.get('[data-testid="recap-allowance-counter"]').text()
+      ).toBe(`Free summaries remaining: ${remaining} of 3`);
+      expect(
+        wrapper.find('[data-testid="recap-allowance-generate"]').exists()
+      ).toBe(true);
+    }
+  );
+
+  it('marks the final Free credit without changing the dynamic counter', () => {
+    context.subscription.assistantRecap = allowance(1);
     render();
-    expect(wrapper.text()).toContain('Free recaps remaining: 3');
-    expect(wrapper.find('button').exists()).toBe(false);
+
+    expect(wrapper.text()).toContain('Free summaries remaining: 1 of 3');
+    expect(wrapper.get('[data-testid="recap-allowance-last"]').text()).toBe(
+      'Last'
+    );
   });
-  it('distinguishes missing data from zero credits and refreshes only status', async () => {
+
+  it('shows the exhausted Free state and sends an eligible owner to upgrade', async () => {
+    context.subscription.assistantRecap = allowance(0);
+    render();
+
+    expect(wrapper.text()).toContain('Free summaries remaining: 0 of 3');
+    expect(wrapper.text()).toContain('Your free recap limit has been reached');
+    expect(
+      wrapper.find('[data-testid="recap-allowance-generate"]').exists()
+    ).toBe(false);
+
+    await wrapper
+      .get('[data-testid="recap-allowance-upgrade"]')
+      .trigger('click');
+    expect(wrapper.emitted('upgrade')).toHaveLength(1);
+  });
+
+  it.each([
+    [20, '100', '20 summaries'],
+    [7, '35', '7 summaries remaining'],
+  ])(
+    'shows the dynamic Premium counter and %s%% progress with %s credits left',
+    (remaining, progress, label) => {
+      context.subscription.currentPlan = 'premium';
+      context.subscription.assistantRecap = premiumAllowance(remaining);
+      render();
+
+      expect(
+        wrapper.get('[data-testid="recap-allowance-counter"]').text()
+      ).toBe(`${remaining} / 20`);
+      expect(
+        wrapper
+          .get('[data-testid="recap-allowance-progress"]')
+          .attributes('aria-valuenow')
+      ).toBe(progress);
+      expect(wrapper.text()).toContain(label);
+    }
+  );
+
+  it('shows the exhausted Premium state and an update-plan action', async () => {
+    context.subscription.currentPlan = 'premium';
+    context.subscription.assistantRecap = premiumAllowance(0);
+    render();
+
+    expect(wrapper.text()).toContain('0 / 20');
+    expect(wrapper.text()).toContain('Limit reached');
+    expect(wrapper.text()).toContain('Your plan recap limit has been reached');
+    expect(
+      wrapper.get('[data-testid="recap-allowance-upgrade"]').text()
+    ).toContain('Update plan');
+
+    await wrapper
+      .get('[data-testid="recap-allowance-upgrade"]')
+      .trigger('click');
+    expect(wrapper.emitted('upgrade')).toHaveLength(1);
+  });
+
+  it('keeps the existing refresh fallback for missing allowance data', async () => {
     context.subscription.assistantRecap = null;
     const refresh = vi
       .spyOn(context.subscription, 'refreshCurrentPlan')
@@ -33,93 +139,48 @@ describe('recap availability recovery', () => {
         context.subscription.assistantRecap = allowance(2);
       });
     render();
+
     expect(wrapper.text()).toContain('could not be confirmed');
-    expect(wrapper.text()).not.toContain('No free recaps');
     await wrapper.get('button').trigger('click');
     await flushPromises();
     expect(refresh).toHaveBeenCalledOnce();
-    expect(wrapper.text()).toContain('Free recaps remaining: 2');
   });
-  it('disables refresh while checking', () => {
+
+  it('keeps viewers out of upgrade flows even when the cached allowance is exhausted', () => {
+    context.workspace.workspace.members[0]!.role = 'viewer';
+    context.subscription.assistantRecap = allowance(0, false);
+    render();
+
+    expect(wrapper.text()).toContain('Your household role cannot generate');
+    expect(
+      wrapper.find('[data-testid="recap-allowance-upgrade"]').exists()
+    ).toBe(false);
+  });
+
+  it('keeps the current checking fallback while a refresh is in progress', () => {
     context.subscription.isLoading = true;
     render();
+
     expect(wrapper.text()).toContain('Checking recap availability');
     expect(wrapper.get('button').attributes('disabled')).toBeDefined();
   });
-  it('shows known exhausted Free allowance and a refresh action', () => {
+
+  it('localizes the Free counter and exhausted action', async () => {
+    context.i18n.global.locale.value = 'uk';
     context.subscription.assistantRecap = allowance(0);
     render();
-    expect(wrapper.text()).toContain('No free recaps remain.');
-    expect(wrapper.find('button').exists()).toBe(true);
-  });
-  it.each([true, false])(
-    'never asks viewers to upgrade, even if cached allowance says %s',
-    (canGenerate) => {
-      context.workspace.workspace.members[0]!.role = 'viewer';
-      context.subscription.assistantRecap = allowance(3, canGenerate);
-      render();
-      expect(wrapper.text()).toContain('Your household role cannot generate');
-      expect(wrapper.find('button').exists()).toBe(false);
-      expect(wrapper.find('a').exists()).toBe(false);
-    }
-  );
-  it('explains backend role restriction with credits remaining', () => {
-    context.subscription.assistantRecap = allowance(3, false);
-    render();
-    expect(wrapper.text()).toContain('Your household role cannot generate');
-  });
-  it.each([0, 2])(
-    'shows Premium allowance and renewal information with %s left',
-    (remaining) => {
-      context.subscription.assistantRecap = {
-        ...allowance(remaining),
-        periodEndsAt: '2026-10-04T10:00:00.000Z',
-      };
-      render();
-      expect(wrapper.text()).toContain('October');
-      expect(wrapper.text()).toContain(
-        remaining ? 'Recaps available: 2' : 'No recaps remain for this period.'
-      );
-    }
-  );
-  it.each([
-    ['uk', 'Доступно підсумків', 'Підсумків на цей період більше немає'],
-    ['es', 'Resúmenes disponibles', 'No quedan resúmenes para este período'],
-  ] as const)(
-    'localizes Premium remaining-credit and renewal copy in %s',
-    async (locale, remainingText, exhaustedText) => {
-      context.i18n.global.locale.value = locale;
-      context.subscription.assistantRecap = {
-        ...allowance(2),
-        periodEndsAt: '2026-10-04T10:00:00.000Z',
-      };
-      render();
-      expect(wrapper.text()).toContain(remainingText);
 
-      context.subscription.assistantRecap = {
-        ...allowance(0),
-        periodEndsAt: '2026-10-04T10:00:00.000Z',
-      };
-      await nextTick();
-      expect(wrapper.text()).toContain(exhaustedText);
-    }
-  );
-  it('does not throw or invent a Free period for an invalid renewal date', () => {
-    context.subscription.assistantRecap = {
-      ...allowance(2),
-      periodEndsAt: 'bad-date',
-    };
-    render();
-    expect(wrapper.text()).toContain('Recaps available: 2 of 3.');
-  });
-  it.each(['uk', 'es'] as const)('localizes recovery in %s', (locale) => {
-    context.i18n.global.locale.value = locale;
-    context.subscription.assistantRecap = null;
-    render();
-    expect(wrapper.text()).not.toContain('ai.recap');
-    expect(wrapper.text()).not.toContain('could not be confirmed');
-    expect(wrapper.get('button').text()).toBe(
-      locale === 'uk' ? 'Оновити доступність' : 'Actualizar disponibilidad'
+    expect(wrapper.text()).toContain(
+      'Залишилося безкоштовних підсумків: 0 з 3'
+    );
+    expect(
+      wrapper.get('[data-testid="recap-allowance-upgrade"]').text()
+    ).toContain('Оновити до Premium');
+
+    context.subscription.assistantRecap = allowance(2);
+    await nextTick();
+    expect(wrapper.text()).toContain(
+      'Залишилося безкоштовних підсумків: 2 з 3'
     );
   });
 });

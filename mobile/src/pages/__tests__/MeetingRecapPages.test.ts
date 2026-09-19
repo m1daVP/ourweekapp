@@ -16,10 +16,11 @@ import {
 } from '@/features/meeting/__tests__/recapFixtures';
 
 const showInAppNotification = vi.hoisted(() => vi.fn());
+const routerPush = vi.hoisted(() => vi.fn());
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { meetingId: 'meeting-1' }, query: {} }),
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: routerPush }),
 }));
 vi.mock('@/shared/composables/useToast', () => ({
   useToast: () => ({ showToast: vi.fn() }),
@@ -110,7 +111,7 @@ describe.each([
         'available'
       );
       expect(
-        wrapper.find('[data-testid="generate-meeting-recap"]').exists()
+        wrapper.find('[data-testid="recap-allowance-generate"]').exists()
       ).toBe(false);
     }
   );
@@ -124,7 +125,7 @@ describe.each([
       render();
       expect(wrapper.text()).toContain(savedRecap.shortSummary);
       expect(
-        wrapper.find('[data-testid="generate-meeting-recap"]').exists()
+        wrapper.find('[data-testid="recap-allowance-generate"]').exists()
       ).toBe(false);
       if (name === 'details') {
         expect(
@@ -144,12 +145,31 @@ describe.each([
     context.meetings.meetings[0]!.aiSummary = undefined;
     render();
     expect(wrapper.find('.ai-summary-card').exists()).toBe(true);
-    const button = wrapper.get('[data-testid="generate-meeting-recap"]');
+    const button = wrapper.get('[data-testid="recap-allowance-generate"]');
     expect(button.element.closest('[inert]')).toBeNull();
     await button.trigger('click');
     await flushPromises();
     expect(generateMeetingSummary).toHaveBeenCalledOnce();
   });
+
+  it.each([
+    ['free', 'Upgrade to Premium'],
+    ['premium', 'Update plan'],
+  ] as const)(
+    'routes an exhausted %s owner to the existing upgrade page',
+    async (plan, actionLabel) => {
+      context.meetings.meetings[0]!.aiSummary = undefined;
+      context.subscription.currentPlan = plan;
+      context.subscription.assistantRecap = allowance(0);
+      render();
+
+      const upgrade = wrapper.get('[data-testid="recap-allowance-upgrade"]');
+      expect(upgrade.text()).toContain(actionLabel);
+      await upgrade.trigger('click');
+
+      expect(routerPush).toHaveBeenCalledWith({ name: 'upgrade' });
+    }
+  );
 
   it('asks before spending a recap on low-content meeting notes', async () => {
     const meeting = context.meetings.meetings[0]!;
@@ -158,7 +178,7 @@ describe.each([
     render();
 
     await wrapper
-      .get('[data-testid="generate-meeting-recap"]')
+      .get('[data-testid="recap-allowance-generate"]')
       .trigger('click');
     await nextTick();
 
@@ -190,7 +210,7 @@ describe.each([
     render();
 
     expect(
-      wrapper.find('[data-testid="generate-meeting-recap"]').exists()
+      wrapper.find('[data-testid="recap-allowance-generate"]').exists()
     ).toBe(false);
     expect(document.body.textContent).not.toContain(
       'Add a little more context?'
@@ -214,7 +234,7 @@ describe.each([
       if (state === 'checking') context.subscription.isLoading = true;
       render();
       expect(
-        wrapper.find('[data-testid="generate-meeting-recap"]').exists()
+        wrapper.find('[data-testid="recap-allowance-generate"]').exists()
       ).toBe(false);
       expect(generateMeetingSummary).not.toHaveBeenCalled();
     }
@@ -230,12 +250,12 @@ describe.each([
     });
     render();
     await wrapper
-      .get('[data-testid="generate-meeting-recap"]')
+      .get('[data-testid="recap-allowance-generate"]')
       .trigger('click');
     await flushPromises();
     expect(wrapper.text()).toContain(savedRecap.shortSummary);
     expect(
-      wrapper.find('[data-testid="generate-meeting-recap"]').exists()
+      wrapper.find('[data-testid="recap-allowance-generate"]').exists()
     ).toBe(false);
     if (name === 'details')
       expect(
@@ -255,7 +275,7 @@ describe.each([
     render();
 
     await wrapper
-      .get('[data-testid="generate-meeting-recap"]')
+      .get('[data-testid="recap-allowance-generate"]')
       .trigger('click');
     await flushPromises();
 
@@ -291,7 +311,7 @@ describe.each([
     render();
 
     await wrapper
-      .get('[data-testid="generate-meeting-recap"]')
+      .get('[data-testid="recap-allowance-generate"]')
       .trigger('click');
     await flushPromises();
 
@@ -300,7 +320,7 @@ describe.each([
       false
     );
     expect(
-      wrapper.find('[data-testid="generate-meeting-recap"]').exists()
+      wrapper.find('[data-testid="recap-allowance-generate"]').exists()
     ).toBe(false);
   });
 
@@ -310,7 +330,7 @@ describe.each([
     await nextTick();
     expect(wrapper.text()).not.toContain(savedRecap.shortSummary);
     expect(
-      wrapper.find('[data-testid="generate-meeting-recap"]').exists()
+      wrapper.find('[data-testid="recap-allowance-generate"]').exists()
     ).toBe(false);
     expect(wrapper.find('[data-testid="share-meeting-summary"]').exists()).toBe(
       false

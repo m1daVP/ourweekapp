@@ -32,6 +32,7 @@ const emit = defineEmits<{
   generate: [];
   regenerate: [];
   retry: [];
+  upgrade: [];
 }>();
 
 const titleId = useId();
@@ -85,21 +86,14 @@ const showsSavedSummary = computed(
     </div>
 
     <div class="ai-summary-card__allowance">
-      <RecapAllowanceStatus />
+      <RecapAllowanceStatus
+        :show-action="state === 'empty'"
+        :can-generate="canGenerate"
+        :generating="generating"
+        :generate-label="generateLabel"
+        @generate="emit('generate')"
+        @upgrade="emit('upgrade')"
+      />
     </div>
-
-    <button
-      v-if="state === 'empty' && canGenerate"
-      data-testid="generate-meeting-recap"
-      class="ai-summary-card__action meeting-summary-ai-card__button"
-      type="button"
-      :disabled="generating"
-      @click="emit('generate')"
-    >
-      <span class="material-symbols-outlined" aria-hidden="true">
-        auto_awesome
-      </span>
-      {{ generateLabel }}
-    </button>
   </section>
 </template>

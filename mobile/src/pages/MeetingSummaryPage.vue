@@ -546,6 +546,7 @@ function goBack() {
         @generate="handleGenerateSummary"
         @regenerate="handleGenerateSummary"
         @retry="handleGenerateSummary"
+        @upgrade="router.push({ name: 'upgrade' })"
       />
 
       <section class="meeting-summary-section">

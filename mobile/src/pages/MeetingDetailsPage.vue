@@ -478,6 +478,7 @@ async function generateSummaryForMeeting(
         @generate="generateSummary"
         @regenerate="generateSummary"
         @retry="generateSummary"
+        @upgrade="router.push({ name: 'upgrade' })"
       >
         <template #legacy>
           <div

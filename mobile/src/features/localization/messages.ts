@@ -271,7 +271,7 @@ export const messages = {
       tasksToReview: '{count} tasks to review',
       fromCheckIns: 'From weekly check-ins',
       meetingsSaved: '{count} meetings saved',
-      fullHistory: 'Full history available',
+      fullHistory: 'View history',
       householdInsights: 'Household insights',
       householdInsightsText: 'See shared follow-through over time',
     },
@@ -876,7 +876,7 @@ export const messages = {
       closeMeeting: 'Close meeting',
       stepOf: 'Step {current} of {total}',
       saveDraft: 'Save draft',
-      moreWaysToAdd: 'More ways to add',
+      moreWaysToAdd: 'More options',
       needExample: 'Need an example?',
       presentation: {
         reflectHelper:
@@ -888,7 +888,7 @@ export const messages = {
         addNote: 'Add note',
         addTask: 'Add task',
         addAgreement: 'Add agreement',
-        moreWaysToAdd: 'More ways to add',
+        moreWaysToAdd: 'More options',
         needExample: 'Need an example?',
         goodThingsExample:
           'Was there a small moment that made the week easier?',
@@ -1472,6 +1472,20 @@ export const messages = {
         freeRemaining: 'Free recaps: {count}',
         freeExhausted:
           'No free recaps remain. Saved recaps are still available.',
+        freeCounter: 'Free summaries remaining: {remaining} of {limit}',
+        freeLast: 'Last',
+        freeExhaustedLabel: 'Exhausted',
+        freeExhaustedBody:
+          'Your free recap limit has been reached. It will renew next period, or you can upgrade now.',
+        premiumAvailable: 'Available in your plan',
+        premiumCounter: '{remaining} / {limit}',
+        premiumFull: '{limit} summaries',
+        premiumRemainingLabel: '{remaining} summaries remaining',
+        premiumExhaustedLabel: 'Limit reached',
+        premiumExhaustedBody:
+          'Your plan recap limit has been reached. Update your plan to continue using AI summaries.',
+        upgradeToPremium: 'Upgrade to Premium',
+        updatePlan: 'Update plan',
         premiumRemaining: 'Recaps available: {count} of {limit}, until {date}.',
         premiumExhausted:
           'No recaps remain for this period. Allowance renews on {date}.',
@@ -1596,7 +1610,7 @@ export const messages = {
       },
       name: 'OurWeek',
       navigationLabel: 'Основна навігація',
-      openSettings: 'Відкрити налаштування',
+      openSettings: 'Відкрити параметри',
       householdMembers: 'Учасники дому',
       storageAttention: 'Деякі збережені дані потребують уваги',
       dismiss: 'Закрити',
@@ -1608,7 +1622,7 @@ export const messages = {
         meetingTemplates: 'Сценарії',
         tasks: 'Завдання',
         history: 'Історія',
-        settings: 'Налаштування',
+        settings: 'Параметри',
         upgrade: 'Premium',
         privateNotes: 'Приватні нотатки',
         calendarSync: 'Синхронізація календаря',
@@ -1621,7 +1635,7 @@ export const messages = {
         meeting: 'Зустріч',
         tasks: 'Завдання',
         history: 'Історія',
-        settings: 'Налаштування',
+        settings: 'Параметри',
       },
     },
     common: {
@@ -1729,7 +1743,7 @@ export const messages = {
       deletingAccount: 'Видалення акаунта...',
       deleteAccountTitle: 'Видалити акаунт?',
       deleteAccountConfirm:
-        'Це видалить ваш акаунт і спробує видалити дані OurWeek, збережені на цьому пристрої, включно із зустрічами, завданнями, домовленостями, приватними нотатками, налаштуваннями та локальними резервними копіями. Локальну інформацію неможливо відновити навіть після відновлення акаунта.',
+        'Це видалить ваш акаунт і спробує видалити дані OurWeek, збережені на цьому пристрої, включно із зустрічами, завданнями, домовленостями, приватними нотатками, параметрами та локальними резервними копіями. Локальну інформацію неможливо відновити навіть після відновлення акаунта.',
       deleteFailed: 'Не вдалося видалити акаунт зараз.',
       cleanupFailedTitle: 'Акаунт видалено',
       cleanupFailedIntro:
@@ -1760,7 +1774,7 @@ export const messages = {
       continueWithGoogle: 'Continue with Google',
       continuingWithGoogle: 'Continuing with Google...',
       accountLinkRequired:
-        'Увійдіть за допомогою пароля, а потім підключіть Google у налаштуваннях акаунта.',
+        'Увійдіть за допомогою пароля, а потім підключіть Google у параметрах акаунта.',
       newHere: 'Вперше у OurWeek?',
       createAccount: 'Створити акаунт',
       createAccountIntro:
@@ -1859,7 +1873,7 @@ export const messages = {
       tasksToReview: '{count} завдань для перегляду',
       fromCheckIns: 'Зі щотижневих зустрічей',
       meetingsSaved: '{count} зустрічей збережено',
-      fullHistory: 'Повна історія доступна',
+      fullHistory: 'Переглянути історію',
       householdInsights: 'Статистика домогосподарства',
       householdInsightsText: 'Переглядайте спільне виконання з часом',
     },
@@ -2189,20 +2203,20 @@ export const messages = {
       },
     },
     settings: {
-      kicker: 'Налаштування',
-      title: 'Налаштування дому',
+      kicker: 'Параметри',
+      title: 'Параметри дому',
       intro:
         'Керуйте локальним списком людей для нотаток, завдань і домовленостей.',
       account: 'Акаунт',
       signedInAs: 'Ви увійшли як {email}.',
       signedInFallback: 'ваш акаунт',
       noAccount: 'Акаунт ще не підключено.',
-      accountSettings: 'Налаштування акаунта',
+      accountSettings: 'Параметри акаунта',
       accountOptions: 'Опції акаунта',
       calendarSync: 'Синхронізація календаря',
       sections: {
         household: 'Дім і простір',
-        preferences: 'Налаштування застосунку',
+        preferences: 'Параметри застосунку',
         subscription: 'Підписка',
         supportLegal: 'Підтримка та юридичне',
       },
@@ -2240,7 +2254,7 @@ export const messages = {
       privacyPolicy: 'Політика конфіденційності',
       terms: 'Умови',
       reminders: 'Нагадування',
-      reminderPremiumTitle: 'Налаштування нагадувань доступні в Premium',
+      reminderPremiumTitle: 'Параметри нагадувань доступні в Premium',
       reminderPremiumMessage:
         'Оновіться, щоб планувати м’які локальні нагадування про щотижневі зустрічі та незавершені домашні справи.',
       reminderIntro:
@@ -2254,11 +2268,11 @@ export const messages = {
       minutes: 'Хвилини',
       reminderExample:
         'Приклад: лагідне нагадування переглянути незавершені домовленості.',
-      reminderLocked: 'Налаштування нагадувань доступні з Premium.',
+      reminderLocked: 'Параметри нагадувань доступні з Premium.',
       remindersOff: 'Нагадування вимкнені.',
       notificationsUnavailable:
-        'Локальні сповіщення доступні в Android-застосунку. У вебрежимі розробки ці налаштування зберігаються без планування сповіщень.',
-      notificationsBlocked: 'Сповіщення заблоковані в системних налаштуваннях.',
+        'Локальні сповіщення доступні в Android-застосунку. У вебрежимі розробки ці параметри зберігаються без планування сповіщень.',
+      notificationsBlocked: 'Сповіщення заблоковані в системних параметрах.',
       remindersScheduled: 'Нагадування заплановані на цьому пристрої.',
       remindersSaved:
         'Нагадування збережені й будуть заплановані, коли сповіщення стануть доступні.',
@@ -2398,7 +2412,7 @@ export const messages = {
           'Коли ввімкнено серверну синхронізацію, зустрічі, нотатки зустрічей, учасники, завдання, домовленості, рішення під час перегляду, дані простору, запрошення та ролі учасників можуть надсилатися на сервер OurWeek, щоб їх можна було відновити й поширити в межах домашнього простору.',
         localStorageTitle: 'Локальне сховище й офлайн-кеш',
         localStorageText:
-          'OurWeek зберігає дані застосунку на цьому пристрої, щоб він працював між сеансами й міг витримувати офлайн-використання. Захищені токени входу використовують нативне захищене сховище, де воно доступне. Нечутливі налаштування використовують налаштування пристрою або версійне локальне сховище даних застосунку.',
+          'OurWeek зберігає дані застосунку на цьому пристрої, щоб він працював між сеансами й міг витримувати офлайн-використання. Захищені токени входу використовують нативне захищене сховище, де воно доступне. Нечутливі параметри використовують параметри пристрою або версійне локальне сховище даних застосунку.',
         dataTitle: 'Поточна модель даних',
         dataText:
           'OurWeek може зберігати дані локально на цьому пристрої та синхронізувати вибрані дані акаунта, простору, зустрічей, завдань, домовленостей і учасників через сервер.',
@@ -2416,7 +2430,7 @@ export const messages = {
           'Якщо синхронізацію з Google Calendar увімкнено, OurWeek використовує OAuth-процес із підтримкою сервера, щоб підключити або відключити Google Calendar і синхронізувати вибрані нагадування про зустрічі, дати виконання завдань і дати повернення до питань. Токени доступу або оновлення Google не мають зберігатися в мобільному застосунку.',
         notificationsTitle: 'Сповіщення',
         notificationsText:
-          'Налаштування нагадувань можуть використовувати локальні сповіщення пристрою для щотижневих зустрічей і незавершених подальших кроків. OurWeek має запитувати дозвіл перед плануванням сповіщень і спокійно обробляти відмову без повторних нав’язливих запитів.',
+          'Параметри нагадувань можуть використовувати локальні сповіщення пристрою для щотижневих зустрічей і незавершених подальших кроків. OurWeek має запитувати дозвіл перед плануванням сповіщень і спокійно обробляти відмову без повторних нав’язливих запитів.',
         exportTitle: 'Експорт і поширення',
         exportText:
           'Експорт може містити нотатки зустрічей, завдання, домовленості та збережені підсумки в читабельних форматах. Приватні нотатки за замовчуванням не включаються. Коли ви поширюєте або зберігаєте експорт поза OurWeek, це місце призначення керує скопійованим файлом або текстом.',
@@ -2476,7 +2490,7 @@ export const messages = {
       closeMeeting: 'Закрити зустріч',
       stepOf: 'Крок {current} з {total}',
       saveDraft: 'Зберегти чернетку',
-      moreWaysToAdd: 'Інші способи додати',
+      moreWaysToAdd: 'Інші варіанти',
       needExample: 'Потрібен приклад?',
       presentation: {
         reflectHelper:
@@ -2488,7 +2502,7 @@ export const messages = {
         addNote: 'Додати нотатку',
         addTask: 'Додати завдання',
         addAgreement: 'Додати домовленість',
-        moreWaysToAdd: 'Інші способи додати',
+        moreWaysToAdd: 'Інші варіанти',
         needExample: 'Потрібен приклад?',
         goodThingsExample:
           'Чи був маленький момент, який полегшив цей тиждень?',
@@ -3092,6 +3106,20 @@ export const messages = {
         freeRemaining: 'Безкоштовних підсумків: {count}',
         freeExhausted:
           'Безкоштовних підсумків більше немає. Збережені підсумки залишаються доступними.',
+        freeCounter: 'Залишилося безкоштовних підсумків: {remaining} з {limit}',
+        freeLast: 'Останній',
+        freeExhaustedLabel: 'Вичерпано',
+        freeExhaustedBody:
+          'Безкоштовний ліміт підсумків вичерпано. Він оновиться в наступному періоді або ви можете оновити тариф зараз.',
+        premiumAvailable: 'Доступно в тарифі',
+        premiumCounter: '{remaining} / {limit}',
+        premiumFull: '{limit} підсумків',
+        premiumRemainingLabel: 'Залишилося {remaining} підсумків',
+        premiumExhaustedLabel: 'Ліміт вичерпано',
+        premiumExhaustedBody:
+          'Ліміт підсумків у вашому тарифі вичерпано. Оновіть тариф, щоб продовжити користуватися AI-підсумками.',
+        upgradeToPremium: 'Оновити до Premium',
+        updatePlan: 'Оновити тариф',
         premiumRemaining: 'Доступно підсумків: {count} із {limit}, до {date}.',
         premiumExhausted:
           'Підсумків на цей період більше немає. Ліміт поновиться {date}.',
@@ -3484,7 +3512,7 @@ export const messages = {
       tasksToReview: '{count} tareas para revisar',
       fromCheckIns: 'De revisiones semanales',
       meetingsSaved: '{count} reuniones guardadas',
-      fullHistory: 'Historial completo disponible',
+      fullHistory: 'Ver historial',
       householdInsights: 'Información del hogar',
       householdInsightsText: 'Consulta el seguimiento compartido con el tiempo',
     },
@@ -4110,7 +4138,7 @@ export const messages = {
       closeMeeting: 'Cerrar reunión',
       stepOf: 'Paso {current} de {total}',
       saveDraft: 'Guardar borrador',
-      moreWaysToAdd: 'Más formas de agregar',
+      moreWaysToAdd: 'Más opciones',
       needExample: '¿Necesitas un ejemplo?',
       presentation: {
         reflectHelper:
@@ -4122,7 +4150,7 @@ export const messages = {
         addNote: 'Agregar nota',
         addTask: 'Agregar tarea',
         addAgreement: 'Agregar acuerdo',
-        moreWaysToAdd: 'Más formas de agregar',
+        moreWaysToAdd: 'Más opciones',
         needExample: '¿Necesitas un ejemplo?',
         goodThingsExample:
           '¿Hubo un pequeño momento que hizo la semana más fácil?',
@@ -4729,6 +4757,20 @@ export const messages = {
         freeRemaining: 'Resúmenes gratuitos: {count}',
         freeExhausted:
           'No quedan resúmenes gratuitos. Los resúmenes guardados siguen disponibles.',
+        freeCounter: 'Quedan {remaining} resúmenes gratuitos de {limit}',
+        freeLast: 'Último',
+        freeExhaustedLabel: 'Agotado',
+        freeExhaustedBody:
+          'Has alcanzado el límite de resúmenes gratuitos. Se renovará en el próximo período o puedes mejorar ahora.',
+        premiumAvailable: 'Disponible en tu plan',
+        premiumCounter: '{remaining} / {limit}',
+        premiumFull: '{limit} resúmenes',
+        premiumRemainingLabel: 'Quedan {remaining} resúmenes',
+        premiumExhaustedLabel: 'Límite alcanzado',
+        premiumExhaustedBody:
+          'Has alcanzado el límite de resúmenes de tu plan. Actualiza tu plan para seguir usando resúmenes con IA.',
+        upgradeToPremium: 'Mejorar a Premium',
+        updatePlan: 'Actualizar plan',
         premiumRemaining:
           'Resúmenes disponibles: {count} de {limit}, hasta el {date}.',
         premiumExhausted:
