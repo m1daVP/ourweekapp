@@ -109,9 +109,7 @@ function handleMinuteScroll(event: Event) {
   }
 }
 
-function startWheelInteraction(event: PointerEvent, wheel: 'hour' | 'minute') {
-  if ((event.target as HTMLElement).closest('button')) return;
-
+function startWheelInteraction(wheel: 'hour' | 'minute') {
   if (activeWheel.value === wheel) return;
 
   activeWheel.value = wheel;
@@ -163,12 +161,20 @@ function closePicker() {
 }
 
 function selectHour(hour: number) {
+  if (hour === selectedHour.value) return;
+
   selectedHour.value = hour;
+  void haptics.wheelChange();
+  scheduleWheelEnd('hour');
   scrollWheel(hourWheelElement.value, hour);
 }
 
 function selectMinute(minute: number) {
+  if (minute === selectedMinute.value) return;
+
   selectedMinute.value = minute;
+  void haptics.wheelChange();
+  scheduleWheelEnd('minute');
   scrollWheel(minuteWheelElement.value, minuteOptions.value.indexOf(minute));
 }
 
@@ -221,7 +227,7 @@ watch(isOpen, async (isPickerOpen) => {
               class="reminder-time-picker__wheel"
               role="listbox"
               :aria-label="t('settings.hours')"
-              @pointerdown="startWheelInteraction($event, 'hour')"
+              @pointerdown="startWheelInteraction('hour')"
               @pointerup="scheduleWheelEnd('hour')"
               @pointercancel="endWheelInteraction('hour')"
               @scroll="handleHourScroll"
@@ -252,7 +258,7 @@ watch(isOpen, async (isPickerOpen) => {
               class="reminder-time-picker__wheel"
               role="listbox"
               :aria-label="t('settings.minutes')"
-              @pointerdown="startWheelInteraction($event, 'minute')"
+              @pointerdown="startWheelInteraction('minute')"
               @pointerup="scheduleWheelEnd('minute')"
               @pointercancel="endWheelInteraction('minute')"
               @scroll="handleMinuteScroll"

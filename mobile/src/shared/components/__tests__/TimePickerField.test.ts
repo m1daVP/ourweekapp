@@ -52,11 +52,16 @@ describe('TimePickerField wheel haptics', () => {
     expect(haptics.wheelStart).not.toHaveBeenCalled();
     expect(haptics.wheelChange).not.toHaveBeenCalled();
 
-    hourWheel.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const hourOption = wrapper.findAll('.reminder-time-picker__option')[10]
+      ?.element as HTMLButtonElement;
+
+    hourOption.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true })
+    );
     hourWheel.scrollTop = 10 * 56;
     hourWheel.dispatchEvent(new Event('scroll', { bubbles: true }));
     hourWheel.dispatchEvent(new Event('scroll', { bubbles: true }));
-    hourWheel.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    hourOption.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
     vi.advanceTimersByTime(120);
 
     expect(haptics.wheelStart).toHaveBeenCalledOnce();
@@ -92,4 +97,43 @@ describe('TimePickerField wheel haptics', () => {
     expect(haptics.wheelChange).toHaveBeenCalledOnce();
     expect(haptics.wheelEnd).toHaveBeenCalledOnce();
   });
+
+  it('ticks changed option taps but not the already-selected option', async () => {
+    vi.useFakeTimers();
+    const wrapper = mount(TimePickerField, {
+      props: {
+        modelValue: '09:00',
+        label: 'Reminder time',
+        stepMinutes: 5,
+      },
+    });
+
+    await wrapper.get('.reminder-picker-field__trigger').trigger('click');
+    await nextTick();
+
+    const options = wrapper.findAll('.reminder-time-picker__option');
+    const hourOption = options[10]!;
+    const minuteOption = options[24 + 1]!;
+
+    await tapOption(hourOption);
+    await tapOption(minuteOption);
+
+    expect(haptics.wheelChange).toHaveBeenCalledTimes(2);
+
+    vi.advanceTimersByTime(120);
+
+    await tapOption(hourOption);
+
+    expect(haptics.wheelChange).toHaveBeenCalledTimes(2);
+  });
 });
+
+async function tapOption(option: ReturnType<typeof mount>['find']) {
+  option.element.dispatchEvent(
+    new PointerEvent('pointerdown', { bubbles: true })
+  );
+  option.element.dispatchEvent(
+    new PointerEvent('pointerup', { bubbles: true })
+  );
+  await option.trigger('click');
+}
