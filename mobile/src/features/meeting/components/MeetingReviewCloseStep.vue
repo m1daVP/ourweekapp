@@ -7,6 +7,9 @@ import type {
   EnrichedMeetingTask,
   MeetingReviewCounts,
 } from '@/features/meeting/composables/useMeetingSession';
+import AnchoredActionMenu, {
+  type AnchoredActionMenuItem,
+} from '@/shared/components/AnchoredActionMenu.vue';
 import MeetingDisclosurePanel from './MeetingDisclosurePanel.vue';
 
 const props = defineProps<{
@@ -59,6 +62,15 @@ const notesToggleText = computed(() => {
 const notesDisclosureLabel = computed(
   () => `${notesToggleText.value} (${props.reviewCounts.notes})`
 );
+const itemActions = computed<AnchoredActionMenuItem[]>(() => [
+  { id: 'edit', label: t('common.edit'), icon: 'edit' },
+  {
+    id: 'delete',
+    label: t('common.delete'),
+    icon: 'delete_outline',
+    variant: 'destructive',
+  },
+]);
 const notesBySection = computed(() => {
   const groups = new Map<string, EnrichedMeetingNote[]>();
 
@@ -74,6 +86,36 @@ const notesBySection = computed(() => {
     notes,
   }));
 });
+
+function handleTaskAction(actionId: string, task: EnrichedMeetingTask) {
+  if (actionId === 'edit') {
+    emit('edit-task', task);
+  }
+
+  if (actionId === 'delete') {
+    emit('delete-task', task.id);
+  }
+}
+
+function handleAgreementAction(actionId: string, agreement: EnrichedAgreement) {
+  if (actionId === 'edit') {
+    emit('edit-agreement', agreement);
+  }
+
+  if (actionId === 'delete') {
+    emit('delete-agreement', agreement.id);
+  }
+}
+
+function handleNoteAction(actionId: string, note: EnrichedMeetingNote) {
+  if (actionId === 'edit') {
+    emit('edit-note', note);
+  }
+
+  if (actionId === 'delete') {
+    emit('delete-note', note.id);
+  }
+}
 </script>
 
 <template>
@@ -189,29 +231,15 @@ const notesBySection = computed(() => {
               {{ task.title }}
               <small>{{ task.responsibilityLabel }}</small>
             </span>
-            <div
+            <AnchoredActionMenu
               v-if="canEditTasks && !isCompleted"
-              class="review-close-item-actions"
-            >
-              <button
-                type="button"
-                class="meeting-note-item__edit material-symbols-outlined"
-                :data-testid="`review-task-edit-${task.id}`"
-                :aria-label="t('meeting.editTaskAria', { title: task.title })"
-                @click="emit('edit-task', task)"
-              >
-                edit
-              </button>
-              <button
-                type="button"
-                class="review-close-delete material-symbols-outlined"
-                :data-testid="`review-task-delete-${task.id}`"
-                :aria-label="t('meeting.deleteTaskAria', { title: task.title })"
-                @click="emit('delete-task', task.id)"
-              >
-                delete
-              </button>
-            </div>
+              :items="itemActions"
+              :menu-label="t('meeting.itemActionsAria', { item: task.title })"
+              :trigger-label="
+                t('meeting.itemActionsAria', { item: task.title })
+              "
+              @select="handleTaskAction($event, task)"
+            />
           </li>
         </ul>
       </section>
@@ -242,34 +270,20 @@ const notesBySection = computed(() => {
         >
           <li v-for="agreement in allAgreements" :key="agreement.id">
             <div>
-              <span>{{ agreement.participantLabel }}</span>
+              <!-- <span>{{ agreement.participantLabel }}</span> -->
               <p>«{{ agreement.text }}»</p>
             </div>
-            <div
+            <AnchoredActionMenu
               v-if="canEditMeeting && !isCompleted"
-              class="review-close-item-actions"
-            >
-              <button
-                type="button"
-                class="meeting-note-item__edit material-symbols-outlined"
-                :aria-label="
-                  t('meeting.editAgreementAria', { text: agreement.text })
-                "
-                @click="emit('edit-agreement', agreement)"
-              >
-                edit
-              </button>
-              <button
-                type="button"
-                class="review-close-delete material-symbols-outlined"
-                :aria-label="
-                  t('meeting.deleteAgreementAria', { text: agreement.text })
-                "
-                @click="emit('delete-agreement', agreement.id)"
-              >
-                delete_outline
-              </button>
-            </div>
+              :items="itemActions"
+              :menu-label="
+                t('meeting.itemActionsAria', { item: agreement.text })
+              "
+              :trigger-label="
+                t('meeting.itemActionsAria', { item: agreement.text })
+              "
+              @select="handleAgreementAction($event, agreement)"
+            />
           </li>
         </ul>
       </section>
@@ -315,35 +329,17 @@ const notesBySection = computed(() => {
                     <!-- <span>{{ note.participantName }}</span> -->
                     <p>{{ note.text }}</p>
                   </div>
-                  <div
+                  <AnchoredActionMenu
                     v-if="canEditMeeting && !isCompleted"
-                    class="review-close-item-actions"
-                  >
-                    <button
-                      type="button"
-                      class="meeting-note-item__edit material-symbols-outlined"
-                      :aria-label="
-                        t('meeting.editNoteAria', {
-                          author: note.participantName,
-                        })
-                      "
-                      @click="emit('edit-note', note)"
-                    >
-                      edit
-                    </button>
-                    <button
-                      type="button"
-                      class="review-close-delete material-symbols-outlined"
-                      :aria-label="
-                        t('meeting.deleteNoteAria', {
-                          author: note.participantName,
-                        })
-                      "
-                      @click="emit('delete-note', note.id)"
-                    >
-                      delete_outline
-                    </button>
-                  </div>
+                    :items="itemActions"
+                    :menu-label="
+                      t('meeting.itemActionsAria', { item: note.text })
+                    "
+                    :trigger-label="
+                      t('meeting.itemActionsAria', { item: note.text })
+                    "
+                    @select="handleNoteAction($event, note)"
+                  />
                 </li>
               </ul>
             </li>
@@ -688,7 +684,7 @@ const notesBySection = computed(() => {
   overflow-wrap: anywhere;
 }
 
-.review-close-action-list li > span {
+.review-close-action-list li > span:not(.anchored-action-menu) {
   flex-grow: 1;
 }
 
@@ -728,7 +724,7 @@ const notesBySection = computed(() => {
   gap: 10px;
   border: 1px solid color-mix(in srgb, var(--color-outline-variant) 48%, white);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-surface-low) 52%, white);
+  background: #fff;
   padding: 14px 12px;
 }
 
@@ -853,49 +849,6 @@ const notesBySection = computed(() => {
 
 .review-close-task-toggle:disabled {
   opacity: 0.5;
-}
-
-.review-close-action-list .review-close-item-actions button {
-  width: 36px;
-  min-width: 36px;
-  height: 36px;
-  min-height: 36px;
-  font-size: 1.15rem;
-}
-
-.review-close-delete {
-  align-self: start;
-}
-
-.review-close-item-actions {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  gap: 2px;
-  align-items: start;
-  justify-content: flex-start;
-  margin-left: auto;
-}
-
-.review-close-item-actions button {
-  display: grid;
-  width: 36px;
-  min-width: 36px;
-  height: 36px;
-  min-height: 36px;
-  flex: 0 0 36px;
-  place-items: center;
-  align-self: start;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  padding: 0;
-  color: var(--color-primary);
-  box-shadow: none;
-}
-
-.review-close-item-actions .review-close-delete {
-  color: var(--color-error);
 }
 
 .review-close-empty {

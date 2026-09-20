@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { nextTick } from 'vue';
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
@@ -9,7 +10,7 @@ const i18n = createI18n({
   locale: 'en',
   messages: {
     en: {
-      common: { finish: 'Finish' },
+      common: { delete: 'Delete', edit: 'Edit', finish: 'Finish' },
       meeting: {
         closeMeeting: 'Close',
         reviewCloseTitle: 'Review and finish',
@@ -31,6 +32,7 @@ const i18n = createI18n({
         editNoteAria: 'Edit {author}',
         deleteNoteAria: 'Delete {author}',
         editActions: 'Edit actions',
+        itemActionsAria: 'Open actions for {item}',
         notesReviewIntro: 'Saved notes from the conversation.',
         showRecordedNotes: 'Show notes',
         hideRecordedNotes: 'Hide notes',
@@ -98,8 +100,9 @@ function createProps() {
 }
 
 describe('MeetingReviewCloseStep', () => {
-  it('keeps review actions and notes visibility interactive', async () => {
+  it('keeps review overflow actions and notes visibility interactive', async () => {
     const wrapper = mount(MeetingReviewCloseStep, {
+      attachTo: document.body,
       props: createProps(),
       global: {
         plugins: [i18n],
@@ -110,26 +113,42 @@ describe('MeetingReviewCloseStep', () => {
       .get('[data-testid="review-task-toggle-task-1"]')
       .trigger('click');
     await wrapper
-      .get('[data-testid="review-task-edit-task-1"]')
+      .get('[aria-label="Open actions for Move the operation"]')
       .trigger('click');
+    document.querySelector<HTMLButtonElement>('[aria-label="Edit"]')?.click();
+    await nextTick();
     await wrapper
-      .get('[data-testid="review-task-delete-task-1"]')
+      .get('[aria-label="Open actions for Move the operation"]')
       .trigger('click');
+    document.querySelector<HTMLButtonElement>('[aria-label="Delete"]')?.click();
+    await nextTick();
+    await wrapper
+      .get(
+        '[aria-label="Open actions for We will prepare the next day in the evening."]'
+      )
+      .trigger('click');
+    document.querySelector<HTMLButtonElement>('[aria-label="Edit"]')?.click();
+    await nextTick();
     await wrapper.get('[data-testid="review-capture-note"]').trigger('click');
     await wrapper
       .get('[data-testid="review-notes-picker"] button')
       .trigger('click');
+    await wrapper
+      .get('[aria-label="Open actions for A note from the conversation."]')
+      .trigger('click');
+    document.querySelector<HTMLButtonElement>('[aria-label="Delete"]')?.click();
+    await nextTick();
     await wrapper.get('[data-testid="review-finish"]').trigger('click');
 
     expect(wrapper.emitted('toggle-task')).toEqual([['task-1', 'open']]);
     expect(wrapper.emitted('edit-task')).toHaveLength(1);
     expect(wrapper.emitted('delete-task')).toEqual([['task-1']]);
-    expect(
-      wrapper.get('[data-testid="review-task-edit-task-1"]').element
-        .parentElement?.classList
-    ).toContain('review-close-item-actions');
+    expect(wrapper.emitted('edit-agreement')).toHaveLength(1);
+    expect(wrapper.emitted('delete-note')).toEqual([['note-1']]);
+    expect(wrapper.find('.review-close-item-actions').exists()).toBe(false);
     expect(wrapper.emitted('capture')).toEqual([['note']]);
     expect(wrapper.get('#review-close-notes-list').isVisible()).toBe(true);
     expect(wrapper.emitted('finish')).toEqual([[]]);
+    wrapper.unmount();
   });
 });

@@ -6,9 +6,16 @@ import type {
   MeetingNote,
   MeetingTask,
 } from '@/features/meeting/types';
+import AnchoredActionMenu, {
+  type AnchoredActionMenuItem,
+} from '@/shared/components/AnchoredActionMenu.vue';
+
+type MeetingItemCardTask = MeetingTask & {
+  responsibilityLabel?: string;
+};
 
 const props = defineProps<{
-  item: Agreement | MeetingNote | MeetingTask;
+  item: Agreement | MeetingNote | MeetingItemCardTask;
   type: 'agreement' | 'note' | 'task';
   editable: boolean;
 }>();
@@ -19,14 +26,40 @@ const emit = defineEmits<{
   'toggle-task': [id: string, status: MeetingTask['status']];
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const text = computed(() =>
   'title' in props.item ? props.item.title : props.item.text
 );
 const isTask = computed(() => props.type === 'task');
-const taskItem = computed(() =>
-  props.type === 'task' ? (props.item as MeetingTask) : null
+const taskItem = computed<MeetingItemCardTask | null>(() =>
+  props.type === 'task' ? (props.item as MeetingItemCardTask) : null
 );
+const itemActions = computed<AnchoredActionMenuItem[]>(() => [
+  { id: 'edit', label: t('common.edit'), icon: 'edit' },
+  {
+    id: 'delete',
+    label: t('common.delete'),
+    icon: 'delete_outline',
+    variant: 'destructive',
+  },
+]);
+
+function handleActionSelection(actionId: string) {
+  if (actionId === 'edit') {
+    emit('edit', props.item.id);
+  }
+
+  if (actionId === 'delete') {
+    emit('delete', props.item.id);
+  }
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(locale.value, {
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value));
+}
 </script>
 
 <template>
@@ -40,25 +73,30 @@ const taskItem = computed(() =>
       :class="{ 'meeting-item-card__text--done': taskItem?.status === 'done' }"
     >
       {{ text }}
+      <span class="meeting-item-card__meta" v-if="isTask && taskItem">
+        <small
+          v-if="taskItem.responsibilityLabel"
+          class="meeting-item-card__responsibility"
+        >
+          {{ taskItem.responsibilityLabel }}
+        </small>
+        <span v-if="taskItem.dueDate" class="meeting-item-card__due-date">
+          <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M7 3v3m10-3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            />
+          </svg>
+          {{ formatDate(taskItem.dueDate) }}
+        </span>
+      </span>
     </p>
-    <div v-if="editable" class="meeting-item-card__actions">
-      <button
-        class="meeting-item-card__action material-symbols-outlined"
-        type="button"
-        :aria-label="t('common.edit')"
-        @click="emit('edit', item.id)"
-      >
-        edit
-      </button>
-      <button
-        class="meeting-item-card__action meeting-item-card__action--delete material-symbols-outlined"
-        type="button"
-        :aria-label="t('common.delete')"
-        @click="emit('delete', item.id)"
-      >
-        delete_outline
-      </button>
-    </div>
+    <AnchoredActionMenu
+      v-if="editable"
+      :items="itemActions"
+      :menu-label="t('meeting.itemActionsAria', { item: text })"
+      :trigger-label="t('meeting.itemActionsAria', { item: text })"
+      @select="handleActionSelection"
+    />
   </article>
 </template>
 
@@ -89,33 +127,35 @@ const taskItem = computed(() =>
 .meeting-item-card__text--done {
   text-decoration: line-through;
 }
-.meeting-item-card__actions {
+.meeting-item-card__meta {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--color-outline);
+  font-size: var(--font-size-label-sm);
+}
+.meeting-item-card__responsibility {
+  display: inline-block;
+  border-radius: 8px;
+  background: #eef4ef;
+  padding: 2px 8px;
+  color: #5d705f;
+  font-size: var(--font-size-label-sm);
+  font-weight: 650;
+  line-height: 1.2;
+}
+.meeting-item-card__due-date {
+  display: flex;
   align-items: center;
-  justify-content: flex-end;
-  margin-left: auto;
+  gap: 4px;
 }
-.meeting-item-card__action {
-  display: grid;
-  width: 34px;
-  min-width: 34px;
-  height: 34px;
-  min-height: 34px;
-  flex: 0 0 34px;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  padding: 0;
-  color: var(--color-primary);
-  font-size: 1.05rem;
-}
-.meeting-item-card__action:active {
-  background: var(--color-surface-low);
-}
-.meeting-item-card__action--delete {
-  color: var(--color-error);
+.meeting-item-card__due-date svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
 }
 </style>
