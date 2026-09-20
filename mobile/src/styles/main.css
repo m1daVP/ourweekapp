@@ -587,9 +587,10 @@ input[type='radio'] {
   bottom: calc(120px + env(safe-area-inset-bottom));
   left: 50%;
   z-index: 40;
-  display: flex;
+  display: grid;
   width: min(calc(100vw - 48px), calc(var(--container-max-width) - 48px));
   min-height: 52px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -607,10 +608,11 @@ input[type='radio'] {
 }
 
 .app-toast__content {
-  display: inline-flex;
+  display: flex;
   min-width: 0;
   align-items: center;
   gap: 10px;
+  overflow-wrap: anywhere;
 }
 
 .app-toast__spinner {
@@ -644,14 +646,11 @@ input[type='radio'] {
 }
 
 .app-toast__action {
-  width: auto;
-  height: 44px;
-  min-height: 44px;
-  min-width: 64px;
-  padding: 0 12px;
-  font-family: var(--font-display);
-  font-size: var(--font-size-label-lg);
-  font-weight: 850;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
 }
 
 .app-toast-enter-active,
@@ -5935,7 +5934,7 @@ input[type='radio'] {
 
 .meeting-summary-share-button {
   display: inline-flex;
-  /* min-height: 64px; */
+  min-height: 50px;
   align-items: center;
   justify-content: center;
   border: 0;

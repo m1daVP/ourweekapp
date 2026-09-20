@@ -39,7 +39,9 @@ const subscriptionStore = useSubscriptionStore();
 const { dismissToast, showToast, toastState } = useToast();
 const { dismissInAppNotification, notificationState } = useInAppNotification();
 const IN_APP_NOTIFICATION_SWIPE_DISMISS_THRESHOLD = 48;
-const inAppNotificationTouchStartY = ref<number | null>(null);
+const inAppNotificationPointerStart = ref<{ x: number; y: number } | null>(
+  null
+);
 const recoveryMessages = computed(() => storageRecoveryState.value.messages);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
 const currentUserParticipant = computed(() => {
@@ -123,22 +125,30 @@ function handleToastAction(action: () => void) {
 }
 
 function handleInAppNotificationPointerDown(event: PointerEvent) {
-  inAppNotificationTouchStartY.value = event.clientY;
+  inAppNotificationPointerStart.value = {
+    x: event.clientX,
+    y: event.clientY,
+  };
 }
 
 function handleInAppNotificationPointerUp(event: PointerEvent) {
-  const startY = inAppNotificationTouchStartY.value;
-  const endY = event.clientY;
+  const start = inAppNotificationPointerStart.value;
+  const upwardDistance = start ? start.y - event.clientY : 0;
+  const horizontalDistance = start ? Math.abs(event.clientX - start.x) : 0;
 
-  inAppNotificationTouchStartY.value = null;
+  inAppNotificationPointerStart.value = null;
 
   if (
-    startY !== null &&
-    endY !== undefined &&
-    startY - endY >= IN_APP_NOTIFICATION_SWIPE_DISMISS_THRESHOLD
+    start !== null &&
+    upwardDistance >= IN_APP_NOTIFICATION_SWIPE_DISMISS_THRESHOLD &&
+    upwardDistance > horizontalDistance
   ) {
     dismissInAppNotification();
   }
+}
+
+function handleInAppNotificationPointerCancel() {
+  inAppNotificationPointerStart.value = null;
 }
 
 watch(
@@ -244,10 +254,11 @@ watch(
         <button
           v-if="toastState.action"
           type="button"
-          class="app-toast__action"
+          class="app-toast__action material-symbols-outlined"
+          :aria-label="toastState.action.label"
           @click="handleToastAction(toastState.action.onClick)"
         >
-          {{ toastState.action.label }}
+          undo
         </button>
         <button
           v-else-if="!toastState.persistent"
@@ -271,6 +282,9 @@ watch(
         role="status"
         aria-live="polite"
         aria-atomic="true"
+        @pointerdown="handleInAppNotificationPointerDown"
+        @pointerup="handleInAppNotificationPointerUp"
+        @pointercancel="handleInAppNotificationPointerCancel"
       >
         <span class="material-symbols-outlined" aria-hidden="true">
           {{ notificationState.tone === 'error' ? 'error' : 'check_circle' }}

@@ -19,8 +19,13 @@ const state = vi.hoisted(() => ({
       avatarColor: '#6b8f71',
     },
   ],
+  dismissToast: vi.fn(),
   dismissInAppNotification: vi.fn(),
   notificationState: {
+    __v_isRef: true,
+    value: null as null | Record<string, unknown>,
+  },
+  toastState: {
     __v_isRef: true,
     value: null as null | Record<string, unknown>,
   },
@@ -50,9 +55,9 @@ vi.mock('@/app/stores/subscription', () => ({
 
 vi.mock('@/shared/composables/useToast', () => ({
   useToast: () => ({
-    dismissToast: vi.fn(),
+    dismissToast: state.dismissToast,
     showToast: vi.fn(),
-    toastState: null,
+    toastState: state.toastState,
   }),
 }));
 
@@ -107,51 +112,77 @@ function showNotification() {
   };
 }
 
-function getNotificationSwipeHandlers(
-  wrapper: ReturnType<typeof mountAppShell>
-) {
-  return wrapper.vm.$.setupState as unknown as {
-    handleInAppNotificationPointerDown: (event: PointerEvent) => void;
-    handleInAppNotificationPointerUp: (event: PointerEvent) => void;
-  };
-}
-
 beforeEach(() => {
+  state.dismissToast.mockReset();
   state.dismissInAppNotification.mockReset();
   state.notificationState.value = null;
+  state.toastState.value = null;
 });
 
 describe('AppShell Premium profile ring', () => {
+  it('uses a labelled undo icon for a toast action', async () => {
+    const undo = vi.fn();
+    state.toastState.value = {
+      action: { label: 'Undo deletion', onClick: undo },
+      id: 1,
+      loading: false,
+      message: 'Note deleted.',
+      persistent: false,
+      tone: 'status',
+    };
+
+    const wrapper = mountAppShell();
+    const action = wrapper.get('[aria-label="Undo deletion"]');
+
+    expect(action.classes()).toContain('app-toast__action');
+    expect(action.text()).toBe('undo');
+
+    await action.trigger('click');
+
+    expect(undo).toHaveBeenCalledOnce();
+    expect(state.dismissToast).toHaveBeenCalledOnce();
+  });
+
   it('dismisses the shared in-app notification after an upward swipe', async () => {
     showNotification();
     const wrapper = mountAppShell();
     const notification = wrapper.get('.in-app-notification');
 
     expect(notification.text()).toContain('Account export downloaded.');
-    const swipeHandlers = getNotificationSwipeHandlers(wrapper);
-    swipeHandlers.handleInAppNotificationPointerDown({
-      clientY: 180,
-    } as PointerEvent);
-    swipeHandlers.handleInAppNotificationPointerUp({
-      clientY: 120,
-    } as PointerEvent);
+    await notification.trigger('pointerdown', { clientY: 180 });
+    await notification.trigger('pointerup', { clientY: 120 });
+
     expect(state.dismissInAppNotification).toHaveBeenCalledOnce();
   });
 
-  it('keeps the notification for a short upward movement', async () => {
+  it('keeps the notification for a short, downward, or sideways movement', async () => {
     showNotification();
     const wrapper = mountAppShell();
-    const swipeHandlers = getNotificationSwipeHandlers(wrapper);
+    const notification = wrapper.get('.in-app-notification');
 
-    swipeHandlers.handleInAppNotificationPointerDown({
-      clientY: 180,
-    } as PointerEvent);
-    swipeHandlers.handleInAppNotificationPointerUp({
-      clientY: 150,
-    } as PointerEvent);
+    await notification.trigger('pointerdown', { clientX: 20, clientY: 180 });
+    await notification.trigger('pointerup', { clientX: 20, clientY: 150 });
+    await notification.trigger('pointerdown', { clientX: 20, clientY: 120 });
+    await notification.trigger('pointerup', { clientX: 20, clientY: 180 });
+    await notification.trigger('pointerdown', { clientX: 20, clientY: 180 });
+    await notification.trigger('pointerup', { clientX: 100, clientY: 180 });
+    await notification.trigger('pointerdown', { clientX: 20, clientY: 180 });
+    await notification.trigger('pointerup', { clientX: 100, clientY: 120 });
 
     expect(state.dismissInAppNotification).not.toHaveBeenCalled();
     expect(wrapper.find('.in-app-notification__dismiss').exists()).toBe(false);
+  });
+
+  it('keeps the notification after a cancelled upward gesture', async () => {
+    showNotification();
+    const wrapper = mountAppShell();
+    const notification = wrapper.get('.in-app-notification');
+
+    await notification.trigger('pointerdown', { clientY: 180 });
+    await notification.trigger('pointercancel');
+    await notification.trigger('pointerup', { clientY: 120 });
+
+    expect(state.dismissInAppNotification).not.toHaveBeenCalled();
   });
 
   it('renders the signed-in participant avatar instead of the first household avatar', () => {
