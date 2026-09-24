@@ -3,10 +3,12 @@ import { computed, ref } from 'vue';
 import type { Participant } from '@/features/participants/types';
 import type { TaskStatus } from '@/features/tasks/types';
 import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
+import { haptics } from '@/shared/services/hapticsService';
 import {
   clampTaskSwipeOffset,
   hasReachedTaskSwipeThreshold,
   isHorizontalTaskSwipe,
+  shouldPulseOnTaskSwipeReadyTransition,
   shouldSuppressClickAfterTaskSwipe,
   TASK_SWIPE_INTENT_PX,
 } from '@/features/tasks/taskSwipeActions';
@@ -44,6 +46,7 @@ const cardWidth = ref(0);
 const isDragging = ref(false);
 const isSwipeGesture = ref(false);
 const suppressNextOpen = ref(false);
+const wasActionReady = ref(false);
 
 let pointerId: number | null = null;
 let pointerTarget: HTMLElement | null = null;
@@ -69,8 +72,21 @@ function resetSwipe() {
   offsetX.value = 0;
   isDragging.value = false;
   isSwipeGesture.value = false;
+  wasActionReady.value = false;
   pointerId = null;
   pointerTarget = null;
+}
+
+function updateActionReadyFeedback() {
+  const isActionReady = isFinishReady.value || isDeleteReady.value;
+
+  if (
+    shouldPulseOnTaskSwipeReadyTransition(wasActionReady.value, isActionReady)
+  ) {
+    void haptics.refreshReady();
+  }
+
+  wasActionReady.value = isActionReady;
 }
 
 function releasePointerCapture() {
@@ -135,6 +151,7 @@ function handlePointerMove(event: PointerEvent) {
   offsetX.value = canMoveInDirection
     ? clampTaskSwipeOffset(deltaX, cardWidth.value, props.canFinish)
     : 0;
+  updateActionReadyFeedback();
 
   if (Math.abs(deltaX) > Math.abs(maxOffsetX)) {
     maxOffsetX = deltaX;

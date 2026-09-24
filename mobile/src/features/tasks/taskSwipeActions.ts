@@ -35,3 +35,10 @@ export function shouldSuppressClickAfterTaskSwipe(
 ) {
   return Math.abs(maxOffsetX) >= intentPx;
 }
+
+export function shouldPulseOnTaskSwipeReadyTransition(
+  wasReady: boolean,
+  isReady: boolean
+) {
+  return !wasReady && isReady;
+}

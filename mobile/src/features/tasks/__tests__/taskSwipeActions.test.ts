@@ -3,6 +3,7 @@ import {
   clampTaskSwipeOffset,
   hasReachedTaskSwipeThreshold,
   isHorizontalTaskSwipe,
+  shouldPulseOnTaskSwipeReadyTransition,
   shouldSuppressClickAfterTaskSwipe,
 } from '@/features/tasks/taskSwipeActions';
 
@@ -33,5 +34,13 @@ describe('task swipe actions', () => {
   it('suppresses a following card click after a meaningful drag', () => {
     expect(shouldSuppressClickAfterTaskSwipe(7)).toBe(false);
     expect(shouldSuppressClickAfterTaskSwipe(-8)).toBe(true);
+  });
+
+  it('pulses only when a swipe enters action readiness', () => {
+    expect(shouldPulseOnTaskSwipeReadyTransition(false, false)).toBe(false);
+    expect(shouldPulseOnTaskSwipeReadyTransition(false, true)).toBe(true);
+    expect(shouldPulseOnTaskSwipeReadyTransition(true, true)).toBe(false);
+    expect(shouldPulseOnTaskSwipeReadyTransition(true, false)).toBe(false);
+    expect(shouldPulseOnTaskSwipeReadyTransition(false, true)).toBe(true);
   });
 });
