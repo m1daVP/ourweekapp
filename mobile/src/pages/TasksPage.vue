@@ -1,0 +1,918 @@
+<script setup lang="ts">
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
+import { useMeetingsStore } from '@/app/stores/meetings';
+import { useParticipantsStore } from '@/app/stores/participants';
+import { useTasksStore } from '@/app/stores/tasks';
+import type { Participant } from '@/features/participants/types';
+import type {
+  Task,
+  TaskResponsibilityType,
+  TaskStatus,
+} from '@/features/tasks/types';
+import TaskSwipeActionCard from '@/features/tasks/components/TaskSwipeActionCard.vue';
+import BaseBottomSheet from '@/shared/components/BaseBottomSheet.vue';
+import ConfirmationDialog from '@/shared/components/ConfirmationDialog.vue';
+import DatePickerField from '@/shared/components/DatePickerField.vue';
+import SelectPickerField from '@/shared/components/SelectPickerField.vue';
+import type { PickerOption } from '@/shared/components/SelectPickerField.vue';
+import { useStartupLoadingState } from '@/shared/composables/useStartupLoadingState';
+import { useInAppNotification } from '@/shared/composables/useInAppNotification';
+import { haptics } from '@/shared/services/hapticsService';
+import { useWorkspacePermissions } from '@/shared/composables/useWorkspacePermissions';
+
+type TaskFilter = 'todo' | 'done' | 'all';
+type TaskCardTone = 'default' | 'danger';
+type TaskCardGroup = 'shared' | 'mine';
+
+interface TaskCardView {
+  id: string;
+  title: string;
+  metadataIcon: string;
+  metadataText: string;
+  metadataTone: TaskCardTone;
+  participants: Participant[];
+  accessory: 'avatars' | 'badge' | 'none';
+  badgeCount?: number;
+  group: TaskCardGroup;
+  task?: Task;
+}
+
+const route = useRoute();
+const meetingsStore = useMeetingsStore();
+const participantsStore = useParticipantsStore();
+const tasksStore = useTasksStore();
+const { can } = useWorkspacePermissions();
+const { isStartupLoading } = useStartupLoadingState();
+const { t, locale } = useI18n();
+const { showInAppNotification } = useInAppNotification();
+
+function showTaskConfirmation(message: string) {
+  statusMessage.value = '';
+  showInAppNotification(message);
+}
+
+const taskFilters: Array<{ value: TaskFilter; label: string }> = [
+  { value: 'todo', label: 'To Do' },
+  { value: 'done', label: 'Done' },
+  { value: 'all', label: 'All' },
+];
+
+const editDrafts = reactive<
+  Record<
+    string,
+    {
+      title: string;
+      dueDate: string;
+      responsibilityChoice: string;
+    }
+  >
+>({});
+const newTaskDraft = reactive({
+  title: '',
+  dueDate: '',
+  responsibilityChoice: 'needsDiscussion',
+});
+const selectedFilter = ref<TaskFilter>('todo');
+const selectedTask = ref<Task | null>(null);
+const taskPendingDelete = ref<Task | null>(null);
+const isAddTaskSheetOpen = ref(false);
+const statusMessage = ref('');
+const completingTaskIds = ref<Set<string>>(new Set());
+const taskCompletionStatusTimers = new Map<string, number>();
+const taskCompletionResetTimers = new Map<string, number>();
+const TASK_COMPLETION_SETTLE_MS = 720;
+const TASK_COMPLETION_RESET_MS = 360;
+
+const openTasks = computed(() => tasksStore.openTasks);
+const doneTasks = computed(() => tasksStore.doneTasks);
+const skippedTasks = computed(() => tasksStore.skippedTasks);
+const activeParticipants = computed(() => participantsStore.activeParticipants);
+const firstParticipant = computed(() => activeParticipants.value[0] ?? null);
+const canEditTasks = computed(() => can('editTasks'));
+const canDeleteTasks = computed(() => can('deleteTasks'));
+const taskFilterCounts = computed<Record<TaskFilter, number>>(() => ({
+  todo: openTasks.value.length,
+  done: doneTasks.value.length,
+  all: tasksStore.tasks.length,
+}));
+
+const filteredTasks = computed(() => {
+  if (selectedFilter.value === 'todo') {
+    return openTasks.value;
+  }
+
+  if (selectedFilter.value === 'done') {
+    return doneTasks.value;
+  }
+
+  return [...openTasks.value, ...doneTasks.value, ...skippedTasks.value];
+});
+
+const taskCards = computed(() => filteredTasks.value.map(createTaskCard));
+const sharedTaskCards = computed(() =>
+  taskCards.value.filter((card) => card.group === 'shared')
+);
+const myTaskCards = computed(() =>
+  taskCards.value.filter((card) => card.group === 'mine')
+);
+const showTaskListSkeleton = computed(
+  () => isStartupLoading.value && tasksStore.tasks.length === 0
+);
+const selectedTaskDraft = computed(() =>
+  selectedTask.value ? editDrafts[selectedTask.value.id] : null
+);
+const emptyTaskMessage = computed(() => {
+  if (selectedFilter.value === 'done') {
+    return t('tasksPage.nothingDone');
+  }
+
+  if (selectedFilter.value === 'all' && tasksStore.tasks.length === 0) {
+    return t('tasksPage.noOpenTasks');
+  }
+
+  return t('tasksPage.noOpenTasks');
+});
+
+onMounted(() => {
+  tasksStore.syncFromMeetings(meetingsStore.meetings);
+  const requestedTask = tasksStore.tasks.find(
+    (task) => task.id === route?.query.taskId
+  );
+  if (requestedTask) selectedTask.value = requestedTask;
+  newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
+});
+
+onBeforeUnmount(() => {
+  for (const timer of taskCompletionStatusTimers.values()) {
+    window.clearTimeout(timer);
+  }
+
+  for (const timer of taskCompletionResetTimers.values()) {
+    window.clearTimeout(timer);
+  }
+});
+
+watch(
+  () =>
+    tasksStore.tasks.map((task) => `${task.id}:${task.updatedAt}`).join('|'),
+  () => syncDrafts(),
+  { immediate: true }
+);
+
+function syncDrafts() {
+  const taskIds = new Set(tasksStore.tasks.map((task) => task.id));
+
+  for (const task of tasksStore.tasks) {
+    if (!editDrafts[task.id]) {
+      editDrafts[task.id] = {
+        title: task.title,
+        dueDate: task.dueDate ?? '',
+        responsibilityChoice: getResponsibilityChoice(task),
+      };
+    }
+  }
+
+  for (const taskId of Object.keys(editDrafts)) {
+    if (!taskIds.has(taskId)) {
+      delete editDrafts[taskId];
+    }
+  }
+}
+
+function getParticipantName(participantId: string) {
+  return (
+    participantsStore.getParticipantById(participantId)?.name ??
+    t('meeting.formerParticipant')
+  );
+}
+
+function getResponsibilityLabel(
+  responsibilityType: TaskResponsibilityType,
+  participantIds: string[]
+) {
+  if (responsibilityType === 'shared') {
+    return t('meeting.shared');
+  }
+
+  if (responsibilityType === 'needsDiscussion') {
+    return t('meeting.needsDiscussion');
+  }
+
+  return (
+    participantIds.map(getParticipantName).join(', ') ||
+    t('meeting.formerParticipant')
+  );
+}
+
+function getResponsibilityChoice(task: Task) {
+  if (task.responsibilityType === 'shared') {
+    return 'shared';
+  }
+
+  if (task.responsibilityType === 'needsDiscussion') {
+    return 'needsDiscussion';
+  }
+
+  return task.responsibleParticipantIds[0] ?? 'needsDiscussion';
+}
+
+function getTaskParticipants(task: Task) {
+  const participantsById = new Map<string, Participant>();
+
+  for (const participantId of task.responsibleParticipantIds) {
+    const participant = participantsStore.getParticipantById(participantId);
+
+    if (participant) {
+      participantsById.set(participant.id, participant);
+    }
+  }
+
+  if (task.responsibilityType === 'shared' && !participantsById.size) {
+    for (const participant of activeParticipants.value) {
+      participantsById.set(participant.id, participant);
+    }
+  }
+
+  return [...participantsById.values()];
+}
+
+function getResponsibilityOptions(task?: Task) {
+  const participantsById = new Map<string, Participant>();
+
+  for (const participant of activeParticipants.value) {
+    participantsById.set(participant.id, participant);
+  }
+
+  for (const participantId of task?.responsibleParticipantIds ?? []) {
+    const participant = participantsStore.getParticipantById(participantId);
+
+    if (participant) {
+      participantsById.set(participant.id, participant);
+    }
+  }
+
+  return [...participantsById.values()];
+}
+
+function getResponsibilityPickerOptions(task?: Task): PickerOption[] {
+  return [
+    {
+      value: 'needsDiscussion',
+      label: t('tasksPage.needsDiscussion'),
+    },
+    { value: 'shared', label: t('tasksPage.shared') },
+    ...getResponsibilityOptions(task).map((participant) => ({
+      value: participant.id,
+      label: `${participant.name}${
+        participant.isActive ? '' : t('tasksPage.disabledParticipant')
+      }`,
+    })),
+  ];
+}
+
+function resolveDraftResponsibility(choice: string) {
+  if (choice === 'shared') {
+    return {
+      responsibilityType: 'shared' as const,
+      responsibleParticipantIds: activeParticipants.value.map(
+        (participant) => participant.id
+      ),
+    };
+  }
+
+  if (choice === 'needsDiscussion') {
+    return {
+      responsibilityType: 'needsDiscussion' as const,
+      responsibleParticipantIds: [],
+    };
+  }
+
+  return {
+    responsibilityType: 'participant' as const,
+    responsibleParticipantIds: [choice],
+  };
+}
+
+function getMeeting(meetingId?: string) {
+  return (
+    meetingsStore.meetings.find((meeting) => meeting.id === meetingId) ?? null
+  );
+}
+
+function getMeetingLabel(meetingId?: string) {
+  const meeting = getMeeting(meetingId);
+
+  if (!meeting) {
+    return '';
+  }
+
+  return `${meeting.title} - ${formatDate(meeting.completedAt ?? meeting.updatedAt)}`;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(locale.value, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+function createTaskCard(task: Task): TaskCardView {
+  const participants = getTaskParticipants(task);
+  const isShared =
+    task.responsibilityType === 'shared' ||
+    task.responsibleParticipantIds.length !== 1;
+  const metadata = getTaskMetadata(task);
+  const shouldUseBadge =
+    isShared && (participants.length > 2 || participants.length === 0);
+
+  return {
+    id: task.id,
+    title: task.title,
+    metadataIcon: metadata.icon,
+    metadataText: metadata.text,
+    metadataTone: metadata.tone,
+    participants,
+    accessory: shouldUseBadge
+      ? 'badge'
+      : participants.length
+        ? 'avatars'
+        : 'none',
+    badgeCount: shouldUseBadge ? Math.max(participants.length, 2) : undefined,
+    group: isShared ? 'shared' : 'mine',
+    task,
+  };
+}
+
+function getTaskMetadata(task: Task): {
+  icon: string;
+  text: string;
+  tone: TaskCardTone;
+} {
+  if (task.status === 'done') {
+    return {
+      icon: 'check_circle',
+      text: `${t('common.done')} - ${formatRelativeDay(
+        getDayDifferenceFromToday(task.updatedAt)
+      )}`,
+      tone: 'default',
+    };
+  }
+
+  if (task.status === 'skipped') {
+    return {
+      icon: 'remove_circle',
+      text: `${t('tasksPage.skip')} - ${formatRelativeDay(
+        getDayDifferenceFromToday(task.updatedAt)
+      )}`,
+      tone: 'default',
+    };
+  }
+
+  if (task.dueDate) {
+    const dayDifference = getDayDifferenceFromToday(task.dueDate);
+
+    return {
+      icon: dayDifference < 0 ? 'warning' : 'calendar_today',
+      text: formatRelativeDay(dayDifference),
+      tone: dayDifference < 0 ? 'danger' : 'default',
+    };
+  }
+
+  return {
+    icon: 'calendar_today',
+    text: getResponsibilityLabel(
+      task.responsibilityType,
+      task.responsibleParticipantIds
+    ),
+    tone: 'default',
+  };
+}
+
+function getDayDifferenceFromToday(value: string) {
+  const date = getDateOnly(value);
+  const today = getToday();
+
+  return Math.round((date.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+function formatRelativeDay(dayDifference: number) {
+  const formatted = new Intl.RelativeTimeFormat(locale.value, {
+    numeric: 'auto',
+  }).format(dayDifference, 'day');
+
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+function getToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function getDateOnly(value: string) {
+  const datePart = value.split('T')[0] || value;
+  const date = new Date(`${datePart}T00:00:00`);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function saveTask(task: Task) {
+  if (!canEditTasks.value) {
+    statusMessage.value = t('meeting.roleCannotEditTasks');
+    return;
+  }
+
+  const draft = editDrafts[task.id];
+
+  if (!draft?.title.trim()) {
+    statusMessage.value = t('tasksPage.addShortTitle');
+    return;
+  }
+
+  const responsibility = resolveDraftResponsibility(draft.responsibilityChoice);
+
+  tasksStore.updateTask(task.id, {
+    title: draft.title,
+    dueDate: draft.dueDate,
+    ...responsibility,
+  });
+  meetingsStore.updateTaskDetails(task.id, {
+    title: draft.title,
+    dueDate: draft.dueDate,
+    ...responsibility,
+  });
+  showTaskConfirmation(t('tasksPage.taskUpdated'));
+  selectedTask.value = null;
+  void haptics.confirm();
+}
+
+function addTask() {
+  if (!canEditTasks.value) {
+    statusMessage.value = t('meeting.roleCannotEditTasks');
+    return;
+  }
+
+  if (!newTaskDraft.title.trim()) {
+    statusMessage.value = t('tasksPage.addShortTitle');
+    return;
+  }
+
+  const responsibility = resolveDraftResponsibility(
+    newTaskDraft.responsibilityChoice
+  );
+
+  const createdTask = tasksStore.addTask({
+    title: newTaskDraft.title,
+    dueDate: newTaskDraft.dueDate,
+    ...responsibility,
+  });
+
+  if (!createdTask) {
+    statusMessage.value = t('tasksPage.addShortTitle');
+    return;
+  }
+
+  newTaskDraft.title = '';
+  newTaskDraft.dueDate = '';
+  newTaskDraft.responsibilityChoice = firstParticipant.value?.id ?? 'shared';
+  isAddTaskSheetOpen.value = false;
+  showTaskConfirmation(t('tasksPage.updated'));
+  void haptics.confirm();
+}
+
+function setTaskStatus(task: Task, status: TaskStatus) {
+  if (!canEditTasks.value) {
+    statusMessage.value = t('meeting.roleCannotEditTasks');
+    return;
+  }
+
+  if (status === 'done' && task.status !== 'done') {
+    completeTaskWithAnimation(task);
+    return;
+  }
+
+  clearTaskCompletion(task.id);
+  tasksStore.updateTaskStatus(task.id, status);
+  meetingsStore.updateTaskStatus(task.id, status);
+  showTaskConfirmation(
+    status === 'done' ? t('tasksPage.markedDone') : t('tasksPage.updated')
+  );
+  selectedTask.value = null;
+}
+
+function completeTaskWithAnimation(task: Task) {
+  if (isTaskCompleting(task.id)) {
+    return;
+  }
+
+  setTaskCompleting(task.id, true);
+  showTaskConfirmation(t('tasksPage.markedDone'));
+  selectedTask.value = null;
+
+  void nextTick(() => {
+    const timer = window.setTimeout(
+      () => {
+        taskCompletionStatusTimers.delete(task.id);
+        tasksStore.updateTaskStatus(task.id, 'done');
+        meetingsStore.updateTaskStatus(task.id, 'done');
+        void haptics.confirm();
+        scheduleTaskCompletionReset(task.id);
+      },
+      prefersReducedMotion() ? 0 : TASK_COMPLETION_SETTLE_MS
+    );
+
+    taskCompletionStatusTimers.set(task.id, timer);
+  });
+}
+
+function scheduleTaskCompletionReset(taskId: string) {
+  const existingTimer = taskCompletionResetTimers.get(taskId);
+
+  if (existingTimer) {
+    window.clearTimeout(existingTimer);
+  }
+
+  const timer = window.setTimeout(
+    () => {
+      taskCompletionResetTimers.delete(taskId);
+      setTaskCompleting(taskId, false);
+    },
+    prefersReducedMotion() ? 0 : TASK_COMPLETION_RESET_MS
+  );
+
+  taskCompletionResetTimers.set(taskId, timer);
+}
+
+function clearTaskCompletion(taskId: string) {
+  const statusTimer = taskCompletionStatusTimers.get(taskId);
+  const resetTimer = taskCompletionResetTimers.get(taskId);
+
+  if (statusTimer) {
+    window.clearTimeout(statusTimer);
+    taskCompletionStatusTimers.delete(taskId);
+  }
+
+  if (resetTimer) {
+    window.clearTimeout(resetTimer);
+    taskCompletionResetTimers.delete(taskId);
+  }
+
+  setTaskCompleting(taskId, false);
+}
+
+function setTaskCompleting(taskId: string, isCompleting: boolean) {
+  const nextCompletingTaskIds = new Set(completingTaskIds.value);
+
+  if (isCompleting) {
+    nextCompletingTaskIds.add(taskId);
+  } else {
+    nextCompletingTaskIds.delete(taskId);
+  }
+
+  completingTaskIds.value = nextCompletingTaskIds;
+}
+
+function isTaskCompleting(taskId: string) {
+  return completingTaskIds.value.has(taskId);
+}
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+function toggleTaskStatus(card: TaskCardView) {
+  if (!card.task) {
+    return;
+  }
+
+  setTaskStatus(card.task, card.task.status === 'done' ? 'open' : 'done');
+}
+
+function getTaskToggleLabel(card: TaskCardView) {
+  if (card.task?.status === 'done') {
+    return `${t('tasksPage.reopen')} ${card.title}`;
+  }
+
+  return `${t('common.done')} ${card.title}`;
+}
+
+function deleteTask(task: Task) {
+  if (!canDeleteTasks.value) {
+    statusMessage.value = t('tasksPage.ownerDeleteOnly');
+    return;
+  }
+
+  taskPendingDelete.value = task;
+}
+
+function confirmDeleteTask() {
+  const task = taskPendingDelete.value;
+
+  if (!task) {
+    return;
+  }
+
+  taskPendingDelete.value = null;
+
+  tasksStore.deleteTask(task.id);
+  meetingsStore.deleteTask(task.id);
+  selectedTask.value = null;
+  showTaskConfirmation(t('tasksPage.taskDeleted'));
+  void haptics.remove();
+}
+
+function openTask(card: TaskCardView) {
+  if (card.task && !isTaskCompleting(card.id)) {
+    selectedTask.value = card.task;
+  }
+}
+
+function openAddTaskSheet() {
+  if (!canEditTasks.value) {
+    statusMessage.value = t('meeting.roleCannotEditTasks');
+    return;
+  }
+
+  isAddTaskSheetOpen.value = true;
+}
+</script>
+
+<template>
+  <section class="tasks-page tasks-page--redesign" aria-label="Household Tasks">
+    <div class="task-filter-tabs" role="tablist" aria-label="Task filters">
+      <button
+        v-for="filter in taskFilters"
+        :key="filter.value"
+        type="button"
+        role="tab"
+        :aria-selected="selectedFilter === filter.value"
+        :class="[
+          'task-filter-tabs__button',
+          { 'is-active': selectedFilter === filter.value },
+        ]"
+        @click="selectedFilter = filter.value"
+      >
+        <span>{{ filter.label }}</span>
+        <small>{{ taskFilterCounts[filter.value] }}</small>
+      </button>
+    </div>
+
+    <section
+      v-if="sharedTaskCards.length"
+      class="task-card-section"
+      aria-labelledby="shared-tasks-title"
+    >
+      <h2 id="shared-tasks-title">SHARED RESPONSIBILITIES</h2>
+      <TransitionGroup
+        v-if="sharedTaskCards.length"
+        tag="ul"
+        name="task-card-motion"
+        class="task-card-list"
+      >
+        <TaskSwipeActionCard
+          v-for="card in sharedTaskCards"
+          :key="card.id"
+          :title="card.title"
+          :status="card.task?.status ?? 'open'"
+          :metadata-icon="card.metadataIcon"
+          :metadata-text="card.metadataText"
+          :metadata-tone="card.metadataTone"
+          :participants="card.participants"
+          :accessory="card.accessory"
+          :badge-count="card.badgeCount"
+          :can-toggle="canEditTasks"
+          :can-finish="canEditTasks && card.task?.status === 'open'"
+          :can-remove="canDeleteTasks"
+          :is-completing="isTaskCompleting(card.id)"
+          :toggle-label="getTaskToggleLabel(card)"
+          :finish-label="t('common.finish')"
+          :remove-label="t('common.remove')"
+          @open="openTask(card)"
+          @toggle-status="toggleTaskStatus(card)"
+          @finish="card.task && setTaskStatus(card.task, 'done')"
+          @request-delete="card.task && deleteTask(card.task)"
+        />
+      </TransitionGroup>
+    </section>
+
+    <section
+      v-if="myTaskCards.length"
+      class="task-card-section"
+      aria-labelledby="my-tasks-title"
+    >
+      <h2 id="my-tasks-title">MY TASKS</h2>
+      <TransitionGroup
+        v-if="myTaskCards.length"
+        tag="ul"
+        name="task-card-motion"
+        class="task-card-list"
+      >
+        <TaskSwipeActionCard
+          v-for="card in myTaskCards"
+          :key="card.id"
+          :title="card.title"
+          :status="card.task?.status ?? 'open'"
+          :metadata-icon="card.metadataIcon"
+          :metadata-text="card.metadataText"
+          :metadata-tone="card.metadataTone"
+          :participants="card.participants"
+          :accessory="card.accessory"
+          :badge-count="card.badgeCount"
+          :can-toggle="canEditTasks"
+          :can-finish="canEditTasks && card.task?.status === 'open'"
+          :can-remove="canDeleteTasks"
+          :is-completing="isTaskCompleting(card.id)"
+          :toggle-label="getTaskToggleLabel(card)"
+          :finish-label="t('common.finish')"
+          :remove-label="t('common.remove')"
+          @open="openTask(card)"
+          @toggle-status="toggleTaskStatus(card)"
+          @finish="card.task && setTaskStatus(card.task, 'done')"
+          @request-delete="card.task && deleteTask(card.task)"
+        />
+      </TransitionGroup>
+    </section>
+    <section
+      v-if="showTaskListSkeleton"
+      class="task-card-section"
+      :aria-label="t('app.loadingSavedData')"
+    >
+      <ul class="task-card-list">
+        <li
+          v-for="item in 3"
+          :key="item"
+          class="task-card task-card--skeleton"
+          aria-hidden="true"
+        >
+          <span class="app-skeleton app-skeleton--circle" />
+          <span class="app-skeleton-group">
+            <span class="app-skeleton app-skeleton--title" />
+            <span class="app-skeleton app-skeleton--text app-skeleton--short" />
+          </span>
+          <span class="app-skeleton app-skeleton--circle" />
+        </li>
+      </ul>
+    </section>
+    <p v-else-if="!taskCards.length" class="task-empty">
+      {{ emptyTaskMessage }}
+    </p>
+
+    <p v-if="statusMessage" class="meeting-status" role="status">
+      {{ statusMessage }}
+    </p>
+
+    <button
+      type="button"
+      class="tasks-fab"
+      :aria-label="t('tasksPage.task')"
+      @click="openAddTaskSheet"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+    </button>
+
+    <BaseBottomSheet
+      :open="isAddTaskSheetOpen"
+      :title="t('tasksPage.task')"
+      @close="isAddTaskSheetOpen = false"
+    >
+      <form class="task-editor-form" @submit.prevent="addTask">
+        <label>
+          <span>{{ t('tasksPage.task') }}</span>
+          <input v-model="newTaskDraft.title" type="text" />
+        </label>
+        <label>
+          <span>{{ t('tasksPage.responsible') }}</span>
+          <SelectPickerField
+            v-model="newTaskDraft.responsibilityChoice"
+            :label="t('tasksPage.responsible')"
+            :options="getResponsibilityPickerOptions()"
+          />
+        </label>
+        <label>
+          <span>{{ t('tasksPage.stillRelevant') }}</span>
+          <DatePickerField
+            v-model="newTaskDraft.dueDate"
+            :label="t('tasksPage.stillRelevant')"
+          />
+        </label>
+        <button type="submit" class="meeting-primary">
+          {{ t('common.save') }}
+        </button>
+      </form>
+    </BaseBottomSheet>
+
+    <BaseBottomSheet
+      :open="Boolean(selectedTask && selectedTaskDraft)"
+      :title="t('tasksPage.task')"
+      @close="selectedTask = null"
+    >
+      <form
+        v-if="selectedTask && selectedTaskDraft"
+        class="task-editor-form"
+        @submit.prevent="saveTask(selectedTask)"
+      >
+        <label>
+          <span>{{ t('tasksPage.task') }}</span>
+          <input
+            v-model="selectedTaskDraft.title"
+            type="text"
+            :disabled="!canEditTasks"
+          />
+        </label>
+        <label>
+          <span>{{ t('tasksPage.responsible') }}</span>
+          <SelectPickerField
+            v-model="selectedTaskDraft.responsibilityChoice"
+            :label="t('tasksPage.responsible')"
+            :options="getResponsibilityPickerOptions(selectedTask)"
+            :disabled="!canEditTasks"
+          />
+        </label>
+        <label>
+          <span>{{ t('tasksPage.stillRelevant') }}</span>
+          <DatePickerField
+            v-model="selectedTaskDraft.dueDate"
+            :label="t('tasksPage.stillRelevant')"
+            :disabled="!canEditTasks"
+          />
+        </label>
+        <section
+          v-if="selectedTask.description"
+          class="task-editor-form__details"
+          :aria-label="t('tasksPage.optionalDetail')"
+        >
+          <span class="task-editor-form__details-label">
+            {{ t('tasksPage.optionalDetail') }}
+          </span>
+          <p class="task-editor-form__details-copy">
+            {{ selectedTask.description }}
+          </p>
+        </section>
+        <p v-if="selectedTask.sourceMeetingId" class="task-editor-form__note">
+          {{
+            t('tasksPage.fromMeeting', {
+              meeting: getMeetingLabel(selectedTask.sourceMeetingId),
+            })
+          }}
+        </p>
+        <div class="task-editor-form__actions">
+          <button
+            v-if="canEditTasks && selectedTask.status !== 'done'"
+            type="button"
+            @click="setTaskStatus(selectedTask, 'done')"
+          >
+            {{ t('common.done') }}
+          </button>
+          <button
+            v-if="canEditTasks && selectedTask.status === 'done'"
+            type="button"
+            @click="setTaskStatus(selectedTask, 'open')"
+          >
+            {{ t('tasksPage.reopen') }}
+          </button>
+          <button
+            v-if="canEditTasks"
+            type="button"
+            @click="setTaskStatus(selectedTask, 'skipped')"
+          >
+            {{ t('tasksPage.skip') }}
+          </button>
+          <button v-if="canEditTasks" type="submit" class="meeting-primary">
+            {{ t('common.save') }}
+          </button>
+          <button
+            v-if="canDeleteTasks"
+            type="button"
+            class="task-editor-form__danger"
+            @click="deleteTask(selectedTask)"
+          >
+            {{ t('common.delete') }}
+          </button>
+        </div>
+      </form>
+    </BaseBottomSheet>
+    <ConfirmationDialog
+      :open="Boolean(taskPendingDelete)"
+      :title="t('tasksPage.confirmDeleteTask')"
+      :message="t('common.cannotUndo')"
+      :confirm-label="t('common.delete')"
+      destructive
+      @close="taskPendingDelete = null"
+      @confirm="confirmDeleteTask"
+    />
+  </section>
+</template>

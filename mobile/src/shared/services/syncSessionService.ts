@@ -1,0 +1,51 @@
+import { useMeetingsStore } from '@/app/stores/meetings';
+import { useParticipantsStore } from '@/app/stores/participants';
+import { usePrivateNotesStore } from '@/app/stores/privateNotes';
+import { useTasksStore } from '@/app/stores/tasks';
+import { useWorkspaceStore } from '@/app/stores/workspace';
+import {
+  bindSyncOwner,
+  readSyncMetadata,
+  resetSyncedAppDataForOwner,
+} from '@/shared/services/storageService';
+import { resetSyncRuntimeState } from '@/shared/services/syncRuntimeService';
+import type { UserRole } from '@/features/access/types';
+
+export function prepareSyncForAuthenticatedUser(
+  userId: string,
+  role: UserRole = 'viewer'
+) {
+  const currentMetadata = readSyncMetadata();
+
+  resetSyncRuntimeState();
+  usePrivateNotesStore().bindOwner(userId);
+
+  if (currentMetadata.ownerUserId === userId) {
+    bindSyncOwner(userId, currentMetadata.ownerWorkspaceId);
+    return { didResetSyncedData: false };
+  }
+
+  resetSyncedAppDataForOwner(userId);
+
+  const meetingsStore = useMeetingsStore();
+  const tasksStore = useTasksStore();
+  const participantsStore = useParticipantsStore();
+  const workspaceStore = useWorkspaceStore();
+
+  meetingsStore.meetings = [];
+  meetingsStore.activeMeetingId = null;
+  meetingsStore.draftSavedAt = null;
+  tasksStore.tasks = [];
+  tasksStore.agreements = [];
+  tasksStore.reviewDecisions = [];
+  participantsStore.participants = [];
+  participantsStore.currentParticipantId = null;
+  workspaceStore.resetForAuthenticatedUser(userId, role);
+
+  return { didResetSyncedData: true };
+}
+
+export function clearSyncSessionState() {
+  resetSyncRuntimeState();
+  usePrivateNotesStore().clearOwner();
+}

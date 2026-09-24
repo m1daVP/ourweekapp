@@ -1,0 +1,19 @@
+import type { AvatarType } from './avatarCatalog';
+
+export type ParticipantType = 'adult' | 'child' | 'other';
+
+export interface Participant {
+  id: string;
+  name: string;
+  initials: string;
+  avatarColor: string;
+  avatarType?: AvatarType | null;
+  type: ParticipantType;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  /** Server-owned identity; never included in participant-sync writes. */
+  email?: string;
+  serverRevision?: number;
+  deletedAt?: string;
+}

@@ -1,0 +1,18 @@
+node_modules
+dist
+dist-ssr
+.env
+.env.*
+!.env.example
+!.env.release.example
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+android/app/build
+android/build
+android/.idea
+updated-design
+
+# Sentry Config File
+.env.sentry-build-plugin

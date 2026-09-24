@@ -1,0 +1,215 @@
+{
+  "groups": [
+    {
+      "id": "abstract",
+      "avatars": [
+        {
+          "id": "blob",
+          "path": "/src/assets/avatars/abstract/blob.webp"
+        },
+        {
+          "id": "circles",
+          "path": "/src/assets/avatars/abstract/circles.webp"
+        },
+        {
+          "id": "rainbow",
+          "path": "/src/assets/avatars/abstract/rainbow.webp"
+        },
+        {
+          "id": "spiral",
+          "path": "/src/assets/avatars/abstract/spiral.webp"
+        }
+      ]
+    },
+    {
+      "id": "animals",
+      "avatars": [
+        {
+          "id": "bear",
+          "path": "/src/assets/avatars/animals/bear.webp"
+        },
+        {
+          "id": "bunny",
+          "path": "/src/assets/avatars/animals/bunny.webp"
+        },
+        {
+          "id": "cat",
+          "path": "/src/assets/avatars/animals/cat.webp"
+        },
+        {
+          "id": "fox",
+          "path": "/src/assets/avatars/animals/fox.webp"
+        }
+      ]
+    },
+    {
+      "id": "characters",
+      "avatars": [
+        {
+          "id": "astronaut-f",
+          "path": "/src/assets/avatars/characters/astronaut-f.webp"
+        },
+        {
+          "id": "astronaut-m",
+          "path": "/src/assets/avatars/characters/astronaut-m.webp"
+        },
+        {
+          "id": "atlantean-f",
+          "path": "/src/assets/avatars/characters/atlantean-f.webp"
+        },
+        {
+          "id": "atlantean-m",
+          "path": "/src/assets/avatars/characters/atlantean-m.webp"
+        },
+        {
+          "id": "cossack-f",
+          "path": "/src/assets/avatars/characters/cossack-f.webp"
+        },
+        {
+          "id": "cossack-m",
+          "path": "/src/assets/avatars/characters/cossack-m.webp"
+        },
+        {
+          "id": "viking-f",
+          "path": "/src/assets/avatars/characters/viking-f.webp"
+        },
+        {
+          "id": "viking-m",
+          "path": "/src/assets/avatars/characters/viking-m.webp"
+        }
+      ]
+    },
+    {
+      "id": "cosmic",
+      "avatars": [
+        {
+          "id": "moon",
+          "path": "/src/assets/avatars/cosmic/moon.webp"
+        },
+        {
+          "id": "saturn",
+          "path": "/src/assets/avatars/cosmic/saturn.webp"
+        },
+        {
+          "id": "star",
+          "path": "/src/assets/avatars/cosmic/star.webp"
+        },
+        {
+          "id": "sun",
+          "path": "/src/assets/avatars/cosmic/sun.webp"
+        }
+      ]
+    },
+    {
+      "id": "cozy",
+      "avatars": [
+        {
+          "id": "book",
+          "path": "/src/assets/avatars/cozy/book.webp"
+        },
+        {
+          "id": "candle",
+          "path": "/src/assets/avatars/cozy/candle.webp"
+        },
+        {
+          "id": "coffee",
+          "path": "/src/assets/avatars/cozy/coffee.webp"
+        },
+        {
+          "id": "headphones",
+          "path": "/src/assets/avatars/cozy/headphones.webp"
+        }
+      ]
+    },
+    {
+      "id": "flowers",
+      "avatars": [
+        {
+          "id": "daisy",
+          "path": "/src/assets/avatars/flowers/daisy.webp"
+        },
+        {
+          "id": "monstera",
+          "path": "/src/assets/avatars/flowers/monstera.webp"
+        },
+        {
+          "id": "sunflower",
+          "path": "/src/assets/avatars/flowers/sunflower.webp"
+        },
+        {
+          "id": "tulip",
+          "path": "/src/assets/avatars/flowers/tulip.webp"
+        }
+      ]
+    },
+    {
+      "id": "humans",
+      "avatars": [
+        {
+          "id": "human-01-f",
+          "path": "/src/assets/avatars/humans/human-01-f.webp"
+        },
+        {
+          "id": "human-01-m",
+          "path": "/src/assets/avatars/humans/human-01-m.webp"
+        },
+        {
+          "id": "human-02-f",
+          "path": "/src/assets/avatars/humans/human-02-f.webp"
+        },
+        {
+          "id": "human-02-m",
+          "path": "/src/assets/avatars/humans/human-02-m.webp"
+        },
+        {
+          "id": "human-03-f",
+          "path": "/src/assets/avatars/humans/human-03-f.webp"
+        },
+        {
+          "id": "human-03-m",
+          "path": "/src/assets/avatars/humans/human-03-m.webp"
+        },
+        {
+          "id": "human-04-f",
+          "path": "/src/assets/avatars/humans/human-04-f.webp"
+        },
+        {
+          "id": "human-04-m",
+          "path": "/src/assets/avatars/humans/human-04-m.webp"
+        },
+        {
+          "id": "human-05-f",
+          "path": "/src/assets/avatars/humans/human-05-f.webp"
+        },
+        {
+          "id": "human-05-m",
+          "path": "/src/assets/avatars/humans/human-05-m.webp"
+        },
+        {
+          "id": "human-06-f",
+          "path": "/src/assets/avatars/humans/human-06-f.webp"
+        },
+        {
+          "id": "human-06-m",
+          "path": "/src/assets/avatars/humans/human-06-m.webp"
+        },
+        {
+          "id": "human-07-f",
+          "path": "/src/assets/avatars/humans/human-07-f.webp"
+        },
+        {
+          "id": "human-07-m",
+          "path": "/src/assets/avatars/humans/human-07-m.webp"
+        },
+        {
+          "id": "human-08-f",
+          "path": "/src/assets/avatars/humans/human-08-f.webp"
+        },
+        {
+          "id": "human-08-m",
+          "path": "/src/assets/avatars/humans/human-08-m.webp"
+        }
+      ]
+    }
+  ]
+}
