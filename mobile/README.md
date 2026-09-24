@@ -1,281 +1,123 @@
 # OurWeek
 
-OurWeek is an Android-first mobile app for guided 15-minute weekly check-ins
-for couples and families.
+**A calmer weekly check-in for couples and families.**
 
-The app helps a household review the week, talk through practical tensions,
-assign tasks, record agreements, and carry unfinished follow-ups into the next
-weekly meeting. It is designed to feel calm and useful, not like therapy
-software and not like a corporate task tracker.
+OurWeek guides a short household conversation: review the past week, talk about
+what matters, agree on next steps, and carry unfinished work into the next
+meeting. The goal is a useful 15-minute ritual.
 
-## Product Focus
+This repository contains the Vue/Capacitor mobile app. The separate
+OurWeek API repository contains the
+Fastify service and database migrations. Both are needed to run the connected
+app.
 
-OurWeek supports one core ritual:
+## What the app does
 
-1. Start a weekly meeting.
-2. Review last week.
-3. Discuss household topics.
-4. Create tasks and agreements.
-5. Finish with a clear summary.
-6. Review unfinished items next week.
+1. Start a guided weekly meeting and choose the participants.
+2. Capture discussion points, tasks, and agreements.
+3. Review the meeting recap and follow through during the week.
+4. Return next week with prior work and meeting history available.
 
-Public v1 intentionally avoids generic family-organizer features such as chat,
-meal planning, grocery lists, complex budgeting, or calendar management.
+The app also includes local reminders, exports, account/workspace sync,
+Premium access, backend-generated AI recaps, and Google Calendar integration.
+Native purchases use RevenueCat; the API checks entitlements before granting
+paid access. Provider-backed features require their own configuration and
+accounts to exercise end to end.
 
-## Public V1 Scope
+Private notes remain on the device. AI recaps should be reviewed by a person
+before relying on them.
 
-- Guided weekly meeting flow
-- Default and additional meeting templates
-- Participant setup
-- Notes, tasks, and agreements
-- Responsible person assignment
-- Meeting history with Free and Premium access rules
-- Backend auth and secure session handling
-- Backend sync for meetings, tasks, agreements, participants, and workspace
-- Local persistence with basic data versioning
-- Real Premium purchase, restore, management, and entitlement validation
-- Backend AI meeting summaries
-- Private notes with a local-only storage notice
-- Local reminders
-- Meeting export
-- Account export and deletion
-- Google Calendar sync
-- Workspace/member basics
-- Free and Premium feature locks
-- Android-first Capacitor app prepared for release builds
+## Stack and repository map
 
-Public v1 scope is locked in `docs/public-v1-feature-scope.md`. Features listed
-in app navigation, store copy, release notes, or legal copy must be complete for
-production launch and must not be described as test-only, draft, or hidden from
-release. Calendar sync always uses the configured backend OAuth flow.
+- Vue 3, TypeScript, Vite, Pinia, Vue Router, and Vue I18n
+- Capacitor projects under `android/` and `ios/`
+- RevenueCat Capacitor SDK for native purchases
+- `src/features/` for product areas; `src/shared/` for API, config, and common services
 
-## Tech Stack
+The backend handles authentication, workspace data, billing verification,
+calendar OAuth, AI calls, and sync. See the API README for its setup and
+API documentation.
 
-- Vue 3
-- TypeScript
-- Vite
-- Capacitor
-- Android-first, iOS-ready architecture
-- Pinia
-- Vue Router
-- ESLint
-- Prettier
-- npm
+## Run locally
 
-## Project Structure
+**Requirements:** Node.js 24, npm, and a running OurWeek API. Docker and the
+Supabase CLI are needed if you run the backend database locally. Android Studio
+and a JDK are needed for an Android build; Xcode is needed for iOS.
 
-```txt
-src/
-  app/
-    router/
-    stores/
-    App.vue
-  pages/
-  features/
-    access/
-    auth/
-    calendar/
-    export/
-    meeting/
-    participants/
-    private-notes/
-    reminders/
-    subscription/
-    tasks/
-    workspace/
-  shared/
-    api/
-    components/
-    composables/
-    config/
-    services/
-  styles/
-android/
-docs/
+1. Start the API using its local setup instructions.
+2. In this repository, install dependencies and create a local configuration:
+
+   ```sh
+   npm ci
+   cp .env.example .env
+   ```
+
+   Set `VITE_API_BASE_URL` in `.env` to the API origin. The backend example
+   listens on `http://localhost:3000`; update the frontend example's
+   `localhost:3030` value if you use that default. The Vite server uses port
+   `3007`, so add `http://localhost:3007` to the API's
+   `CORS_ALLOWED_ORIGINS` for browser development. For an emulator or physical
+   phone, use an address it can reach instead of the computer's `localhost`.
+
+3. Start the Vite development server:
+
+   ```sh
+   npm run dev
+   ```
+
+   Open the URL printed by Vite to inspect the app in a browser. Native
+   behavior, including purchases and local notifications, needs a device or
+   emulator.
+
+4. For Android, build the web assets, sync Capacitor, then open the project:
+
+   ```sh
+   npm run cap:sync
+   npm run cap:open
+   ```
+
+   For iOS, use `npm run cap:sync:ios` and open `ios/App/App.xcworkspace`
+   in Xcode.
+
+On PowerShell, use `Copy-Item .env.example .env` in place of `cp`.
+
+## Configuration and release builds
+
+The checked-in `.env.example` documents local configuration.
+`.env.release.example` documents the public values required for a release.
+Values beginning with `VITE_` are bundled into the app and must never contain
+server secrets. The backend keeps Supabase service-role credentials, provider
+keys, webhook secrets, and signing secrets.
+
+A release build uses Vite's `release` mode and validates its required public
+settings:
+
+```sh
+cp .env.release.example .env.release.local
+# Replace example values with your own public configuration.
+npm run build:prod
 ```
 
-## Getting Started
+`npm run cap:sync:prod` packages the production web build for Android and
+iOS. Native purchases, Google sign-in, Sentry upload, and other external
+integrations need the corresponding provider setup. Keep local environment
+files, signing material, and credentials out of Git.
 
-Install dependencies:
+## Verify the source
 
-```bash
-npm install
-```
-
-Run the web app in development:
-
-```bash
-npm run dev
-```
-
-Build the production web bundle:
-
-```bash
+```sh
+npm run typecheck
+npm test
+npm run check
 npm run build
 ```
 
-Run quality checks:
+CI runs the combined `npm run ci` check with a synthetic API URL. The app's
+[release scope](docs/public-v1-feature-scope.md) and
+[Android release notes](docs/android-mvp-release-readiness.md) provide more
+detail about behavior and device validation.
 
-```bash
-npm run check
-```
+## License
 
-Enable the mobile vConsole debug panel only for local or staging builds:
-
-```txt
-VITE_VCONSOLE_ENABLED=true
-```
-
-Use `npm run build:staging` or `npm run cap:sync:staging` when testing a
-staging bundle. An enabled staging panel opens before router startup, and its
-floating switch is kept above the Android system navigation area. Authentication
-requests are excluded from vConsole's network panel; app diagnostics log only
-redacted stages, paths, statuses, durations, and error categories. Release and
-production modes always disable vConsole, even if the flag is set. Because the
-remaining console and network details may still contain sensitive debugging
-information, use it only with non-production data and never enable it for a
-public release.
-
-Format files:
-
-```bash
-npm run format
-```
-
-## Android Development
-
-The Capacitor app is configured with:
-
-- App name: `OurWeek`
-- App id: `com.ourweek.app`
-- Web output directory: `dist`
-
-Build and sync web assets into Android:
-
-```bash
-npm run cap:sync
-```
-
-Open the Android project:
-
-```bash
-npm run cap:open:android
-```
-
-Android Studio and a configured JDK are required for native builds.
-
-## Data and Privacy Notes
-
-OurWeek stores app data locally on the device and syncs selected account,
-workspace, meeting, task, agreement, and participant data in backend API mode.
-Meetings, tasks, agreements, participants, settings, private notes,
-and onboarding state are stored through the shared local storage service.
-
-Sensitive auth tokens must use secure token storage when auth or backend API
-mode is enabled. Do not store access tokens, refresh tokens, OAuth tokens, API
-keys, payment data, or other secrets in local storage, Capacitor Preferences,
-logs, exports, or user-visible errors.
-
-Do not claim encryption unless it is implemented. Cloud sync claims must match
-the backend-backed behavior that is actually connected and tested.
-
-Private notes are stored on this device unless a reviewed sync design is
-implemented.
-
-## Premium and AI Notes
-
-Paid Premium must not rely on frontend-only state in production. Production
-Premium entitlement must come from trusted backend or store validation before
-paid features are unlocked.
-
-Native purchases use RevenueCat and every entitlement is validated by the
-backend before Premium access is granted.
-
-AI summaries are Premium-gated. Production AI summaries must go through the
-backend. API keys must not be placed in the mobile app.
-
-AI summaries may be inaccurate. Review before relying on them.
-
-## Environment Configuration
-
-The backend is required for every app run:
-
-```txt
-VITE_API_BASE_URL=http://localhost:3030
-```
-
-Development and builds fail immediately when `VITE_API_BASE_URL` is missing or
-invalid. Local HTTP is accepted for development; public release builds require
-a public HTTPS backend URL.
-
-Public release builds use the strict production configuration gate:
-
-```bash
-copy .env.release.example .env.release.local
-npm run build:production
-```
-
-The build fails unless a public HTTPS backend and explicit Android
-RevenueCat/product identifiers are
-configured. The validator reports variable names and corrective actions but
-does not print their values. `npm run cap:sync:production` applies the same gate
-before syncing Android.
-
-Google Calendar sync always uses the backend for OAuth, token handling, sync,
-disconnect, and revoke behavior.
-
-Never put secrets in Vite environment variables. Values exposed through Vite are
-bundled into the mobile/web app.
-
-## Useful Scripts
-
-```bash
-npm run dev
-npm run build
-npm run preview
-npm run lint
-npm run lint:fix
-npm run format
-npm run format:check
-npm run check
-npm run cap:sync
-npm run cap:open:android
-```
-
-## Release Readiness
-
-Android release preparation notes are tracked in:
-
-```txt
-docs/android-mvp-release-readiness.md
-```
-
-The app is being prepared for a public v1 release with paid Premium. Do not
-publish a paid release until the release gates below are resolved.
-
-## Before Public Release
-
-- Replace draft Privacy Policy and Terms with reviewed legal documents.
-- Replace temporary launcher icon and splash assets with production artwork.
-- Configure Android Studio, JDK, signing, and Play Console release setup.
-- Produce and verify a signed Android release build or AAB.
-- Run real-device Android QA for restart, offline use, storage, and layout.
-- Connect real subscription purchase, restore, management, and entitlement
-  validation before selling Premium.
-- Add backend-supported AI summaries before offering production AI features.
-- Confirm Google Play Data Safety answers against final app behavior.
-
-## Product Tone
-
-OurWeek should stay calm, practical, and neutral.
-
-Use wording such as:
-
-- "What should we agree on?"
-- "Who will take care of this?"
-- "Still relevant?"
-- "Review unfinished tasks"
-- "What felt stressful this week?"
-
-Avoid shame, blame, therapy claims, productivity scoring, or enterprise task
-management language.
+Source code in this repository is licensed under the
+[Mozilla Public License 2.0](LICENSE).
