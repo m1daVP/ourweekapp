@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { shallowMount } from '@vue/test-utils';
+import * as storageService from '@/shared/services/storageService';
 
 const state = vi.hoisted(() => ({
   hasPremiumEntitlement: false,
@@ -77,6 +78,17 @@ vi.mock('@/shared/composables/usePullToRefresh', () => ({
 
 vi.mock('@/shared/services/storageService', () => ({
   clearStorageRecoveryMessages: vi.fn(),
+  readStorageSlice: vi.fn(
+    (key: string, fallback: { participants?: unknown[] }) => {
+      if (key === 'participants') {
+        return {
+          participants: fallback.participants ?? [],
+        };
+      }
+
+      return fallback;
+    }
+  ),
   storageRecoveryState: { value: { messages: [] } },
 }));
 
@@ -143,49 +155,129 @@ describe('AppShell Premium profile ring', () => {
     expect(state.dismissToast).toHaveBeenCalledOnce();
   });
 
-  it('dismisses the shared in-app notification after an upward swipe', async () => {
+  it('moves the shared in-app notification with a short upward drag', async () => {
     showNotification();
     const wrapper = mountAppShell();
     const notification = wrapper.get('.in-app-notification');
 
     expect(notification.text()).toContain('Account export downloaded.');
-    await notification.trigger('pointerdown', { clientY: 180 });
-    await notification.trigger('pointerup', { clientY: 120 });
+    await notification.trigger('pointerdown', {
+      clientX: 20,
+      clientY: 180,
+      pointerId: 1,
+    });
+    await notification.trigger('pointermove', {
+      clientX: 20,
+      clientY: 171,
+      pointerId: 1,
+    });
+
+    expect(
+      notification.element.style.getPropertyValue(
+        '--in-app-notification-drag-offset'
+      )
+    ).toBe('-9px');
+    expect(notification.classes()).toContain('in-app-notification--dragging');
+
+    await notification.trigger('pointerup', {
+      clientX: 20,
+      clientY: 171,
+      pointerId: 1,
+    });
+
+    expect(
+      notification.element.style.getPropertyValue(
+        '--in-app-notification-drag-offset'
+      )
+    ).toBe('0px');
+    expect(notification.classes()).not.toContain(
+      'in-app-notification--dragging'
+    );
+    expect(state.dismissInAppNotification).not.toHaveBeenCalled();
+  });
+
+  it('dismisses the notification as soon as an upward drag reaches 15px', async () => {
+    showNotification();
+    const wrapper = mountAppShell();
+    const notification = wrapper.get('.in-app-notification');
+
+    await notification.trigger('pointerdown', {
+      clientX: 20,
+      clientY: 180,
+      pointerId: 1,
+    });
+    await notification.trigger('pointermove', {
+      clientX: 20,
+      clientY: 165,
+      pointerId: 1,
+    });
 
     expect(state.dismissInAppNotification).toHaveBeenCalledOnce();
   });
 
-  it('keeps the notification for a short, downward, or sideways movement', async () => {
+  it('keeps the notification at rest for downward and sideways drags', async () => {
     showNotification();
     const wrapper = mountAppShell();
     const notification = wrapper.get('.in-app-notification');
 
     await notification.trigger('pointerdown', { clientX: 20, clientY: 180 });
-    await notification.trigger('pointerup', { clientX: 20, clientY: 150 });
-    await notification.trigger('pointerdown', { clientX: 20, clientY: 120 });
-    await notification.trigger('pointerup', { clientX: 20, clientY: 180 });
-    await notification.trigger('pointerdown', { clientX: 20, clientY: 180 });
-    await notification.trigger('pointerup', { clientX: 100, clientY: 180 });
-    await notification.trigger('pointerdown', { clientX: 20, clientY: 180 });
-    await notification.trigger('pointerup', { clientX: 100, clientY: 120 });
+    await notification.trigger('pointermove', { clientX: 20, clientY: 210 });
+    await notification.trigger('pointermove', { clientX: 100, clientY: 150 });
 
     expect(state.dismissInAppNotification).not.toHaveBeenCalled();
-    expect(wrapper.find('.in-app-notification__dismiss').exists()).toBe(false);
+    expect(
+      notification.element.style.getPropertyValue(
+        '--in-app-notification-drag-offset'
+      )
+    ).toBe('0px');
   });
 
-  it('keeps the notification after a cancelled upward gesture', async () => {
+  it('resets the notification after cancellation or lost pointer capture', async () => {
     showNotification();
     const wrapper = mountAppShell();
     const notification = wrapper.get('.in-app-notification');
 
-    await notification.trigger('pointerdown', { clientY: 180 });
+    await notification.trigger('pointerdown', { clientX: 20, clientY: 180 });
+    await notification.trigger('pointermove', { clientX: 20, clientY: 171 });
     await notification.trigger('pointercancel');
-    await notification.trigger('pointerup', { clientY: 120 });
+    expect(
+      notification.element.style.getPropertyValue(
+        '--in-app-notification-drag-offset'
+      )
+    ).toBe('0px');
+
+    await notification.trigger('pointerdown', { clientX: 20, clientY: 180 });
+    await notification.trigger('pointermove', { clientX: 20, clientY: 171 });
+    await notification.trigger('lostpointercapture');
 
     expect(state.dismissInAppNotification).not.toHaveBeenCalled();
+    expect(
+      notification.element.style.getPropertyValue(
+        '--in-app-notification-drag-offset'
+      )
+    ).toBe('0px');
   });
 
   it('renders the signed-in participant avatar instead of the first household avatar', () => {
+    const avatar = mountAppShell().find('.app-top-bar__avatar span');
+
+    expect(avatar.text()).toBe('AL');
+    expect(avatar.attributes('style')).toContain('background-color: #6b8f71');
+  });
+
+  it('uses persisted participant data when the store has not hydrated yet', () => {
+    state.activeParticipants = [];
+    vi.mocked(storageService.readStorageSlice).mockReturnValue({
+      participants: [
+        {
+          id: 'alex',
+          email: 'alex@example.com',
+          initials: 'AL',
+          avatarColor: '#6b8f71',
+        },
+      ],
+    });
+
     const avatar = mountAppShell().find('.app-top-bar__avatar span');
 
     expect(avatar.text()).toBe('AL');

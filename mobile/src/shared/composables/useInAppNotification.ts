@@ -13,7 +13,7 @@ interface InAppNotificationState {
   tone: InAppNotificationTone;
 }
 
-const DEFAULT_DURATION_MS = 3000;
+const DEFAULT_DURATION_MS = 10000;
 const notificationState = ref<InAppNotificationState | null>(null);
 let notificationId = 0;
 let dismissalTimer: ReturnType<typeof setTimeout> | undefined;

@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch, type CSSProperties } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ParticipantAvatar from '@/features/participants/components/ParticipantAvatar.vue';
+import type { Participant } from '@/features/participants/types';
 import { useRoute } from 'vue-router';
 import BottomNavigation from '@/shared/components/BottomNavigation.vue';
 import smallLogoUrl from '@/assets/small-logo.svg';
@@ -10,6 +11,7 @@ import { useParticipantsStore } from '@/app/stores/participants';
 import { useSubscriptionStore } from '@/app/stores/subscription';
 import {
   clearStorageRecoveryMessages,
+  readStorageSlice,
   storageRecoveryState,
 } from '@/shared/services/storageService';
 import { useToast } from '@/shared/composables/useToast';
@@ -38,12 +40,17 @@ const participantsStore = useParticipantsStore();
 const subscriptionStore = useSubscriptionStore();
 const { dismissToast, showToast, toastState } = useToast();
 const { dismissInAppNotification, notificationState } = useInAppNotification();
-const IN_APP_NOTIFICATION_SWIPE_DISMISS_THRESHOLD = 48;
-const inAppNotificationPointerStart = ref<{ x: number; y: number } | null>(
-  null
-);
+const IN_APP_NOTIFICATION_DRAG_DISMISS_THRESHOLD = 20;
+const inAppNotificationPointerStart = ref<{
+  pointerId: number;
+  x: number;
+  y: number;
+} | null>(null);
+const inAppNotificationDragOffset = ref(0);
+const isInAppNotificationDragging = ref(false);
 const recoveryMessages = computed(() => storageRecoveryState.value.messages);
 const activeParticipants = computed(() => participantsStore.activeParticipants);
+type ParticipantLookup = Partial<Participant> & { email?: string };
 const currentUserParticipant = computed(() => {
   const email = authStore.user?.email.trim().toLocaleLowerCase();
 
@@ -51,11 +58,26 @@ const currentUserParticipant = computed(() => {
     return null;
   }
 
-  return (
-    activeParticipants.value.find(
-      (participant) => participant.email?.trim().toLocaleLowerCase() === email
-    ) ?? null
-  );
+  const persistedParticipants =
+    readStorageSlice<{ participants?: ParticipantLookup[] }>('participants', {
+      participants: [],
+    }).participants ?? [];
+
+  const participant = [
+    ...activeParticipants.value,
+    ...persistedParticipants,
+  ].find((candidate): candidate is Participant => {
+    const candidateEmail = candidate.email?.trim().toLocaleLowerCase();
+
+    return (
+      candidateEmail === email &&
+      !!candidate.name &&
+      !!candidate.initials &&
+      !!candidate.avatarColor
+    );
+  });
+
+  return participant ?? null;
 });
 const isMeetingRoute = computed(() => route.name === 'meeting');
 const pullToRefreshEnabled = computed(() => isPullToRefreshRoute(route.name));
@@ -118,6 +140,12 @@ const pullStatusText = computed(() => {
 const pullIndicatorStyle = computed(
   () => ({ '--pull-distance': `${pullDistance.value}px` }) as CSSProperties
 );
+const inAppNotificationDragStyle = computed(
+  () =>
+    ({
+      '--in-app-notification-drag-offset': `${inAppNotificationDragOffset.value}px`,
+    }) as CSSProperties
+);
 
 function handleToastAction(action: () => void) {
   action();
@@ -125,30 +153,72 @@ function handleToastAction(action: () => void) {
 }
 
 function handleInAppNotificationPointerDown(event: PointerEvent) {
+  const notification = event.currentTarget;
+
   inAppNotificationPointerStart.value = {
+    pointerId: event.pointerId,
     x: event.clientX,
     y: event.clientY,
   };
-}
-
-function handleInAppNotificationPointerUp(event: PointerEvent) {
-  const start = inAppNotificationPointerStart.value;
-  const upwardDistance = start ? start.y - event.clientY : 0;
-  const horizontalDistance = start ? Math.abs(event.clientX - start.x) : 0;
-
-  inAppNotificationPointerStart.value = null;
+  inAppNotificationDragOffset.value = 0;
+  isInAppNotificationDragging.value = true;
 
   if (
-    start !== null &&
-    upwardDistance >= IN_APP_NOTIFICATION_SWIPE_DISMISS_THRESHOLD &&
-    upwardDistance > horizontalDistance
+    notification instanceof HTMLElement &&
+    typeof notification.setPointerCapture === 'function'
   ) {
+    notification.setPointerCapture(event.pointerId);
+  }
+}
+
+function resetInAppNotificationDrag() {
+  inAppNotificationPointerStart.value = null;
+  inAppNotificationDragOffset.value = 0;
+  isInAppNotificationDragging.value = false;
+}
+
+function isActiveInAppNotificationPointer(event: PointerEvent) {
+  return inAppNotificationPointerStart.value?.pointerId === event.pointerId;
+}
+
+function handleInAppNotificationPointerMove(event: PointerEvent) {
+  if (!isActiveInAppNotificationPointer(event)) {
+    return;
+  }
+
+  const start = inAppNotificationPointerStart.value;
+  if (!start) {
+    return;
+  }
+
+  const verticalOffset = event.clientY - start.y;
+  const horizontalDistance = Math.abs(event.clientX - start.x);
+  const canDragUpward =
+    verticalOffset < 0 && Math.abs(verticalOffset) > horizontalDistance;
+
+  inAppNotificationDragOffset.value = canDragUpward ? verticalOffset : 0;
+
+  if (
+    -inAppNotificationDragOffset.value >=
+    IN_APP_NOTIFICATION_DRAG_DISMISS_THRESHOLD
+  ) {
+    resetInAppNotificationDrag();
     dismissInAppNotification();
   }
 }
 
-function handleInAppNotificationPointerCancel() {
-  inAppNotificationPointerStart.value = null;
+function handleInAppNotificationPointerUp(event: PointerEvent) {
+  if (!isActiveInAppNotificationPointer(event)) {
+    return;
+  }
+
+  resetInAppNotificationDrag();
+}
+
+function handleInAppNotificationPointerCancel(event: PointerEvent) {
+  if (isActiveInAppNotificationPointer(event)) {
+    resetInAppNotificationDrag();
+  }
 }
 
 watch(
@@ -278,13 +348,19 @@ watch(
         :class="[
           'in-app-notification',
           `in-app-notification--${notificationState.tone}`,
+          {
+            'in-app-notification--dragging': isInAppNotificationDragging,
+          },
         ]"
+        :style="inAppNotificationDragStyle"
         role="status"
         aria-live="polite"
         aria-atomic="true"
         @pointerdown="handleInAppNotificationPointerDown"
+        @pointermove="handleInAppNotificationPointerMove"
         @pointerup="handleInAppNotificationPointerUp"
         @pointercancel="handleInAppNotificationPointerCancel"
+        @lostpointercapture="handleInAppNotificationPointerCancel"
       >
         <span class="material-symbols-outlined" aria-hidden="true">
           {{ notificationState.tone === 'error' ? 'error' : 'check_circle' }}
