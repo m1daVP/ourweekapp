@@ -1,0 +1,44 @@
+name: Project CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  project-ci:
+    name: Run project CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run CI checks
+        run: npm run ci
+
+  # deploy:
+  #   name: Trigger Render deploy
+  #   needs: project-ci
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Call Render deploy hook
+  #       env:
+  #         RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+  #       run: |
+  #         if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+  #           echo "RENDER_DEPLOY_HOOK_URL secret not set; skipping deploy trigger. Configure it in repo settings to enable auto-deploy-on-green."
+  #           exit 0
+  #         fi
+  #         curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
